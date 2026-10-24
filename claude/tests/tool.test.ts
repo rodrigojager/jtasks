@@ -37,7 +37,7 @@ test('plan binds the run to the session; status answers; another --run is refuse
   installSession(on, ROOT)
   const states: unknown[] = []
   on('state.set', (_$, e, next) => {
-    states.push(e)
+    if (e.key === 'run') states.push(e)
     return next(e)
   })
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })

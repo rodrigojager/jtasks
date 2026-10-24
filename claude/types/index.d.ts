@@ -7,11 +7,37 @@ export type BoundRun = {
   root: string
 }
 
+/** One checklist line of the pane (the core's ViewLine). */
+export type PaneLine = {
+  mark: string
+  id: string
+  title: string
+  detail: string
+  state: 'done' | 'running' | 'waiting' | 'ready' | 'blocked' | 'skipped' | 'failed'
+}
+
+/** What the pane draws (the core's View): a run's checklist, or the repository's runs when none is bound. */
+export type PaneView =
+  | {
+      kind: 'run'
+      run: string
+      paused: boolean
+      done: number
+      total: number
+      skipped: number
+      failed: number
+      remaining: number
+      percent: number
+      lines: PaneLine[]
+    }
+  | { kind: 'runs'; runs: { id: string; status: string; done: number; total: number; percent: number }[] }
+
 declare module 'claude-code' {
   interface PluginState {
     'goal-tasks': {
       run: BoundRun | null
       collapsed: boolean
+      view: Shaped<PaneView | null>
     }
   }
 }

@@ -133,3 +133,15 @@ tarefas em andamento aparecem como "posse perdida" no `status` e o `resume` as d
 plugin test` roda sem sistema de arquivos e sem processos, os testes do mod usam uma máquina falsa
 (`claude/tests/machine.ts`: arquivos em memória e as respostas de git, jlock e cmd); o fluxo real com git e jlock
 é coberto pelos testes do núcleo e do plugin do OpenCode.
+
+## 10. Claude Code: o comando é `/goal-tasks`, não `/tasks` (ticket 15)
+
+**O plano (seção 14):** `$.command.register({ name: "tasks" })`; `/tasks` abre e fecha o painel.
+
+**Por quê:** o Claude Code já tem um `/tasks` próprio (as tarefas em segundo plano); `claude plugin validate`
+avisa que `$.command.register` recusa esse nome e o hook que o chama seria pulado.
+
+**No lugar:** `/goal-tasks` abre e fecha o painel "Tasks"; o resto como no plano (botão "▾/▸" no cabeçalho, estado
+recolhido em `$.store` e espelhado em `$.state`, `$.clock.every(2000)` relendo por mtime de `tasks.json`/`run.json`
+e pela lista do jlock enquanto o painel está aberto). Os átomos de `$.state` ficam em `register.tsx`, porque o
+validador só aceita a referência escrita no próprio arquivo que a usa.

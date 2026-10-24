@@ -3,6 +3,7 @@
 // own hooks stand for the engine, so every $.fs and $.process call of the mod lands here.
 
 import type { On } from 'claude-code'
+import { mock } from 'claude-code/testing'
 
 type Node = { kind: 'file' | 'dir'; text: string; mtimeMs: number }
 
@@ -171,9 +172,29 @@ export function installMachine(on: On, root: string): Machine {
   }
 }
 
-/** The engine's answers a session needs beneath the mod: start, cwd, id, tool registration, env. */
+/**
+ * The engine's answers a session needs beneath the mod: start, cwd, id, tool and command registration, env, a
+ * clock that moves only when the test moves it, a store, and panes that always fit.
+ */
 export function installSession(on: On, cwd: string, sessionId = 'session-1') {
   const tools: string[] = []
+  const panes: string[] = []
+  const clock = mock.clock(on)
+  const store = new Map<string, unknown>()
+  on('store.get', (_$, e) => ({ value: store.get(e.key) }))
+  on('store.set', (_$, e) => {
+    store.set(e.key, e.value)
+    return { value: undefined }
+  })
+  on('command.register', (_$, e) => ({ value: { command: e.name } }) as never)
+  on('ui.open', (_$, e) => {
+    panes.push(`open ${e.id}`)
+    return { value: { isPlaced: true as const } }
+  })
+  on('ui.close', (_$, e) => {
+    panes.push(`close ${e.id}`)
+    return { value: undefined }
+  })
   on('session.start', (_$, e) => ({ cwd: e.cwd }) as never)
   on('session.cwd', () => ({ value: cwd }))
   on('session.id', () => ({ value: sessionId }))
@@ -182,5 +203,5 @@ export function installSession(on: On, cwd: string, sessionId = 'session-1') {
     tools.push(e.name)
     return { value: { tool: `mcp__goal-tasks__${e.name}` } }
   })
-  return { tools }
+  return { tools, panes, clock, store }
 }
