@@ -1,147 +1,136 @@
 # Desvios do plano
 
-O que saiu diferente de `docs/PLAN.md` durante a implementação: o quê, por quê e o que foi feito no lugar.
+O que saiu diferente de `docs/PLAN.md` durante a implementação. Para cada desvio: **o que mudou**, a
+**consequência** para quem usa, e **o que fazer** (a sugestão, ou o que já foi feito). Um desvio "absorvido no plano"
+virou texto da revisão 5.2 e deixou de ser desvio; um "resolvido" foi corrigido por um ticket.
 
-## 1. O `hold` do CLI vive destacado e é devolvido por `jlock release` (ticket 04)
+Dois termos que aparecem em quase todos:
 
-**O plano:** `start` e `claim` sobem um `jlock hold`; `done`/`skip`/`fail`/`release` escrevem `release` na entrada
-padrão de cada `hold`; `jlock release --group --owner` só como reserva, de outra janela.
+- **Trava:** o jlock marca um arquivo (ou pasta) como "em uso pela tarefa T01". Enquanto a trava existe, outra tarefa
+  não mexe nesse arquivo.
+- **`hold`:** o processo pequeno do jlock que segura essa trava. Enquanto ele está vivo, a trava existe; quando ele
+  termina, a trava some.
 
-**Por quê:** o CLI `tasks` é um processo curto: termina logo depois de cada comando, e com ele a entrada padrão do
-`hold`. Não há quem escreva `release` depois.
+## 1. Pelo CLI, a trava fica num processo separado (ticket 04) — resolvido pelo ticket 21
 
-**No lugar:** no CLI o `hold` sobe destacado (sem console, entrada padrão fechada, saída num arquivo da execução,
-`holds/<tarefa>-<n>.out`) e é devolvido por `jlock release --group <run> --owner gt:<run>/<tarefa>`; o `hold`
-percebe no próximo heartbeat e sai com 14, que aqui é esperado. Os hosts de processo longo (plugin do OpenCode,
-testes) mantêm o `hold` ligado e usam a entrada padrão, como o plano diz; o mod do Claude Code tem o seu caso
-(desvio 3).
+**O que mudou:** o plano supunha que o `tasks` ficaria aberto segurando a trava e a devolveria pela entrada padrão
+do `hold`. Cada comando do CLI termina na hora, então o `start` deixava o `hold` rodando sozinho em segundo plano, com
+código próprio para destacá-lo, e o `done` o encerrava com `jlock release`.
 
-## 2. Um `hold` cujo dono morreu não morre junto no Windows (ticket 04)
+**Consequência:** funciona igual para quem usa; cada tarefa em andamento tem um processo do jlock em segundo plano
+até o `done`.
 
-**O plano:** "se a janela morre, os `hold`s morrem com ela e as travas somem em ≤ 30 s".
+**O que fazer:** o jlock ganhou `hold --detach` nativo (uma chamada, resposta na mão, o próprio jlock segura a
+trava) e `--ttl`. O ticket 21 troca o código próprio por `--detach --ttl` no CLI e no mod; o plano (rev. 5.2, seções
+4 e 20) já diz isso.
 
-**Por quê:** o `jlock hold` ignora o fim da entrada padrão (EOF): continua vivo e renovando. No Windows, encerrar
-um processo não encerra os filhos; um `hold` filho de uma janela que caiu fica órfão e segura a trava para sempre
-(verificado com o jlock 0.1.0: `hold` com stdin fechado continua `granted`).
+## 2. No Windows, uma trava pode ficar presa se a janela cair (ticket 04) — resolvido por J18 (jlock) e 21
 
-**No lugar:** o host que segura `hold`s encerra a própria árvore ao sair (o Claude Code encerra os filhos de
-`$.process.spawn` quando o módulo descarrega; os testes simulam a janela morta encerrando a árvore do processo pelo
-PID). Para o jlock fica o pedido, a registrar no plano dele: `jlock hold --release-on-eof` (ou `--parent <pid>`),
-que solta a trava quando a entrada padrão fecha; com isso, qualquer dono que morre solta a posse sem depender do
-host. Nada foi mudado no jlock.
+**O que mudou:** o plano dizia que, se a janela morre, as travas somem em até 30 s. O `jlock hold` ignorava o fim da
+entrada padrão e, no Windows, encerrar um processo não encerra os filhos: o `hold` continuava vivo e renovando.
 
-## 3. Trava curta de escrita da execução (ticket 02)
+**Consequência:** se o OpenCode ou o Claude Code fechassem de forma abrupta, a trava ficava até alguém soltar à mão
+com `jlock release`; outras tarefas que precisassem do arquivo esperavam.
 
-**O plano:** gravação atômica (`.tmp` + `rename`), releitura antes de escrever e `revision` incremental.
+**O que fazer:** três casos, três respostas. A janela inteira cair: o jlock ganha `hold --release-on-eof` (ticket 18
+do jlock), e o plugin do OpenCode, que fica aberto, usa isso; a trava some no instante em que o cano fecha. O CLI
+(que termina a cada comando) e o mod (cuja API fecha a entrada padrão na partida): `--detach --ttl`, e a trava expira
+sozinha no prazo (`holdTtl`, 2 h por padrão). Uma tarefa que morre com a janela viva: o mod já devolvia a tarefa à
+fila; o plugin do OpenCode passa a fazer o mesmo (ticket 22).
 
-**Por quê:** a releitura antes de escrever deixa uma janela entre a releitura e o `rename`: dois processos que leem
-a mesma revisão gravam os dois, e uma mudança se perde (o teste de `revision` concorrente mostrou isso).
+## 3. Uma trava extra na hora de gravar o `tasks.json` (ticket 02) — absorvido no plano (rev. 5.2)
 
-**No lugar:** além do que o plano pede, cada leitura-mudança-escrita roda sob uma trava curta da execução, uma pasta
-`.write.lock` criada de forma exclusiva (atômica em qualquer sistema de arquivos); uma trava com mais de 10 s é de
-um processo morto e é quebrada. A `revision` continua recusando escrita baseada em leitura velha.
+**O que mudou:** o plano pedia "ler, conferir a versão e gravar". Um teste mostrou que dois processos ao mesmo tempo
+ainda podiam perder a alteração de um deles. Cada gravação passou a ter uma trava rápida (a pasta `.write.lock`,
+criada de forma exclusiva), que dura milissegundos.
 
-## 4. `next` não vê um `*` de fora do repositório (ticket 04)
+**Consequência:** nenhuma gravação se perde. Se um processo morrer no meio, o próximo espera no máximo 10 s e segue.
 
-**O plano:** `next` lê `jlock list --under <repo> --json` uma vez.
+**O que fazer:** nada; é mais seguro que o original e está na seção 5 do plano.
 
-**Por quê:** a chave `*` (tarefa `exclusive` de qualquer execução da máquina) não é um caminho e não aparece em
-`--under`.
+## 4. O `next` não enxerga, num caso raro, uma tarefa exclusiva de outro projeto (ticket 04)
 
-**No lugar:** `next` lê `--under <repo>`, e a lista inteira da máquina quando a execução tem tarefa `exclusive`
-em jogo. Um `*` segurado por outra execução sem `exclusive` na nossa só aparece no `start`, que recebe `queued` do
-jlock e responde "não estava pronta" sem gravar nada.
+**O que mudou:** uma tarefa `exclusive` trava a chave `*`, a máquina inteira; essa chave não aparece na consulta que
+o `next` faz, que olha só o repositório (`--under`). O `next` lê a lista inteira da máquina só quando a própria
+execução tem tarefa `exclusive`.
 
-## 5. `done` tolera mudanças que estão na posse de outra tarefa em andamento (ticket 05)
+**Consequência:** nesse caso raro, o `next` mostra uma tarefa como pronta e o `start` responde "não estava pronta",
+sem gravar nada. Só uma tentativa desperdiçada.
 
-**O plano:** no `done`, arquivos modificados fora da posse → recusa.
+**O que fazer:** aceitar; o custo é mínimo e o caso é raro.
 
-**Por quê:** as tarefas paralelas trabalham no mesmo checkout; quando T01 termina, os arquivos que T02 (ainda em
-andamento) já mudou aparecem no `git status` e estão fora da posse de T01. Recusar travaria todo `done` enquanto
-houver outra tarefa em andamento.
+## 5. O `done` não reclama dos arquivos que outra tarefa está mexendo (ticket 05) — absorvido no plano (rev. 5.2)
 
-**No lugar:** o `done` separa as mudanças em três grupos: da posse da tarefa (vão para o commit), da posse de outra
-tarefa em andamento da execução ou de uma chave que outro dono segura no jlock sob o repositório (ficam no disco,
-fora do commit), e de ninguém (recusam o `done`, com a lista e a sugestão de `tasks claim`).
+**O que mudou:** o plano dizia que o `done` recusa se houver arquivo alterado fora da posse da tarefa. As tarefas
+paralelas usam a mesma pasta: quando T01 termina, os arquivos que T02 está editando também aparecem como alterados.
+O `done` separa as alterações em três grupos: as da tarefa entram no commit; as de outra tarefa em andamento (ou de
+outro dono no jlock) ficam no disco, fora do commit; as de ninguém fazem o `done` recusar, sugerindo `tasks claim`.
 
-## 6. `attempts` conta no `start`; `--keep-owners` não libera nenhuma (ticket 07)
+**Consequência:** dá para rodar tarefas em paralelo de verdade. Sem isso, nenhum `done` funcionaria enquanto outra
+tarefa estivesse aberta.
 
-**O plano:** `release` e `resume` fazem `attempts+1`; `resume` mantém a tarefa que ainda tem travas, "salvo
-`--keep-owners` ao contrário".
+**O que fazer:** nada; está na seção 4 do plano. Só deixaria de ser necessário com uma pasta por tarefa (item 7 da
+seção 18), que ficou de fora.
 
-**Por quê:** contar no `start` dá o mesmo número (tentativas começadas) sem depender de quem libera: um `start`
-que não chegou ao `release` (janela morta, posse perdida) também conta. A frase sobre `--keep-owners` é ambígua.
+## 6. As tentativas são contadas no `start` (ticket 07) — absorvido no plano (rev. 5.2)
 
-**No lugar:** `start` faz `attempts+1`; `release`, `resume` e posse perdida comparam com `maxAttempts` e viram
-`failed` quando chega; `retry` zera a contagem (o histórico fica no `log.jsonl`). `resume --keep-owners` não libera
-nenhuma tarefa, nem as sem travas.
+**O que mudou:** o plano contava uma tentativa a mais quando a tarefa era devolvida (`release`, `resume`, posse
+perdida). Agora conta quando ela começa. E `resume --keep-owners` ficou definido como "não devolve nenhuma tarefa à
+fila", porque a frase do plano era ambígua.
 
-## 7. OpenCode: a API real do plugin 2.1.3 (ticket 12)
+**Consequência:** o número é o mesmo na prática, e uma tentativa interrompida (janela morta) também conta. O critério
+do ticket 07 que pedia, ao pé da letra, `attempts+1` na posse perdida ficou desmarcado.
 
-**O plano (seção 15):** ferramenta por `ctx.tool.register`; ligação em `ctx.storage` com `session.family`; perfis
-garantidos por `agent.transform` (efeito `agent-config` no ledger); guarda por "um hook de permissão".
+**O que fazer:** nada; a seção 5 do plano diz "conta no `start`".
 
-**O que a API tem:** `ctx.tool.transform(editor => editor.add(...))` registra ferramentas (não há
-`tool.register`); `session.family` só existe na TUI (`context.data.session.family`), no servidor há
-`session.get` com `parentID`; o editor de `agent.transform` tem `list/get/update/remove/default`, sem `add`: um
-plugin não cria agentes; e o hook de permissão é `ctx.permission.hook("evaluate")`, com `action` (`edit` para
-edit/write/patch, `shell` para comandos) e `resources`.
+## 7. O plugin do OpenCode não consegue criar agentes (ticket 12) — absorvido no plano (rev. 5.2)
 
-**No lugar:** a ferramenta é registrada por `tool.transform`; a ligação é guardada por sessão raiz
-(`binding/<raiz>`), achada subindo os `parentID`; a sessão filha que fez `start`/`claim` fica ligada à tarefa
-(`task/<sessão>`) para a guarda. Os perfis apontam agentes que já existem no `opencode.json`: a chamada
-`subagent` de uma tarefa (`--task <id>` no prompt) recebe o agente do perfil (`tool.hook("execute.before")`),
-perfil desconhecido recusa a chamada, e um perfil com `opencode.model` dá esse modelo ao agente por
-`agent.transform`, só durante a sessão. Como nada é gravado na configuração, não há efeito `agent-config` no
-ledger. A guarda decide no `permission.hook("evaluate")` pela regra do núcleo (`src/guard.ts`).
+**O que mudou:** a API do plugin (2.1.3) é diferente da que o plano supunha. A maior parte só mudou de nome
+(`tool.transform` em vez de `tool.register`; `parentID` em vez de `session.family`; `permission.hook("evaluate")`
+em vez de "um hook de permissão"). A diferença real: um plugin não pode criar agentes, então não há o efeito
+`agent-config` no ledger.
 
-## 8. OpenCode: a barra da seção não vem do HUD (ticket 13)
+**Consequência:** os agentes dos perfis precisam existir na sua configuração. Qualquer nome serve: o perfil diz qual
+agente usar (`opencode.agent`); sem perfis no plano, valem os padrão (`implement`, `implement-deep`, `review`). O
+plugin escolhe o agente certo para cada tarefa e aplica o modelo do perfil, mas não os cria.
 
-**O plano (seção 15):** a seção "Tasks" na sidebar usa a barra `Meter` do HUD.
+**O que fazer:** o pacote passa a trazer os três agentes prontos (ticket 20) e o `tasks doctor --fix` os instala em
+`~/.config/opencode/agents/`, com registro no ledger e desfazer (ticket 28). Um perfil que aponta agente inexistente
+gera aviso no `plan --commit`.
 
-**Por quê:** o HUD é outro projeto (`opencode-hud`), fora deste repositório; importar dele faria o plugin depender
-de uma instalação que não é nossa.
+## 8. A barra de progresso do OpenCode não vem do HUD (ticket 13)
 
-**No lugar:** a barra e as linhas vêm do modelo de exibição do núcleo (`src/view.ts`, `bar()` em oitavos de
-célula), o mesmo que o painel do Claude Code desenha. O resto saiu como o plano supõe: `context.ui.slot({ append:
-"sidebar.content" })`, dados pelo RPC `goal-tasks.state` (`ctx.rpc.register` no servidor, `context.client.rpc` na
-TUI), releitura em `session.tool.success`, no evento `changed` do RPC e a cada 2 s enquanto há tarefa em andamento;
-o estado dobrado fica em `context.storage.store`.
+**O que mudou:** o plano usava a barra `Meter` do `opencode-hud`, que é outro projeto. A barra é nossa, a mesma do
+painel do Claude Code.
 
-## 9. Claude Code: o host do mod (ticket 14)
+**Consequência:** o plugin não depende de você ter o HUD instalado.
 
-**O plano (seção 14):** a ferramenta usa arquivos por `$.fs`, git e jlock por `$.process.run`, e o `jlock hold`
-por `$.process.spawn`; o núcleo grava de forma atômica e fala com o `hold` pela entrada padrão; o resumo fica no
-prompt por `prompt.section` + `$.ui.invalidate("prompt.section")`.
+**O que fazer:** o ticket 23 copia o visual do `Meter` (oitavos de célula, cor principal do tema, trilho apagado),
+sem importar nada do HUD.
 
-**O resumo no prompt:** o Claude Code 2.1.310 não tem `prompt.section`; o evento que compõe o system prompt é
-`prompt.compose`, que roda a cada requisição. O mod acrescenta nele a seção `goal-tasks:protocol` (escopo
-`session`) enquanto há execução ligada, e por rodar a cada requisição ela volta sozinha depois de uma compactação,
-sem `$.ui.invalidate` nem `session.compact`.
+## 9. O mod do Claude Code contorna limites da API (ticket 14)
 
-**O que a API tem:** `$.fs` lê, grava, lista e faz `stat`, mas não renomeia, não apaga e não cria pasta;
-`$.process.spawn` recebe a entrada padrão inteira na partida (`input`) e a fecha, sem escrita depois; e o
-validador recusa `$` passado como argumento (`$` é sempre escrito `$.noun.call(...)` no lugar da chamada).
+**O que mudou:** a API do Claude Code (2.1.310) não renomeia nem apaga arquivos, não cria pasta, não deixa escrever
+na entrada padrão depois que o processo começou, recusa `$` passado como argumento, e não tem `prompt.section`. Os
+contornos: renomear, apagar e criar pasta passam por comandos do sistema (`cmd /d /c move`, `del`, `rmdir`,
+`mkdir`; `mv`, `rm`, `mkdir` fora do Windows); o `session.start` monta uma "porta" de funções que chamam `$`; a trava
+é devolvida por `jlock release`; o resumo no prompt usa `prompt.compose`, que roda a cada requisição e por isso volta
+sozinho depois de uma compactação.
 
-**No lugar:** o `session.start` monta uma "porta" de funções que chamam `$.fs`, `$.process`, `$.clock` e `$.state`
-diretamente, guardada no módulo; o host do núcleo (`claude/hooks/mod-host.ts`) é feito dessa porta. Renomear,
-apagar e criar pasta (inclusive a pasta exclusiva da trava de escrita) vão por `$.process.run`: `cmd /d /c move
-/y`, `rmdir /s /q`, `del /f /q` e `mkdir` no Windows; `mv -f`, `rm` e `mkdir` fora dele. O `hold` sobe por
-`$.process.spawn` e o laço que lê a saída o mantém vivo; para devolver, o núcleo chama `jlock release --group
---owner` e encerra o laço (o que encerra o filho). Um recarregamento do módulo encerra os `hold`s da sessão: as
-tarefas em andamento aparecem como "posse perdida" no `status` e o `resume` as devolve à fila. Como `claude
-plugin test` roda sem sistema de arquivos e sem processos, os testes do mod usam uma máquina falsa
-(`claude/tests/machine.ts`: arquivos em memória e as respostas de git, jlock e cmd); o fluxo real com git e jlock
-é coberto pelos testes do núcleo e do plugin do OpenCode.
+**Consequência:** até o ticket 21, recarregar o mod no meio do trabalho encerrava os `hold`s e as tarefas em
+andamento apareciam como "posse perdida" (o `tasks resume` as devolvia à fila); com `--detach`, a trava sobrevive ao
+recarregamento. Os testes do mod rodam numa máquina simulada (`claude/tests/machine.ts`), porque o
+`claude plugin test` não tem disco nem processos reais.
 
-## 10. Claude Code: o comando é `/jtasks`, não `/tasks` (ticket 15)
+**O que fazer:** o fluxo real com git e jlock é coberto pelo núcleo e pelo plugin do OpenCode; o mod num Claude Code
+de verdade é o ticket 30 (dirigido pelo herdr, com haiku).
 
-**O plano (seção 14):** `$.command.register({ name: "tasks" })`; `/tasks` abre e fecha o painel.
+## 10. O comando é `/jtasks`, não `/tasks` (ticket 15) — absorvido no plano (rev. 5.2)
 
-**Por quê:** o Claude Code já tem um `/tasks` próprio (as tarefas em segundo plano); `claude plugin validate`
-avisa que `$.command.register` recusa esse nome e o hook que o chama seria pulado.
+**O que mudou:** o Claude Code já tem um `/tasks` próprio (as tarefas em segundo plano) e recusaria o registro. O
+nome `/jtasks` foi escolhido pelo usuário.
 
-**No lugar:** `/jtasks` (nome escolhido pelo usuário) abre e fecha o painel "Tasks"; o resto como no plano (botão "▾/▸" no cabeçalho, estado
-recolhido em `$.store` e espelhado em `$.state`, `$.clock.every(2000)` relendo por mtime de `tasks.json`/`run.json`
-e pela lista do jlock enquanto o painel está aberto). Os átomos de `$.state` ficam em `register.tsx`, porque o
-validador só aceita a referência escrita no próprio arquivo que a usa.
+**Consequência:** só o nome, e só no Claude Code: no OpenCode a seção fica na barra lateral e se dobra com um clique;
+a ferramenta do modelo e o CLI continuam se chamando `tasks`.
+
+**O que fazer:** nada; está na seção 14 do plano.

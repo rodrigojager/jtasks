@@ -17,6 +17,14 @@ Revisão 5.1, 24/10/2026: o plano pode ser montado em lotes, num rascunho, para 
 JSON inteiro numa resposta só (limite de tokens de saída) nem reenviar tudo para corrigir uma tarefa. Marcado com
 **[rev. 5.1]** nas seções 2, 3, 6 e 17.
 
+Revisão 5.2, 24/10/2026: os itens 2 a 6 da seção 18 estão entregues (tickets 01 a 18) e a revisão absorve o que
+saiu diferente e foi aceito (`docs/DEVIATIONS.md`: trava curta de escrita, `done` em três grupos, `attempts` contado
+no `start`, perfis apontando agentes existentes, `/jtasks`), renomeia os perfis e agentes para nomes completos no
+padrão do OpenCode (`implement`, `implement-deep`, `review`), e acrescenta: posse por `jlock hold --detach --ttl`
+(CLI e mod) e `--release-on-eof` (plugin), fim de subagente no OpenCode, barra no estilo do `opencode-hud`, idiomas
+(seção 21), `tasks doctor` (seção 22), skills por agente e READMEs em onze idiomas (seção 23). Marcado com
+**[rev. 5.2]**; a seção 18 ganha os itens 9 a 15 (tickets 19 a 30).
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -39,8 +47,11 @@ JSON inteiro numa resposta só (limite de tokens de saída) nem reenviar tudo pa
   de edição recusa qualquer escrita fora da posse. O ralph v1 já fazia a posse estática com `files_allowed`; a fila
   e a espera são o que faltava. **[rev. 5]** Uma trava do jlock expira se ninguém a renova por 30 s (é assim que ele
   recupera travas de processos mortos): por isso cada tarefa em andamento tem um `jlock hold` vivo, que renova a
-  posse e a devolve quando a tarefa termina; se a janela morre, o `hold` morre junto e a posse volta ao quadro em
-  ≤ 30 s.
+  posse e a devolve quando a tarefa termina. **[rev. 5.2]** Quem segura o `hold` depende da forma da ferramenta:
+  o CLI e o mod usam `jlock hold --detach --ttl <prazo>` (o próprio jlock deixa um segundo processo segurando a
+  trava; se ninguém a devolver, ela expira no prazo); o plugin do OpenCode, que fica aberto, usa
+  `jlock hold --release-on-eof --ttl <prazo>` com a entrada padrão aberta, e a trava some no instante em que a
+  janela cai.
 - **Commits por tarefa, feitos pela ferramenta.** O subagente não roda git. No `done`, a ferramenta faz `git add` só
   dos arquivos da posse e um commit `T04: título`. Cada tarefa vira um commit isolado: reverter uma tarefa é
   `git revert` de um commit, e o diff de cada tarefa fica auditável.
@@ -88,13 +99,26 @@ projeto/
 
 D:\worktrees\<repo>\<run>\<task>\        ← só quando a execução pede worktree
 
-Claude Code: mod `goal-tasks` (ferramenta + painel + /tasks)   ─┐  mesmo core.js
+Claude Code: mod `goal-tasks` (ferramenta + painel + /jtasks)  ─┐  mesmo core.js
 OpenCode:    plugin `goal-tasks` (ferramenta + seção na sidebar) ─┤
 Terminal:    CLI `tasks` (bun)                                  ─┘
 ```
 
 Núcleo em TypeScript sem dependências, compilado para um `core.js` versionado: o módulo de hooks do Claude Code roda
 sem Node e sem `node_modules`, e a cópia final do OpenCode também.
+
+**[rev. 5.2]** O repositório do goal-tasks, por pasta:
+
+```
+src/                 o núcleo (host.ts é o contrato com o mundo; node-host.ts, o host do Node)
+locales/<tag>.json   os catálogos de texto (seção 21), embutidos no core.js pelo build
+cli/tasks.ts         o CLI
+claude/              o mod (core/ é a cópia do núcleo; skills/ a cópia das skills do Claude Code)
+opencode/            o plugin (core/ a cópia do núcleo; agents/ os três agentes prontos, seção 13)
+skills/<agente>/<skill>/   to-tickets e goal-tasks para claude-code, opencode e codex (seção 23)
+docs/                PLAN.md, DEVIATIONS.md, USAGE.md, evidence/
+README.md, README.<tag>.md   onze idiomas (seção 23)
+```
 
 ---
 
@@ -148,13 +172,17 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   adquire a chave `*`, que conflita com tudo.
 - **Posse viva [rev. 5]:** `start` e `claim` são o mesmo gesto: subir um `jlock hold` e ler a primeira linha. O
   `hold` adquire as chaves (com as mesmas opções do `acquire`), imprime o resultado em JSON e fica vivo renovando o
-  heartbeat; o goal-tasks guarda o processo (`holds: [{ pid, keys }]` na tarefa). `done`, `skip`, `fail` e `release`
-  escrevem `release` na entrada padrão de cada `hold` da tarefa (reserva, de outra janela:
-  `jlock release --group <run> --owner <dono>`). Se um `hold` termina com código 14 (`lost`: alguém usou
-  `unlock --force`, ou a trava expirou com a máquina dormindo ou travada), a ferramenta trata como `release`
-  involuntário: a tarefa volta a `pending` com `attempts+1`, o log registra `lost`, o painel mostra
-  "posse perdida: T04". Se a janela morre, os `hold`s morrem com ela e as travas somem em ≤ 30 s: é isso que
-  permite `resume` em outra janela sem `unlock --force`.
+  heartbeat; o goal-tasks guarda as chaves de cada `hold` na tarefa (`holds: [{ keys, startedAt }]`).
+  **[rev. 5.2]** A forma do `hold` depende do host: o CLI e o mod sobem `jlock hold … --detach --ttl <prazo>`, que
+  responde e volta na hora enquanto um segundo jlock segura a trava; o plugin do OpenCode sobe
+  `jlock hold … --release-on-eof --ttl <prazo>` em primeiro plano, com a entrada padrão aberta. Em qualquer host,
+  `done`, `skip`, `fail` e `release` devolvem a posse com `jlock release --group <run> --owner <dono>` (o `hold`
+  termina com 0). O prazo (`holdTtl` no plano, padrão `2h`) é a rede de segurança: se ninguém devolver (agente ou
+  janela mortos), a trava expira sozinha. Se um `hold` termina com código 14 (`lost`: alguém usou `unlock --force`,
+  o prazo venceu, ou a trava expirou com a máquina dormindo), a ferramenta trata como `release` involuntário: a
+  tarefa volta a `pending` (a tentativa já foi contada no `start`), o log registra `lost`, o painel mostra "posse
+  perdida: T04". No plugin, a janela cair fecha a entrada padrão e o `hold` solta a trava na hora; no CLI e no mod,
+  ela dura até o prazo. É isso que permite `resume` em outra janela sem `unlock --force`.
 - **Identidade no jlock [rev. 5]:** dono = `gt:<run>/<task>` (ex.: `gt:cursory-261023-k7f2/T05`), grupo = `<run>`,
   intenção = título da tarefa, meta `task=T05 run=<run> tool=claude|opencode|cli session=<id>`. Com isso,
   `jlock list --group <run> --json` são as travas ativas da execução (para `status`), e
@@ -223,8 +251,11 @@ mostrar contenção que a pré-refatoração não resolva.
 
 ### Commit por tarefa
 
-No `done`, a ferramenta confere o `git status`: arquivos modificados fora da posse → recusa, lista e pede `claim` ou
-`release`. Dentro da posse → `git add <arquivos>` e `git commit -m "T04: título"` no branch da execução
+No `done`, a ferramenta confere o `git status` e separa as mudanças em três grupos (**[rev. 5.2]**, porque as
+tarefas paralelas trabalham no mesmo checkout): da posse da tarefa → vão para o commit; da posse de outra tarefa em
+andamento da execução, ou de uma chave que outro dono segura no jlock sob o repositório → ficam no disco, fora do
+commit; de ninguém → recusa, lista e pede `claim` ou `release`. Dentro da posse → `git add <arquivos>` e
+`git commit -m "T04: título"` no branch da execução
 (`gt/<run>`, criado a partir do branch atual no `plan`). O hash entra no ledger. Se você preferir trabalhar no
 branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por tarefa.
 
@@ -246,6 +277,7 @@ branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por
   "worktrees": { "policy": "none" },         // ou { "policy": "per-task", "root": "D:/worktrees/spybrowser", "deps": "pnpm-store" }
   "serialize": ["bun test"],
   "maxAttempts": 2,
+  "holdTtl": "2h",                           // [rev. 5.2] prazo dos hold; a trava expira sozinha se ninguém a devolver
   "sessions": [ { "tool": "claude", "id": "a8ec2aca…", "boundAt": "…" } ]
 }
 ```
@@ -256,26 +288,26 @@ branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por
 {
   "version": 1, "run": "cursory-261023-k7f2", "revision": 41,
   "profiles": {
-    "impl":   { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "impl" } },
-    "deep":   { "claude": { "model": "opus",   "effort": "high" },                                "opencode": { "agent": "impl-deep" } },
-    "review": { "claude": { "model": "sonnet", "effort": "high",   "role": "code-reviewer" },     "opencode": { "agent": "review" } }
+    "implement":      { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "implement" } },
+    "implement-deep": { "claude": { "model": "opus",   "effort": "high" },                                "opencode": { "agent": "implement-deep" } },
+    "review":         { "claude": { "model": "sonnet", "effort": "high",   "role": "code-reviewer" },     "opencode": { "agent": "review" } }
   },
   "tasks": [
     { "id": "T01", "title": "Tornar o movimento substituível", "status": "done",
-      "dependsOn": [], "profile": "impl",
+      "dependsOn": [], "profile": "implement",
       "files": ["src/humanizer/trajectory.ts", "src/humanizer/move.ts", "tests/humanizer/**"],
       "acceptance": [ { "text": "Automação local percorre movimento, hover e clique", "done": true } ],
       "attempts": 1, "owner": null, "startedAt": "…", "finishedAt": "…",
       "commit": "9f1c2ab", "evidence": "bun test: 93 passed; regressão local idêntica antes/depois" },
     { "id": "T02", "title": "Gerador de gravações nativo", "status": "in_progress",
-      "dependsOn": ["T01"], "profile": "impl", "files": ["src/recorder/**"],
+      "dependsOn": ["T01"], "profile": "implement", "files": ["src/recorder/**"],
       "claimed": ["src/humanizer/types.ts"],
       "attempts": 2, "owner": "claude:a8ec2aca/agent:7f3a", "startedAt": "…" },
-    { "id": "T03", "title": "Paridade completa", "status": "skipped", "dependsOn": ["T01"], "profile": "deep",
+    { "id": "T03", "title": "Paridade completa", "status": "skipped", "dependsOn": ["T01"], "profile": "implement-deep",
       "files": ["src/humanizer/parity/**"], "reason": "coberto por T01 após a refatoração" },
-    { "id": "T04", "title": "Mouse move", "status": "failed", "dependsOn": ["T02"], "profile": "impl",
+    { "id": "T04", "title": "Mouse move", "status": "failed", "dependsOn": ["T02"], "profile": "implement",
       "files": ["src/humanizer/move.ts"], "attempts": 2, "error": "src/humanizer/types.ts em uso por T02" },
-    { "id": "T05", "title": "Atraso e escala", "status": "pending", "dependsOn": ["T02"], "profile": "deep",
+    { "id": "T05", "title": "Atraso e escala", "status": "pending", "dependsOn": ["T02"], "profile": "implement-deep",
       "files": ["src/humanizer/timing.ts"] },
     { "id": "T12", "title": "Integração: suíte completa", "status": "pending",
       "dependsOn": ["T05", "T06", "T07"], "profile": "review", "exclusive": true }
@@ -301,11 +333,18 @@ motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts (**[rev. 5]** ou ⏳ T02: src/, q
 
 - ids únicos e estáveis; dependências existentes; sem ciclos; posse sem conflito entre independentes.
 - `start` falha se não pronta, com dono, posse em uso, ou execução pausada.
-- `done` sem evidência é recusado; com arquivos modificados fora da posse também.
-- Gravação atômica (`.tmp` + `rename`), releitura antes de escrever, `revision` incremental.
-- **[rev. 5]** Cada tarefa em andamento guarda seus `hold`s (`holds: [{ pid, keys, startedAt }]`); a sessão que os
-  criou fala com eles pela entrada padrão; qualquer outra sessão usa `jlock release --group <run> --owner <dono>`.
-  Os `pid`s são informativos (nunca se encerra processo por PID a partir de outra janela).
+- `done` sem evidência é recusado; com arquivos modificados que não são de ninguém também (os da posse de outra
+  tarefa em andamento ficam no disco, fora do commit; seção 4, "Commit por tarefa").
+- Gravação atômica (`.tmp` + `rename`), releitura antes de escrever, `revision` incremental, e **[rev. 5.2]** uma
+  trava curta por execução em volta de cada leitura-mudança-escrita (a pasta `.write.lock`, criada de forma
+  exclusiva; com mais de 10 s é de um processo morto e é quebrada): sem ela, dois processos que leem a mesma revisão
+  gravam os dois e uma mudança se perde. A `revision` continua recusando escrita baseada em leitura velha.
+- **[rev. 5]** Cada tarefa em andamento guarda seus `hold`s (`holds: [{ keys, startedAt }]`); **[rev. 5.2]**
+  qualquer sessão devolve a posse com `jlock release --group <run> --owner <dono>`; nenhum processo é encerrado por
+  PID a partir de outra janela.
+- **[rev. 5.2]** `attempts` conta no `start` (cada tentativa começada conta uma vez): um `start` que não chegou ao
+  `release` (janela morta, posse perdida) também conta; `release`, `resume` e posse perdida comparam com
+  `maxAttempts` e viram `failed` quando chega; `retry` zera a contagem (o histórico fica no `log.jsonl`).
 
 ---
 
@@ -325,12 +364,14 @@ a execução ligada à sessão.
 | | `pause` / `unpause` | pausa: `start` recusado; o protocolo manda parar |
 | | `status` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas (**[rev. 5]** de `jlock list --group <run> --json`) |
 | tarefa | `next [limit]` | as prontas, com perfil, critérios, posse e caminho do ticket |
-| | `start id` | → em andamento; trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta") |
+| | `start id` | → em andamento (`attempts+1`); trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta"; **[rev. 5.2]** `--detach --ttl` no CLI e no mod, `--release-on-eof --ttl` no plugin) |
 | | `claim id <arquivo…>` | acrescenta à posse se livre; senão espera até `--timeout` ("em uso por Txx, posição N") ou recusa por deadlock com a cadeia (**[rev. 5]** um `jlock hold` por `claim`) |
-| | `done id --evidence` | confere o status do git e a posse no jlock → commit só da posse → feita → libera a posse (**[rev. 5]** `release` aos `hold`s) |
+| | `done id --evidence` | confere o status do git e a posse no jlock → commit só da posse → feita → libera a posse (**[rev. 5.2]** `jlock release --group --owner`) |
 | | `skip id --reason` / `fail id --error` | pular ou registrar falha; libera a posse |
 | | `retry id` / `retry --all-failed` | pulada ou falha → pendente |
-| | `release id` | em andamento → pendente (`attempts+1`; no `maxAttempts` vira `failed`); edições não commitadas ficam no disco e são listadas |
+| | `release id` | em andamento → pendente (no `maxAttempts` vira `failed`); edições não commitadas ficam no disco e são listadas |
+| máquina | `doctor [--json] [--fix [--yes]]` | **[rev. 5.2]** diagnóstico da máquina (seção 22); `--fix --yes` instala o que falta, pelo ledger global |
+| | `help [ação]`, `--lang <tag>` | **[rev. 5.2]** ajuda e idioma (seção 21) |
 | ledger | `ledger [--all-projects]` | tudo que a ferramenta criou: tipo, caminho, execução, tarefa, hora, estado (ativo/desfeito) |
 | | `undo <id> \| --run <run> \| --task id` | desfaz na ordem inversa (revert de commit, remoção de branch/worktree/junção/pasta, linha do exclude); recusa se houver trabalho não salvo |
 | | `effects --check` | compara o ledger com o disco e o git: o que sumiu por fora, o que ficou |
@@ -391,10 +432,11 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
 
 - **Retomar:** `tasks resume <run>` em qualquer janela. A posição é a fronteira; `next` devolve as primeiras não
   executadas. Tarefas em andamento de agentes mortos são liberadas (as edições não commitadas ficam no disco e são
-  listadas para a próxima tentativa aproveitar ou descartar). **[rev. 5]** Como: os `hold`s da janela morta já
-  morreram e as travas expiraram em ≤ 30 s; `resume` compara cada tarefa `in_progress` com
-  `jlock list --group <run> --json`: sem as suas travas → `release` automático (`attempts+1`). Uma tarefa que ainda
-  tem as travas (janela viva em outro lugar) fica como está, salvo `--keep-owners` ao contrário.
+  listadas para a próxima tentativa aproveitar ou descartar). **[rev. 5]** Como: `resume` compara cada tarefa
+  `in_progress` com `jlock list --group <run> --json`: sem as suas travas → `release` automático (a tentativa já
+  foi contada no `start`; no `maxAttempts` vira `failed`). **[rev. 5.2]** As travas da janela morta somem na hora
+  no plugin (`--release-on-eof`) e no prazo `holdTtl` no CLI e no mod. Uma tarefa que ainda tem as travas (janela
+  viva em outro lugar) fica como está; `--keep-owners` não libera nenhuma tarefa, nem as sem travas.
 - **Pausar:** `tasks pause`: `start` recusado; o resumo no prompt diz "pausada: não inicie tarefas"; os subagentes
   em andamento terminam.
 - **Tentar de novo:** `tasks retry T04`; histórico no `log.jsonl`; `attempts` conta.
@@ -471,10 +513,23 @@ Code via `prompt.section` + `session.compact`; OpenCode via hooks `context` e `c
 perfil, devolve `{ model }`; perfil desconhecido → `{ deny }`. Provedor sempre Anthropic. O `effort` só por
 instrução explícita: o perfil no `tasks.json` é essa instrução.
 
+### Os perfis **[rev. 5.2]**
+
+Nomes completos, no padrão dos agentes do OpenCode (`build`, `plan`): `implement` (sonnet, esforço médio, papel
+`backend-developer`; agente `implement`), `implement-deep` (opus, esforço alto; agente `implement-deep`) e `review`
+(sonnet, esforço alto, papel `code-reviewer`; agente `review`). `implement` é o padrão. O plano pode trazer os seus
+próprios perfis, com qualquer nome, apontando qualquer agente que já exista.
+
 ### OpenCode
 
-Agentes do `opencode.json` com `model: { providerID, modelID, variant }`. O orquestrador chama `subagent` com
-`agent: "impl"`. O plugin garante os agentes via `agent.transform` (efeito `agent-config` no ledger).
+Agentes do `opencode.json` ou de `~/.config/opencode/agents/<nome>.md`, com `model: { providerID, modelID, variant }`.
+O orquestrador chama `subagent`; a chamada de uma tarefa (`--task <id>` no prompt) recebe o agente do perfil dela, e
+perfil desconhecido recusa a chamada. **[rev. 5.2]** A API do plugin não cria agentes (o editor de `agent.transform`
+não tem `add`): os perfis apontam agentes existentes, e o pacote traz os três agentes prontos em
+`opencode/agents/<nome>.md` (`mode: subagent`, o protocolo da tarefa no corpo), que o `tasks doctor --fix` instala em
+`~/.config/opencode/agents/` (efeito `install` no ledger global). Um perfil com `opencode.model` dá esse modelo ao
+agente por `agent.transform`, só durante a sessão; não há efeito `agent-config`. Depois de `plan --commit` e
+`resume`, o plugin avisa se um perfil aponta um agente que não existe.
 
 ---
 
@@ -484,18 +539,19 @@ Agentes do `opencode.json` com `model: { providerID, modelID, variant }`. O orqu
 .claude-plugin/plugin.json   { name: "goal-tasks", version, description, types: "./types/index.d.ts" }
 hooks/hooks.json             { "modules": ["./register.tsx"] }
 hooks/register.tsx           o módulo (importa ../core/core.js)
-types/index.d.ts             PluginState: { "goal-tasks": { run?: string, collapsed: boolean } }
-skills/to-tickets/SKILL.md   a skill, viajando com a ferramenta que ela chama
+types/index.d.ts             PluginState: { "goal-tasks": { run?: string, collapsed: boolean, view, agents } }
+skills/<skill>/SKILL.md      [rev. 5.2] to-tickets e goal-tasks, cópias de skills/claude-code/ feitas pelo build
+core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 ```
 
 | Peça | API do mod | Função |
 |---|---|---|
-| ferramenta | `$.tool.register` em `session.start` | a `tasks`; arquivos via `$.fs`; git e jlock via `$.process.run`; **[rev. 5]** `jlock hold` via `$.process.spawn`, um por tarefa e por `claim` |
+| ferramenta | `$.tool.register` em `session.start` | a `tasks`; arquivos via `$.fs`; git e jlock via `$.process.run`; **[rev. 5.2]** `jlock hold --detach --ttl` via `$.process.run` (uma chamada, resposta na mão; o jlock segura a trava); renomear, apagar e criar pasta por `$.process.run` (`cmd` no Windows, `mv`/`rm`/`mkdir` fora dele), porque `$.fs` não os tem |
 | ligação | `$.state` (`run`) | execução da sessão; subagentes compartilham |
 | painel | `$.ui.open({ id: "tasks" })` + `ui.render` em `{ component: "Pane" }` | checklist + barra; abre sozinho com execução ligada e largura suficiente |
-| toggle | `$.command.register({ name: "tasks" })` + `command.run`; botão "▾/▸" via `ui.press` | `/tasks` abre/fecha; o botão recolhe para uma linha; `collapsed` em `$.store` |
+| toggle | `$.command.register({ name: "jtasks" })` + `command.run`; botão "▾/▸" via `ui.press` | **[rev. 5.2]** `/jtasks` abre/fecha (o Claude Code já tem `/tasks`); o botão recolhe para uma linha; `collapsed` em `$.store` |
 | atualização | `$.clock.every(2000)` + `$.fs.stat/read`; `atom/update` | acompanha escritas de outro processo |
-| contexto | `prompt.section` + `$.ui.invalidate("prompt.section")`; `session.compact` | resumo sempre no prompt; sobrevive à compactação |
+| contexto | **[rev. 5.2]** `prompt.compose`: a seção `goal-tasks:protocol` acrescentada a cada requisição enquanto há execução ligada | resumo sempre no prompt; volta sozinho depois da compactação (não existe `prompt.section`) |
 | perfil | `on("agent.spawn")` | modelo do subagente pelo perfil |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
 | agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
@@ -507,7 +563,7 @@ skills/to-tickets/SKILL.md   a skill, viajando com a ferramenta que ela chama
 ☑ T02 Gerador nativo              3be77d0
 ⊘ T03 Paridade completa
 ✗ T04 Mouse move                  types.ts em uso por T02
-◐ T05 Atraso e escala             deep·opus
+◐ T05 Atraso e escala             implement-deep·opus
 ☐ T06 Fill/clear                  ⛔ T04
 ☐ T07 Insert text                 🔒 T05
 …
@@ -521,13 +577,14 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 
 | Peça | API | Função |
 |---|---|---|
-| ferramenta | `ctx.tool.register` (como o roles) | a `tasks`, lado servidor |
-| ligação | `ctx.storage` por sessão raiz; `session.family` | execução da sessão |
+| ferramenta | **[rev. 5.2]** `ctx.tool.transform(editor => editor.add(…))` | a `tasks`, lado servidor; `jlock hold --release-on-eof --ttl` em primeiro plano, entrada padrão aberta (a janela cair solta a trava) |
+| ligação | `ctx.storage` por sessão raiz (`binding/<raiz>`), achada subindo os `parentID` | execução da sessão; a sessão filha que fez `start`/`claim` fica ligada à tarefa (`task/<sessão>`) |
 | contexto | `ctx.session.hook("context")` e `("compaction")` | resumo em cada requisição |
-| seção | `context.ui.slot({ append: "sidebar.content" })` | "▼ Tasks · run", barra `Meter` do HUD, checklist; clique dobra |
-| dados | RPC `tasks.state` + releitura após `session.tool.success` | a TUI nunca toca o arquivo |
-| perfis | `agent.transform` | agentes impl/deep/review |
-| guarda de posse | hook de permissão | mesmas regras do mod |
+| seção | `context.ui.slot({ append: "sidebar.content" })` | "▾ Tasks · run", barra e checklist; clique dobra. **[rev. 5.2]** A barra é nossa (`src/view.ts`), no visual do `Meter` do `opencode-hud` (oitavos de célula, cor principal do tema, trilho apagado), sem depender do HUD instalado |
+| dados | RPC `goal-tasks.state` (`ctx.rpc.register`; o id do RPC é o do plugin) + releitura após `session.tool.success` e a cada 2 s com tarefa em andamento | a TUI nunca toca o arquivo |
+| perfis | `agent.transform` (modelo do perfil) + `tool.hook("execute.before")` (agente da tarefa na chamada `subagent`) | agentes `implement`/`implement-deep`/`review` existentes (seção 13) |
+| guarda de posse | `ctx.permission.hook("evaluate")` (`edit` e `shell`) | mesmas regras do mod, pela regra do núcleo |
+| agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
 | goal | sem espelhar em `update_goal_plan` | objetivo + evidência; o paralelismo é nosso |
 
 ---
@@ -568,8 +625,15 @@ motivo.
   limpo, conflito, remoção, `remove-pending`, `gc --scan` achando uma órfã fabricada e não tocando nela sem `--yes`.
 - **OpenCode:** sandbox com modelo falso roteirizado chamando `tasks next/start/claim/done` e emitindo duas chamadas
   `subagent` na mesma resposta; a TUI real mostra a seção mudando; a guarda recusa uma edição fora da posse.
-- **Claude Code:** `claude plugin validate`, `tsc -p`, `claude plugin test` com desenho do painel, `/tasks`, e a
+- **Claude Code:** `claude plugin validate`, `tsc -p`, `claude plugin test` com desenho do painel, `/jtasks`, e a
   guarda recusando `Edit` fora da posse e `Bash git commit`.
+- **[rev. 5.2] Idiomas, doctor, skills e READMEs:** os catálogos têm as mesmas chaves e marcadores; a mesma ação
+  em dois idiomas dá textos diferentes e o mesmo `--json`; `help` cabe em 100 colunas em cada idioma; `doctor` num
+  ambiente sadio, com `GOAL_TASKS_HOME` inválido, sem jlock e sem agentes; `doctor --fix --yes` numa casa temporária
+  (o instalador do jlock substituído por um script falso); as seis skills com as mesmas seções; os onze READMEs com
+  a mesma forma e os exemplos reexecutados.
+- **[rev. 5.2] O único teste que gasta tokens**, fora do `bun test`: o mod num Claude Code real, dirigido pelo
+  herdr, com haiku e um roteiro curto (ticket 30), porque `claude plugin test` roda numa máquina falsa.
 - Sem gastar tokens de modelo real.
 
 ---
@@ -583,15 +647,30 @@ motivo.
 2. **Núcleo + CLI + ledger.** Formato com posse (adquirida no jlock instalado), `plan`/`validate`/`import`, tickets,
    transições, fronteira com posse, `claim`, `runs`/`resume`/`pause`/`retry`, commit por tarefa,
    `ledger`/`undo`/`effects`, `clean`/`archive`, testes. Já dá para rodar um goal pelo terminal, com tudo rastreado.
-3. **OpenCode.** Ferramenta, ligação, contexto, seção, perfis, guarda de posse. Reaproveita o HUD.
-4. **Claude Code.** Mod com ferramenta, ligação, painel, `/tasks`, reinjeção, perfil no spawn, guarda de posse e de
-   git, liberação de agente morto.
+3. **OpenCode.** Ferramenta, ligação, contexto, seção, perfis, guarda de posse. Barra própria no visual do HUD.
+4. **Claude Code.** Mod com ferramenta, ligação, painel, `/jtasks`, reinjeção, perfil no spawn, guarda de posse e
+   de git, liberação de agente morto.
 5. **Skill.** A pergunta "quais arquivos" no passo 4 e a chamada de `tasks plan` no passo 5 da `to-tickets`; esquema
    anexado; cópia dentro do plugin para o Claude Code.
 6. **`gc --scan` como relatório.** Para olhar as órfãs atuais sem tocar nelas; a remoção, quando os três projetos
    terminarem.
+   **[rev. 5.2] Feito:** itens 2 a 6 entregues nos tickets 01 a 18 (24/10/2026).
 7. **Worktrees sob demanda** (política `per-task`), só se uma execução real precisar.
 8. **Depois.** Codex e pi pelo CLI; ralph v1 como executor externo, se quiser rodar sem janela aberta.
+
+**[rev. 5.2]** A segunda leva, tickets 19 a 30 (e 18 no jlock):
+
+9. **Plano 5.2 e desvios didáticos** (ticket 19): este documento; `DEVIATIONS.md` no formato "o que mudou,
+   consequência, o que fazer".
+10. **Nomes completos** (20): perfis e agentes `implement`/`implement-deep`/`review`; os agentes prontos no pacote do
+    OpenCode; aviso de agente inexistente.
+11. **Posse pelo jlock nativo** (J18 no jlock, 21, 22): `hold --release-on-eof` no jlock; `--detach --ttl` no CLI e
+    no mod, `--release-on-eof --ttl` no plugin, `holdTtl` no plano; fim de subagente no OpenCode devolve a tarefa.
+12. **Barra no estilo do HUD** (23).
+13. **Idiomas** (24, 25, 26): núcleo e CLI em `en`/`pt-BR`; mod e plugin; os outros nove catálogos.
+14. **Skills e doctor** (27, 28): `to-tickets` e `goal-tasks` para Claude Code, OpenCode e Codex; `tasks doctor` e
+    `--fix --yes` (jlock, agentes, skills, pelo ledger global).
+15. **READMEs em onze idiomas e o teste real do mod** (29, 30).
 
 ---
 
@@ -606,7 +685,9 @@ motivo.
 | Espera na fila que nunca termina (dono travado, longo ou morto) | Heartbeat do dono: morto → trava quebrada e registrada; vivo e longo → `--timeout` no `claim` e a tarefa decide; o painel mostra há quanto tempo espera e quem segura. |
 | Órfãs e efeitos das execuções de hoje | Fora do alcance do ledger por construção; só relatório via `gc --scan`, remoção quando você quiser e com `--yes`. |
 | O avaliador do `/goal` só vê a conversa | A saída de `tasks status` é texto na conversa. Alternativa sem avaliador: Stop hook clássico lendo o arquivo. |
-| Largura do painel do Claude Code | Abre sozinho só a partir de ~110–144 colunas; abaixo, `/tasks` à mão. |
+| Largura do painel do Claude Code | Abre sozinho só a partir de ~110–144 colunas; abaixo, `/jtasks` à mão. |
+| **[rev. 5.2]** Um Claude Code que cai deixa a trava até o `holdTtl` | O mod não sabe o PID do Claude Code e `$.process.spawn` fecha a entrada padrão na partida, então nem `--release-on-eof` nem `--parent` servem; o prazo (`2h` por padrão) é a rede. Se pesar, um `jlock hold --parent <pid>` no plano do jlock. |
+| **[rev. 5.2]** `doctor --fix` instala o jlock pelo instalador oficial | O instalador do jlock acrescenta a pasta ao `PATH` do usuário (comportamento dele, documentado); o goal-tasks não mexe no `PATH` por conta própria e registra o binário instalado no ledger global para o desfazer. |
 | **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o goal-tasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no goal-tasks depende de API do Windows. |
 | **[rev. 5]** Um processo `hold` por tarefa e por `claim` | Dezenas de processos de ~1 MB, dormindo; aceitável. Se pesar, o jlock pode ganhar depois um `hold` que renove várias chaves de donos diferentes; o goal-tasks não muda. |
 | **[rev. 5]** Posse perdida no meio (`hold` saiu com 14) | A tarefa volta a `pending` com `attempts+1`; as edições ficam no disco e são listadas; o painel mostra "posse perdida"; o log diz quem forçou (vem do `log.jsonl` do jlock, campo `by`). |
@@ -626,9 +707,10 @@ lê nem escreve em `%LOCALAPPDATA%\jlock`.
 | Ação do goal-tasks | Comando jlock | O que importa na resposta |
 |---|---|---|
 | `next` (posse livre?) | `jlock list --under <repo> --json` | `locks[].key`, `holder.owner`, `queue[]`; a regra de hierarquia decide o conflito localmente |
-| `start T04` | `jlock hold <chave…> --no-wait --owner gt:<run>/T04 --group <run> --intent "<título>" --meta task=T04 --meta run=<run> --meta tool=<claude\|opencode\|cli> --json` (processo residente) | primeira linha: `granted` (segue vivo) ou `queued` + código 10 ("não estava pronta"); `exclusive` usa a chave `*` |
-| `claim T04 <arquivo>` | `jlock hold <abs> --timeout <t> --owner gt:<run>/T04 --group <run> --intent "<título>" --json` (outro processo residente) | `granted` (0); `timeout` (11) com `holder`, `position`, `via`; `deadlock` (12) com `chain` |
-| `done` / `skip` / `fail` / `release` | escrever `release\n` na entrada padrão de cada `hold` da tarefa; de outra janela: `jlock release --group <run> --owner gt:<run>/T04 --json` | `released` (0); `not_owner` (13) = a posse já não era nossa |
+| `start T04` | `jlock hold <chave…> --no-wait --ttl <holdTtl> --owner gt:<run>/T04 --group <run> --intent "<título>" --meta task=T04 --meta run=<run> --meta tool=<claude\|opencode\|cli> --json`, **[rev. 5.2]** com `--detach` (CLI, mod: responde e volta; o jlock segura) ou `--release-on-eof` (plugin: processo residente com a entrada padrão aberta) | primeira linha: `granted` ou `queued` + código 10 ("não estava pronta"); `exclusive` usa a chave `*` |
+| `claim T04 <arquivo>` | `jlock hold <abs> --timeout <t> --ttl <holdTtl> --owner gt:<run>/T04 --group <run> --intent "<título>" --json`, com o mesmo `--detach`/`--release-on-eof` do host | `granted` (0); `timeout` (11) com `holder`, `position`, `via`; `deadlock` (12) com `chain` |
+| `done` / `skip` / `fail` / `release` | **[rev. 5.2]** `jlock release --group <run> --owner gt:<run>/T04 --json` (o `hold` termina com 0) | `released` (0); `not_owner` (13) = a posse já não era nossa |
+| início de cada processo | **[rev. 5.2]** `jlock --version` uma vez (cacheado) | ≥ 0.1.1 para `--release-on-eof`; abaixo de 0.1.0 a ferramenta recusa e sugere `jlock update` |
 | `done` (conferência) | `jlock list --group <run> --json` | todas as chaves da posse da tarefa presentes com `holder.owner` = o nosso; senão, recusa |
 | `status` | `jlock list --group <run> --json` | travas ativas da execução |
 | painel (a cada 2 s) | `jlock list --under <repo> --json` | tudo travado no repositório, por qualquer janela ou programa |
@@ -640,4 +722,60 @@ Códigos do jlock que o goal-tasks traduz: 0 ok; 10 ocupado; 11 prazo; 12 deadlo
 perdida; 20 erro de disco (vira erro da ferramenta, com a mensagem do jlock); 2 uso errado (bug nosso: registrar).
 
 Tempos: o goal-tasks não mexe em `JLOCK_HEARTBEAT_MS`/`JLOCK_STALE_MS` em produção (5 s / 30 s); só os testes usam
-valores curtos.
+valores curtos. **[rev. 5.2]** Todo processo `jlock` recebe `JLOCK_LANG` com o idioma escolhido (seção 21), para as
+mensagens dele que citamos saírem no mesmo idioma.
+
+---
+
+## 21. Idiomas **[rev. 5.2]**
+
+Os mesmos onze do jlock: `en` (referência e reserva para chave que falte), `pt-BR`, `es`, `fr`, `de`, `it`, `zh-CN`,
+`ja`, `ru`, `ar`, `hi`. Catálogos em `locales/<tag>.json`, embutidos no `core.js` pelo build (o mod e o plugin os
+carregam com o núcleo); `_glossary` no topo de cada um (tarefa, execução, posse, trava, fila, tentativa, ticket,
+efeito, desfazer), coerente com o glossário do jlock. Escolha: `--lang <tag>` > `GOAL_TASKS_LANG` > `JLOCK_LANG` >
+idioma do sistema (`Intl`; o host informa o seu quando a API dá) > `en`, com os apelidos do jlock (`pt` → `pt-BR`,
+`zh` → `zh-CN`, `es-MX` → `es`). `{marcadores}` e plural por `_one`/`_other` com `{n}`.
+
+O que não muda com o idioma: nomes de ações e opções, `--json`, ids de tarefa e execução, `tasks.json`, `run.json`,
+`log.jsonl`, o ledger, os títulos de seção dos tickets gerados (o formato do jlock: `What to build`, `Blocked by`,
+`Status`, `Files`, `Scope boundary`), e o que é para o modelo: a descrição da ferramenta e o protocolo injetado no
+prompt (inglês). `tasks help` sai no idioma e cabe em 100 colunas (largura dupla conta 2). `CONTRIBUTING.md` diz
+como adicionar um idioma e que revisão de texto é bem-vinda em qualquer um; cinco idiomas entram "revisão nativa
+pendente", como no jlock.
+
+---
+
+## 22. `tasks doctor` **[rev. 5.2]**
+
+`tasks doctor [--json]` diz se a máquina está pronta, no modelo do `jlock doctor`: (1) versão do goal-tasks e
+`bun`; (2) `git`; (3) `jlock` no `PATH`, versão mínima, e o `jlock doctor --json` resumido; (4) `GOAL_TASKS_HOME`
+e o ledger global; (5) OpenCode: pasta de configuração, os três agentes, o plugin citado (informativo); (6) Claude
+Code: `claude` e o mod (informativo); (7) as skills nas pastas dos três agentes; (8) o idioma e de onde veio. Cada
+`warn`/`fail` diz o que fazer; saída 0 sem `fail`, 20 com. Só lê.
+
+`tasks doctor --fix` lista o que instalaria; `--fix --yes` age: o jlock pelo instalador oficial do release
+(`install.ps1`/`install.sh`), os três agentes em `~/.config/opencode/agents/`, as skills em `~/.claude/skills`,
+`~/.config/opencode/skills` e `~/.agents/skills`. Nunca sobrescreve um arquivo existente com conteúdo diferente
+(mantém e avisa), nunca mexe no `PATH`, nunca instala o mod no Claude Code nem o plugin no OpenCode (diz como).
+Cada arquivo criado é um efeito `install` no ledger global, e `tasks undo --effect <id>` o remove.
+
+---
+
+## 23. Skills e READMEs **[rev. 5.2]**
+
+`skills/<agente>/<skill>/`, como no jlock, para `claude-code`, `opencode` e `codex`: `to-tickets` (planejar: a
+pergunta "quais arquivos", o JSON em lotes pela ferramenta) e `goal-tasks` (executar pelo CLI quando não há mod nem
+plugin: identidade `--run`/`--task`, o laço `next` → `start` → trabalho na posse → `claim` → `done`/`fail` →
+`status`, o que fazer em `timeout`/`deadlock`/posse perdida, ser o orquestrador com ou sem `/goal`). Cada versão usa
+o nome da ferramenta no seu host; `skills/README.md` traz a tabela de pastas e os comandos de uma linha; o build
+copia as do Claude Code para `claude/skills/`; o `doctor --fix` instala.
+
+Com o mod ou o plugin, o protocolo vem injetado e a skill `goal-tasks` não é necessária: `to-tickets` planeja,
+`/goal` (ou `create_goal`) recebe "todas as tarefas da execução `<run>` estão done ou skipped", e a cada volta o
+modelo chama `next`, abre os subagentes e chama `status`. Sem mod nem plugin (um terminal, o Codex), a skill
+`goal-tasks` é o protocolo: o agente repete `next` até "restam 0" ele mesmo.
+
+`README.md` didático, no modelo do jlock (por quê, o problema, como funciona com um diagrama Mermaid, instalar com
+`tasks doctor`, cinco minutos com saídas reais, com Claude Code, com OpenCode, de um terminal ou Codex, garantias e
+limites, configuração, contribuir, autor, licença), e `README.<tag>.md` nos outros dez idiomas com a mesma barra de
+idiomas; um teste reexecuta os blocos marcados e confere a forma dos onze arquivos.
