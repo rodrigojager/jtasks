@@ -1681,6 +1681,125 @@ function blockerText(b, state, platform) {
     }
   }
 }
+// src/housekeeping.ts
+function archiveDir(host, root, run) {
+  return join(goalTasksHome(host), "archive", slugify(basename(root), 40), run);
+}
+async function copyTree(host, from, to) {
+  await host.mkdir(to);
+  for (const e of await host.list(from)) {
+    if (e.kind === "dir")
+      await copyTree(host, join(from, e.name), join(to, e.name));
+    else if (e.kind === "file")
+      await host.writeText(join(to, e.name), await host.readText(join(from, e.name)) ?? "");
+  }
+}
+async function moveDir(host, from, to) {
+  try {
+    await host.rename(from, to);
+  } catch {
+    await copyTree(host, from, to);
+    await host.remove(from, { recursive: true });
+  }
+}
+async function runningTasks(host, dir) {
+  const tasks = await readTasks(host, dir).catch(() => {
+    return;
+  });
+  return tasks?.tasks.filter((t) => t.status === "in_progress").map((t) => t.id) ?? [];
+}
+async function survivors(ctx, root, run) {
+  const all = await effectsOf(ctx.host, { repo: root, run }, caseInsensitive(ctx.host.platform));
+  return all.filter((e) => e.state === "active" && e.type !== "dir" && e.type !== "commit");
+}
+defineAction("clean", async (ctx, args) => {
+  const { host } = ctx;
+  const root = await requireRepo(host, ctx.cwd);
+  const all = !!args.options.all;
+  const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
+  if (!all && !id)
+    throw new ToolError("diga qual: tasks clean <run> [--yes] (ou --all)", 2);
+  const ids = all ? (await host.list(runsDir(root))).filter((e) => e.kind === "dir").map((e) => e.name) : [id];
+  for (const r of ids)
+    if (!await host.stat(runDir(root, r)))
+      throw new ToolError(`não há a execução ${r} em ${runsDir(root)}`);
+  const lines = [];
+  const busy = [];
+  const left = [];
+  for (const r of ids) {
+    const running = await runningTasks(host, runDir(root, r));
+    if (running.length)
+      busy.push(`${r} (${running.join(", ")})`);
+    left.push(...await survivors(ctx, root, r));
+  }
+  const target = all ? join(root, SCRATCH) : runDir(root, id);
+  lines.push(`${all ? `apagar ${target} (${ids.length} execução(ões))` : `apagar ${target}`}; os commits ficam (são código)`);
+  if (left.length) {
+    lines.push("efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):");
+    for (const e of left)
+      lines.push(`  ${effectLine(e)}  →  tasks undo ${e.id} --run ${e.run}`);
+  }
+  if (busy.length)
+    throw new ToolError(`${lines.join(`
+`)}
+recusado: há tarefas em andamento: ${busy.join(", ")}; libere-as antes`);
+  if (!args.options.yes) {
+    lines.push(`nada foi apagado; confirme com tasks clean ${all ? "--all" : id} --yes`);
+    return ok(lines.join(`
+`), { target, effects: left, removed: false });
+  }
+  const dirs = [];
+  for (const r of ids) {
+    const all2 = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform));
+    dirs.push(...all2.filter((e) => e.type === "dir" && e.state === "active"));
+  }
+  await host.remove(target, { recursive: true });
+  for (const e of dirs)
+    await setEffectState(host, runDir(root, e.run), e.run, e.id, "undone");
+  lines.push(`apagado: ${target}`);
+  return ok(lines.join(`
+`), { target, effects: left, removed: true });
+}, "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)");
+defineAction("archive", async (ctx, args) => {
+  const { host } = ctx;
+  const root = await requireRepo(host, ctx.cwd);
+  const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
+  if (!id)
+    throw new ToolError("diga qual: tasks archive <run>", 2);
+  const dir = runDir(root, id);
+  if (!await host.stat(dir))
+    throw new ToolError(`não há a execução ${id} em ${runsDir(root)}`);
+  const running = await runningTasks(host, dir);
+  if (running.length)
+    throw new ToolError(`${id} tem tarefas em andamento (${running.join(", ")}); libere-as antes de arquivar`);
+  const to = archiveDir(host, root, id);
+  if (await host.stat(to))
+    throw new ToolError(`já existe um arquivo de ${id} em ${to}`);
+  const effect = await recordEffect(host, dir, { run: id, type: "archive", repo: root, path: dir, to, undo: { kind: "unarchive" } });
+  try {
+    await moveDir(host, dir, to);
+  } catch (error) {
+    await setEffectState(host, dir, id, effect.id, "undone");
+    throw error;
+  }
+  return ok(`execução ${id} arquivada em ${to}; volta com tasks resume ${id} --from-archive`, { run: id, to });
+}, "archive <run>                         move a execução para GOAL_TASKS_HOME/archive; resume --from-archive a traz");
+async function unarchive(ctx, run) {
+  const { host } = ctx;
+  const root = await requireRepo(host, ctx.cwd);
+  const from = archiveDir(host, root, run);
+  if (!await host.stat(from))
+    throw new ToolError(`não há arquivo da execução ${run} em ${from}`);
+  const dir = runDir(root, run);
+  if (await host.stat(dir))
+    throw new ToolError(`a execução ${run} já está em ${dir}`);
+  await moveDir(host, from, dir);
+  const archived = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter((e) => e.type === "archive" && e.state === "active");
+  for (const e of archived)
+    await setEffectState(host, dir, run, e.id, "undone");
+  return `execução ${run} trazida de volta de ${from}`;
+}
+
 // src/actions.ts
 async function resolveRun(ctx, args) {
   const root = await requireRepo(ctx.host, ctx.cwd);
@@ -2366,6 +2485,12 @@ ${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.stat
 });
 defineAction("resume", async (ctx, args) => {
   const wanted = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
+  let back;
+  if (args.options["from-archive"]) {
+    if (!wanted)
+      throw new ToolError("diga qual: tasks resume <run> --from-archive", 2);
+    back = await unarchive(ctx, wanted);
+  }
   const first = await resolveRun(ctx, { ...args, options: { ...args.options, ...wanted ? { run: wanted } : {} } });
   const keepOwners = !!args.options["keep-owners"];
   const released = [];
@@ -2404,7 +2529,7 @@ defineAction("resume", async (ctx, args) => {
   });
   for (const r of released)
     await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
-  const lines = [`execução ${state.run.id} retomada nesta sessão`];
+  const lines = [...back ? [back] : [], `execução ${state.run.id} retomada nesta sessão`];
   for (const r of released)
     lines.push(`${r.id} liberada (sem travas no jlock) → ${r.to}${r.uncommitted.length ? `; edições no disco: ${r.uncommitted.join(", ")}` : ""}`);
   if (kept.length)
@@ -2661,6 +2786,7 @@ export {
   validatePlan,
   validateGraph,
   validateBatch,
+  unarchive,
   toTask,
   ticketReadLine,
   ticketPath,
@@ -2717,6 +2843,7 @@ export {
   normalizeFileEntry,
   normalize,
   mutateTasks,
+  moveDir,
   missingKeys,
   markLost,
   log,
@@ -2766,6 +2893,7 @@ export {
   backToPending,
   atomicWrite,
   assess,
+  archiveDir,
   appendLog,
   ancestors,
   addUsage,

@@ -31,6 +31,7 @@ import {
   type Identity,
   type JlockLock,
 } from "./jlock.ts"
+import { unarchive } from "./housekeeping.ts"
 import { slugify } from "./ids.ts"
 import { canonical, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
@@ -836,6 +837,11 @@ defineAction(
   "resume",
   async (ctx, args) => {
     const wanted = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
+    let back: string | undefined
+    if (args.options["from-archive"]) {
+      if (!wanted) throw new ToolError("diga qual: tasks resume <run> --from-archive", 2)
+      back = await unarchive(ctx, wanted)
+    }
     const first = await resolveRun(ctx, { ...args, options: { ...args.options, ...(wanted ? { run: wanted } : {}) } })
     const keepOwners = !!args.options["keep-owners"]
     const released: { id: string; to: string; uncommitted: string[] }[] = []
@@ -871,7 +877,7 @@ defineAction(
     })
     // Whatever is left of a released task's locks (a stale holder) goes back too.
     for (const r of released) await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {})
-    const lines = [`execução ${state.run.id} retomada nesta sessão`]
+    const lines = [...(back ? [back] : []), `execução ${state.run.id} retomada nesta sessão`]
     for (const r of released)
       lines.push(
         `${r.id} liberada (sem travas no jlock) → ${r.to}${r.uncommitted.length ? `; edições no disco: ${r.uncommitted.join(", ")}` : ""}`,
