@@ -1,0 +1,22 @@
+{
+  "name": "goal-tasks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic task list with dependencies and file-ownership parallelism for coding agents (CLI, Claude Code mod, OpenCode plugin).",
+  "license": "MIT",
+  "author": "Rodrigo Jäger",
+  "type": "module",
+  "bin": {
+    "tasks": "cli/tasks.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "bun scripts/build.ts",
+    "tasks": "bun cli/tasks.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "typescript": "5.9.3"
+  }
+}
