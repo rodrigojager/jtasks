@@ -115,11 +115,11 @@ function relConflicts(a, b, insensitive) {
 }
 // src/schema.ts
 var DEFAULT_PROFILES = {
-  implement: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "implement" } },
-  "implement-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "implement-deep" } },
+  execute: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "execute" } },
+  "execute-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "execute-deep" } },
   review: { claude: { model: "sonnet", effort: "high", role: "code-reviewer" }, opencode: { agent: "review" } }
 };
-var DEFAULT_PROFILE = "implement";
+var DEFAULT_PROFILE = "execute";
 var DEFAULT_MAX_ATTEMPTS = 2;
 var DEFAULT_HOLD_TTL = "2h";
 var DURATION = /^\d+(ms|s|m|h|d)$/;
@@ -193,7 +193,7 @@ var en_default = {
   "doctor.nothing_to_fix": "nothing to install",
   "doctor.opencode_absent": "OpenCode not found (nothing to check)",
   "doctor.opencode_agents_missing": "agents missing: {agents}; {plugin}",
-  "doctor.opencode_ok": "the agents implement, implement-deep and review are there; {plugin}",
+  "doctor.opencode_ok": "the agents execute, execute-deep and review are there; {plugin}",
   "doctor.opencode_plugin_absent": "the jtasks plugin is not in its configuration (see opencode/README.md)",
   "doctor.opencode_plugin_listed": "the jtasks plugin is in its configuration",
   "doctor.package_missing": "the package has no {file}",
@@ -573,7 +573,7 @@ var pt_BR_default = {
   "doctor.nothing_to_fix": "nada a instalar",
   "doctor.opencode_absent": "OpenCode não encontrado (nada a conferir)",
   "doctor.opencode_agents_missing": "faltam os agentes: {agents}; {plugin}",
-  "doctor.opencode_ok": "os agentes implement, implement-deep e review existem; {plugin}",
+  "doctor.opencode_ok": "os agentes execute, execute-deep e review existem; {plugin}",
   "doctor.opencode_plugin_absent": "o plugin jtasks não está na configuração (veja opencode/README.md)",
   "doctor.opencode_plugin_listed": "o plugin jtasks está na configuração",
   "doctor.package_missing": "o pacote não tem {file}",
@@ -953,7 +953,7 @@ var es_default = {
   "doctor.nothing_to_fix": "nada que instalar",
   "doctor.opencode_absent": "OpenCode no encontrado (nada que comprobar)",
   "doctor.opencode_agents_missing": "faltan los agentes: {agents}; {plugin}",
-  "doctor.opencode_ok": "los agentes implement, implement-deep y review existen; {plugin}",
+  "doctor.opencode_ok": "los agentes execute, execute-deep y review existen; {plugin}",
   "doctor.opencode_plugin_absent": "el plugin jtasks no está en su configuración (ver opencode/README.md)",
   "doctor.opencode_plugin_listed": "el plugin jtasks está en su configuración",
   "doctor.package_missing": "el paquete no tiene {file}",
@@ -1333,7 +1333,7 @@ var fr_default = {
   "doctor.nothing_to_fix": "rien à installer",
   "doctor.opencode_absent": "OpenCode introuvable (rien à vérifier)",
   "doctor.opencode_agents_missing": "agents manquants: {agents}; {plugin}",
-  "doctor.opencode_ok": "les agents implement, implement-deep et review sont présents; {plugin}",
+  "doctor.opencode_ok": "les agents execute, execute-deep et review sont présents; {plugin}",
   "doctor.opencode_plugin_absent": "le plugin jtasks n'est pas dans sa configuration (voir opencode/README.md)",
   "doctor.opencode_plugin_listed": "le plugin jtasks est dans sa configuration",
   "doctor.package_missing": "le paquet n'a pas de {file}",
@@ -1713,7 +1713,7 @@ var de_default = {
   "doctor.nothing_to_fix": "nichts zu installieren",
   "doctor.opencode_absent": "OpenCode nicht gefunden (nichts zu prüfen)",
   "doctor.opencode_agents_missing": "fehlende Agenten: {agents}; {plugin}",
-  "doctor.opencode_ok": "die Agenten implement, implement-deep und review sind vorhanden; {plugin}",
+  "doctor.opencode_ok": "die Agenten execute, execute-deep und review sind vorhanden; {plugin}",
   "doctor.opencode_plugin_absent": "das jtasks-Plugin steht nicht in seiner Konfiguration (siehe opencode/README.md)",
   "doctor.opencode_plugin_listed": "das jtasks-Plugin steht in seiner Konfiguration",
   "doctor.package_missing": "dem Paket fehlt {file}",
@@ -2093,7 +2093,7 @@ var it_default = {
   "doctor.nothing_to_fix": "niente da installare",
   "doctor.opencode_absent": "OpenCode non trovato (niente da verificare)",
   "doctor.opencode_agents_missing": "agenti mancanti: {agents}; {plugin}",
-  "doctor.opencode_ok": "gli agenti implement, implement-deep e review ci sono; {plugin}",
+  "doctor.opencode_ok": "gli agenti execute, execute-deep e review ci sono; {plugin}",
   "doctor.opencode_plugin_absent": "il plugin jtasks non è nella sua configurazione (vedi opencode/README.md)",
   "doctor.opencode_plugin_listed": "il plugin jtasks è nella sua configurazione",
   "doctor.package_missing": "il pacchetto non ha {file}",
@@ -2473,7 +2473,7 @@ var zh_CN_default = {
   "doctor.nothing_to_fix": "无需安装",
   "doctor.opencode_absent": "未找到 OpenCode（无需检查）",
   "doctor.opencode_agents_missing": "缺少智能体：{agents}；{plugin}",
-  "doctor.opencode_ok": "智能体 implement、implement-deep 和 review 都已存在；{plugin}",
+  "doctor.opencode_ok": "智能体 execute、execute-deep 和 review 都已存在；{plugin}",
   "doctor.opencode_plugin_absent": "jtasks 插件不在其配置中（见 opencode/README.md）",
   "doctor.opencode_plugin_listed": "jtasks 插件已在其配置中",
   "doctor.package_missing": "软件包中没有 {file}",
@@ -2853,7 +2853,7 @@ var ja_default = {
   "doctor.nothing_to_fix": "インストールするものはない",
   "doctor.opencode_absent": "OpenCode が見つからない（確認対象なし）",
   "doctor.opencode_agents_missing": "足りないエージェント: {agents}。{plugin}",
-  "doctor.opencode_ok": "エージェント implement、implement-deep、review がある。{plugin}",
+  "doctor.opencode_ok": "エージェント execute、execute-deep、review がある。{plugin}",
   "doctor.opencode_plugin_absent": "jtasks プラグインが設定にない（opencode/README.md を参照）",
   "doctor.opencode_plugin_listed": "jtasks プラグインは設定にある",
   "doctor.package_missing": "パッケージに {file} がない",
@@ -3233,7 +3233,7 @@ var ru_default = {
   "doctor.nothing_to_fix": "устанавливать нечего",
   "doctor.opencode_absent": "OpenCode не найден (проверять нечего)",
   "doctor.opencode_agents_missing": "нет агентов: {agents}; {plugin}",
-  "doctor.opencode_ok": "агенты implement, implement-deep и review на месте; {plugin}",
+  "doctor.opencode_ok": "агенты execute, execute-deep и review на месте; {plugin}",
   "doctor.opencode_plugin_absent": "плагина jtasks нет в его конфигурации (см. opencode/README.md)",
   "doctor.opencode_plugin_listed": "плагин jtasks есть в его конфигурации",
   "doctor.package_missing": "в пакете нет {file}",
@@ -3613,7 +3613,7 @@ var ar_default = {
   "doctor.nothing_to_fix": "لا شيء لتثبيته",
   "doctor.opencode_absent": "لم يُعثر على OpenCode (لا شيء للفحص)",
   "doctor.opencode_agents_missing": "وكلاء ناقصون: {agents}؛ {plugin}",
-  "doctor.opencode_ok": "الوكلاء implement و implement-deep و review موجودون؛ {plugin}",
+  "doctor.opencode_ok": "الوكلاء execute و execute-deep و review موجودون؛ {plugin}",
   "doctor.opencode_plugin_absent": "الإضافة jtasks ليست في إعداداته (انظر opencode/README.md)",
   "doctor.opencode_plugin_listed": "الإضافة jtasks موجودة في إعداداته",
   "doctor.package_missing": "الحزمة ليس فيها {file}",
@@ -3993,7 +3993,7 @@ var hi_default = {
   "doctor.nothing_to_fix": "इंस्टॉल करने को कुछ नहीं",
   "doctor.opencode_absent": "OpenCode नहीं मिला (जाँचने को कुछ नहीं)",
   "doctor.opencode_agents_missing": "एजेंट गायब: {agents}; {plugin}",
-  "doctor.opencode_ok": "एजेंट implement, implement-deep और review मौजूद हैं; {plugin}",
+  "doctor.opencode_ok": "एजेंट execute, execute-deep और review मौजूद हैं; {plugin}",
   "doctor.opencode_plugin_absent": "jtasks प्लगइन उसकी कॉन्फ़िगरेशन में नहीं है (देखें opencode/README.md)",
   "doctor.opencode_plugin_listed": "jtasks प्लगइन उसकी कॉन्फ़िगरेशन में है",
   "doctor.package_missing": "पैकेज में {file} नहीं है",
@@ -7667,7 +7667,7 @@ async function loadRunsView(host, root) {
   return runsView(await listRuns(host, root));
 }
 // src/doctor.ts
-var OPENCODE_AGENTS = ["implement", "implement-deep", "review"];
+var OPENCODE_AGENTS = ["execute", "execute-deep", "review"];
 var SKILLS = ["to-tickets", "jtasks"];
 var SKILL_FILES = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], jtasks: ["SKILL.md"] };
 function userHome(host) {

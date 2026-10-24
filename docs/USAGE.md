@@ -20,7 +20,7 @@ jtasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skill
 
 `jtasks doctor` checks, in this order: the version (jtasks and the runtime); `git`; `jlock` (in `PATH`, at least
 0.1.0, 0.1.1 for `--release-on-eof`, and its own `jlock doctor --json`); `JTASKS_HOME` (a writable folder, the
-global ledger); OpenCode (the agents `implement`, `implement-deep`, `review` in `~/.config/opencode/agents/`, the
+global ledger); OpenCode (the agents `execute`, `execute-deep`, `review` in `~/.config/opencode/agents/`, the
 project's `.opencode/agents/` or `opencode.json`, and whether the plugin is configured); Claude Code (found, and
 whether the mod is installed; informative); the skills `to-tickets` and `jtasks` of every agent installed
 (Claude Code, OpenCode, Codex); and the language with where it came from. Exit 0 with no failure (warnings do not
@@ -51,11 +51,11 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   "feature": "login-por-email",
   "objective": "Login por link mágico",
   "serialize": ["bun test"],
-  "profiles": { "implement": { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "implement" } } },
+  "profiles": { "execute": { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
     { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"] },
-    { "id": "T03", "title": "Integração", "dependsOn": ["T02"], "exclusive": true, "profile": "implement" }
+    { "id": "T03", "title": "Integração", "dependsOn": ["T02"], "exclusive": true, "profile": "execute" }
   ]
 }
 ```
@@ -64,7 +64,7 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
   the other). `exclusive: true` holds `*` and runs alone.
-- Without `profiles`: `implement`, `implement-deep`, `review` (the OpenCode agents of the same names come with
+- Without `profiles`: `execute`, `execute-deep`, `review` (the OpenCode agents of the same names come with
   the plugin, `opencode/agents/`; a profile may name any agent you already have). `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
   themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).

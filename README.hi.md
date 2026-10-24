@@ -75,10 +75,10 @@ $ jtasks plan @plan.json
 
 $ jtasks next
 a-sum-its-docs-and-the-e-261024-1k5o में तैयार (2); ये समानांतर चल सकते हैं:
-T01 · Sum · प्रोफ़ाइल implement · स्वामित्व: src/sum.ts
+T01 · Sum · प्रोफ़ाइल execute · स्वामित्व: src/sum.ts
   मानदंड: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-1k5o/tickets/01-sum.md
-T02 · Docs · प्रोफ़ाइल implement · स्वामित्व: docs/sum.md
+T02 · Docs · प्रोफ़ाइल execute · स्वामित्व: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-1k5o/tickets/02-docs.md
 अवरुद्ध: T03 ⛔ T01, T02
 
@@ -113,7 +113,7 @@ Claude `jtasks next` बुलाता है, उसी उत्तर मे
 
 ## OpenCode के साथ
 
-प्लगइन के साथ भी यही: योजना के लिए `to-tickets`, फिर एक लक्ष्य। हर कार्य की `subagent` कॉल को उसकी प्रोफ़ाइल का एजेंट मिलता है (`implement`, `implement-deep`, `review`, जिन्हें `jtasks doctor --fix --yes` इंस्टॉल करता है, या योजना में आपके बताए किसी भी एजेंट)। साइडबार चेकलिस्ट और प्रगति पट्टी दिखाता है।
+प्लगइन के साथ भी यही: योजना के लिए `to-tickets`, फिर एक लक्ष्य। हर कार्य की `subagent` कॉल को उसकी प्रोफ़ाइल का एजेंट मिलता है (`execute`, `execute-deep`, `review`, जिन्हें `jtasks doctor --fix --yes` इंस्टॉल करता है, या योजना में आपके बताए किसी भी एजेंट)। साइडबार चेकलिस्ट और प्रगति पट्टी दिखाता है।
 
 ## टर्मिनल या Codex से
 

@@ -26,7 +26,7 @@ describe("jtasks doctor --fix", () => {
     const planned = (r.data as { planned: string[] }).planned
     // 3 agents + 3 hosts × (to-tickets: 3 files, jtasks: 1 file).
     expect(planned).toHaveLength(3 + 3 * 4)
-    expect(existsSync(join(home, ".config/opencode/agents/implement.md"))).toBe(false)
+    expect(existsSync(join(home, ".config/opencode/agents/execute.md"))).toBe(false)
   })
 
   test("--fix --yes copies the agents and the skills, records each file in the global ledger, and undo removes one", async () => {
@@ -37,8 +37,8 @@ describe("jtasks doctor --fix", () => {
     writeFileSync(join(home, ".agents/skills/jtasks/SKILL.md"), "mine\n")
     const ctx = { host: withEnv({ JTASKS_USER_HOME: home }), packageRoot: REPO_ROOT }
     const r = await tasksOk(repo, ["doctor", "--fix", "--yes"], ctx)
-    const agent = join(home, ".config/opencode/agents/implement-deep.md")
-    expect(readFileSync(agent, "utf8")).toBe(readFileSync(join(REPO_ROOT, "opencode/agents/implement-deep.md"), "utf8"))
+    const agent = join(home, ".config/opencode/agents/execute-deep.md")
+    expect(readFileSync(agent, "utf8")).toBe(readFileSync(join(REPO_ROOT, "opencode/agents/execute-deep.md"), "utf8"))
     for (const h of [".claude/skills", ".config/opencode/skills", ".agents/skills"]) expect(existsSync(join(home, h, "to-tickets/schema.json"))).toBe(true)
     expect(readFileSync(join(home, ".claude/skills/jtasks/SKILL.md"), "utf8")).toBe(readFileSync(join(REPO_ROOT, "skills/claude-code/jtasks/SKILL.md"), "utf8"))
     // The user's own file stays, and the next check still sees a skill there.
@@ -55,7 +55,7 @@ describe("jtasks doctor --fix", () => {
     const undone = await tasksOk(repo, ["undo", e.id])
     expect(undone.text).toContain(e.id)
     expect(existsSync(agent)).toBe(false)
-    expect(existsSync(join(home, ".config/opencode/agents/implement.md"))).toBe(true)
+    expect(existsSync(join(home, ".config/opencode/agents/execute.md"))).toBe(true)
     const again = await tasks(repo, ["undo", e.id])
     expect(again.ok).toBe(false)
   })

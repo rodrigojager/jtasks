@@ -98,10 +98,10 @@ $ jtasks plan @plan.json
 
 $ jtasks next
 готовы (2) в a-sum-its-docs-and-the-e-261024-cryc; можно выполнять параллельно:
-T01 · Sum · профиль implement · владение: src/sum.ts
+T01 · Sum · профиль execute · владение: src/sum.ts
   критерии: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/01-sum.md
-T02 · Docs · профиль implement · владение: docs/sum.md
+T02 · Docs · профиль execute · владение: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/02-docs.md
 заблокированы: T03 ⛔ T01, T02
 
@@ -141,7 +141,7 @@ Claude вызывает `jtasks next`, открывает по субагент�
 ## С OpenCode
 
 С плагином всё так же: `to-tickets`, чтобы спланировать, затем цель. Вызов `subagent` каждой задачи получает агента
-её профиля (`implement`, `implement-deep`, `review`, которых устанавливает `jtasks doctor --fix --yes`, или любого
+её профиля (`execute`, `execute-deep`, `review`, которых устанавливает `jtasks doctor --fix --yes`, или любого
 агента, указанного вами в плане). Боковая панель показывает чек-лист и индикатор прогресса.
 
 ## Из терминала или Codex

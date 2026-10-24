@@ -102,10 +102,10 @@ nächster Schritt: jtasks next
 
 $ jtasks next
 bereit (2) in a-sum-its-docs-and-the-e-261024-covw; sie können parallel laufen:
-T01 · Sum · Profil implement · Besitz: src/sum.ts
+T01 · Sum · Profil execute · Besitz: src/sum.ts
   Kriterien: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
-T02 · Docs · Profil implement · Besitz: docs/sum.md
+T02 · Docs · Profil execute · Besitz: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/02-docs.md
 blockiert: T03 ⛔ T01, T02
 
@@ -146,7 +146,7 @@ Bereich.
 ## Mit OpenCode
 
 Mit dem Plugin genauso: `to-tickets` zum Planen, dann ein Goal. Der `subagent`-Aufruf jeder Aufgabe bekommt den
-Agenten ihres Profils (`implement`, `implement-deep`, `review`, installiert von `jtasks doctor --fix --yes`, oder
+Agenten ihres Profils (`execute`, `execute-deep`, `review`, installiert von `jtasks doctor --fix --yes`, oder
 jeden Agenten, den du im Plan nennst). Die Seitenleiste zeigt die Checkliste und den Fortschrittsbalken.
 
 ## Aus einem Terminal oder Codex

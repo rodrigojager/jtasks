@@ -17,7 +17,7 @@ const plan = {
   tasks: [
     { id: "T01", title: "Tornar o movimento substituível", files: ["src/move.ts"], acceptance: ["passa"] },
     { id: "T02", title: "Gerador nativo", dependsOn: ["T01"], files: ["src/recorder/**"] },
-    { id: "T03", title: "Paridade", dependsOn: ["T01"], files: ["src/parity"], profile: "implement-deep", boundary: "sem UI" },
+    { id: "T03", title: "Paridade", dependsOn: ["T01"], files: ["src/parity"], profile: "execute-deep", boundary: "sem UI" },
   ],
 }
 
@@ -51,11 +51,11 @@ describe("jtasks plan", () => {
 
     const t = json(join(dir, "tasks.json")) as TasksFile
     expect(t.revision).toBe(1)
-    expect(Object.keys(t.profiles)).toEqual(["implement", "implement-deep", "review"])
+    expect(Object.keys(t.profiles)).toEqual(["execute", "execute-deep", "review"])
     expect(t.tasks.map((x) => [x.id, x.status, x.attempts, x.profile])).toEqual([
-      ["T01", "pending", 0, "implement"],
-      ["T02", "pending", 0, "implement"],
-      ["T03", "pending", 0, "implement-deep"],
+      ["T01", "pending", 0, "execute"],
+      ["T02", "pending", 0, "execute"],
+      ["T03", "pending", 0, "execute-deep"],
     ])
     expect(t.tasks[1]!.files).toEqual(["src/recorder"])
     expect(t.tasks[0]!.acceptance).toEqual([{ text: "passa", done: false }])

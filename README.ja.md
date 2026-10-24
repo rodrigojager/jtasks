@@ -75,10 +75,10 @@ $ jtasks plan @plan.json
 
 $ jtasks next
 a-sum-its-docs-and-the-e-261024-bvqd で準備完了（2）。並列に実行できる:
-T01 · Sum · プロファイル implement · 所有権: src/sum.ts
+T01 · Sum · プロファイル execute · 所有権: src/sum.ts
   受け入れ基準: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/01-sum.md
-T02 · Docs · プロファイル implement · 所有権: docs/sum.md
+T02 · Docs · プロファイル execute · 所有権: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/02-docs.md
 ブロック中: T03 ⛔ T01, T02
 
@@ -113,7 +113,7 @@ Claude は `jtasks next` を呼び、同じ応答の中で準備完了のタス�
 
 ## OpenCode で使う
 
-プラグインでも同じです。`to-tickets` で計画を立て、目標を設定します。各タスクの `subagent` 呼び出しには、そのプロファイルのエージェント（`implement`、`implement-deep`、`review`。`jtasks doctor --fix --yes` でインストールされます。または計画で指定した任意のエージェント）が割り当てられます。サイドバーにはチェックリストと進捗バーが表示されます。
+プラグインでも同じです。`to-tickets` で計画を立て、目標を設定します。各タスクの `subagent` 呼び出しには、そのプロファイルのエージェント（`execute`、`execute-deep`、`review`。`jtasks doctor --fix --yes` でインストールされます。または計画で指定した任意のエージェント）が割り当てられます。サイドバーにはチェックリストと進捗バーが表示されます。
 
 ## ターミナルまたは Codex から使う
 

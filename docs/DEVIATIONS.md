@@ -91,7 +91,7 @@ em vez de "um hook de permissão"). A diferença real: um plugin não pode criar
 `agent-config` no ledger.
 
 **Consequência:** os agentes dos perfis precisam existir na sua configuração. Qualquer nome serve: o perfil diz qual
-agente usar (`opencode.agent`); sem perfis no plano, valem os padrão (`implement`, `implement-deep`, `review`). O
+agente usar (`opencode.agent`); sem perfis no plano, valem os padrão (`execute`, `execute-deep`, `review`). O
 plugin escolhe o agente certo para cada tarefa e aplica o modelo do perfil, mas não os cria.
 
 **O que fazer:** o pacote passa a trazer os três agentes prontos (ticket 20) e o `jtasks doctor --fix` os instala em

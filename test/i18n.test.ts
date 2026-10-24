@@ -83,7 +83,7 @@ describe("the same command in two languages", () => {
     const en = await tasksOk(repo, ["next", "--lang", "en"])
     const pt = await tasksOk(repo, ["next"])
     expect(en.text).toContain("ready (1) in ")
-    expect(en.text).toContain("T01 · Base · profile implement · ownership: src/a.ts")
+    expect(en.text).toContain("T01 · Base · profile execute · ownership: src/a.ts")
     expect(pt.text).toContain("prontas (1) em ")
     expect(en.data).toEqual(pt.data)
     const unknown = await tasks(repo, ["status", "--lang", "klingon"])

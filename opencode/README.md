@@ -25,7 +25,7 @@ OpenCode loads the folder's `server.ts`; the package also exports `./tui` (`tui.
 ## Agents
 
 A task's profile names the OpenCode agent its `subagent` call must use (`opencode.agent`). The default profiles name
-`implement`, `implement-deep` and `review`, and the package brings those three agents ready in `agents/`
+`execute`, `execute-deep` and `review`, and the package brings those three agents ready in `agents/`
 (`mode: subagent`, the task protocol in the body: `jtasks start` first, `jtasks claim` for one more file, never git,
 `jtasks done` with evidence or `jtasks fail`). A plugin cannot create agents, so they have to be installed where
 OpenCode reads them: `jtasks doctor --fix --yes` copies them to `~/.config/opencode/agents/` (recorded in the global

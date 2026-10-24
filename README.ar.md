@@ -110,10 +110,10 @@ $ jtasks plan @plan.json
 
 $ jtasks next
 الجاهزة (2) في a-sum-its-docs-and-the-e-261024-ibmx؛ يمكن تشغيلها بالتوازي:
-T01 · Sum · الملف التعريفي implement · الملكية: src/sum.ts
+T01 · Sum · الملف التعريفي execute · الملكية: src/sum.ts
   المعايير: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/01-sum.md
-T02 · Docs · الملف التعريفي implement · الملكية: docs/sum.md
+T02 · Docs · الملف التعريفي execute · الملكية: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/02-docs.md
 محجوبة: T03 ⛔ T01, T02
 
@@ -158,7 +158,7 @@ $ jtasks status
 ## مع OpenCode
 
 مع الإضافة، الأمر نفسه: `to-tickets` للتخطيط، ثم هدف. يحصل استدعاء `subagent` لكل مهمة على وكيل ملفها التعريفي
-(`implement`، `implement-deep`، `review`، التي يثبّتها `jtasks doctor --fix --yes`، أو أي وكيل تسمّيه في الخطة).
+(`execute`، `execute-deep`، `review`، التي يثبّتها `jtasks doctor --fix --yes`، أو أي وكيل تسمّيه في الخطة).
 ويعرض الشريط الجانبي قائمة التحقق وشريط التقدم.
 
 ## من الطرفية أو Codex

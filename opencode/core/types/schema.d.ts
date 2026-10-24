@@ -120,7 +120,7 @@ export interface PlanInput {
     tasks: PlanTask[];
 }
 export declare const DEFAULT_PROFILES: Record<string, Profile>;
-export declare const DEFAULT_PROFILE = "implement";
+export declare const DEFAULT_PROFILE = "execute";
 export declare const DEFAULT_MAX_ATTEMPTS = 2;
 /** The `--ttl` of every hold: the lock expires by itself after this long if nobody gives it back. */
 export declare const DEFAULT_HOLD_TTL = "2h";

@@ -73,7 +73,7 @@ describe("plan in batches", () => {
     expect(bad.text.split("\n")).toEqual([
       "lote recusado, o rascunho não mudou. 3 erro(s):",
       "- id repetido: T01",
-      `- T09: perfil desconhecido "nope" (perfis: implement, implement-deep, review)`,
+      `- T09: perfil desconhecido "nope" (perfis: execute, execute-deep, review)`,
       "- T09: src/*.ts: o jlock trava arquivos e pastas, não padrões; liste os arquivos ou use a pasta src",
     ])
     expect((await tasksOk(repo, ["plan", "--show"])).text).toContain("2 tarefa(s)")

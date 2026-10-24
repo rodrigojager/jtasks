@@ -92,10 +92,10 @@ next step: jtasks next
 
 $ jtasks next
 ready (2) in a-sum-its-docs-and-the-e-261024-gvus; they can run in parallel:
-T01 · Sum · profile implement · ownership: src/sum.ts
+T01 · Sum · profile execute · ownership: src/sum.ts
   criteria: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
-T02 · Docs · profile implement · ownership: docs/sum.md
+T02 · Docs · profile execute · ownership: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/02-docs.md
 blocked: T03 ⛔ T01, T02
 
@@ -134,7 +134,7 @@ calls `jtasks status` until nothing is left. `/jtasks` opens or closes the pane.
 ## With OpenCode
 
 With the plugin, the same: `to-tickets` to plan, then a goal. Each task's `subagent` call gets the agent of its
-profile (`implement`, `implement-deep`, `review`, installed by `jtasks doctor --fix --yes`, or any agent you name in
+profile (`execute`, `execute-deep`, `review`, installed by `jtasks doctor --fix --yes`, or any agent you name in
 the plan). The sidebar shows the checklist and the progress bar.
 
 ## From a terminal or Codex

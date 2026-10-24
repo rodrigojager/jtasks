@@ -67,7 +67,7 @@
   "doctor.nothing_to_fix": "устанавливать нечего",
   "doctor.opencode_absent": "OpenCode не найден (проверять нечего)",
   "doctor.opencode_agents_missing": "нет агентов: {agents}; {plugin}",
-  "doctor.opencode_ok": "агенты implement, implement-deep и review на месте; {plugin}",
+  "doctor.opencode_ok": "агенты execute, execute-deep и review на месте; {plugin}",
   "doctor.opencode_plugin_absent": "плагина jtasks нет в его конфигурации (см. opencode/README.md)",
   "doctor.opencode_plugin_listed": "плагин jtasks есть в его конфигурации",
   "doctor.package_missing": "в пакете нет {file}",

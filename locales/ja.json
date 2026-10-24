@@ -67,7 +67,7 @@
   "doctor.nothing_to_fix": "インストールするものはない",
   "doctor.opencode_absent": "OpenCode が見つからない（確認対象なし）",
   "doctor.opencode_agents_missing": "足りないエージェント: {agents}。{plugin}",
-  "doctor.opencode_ok": "エージェント implement、implement-deep、review がある。{plugin}",
+  "doctor.opencode_ok": "エージェント execute、execute-deep、review がある。{plugin}",
   "doctor.opencode_plugin_absent": "jtasks プラグインが設定にない（opencode/README.md を参照）",
   "doctor.opencode_plugin_listed": "jtasks プラグインは設定にある",
   "doctor.package_missing": "パッケージに {file} がない",

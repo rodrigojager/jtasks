@@ -34,7 +34,7 @@
       "dependsOn": ["T02", "T03"],
       "files": ["src/routes/login-callback.ts", "tests/routes/login-callback.test.ts"],
       "acceptance": ["link válido abre a sessão", "link vencido mostra a página de erro"],
-      "profile": "implement-deep"
+      "profile": "execute-deep"
     },
     {
       "id": "T05",

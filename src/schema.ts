@@ -121,12 +121,12 @@ export interface PlanInput {
 }
 
 export const DEFAULT_PROFILES: Record<string, Profile> = {
-  implement: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "implement" } },
-  "implement-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "implement-deep" } },
+  execute: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "execute" } },
+  "execute-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "execute-deep" } },
   review: { claude: { model: "sonnet", effort: "high", role: "code-reviewer" }, opencode: { agent: "review" } },
 }
 
-export const DEFAULT_PROFILE = "implement"
+export const DEFAULT_PROFILE = "execute"
 export const DEFAULT_MAX_ATTEMPTS = 2
 /** The `--ttl` of every hold: the lock expires by itself after this long if nobody gives it back. */
 export const DEFAULT_HOLD_TTL = "2h"

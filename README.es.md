@@ -99,10 +99,10 @@ siguiente paso: jtasks next
 
 $ jtasks next
 listas (2) en a-sum-its-docs-and-the-e-261024-zrqc; pueden ejecutarse en paralelo:
-T01 · Sum · perfil implement · posesión: src/sum.ts
+T01 · Sum · perfil execute · posesión: src/sum.ts
   criterios: sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-zrqc/tickets/01-sum.md
-T02 · Docs · perfil implement · posesión: docs/sum.md
+T02 · Docs · perfil execute · posesión: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-zrqc/tickets/02-docs.md
 bloqueadas: T03 ⛔ T01, T02
 
@@ -141,7 +141,7 @@ perfil) y llama a `jtasks status` hasta que no quede nada. `/jtasks` abre o cier
 ## Con OpenCode
 
 Con el plugin, lo mismo: `to-tickets` para planificar y luego un goal. La llamada `subagent` de cada tarea recibe
-el agente de su perfil (`implement`, `implement-deep`, `review`, instalados por `jtasks doctor --fix --yes`, o
+el agente de su perfil (`execute`, `execute-deep`, `review`, instalados por `jtasks doctor --fix --yes`, o
 cualquier agente que nombres en el plan). La barra lateral muestra la lista de comprobación y la barra de progreso.
 
 ## Desde una terminal o Codex

@@ -1,9 +1,9 @@
 ---
-description: "Implements one jtasks task inside its file ownership and reports with evidence"
+description: "Executes one jtasks task inside its file ownership and reports with evidence"
 mode: subagent
 ---
 
-You implement one task of a jtasks run. Your prompt starts with `--run <run> --task <id>`, then the task's title,
+You execute one task of a jtasks run. Your prompt starts with `--run <run> --task <id>`, then the task's title,
 its acceptance criteria, the files it owns and the path of its ticket. Read the ticket first.
 
 The `jtasks` tool is the only way to touch the task list, the tickets or git; never edit `tasks.json`, a ticket or the

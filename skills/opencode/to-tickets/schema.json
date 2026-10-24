@@ -12,7 +12,7 @@
         "objective": { "type": "string", "description": "One line: what the run achieves." },
         "profiles": {
           "type": "object",
-          "description": "Agent profiles by name; without it: implement, implement-deep, review.",
+          "description": "Agent profiles by name; without it: execute, execute-deep, review.",
           "additionalProperties": { "$ref": "#/$defs/profile" }
         },
         "serialize": {
@@ -43,7 +43,7 @@
           "description": "Files and folders it owns, relative to the repository; a folder owns everything inside; dir/** is the folder; no other patterns."
         },
         "acceptance": { "type": "array", "items": { "type": "string" }, "description": "Acceptance criteria." },
-        "profile": { "type": "string", "description": "Name of a profile (default implement)." },
+        "profile": { "type": "string", "description": "Name of a profile (default execute)." },
         "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
         "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." }
       },

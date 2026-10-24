@@ -22,9 +22,9 @@ describe("view", () => {
   const s = state([
     { id: "T01", title: "Movimento substituível", files: ["src/a.ts"] },
     { id: "T02", title: "Gerador nativo", files: ["src/rec"] },
-    { id: "T03", title: "Paridade completa", files: ["src/par"], profile: "implement-deep" },
+    { id: "T03", title: "Paridade completa", files: ["src/par"], profile: "execute-deep" },
     { id: "T04", title: "Mouse move", dependsOn: ["T02"], files: ["src/move.ts"] },
-    { id: "T05", title: "Atraso e escala", files: ["src/timing.ts"], profile: "implement-deep" },
+    { id: "T05", title: "Atraso e escala", files: ["src/timing.ts"], profile: "execute-deep" },
     { id: "T06", title: "Fill/clear", dependsOn: ["T04"], files: ["src/fill.ts"] },
     { id: "T07", title: "Insert text", files: ["src/insert.ts"] },
     { id: "T08", title: "Tipos", files: ["src/types.ts"] },
@@ -49,12 +49,12 @@ describe("view", () => {
       ["☑", "T02", "3be77d0"],
       ["⊘", "T03", "coberto"],
       ["✗", "T04", "types.ts em uso por T02"],
-      ["◐", "T05", "implement-deep·opus"],
+      ["◐", "T05", "execute-deep·opus"],
       ["☐", "T06", "⛔ T04 (falha) · 🔒 auth-261024-p0q9/T03: src/fill.ts (via src)"],
       ["☐", "T07", "🔒 T05: src/insert.ts"],
       ["◐", "T08", "⏳ auth-261024-p0q9/T03: src · posição 1"],
     ])
-    expect(buildView(s, locks, "win32", "opencode").lines[4]!.detail).toBe("implement-deep")
+    expect(buildView(s, locks, "win32", "opencode").lines[4]!.detail).toBe("execute-deep")
     expect(claude).toMatchObject({ done: 2, total: 8, skipped: 1, failed: 1, percent: 25, remaining: 5 })
   })
 

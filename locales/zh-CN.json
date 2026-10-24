@@ -67,7 +67,7 @@
   "doctor.nothing_to_fix": "无需安装",
   "doctor.opencode_absent": "未找到 OpenCode（无需检查）",
   "doctor.opencode_agents_missing": "缺少智能体：{agents}；{plugin}",
-  "doctor.opencode_ok": "智能体 implement、implement-deep 和 review 都已存在；{plugin}",
+  "doctor.opencode_ok": "智能体 execute、execute-deep 和 review 都已存在；{plugin}",
   "doctor.opencode_plugin_absent": "jtasks 插件不在其配置中（见 opencode/README.md）",
   "doctor.opencode_plugin_listed": "jtasks 插件已在其配置中",
   "doctor.package_missing": "软件包中没有 {file}",

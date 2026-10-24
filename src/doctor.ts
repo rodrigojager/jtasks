@@ -24,7 +24,7 @@ export interface Check {
   fixable?: boolean
 }
 
-export const OPENCODE_AGENTS = ["implement", "implement-deep", "review"]
+export const OPENCODE_AGENTS = ["execute", "execute-deep", "review"]
 export const SKILLS = ["to-tickets", "jtasks"]
 export const SKILL_FILES: Record<string, string[]> = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
 

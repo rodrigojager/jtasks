@@ -20,7 +20,7 @@ JSON inteiro numa resposta só (limite de tokens de saída) nem reenviar tudo pa
 Revisão 5.2, 24/10/2026: os itens 2 a 6 da seção 18 estão entregues (tickets 01 a 18) e a revisão absorve o que
 saiu diferente e foi aceito (`docs/DEVIATIONS.md`: trava curta de escrita, `done` em três grupos, `attempts` contado
 no `start`, perfis apontando agentes existentes, `/jtasks`), renomeia os perfis e agentes para nomes completos no
-padrão do OpenCode (`implement`, `implement-deep`, `review`), e acrescenta: posse por `jlock hold --detach --ttl`
+padrão do OpenCode (`execute`, `execute-deep`, `review`), e acrescenta: posse por `jlock hold --detach --ttl`
 (CLI e mod) e `--release-on-eof` (plugin), fim de subagente no OpenCode, barra no estilo do `opencode-hud`, idiomas
 (seção 21), `jtasks doctor` (seção 22), skills por agente e READMEs em onze idiomas (seção 23). Marcado com
 **[rev. 5.2]**; a seção 18 ganha os itens 9 a 15 (tickets 19 a 30).
@@ -288,26 +288,26 @@ branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por
 {
   "version": 1, "run": "cursory-261023-k7f2", "revision": 41,
   "profiles": {
-    "implement":      { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "implement" } },
-    "implement-deep": { "claude": { "model": "opus",   "effort": "high" },                                "opencode": { "agent": "implement-deep" } },
+    "execute":      { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } },
+    "execute-deep": { "claude": { "model": "opus",   "effort": "high" },                                "opencode": { "agent": "execute-deep" } },
     "review":         { "claude": { "model": "sonnet", "effort": "high",   "role": "code-reviewer" },     "opencode": { "agent": "review" } }
   },
   "tasks": [
     { "id": "T01", "title": "Tornar o movimento substituível", "status": "done",
-      "dependsOn": [], "profile": "implement",
+      "dependsOn": [], "profile": "execute",
       "files": ["src/humanizer/trajectory.ts", "src/humanizer/move.ts", "tests/humanizer/**"],
       "acceptance": [ { "text": "Automação local percorre movimento, hover e clique", "done": true } ],
       "attempts": 1, "owner": null, "startedAt": "…", "finishedAt": "…",
       "commit": "9f1c2ab", "evidence": "bun test: 93 passed; regressão local idêntica antes/depois" },
     { "id": "T02", "title": "Gerador de gravações nativo", "status": "in_progress",
-      "dependsOn": ["T01"], "profile": "implement", "files": ["src/recorder/**"],
+      "dependsOn": ["T01"], "profile": "execute", "files": ["src/recorder/**"],
       "claimed": ["src/humanizer/types.ts"],
       "attempts": 2, "owner": "claude:a8ec2aca/agent:7f3a", "startedAt": "…" },
-    { "id": "T03", "title": "Paridade completa", "status": "skipped", "dependsOn": ["T01"], "profile": "implement-deep",
+    { "id": "T03", "title": "Paridade completa", "status": "skipped", "dependsOn": ["T01"], "profile": "execute-deep",
       "files": ["src/humanizer/parity/**"], "reason": "coberto por T01 após a refatoração" },
-    { "id": "T04", "title": "Mouse move", "status": "failed", "dependsOn": ["T02"], "profile": "implement",
+    { "id": "T04", "title": "Mouse move", "status": "failed", "dependsOn": ["T02"], "profile": "execute",
       "files": ["src/humanizer/move.ts"], "attempts": 2, "error": "src/humanizer/types.ts em uso por T02" },
-    { "id": "T05", "title": "Atraso e escala", "status": "pending", "dependsOn": ["T02"], "profile": "implement-deep",
+    { "id": "T05", "title": "Atraso e escala", "status": "pending", "dependsOn": ["T02"], "profile": "execute-deep",
       "files": ["src/humanizer/timing.ts"] },
     { "id": "T12", "title": "Integração: suíte completa", "status": "pending",
       "dependsOn": ["T05", "T06", "T07"], "profile": "review", "exclusive": true }
@@ -515,9 +515,9 @@ instrução explícita: o perfil no `tasks.json` é essa instrução.
 
 ### Os perfis **[rev. 5.2]**
 
-Nomes completos, no padrão dos agentes do OpenCode (`build`, `plan`): `implement` (sonnet, esforço médio, papel
-`backend-developer`; agente `implement`), `implement-deep` (opus, esforço alto; agente `implement-deep`) e `review`
-(sonnet, esforço alto, papel `code-reviewer`; agente `review`). `implement` é o padrão. O plano pode trazer os seus
+Nomes completos, no padrão dos agentes do OpenCode (`build`, `plan`): `execute` (sonnet, esforço médio, papel
+`backend-developer`; agente `execute`), `execute-deep` (opus, esforço alto; agente `execute-deep`) e `review`
+(sonnet, esforço alto, papel `code-reviewer`; agente `review`). `execute` é o padrão. O plano pode trazer os seus
 próprios perfis, com qualquer nome, apontando qualquer agente que já exista.
 
 ### OpenCode
@@ -563,7 +563,7 @@ core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 ☑ T02 Gerador nativo              3be77d0
 ⊘ T03 Paridade completa
 ✗ T04 Mouse move                  types.ts em uso por T02
-◐ T05 Atraso e escala             implement-deep·opus
+◐ T05 Atraso e escala             execute-deep·opus
 ☐ T06 Fill/clear                  ⛔ T04
 ☐ T07 Insert text                 🔒 T05
 …
@@ -582,7 +582,7 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 | contexto | `ctx.session.hook("context")` e `("compaction")` | resumo em cada requisição |
 | seção | `context.ui.slot({ append: "sidebar.content" })` | "▾ Tasks · run", barra e checklist; clique dobra. **[rev. 5.2]** A barra é nossa (`src/view.ts`), no visual do `Meter` do `opencode-hud` (oitavos de célula, cor principal do tema, trilho apagado), sem depender do HUD instalado |
 | dados | RPC `jtasks.state` (`ctx.rpc.register`; o id do RPC é o do plugin) + releitura após `session.tool.success` e a cada 2 s com tarefa em andamento | a TUI nunca toca o arquivo |
-| perfis | `agent.transform` (modelo do perfil) + `tool.hook("execute.before")` (agente da tarefa na chamada `subagent`) | agentes `implement`/`implement-deep`/`review` existentes (seção 13) |
+| perfis | `agent.transform` (modelo do perfil) + `tool.hook("execute.before")` (agente da tarefa na chamada `subagent`) | agentes `execute`/`execute-deep`/`review` existentes (seção 13) |
 | guarda de posse | `ctx.permission.hook("evaluate")` (`edit` e `shell`) | mesmas regras do mod, pela regra do núcleo |
 | agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
 | goal | sem espelhar em `update_goal_plan` | objetivo + evidência; o paralelismo é nosso |
@@ -662,7 +662,7 @@ motivo.
 
 9. **Plano 5.2 e desvios didáticos** (ticket 19): este documento; `DEVIATIONS.md` no formato "o que mudou,
    consequência, o que fazer".
-10. **Nomes completos** (20): perfis e agentes `implement`/`implement-deep`/`review`; os agentes prontos no pacote do
+10. **Nomes completos** (20): perfis e agentes `execute`/`execute-deep`/`review`; os agentes prontos no pacote do
     OpenCode; aviso de agente inexistente.
 11. **Posse pelo jlock nativo** (J18 no jlock, 21, 22): `hold --release-on-eof` no jlock; `--detach --ttl` no CLI e
     no mod, `--release-on-eof --ttl` no plugin, `holdTtl` no plano; fim de subagente no OpenCode devolve a tarefa.

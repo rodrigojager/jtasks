@@ -67,7 +67,7 @@
   "doctor.nothing_to_fix": "niente da installare",
   "doctor.opencode_absent": "OpenCode non trovato (niente da verificare)",
   "doctor.opencode_agents_missing": "agenti mancanti: {agents}; {plugin}",
-  "doctor.opencode_ok": "gli agenti implement, implement-deep e review ci sono; {plugin}",
+  "doctor.opencode_ok": "gli agenti execute, execute-deep e review ci sono; {plugin}",
   "doctor.opencode_plugin_absent": "il plugin jtasks non è nella sua configurazione (vedi opencode/README.md)",
   "doctor.opencode_plugin_listed": "il plugin jtasks è nella sua configurazione",
   "doctor.package_missing": "il pacchetto non ha {file}",

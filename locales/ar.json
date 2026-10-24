@@ -67,7 +67,7 @@
   "doctor.nothing_to_fix": "لا شيء لتثبيته",
   "doctor.opencode_absent": "لم يُعثر على OpenCode (لا شيء للفحص)",
   "doctor.opencode_agents_missing": "وكلاء ناقصون: {agents}؛ {plugin}",
-  "doctor.opencode_ok": "الوكلاء implement و implement-deep و review موجودون؛ {plugin}",
+  "doctor.opencode_ok": "الوكلاء execute و execute-deep و review موجودون؛ {plugin}",
   "doctor.opencode_plugin_absent": "الإضافة jtasks ليست في إعداداته (انظر opencode/README.md)",
   "doctor.opencode_plugin_listed": "الإضافة jtasks موجودة في إعداداته",
   "doctor.package_missing": "الحزمة ليس فيها {file}",

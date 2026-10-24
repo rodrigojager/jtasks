@@ -75,10 +75,10 @@ $ jtasks plan @plan.json
 
 $ jtasks next
 a-sum-its-docs-and-the-e-261024-fls1 中就绪（2）；可以并行执行：
-T01 · Sum · 配置 implement · 所有权：src/sum.ts
+T01 · Sum · 配置 execute · 所有权：src/sum.ts
   验收标准：sum.ts exports sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/01-sum.md
-T02 · Docs · 配置 implement · 所有权：docs/sum.md
+T02 · Docs · 配置 execute · 所有权：docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/02-docs.md
 被阻塞：T03 ⛔ T01, T02
 
@@ -113,7 +113,7 @@ Claude 调用 `jtasks next`，在同一个回复中为每个就绪任务打开�
 
 ## 配合 OpenCode
 
-使用插件时也一样：用 `to-tickets` 做计划，然后设定一个目标。每个任务的 `subagent` 调用会得到其配置对应的智能体（`implement`、`implement-deep`、`review`，由 `jtasks doctor --fix --yes` 安装，或者是你在计划中指定的任意智能体）。侧边栏显示清单和进度条。
+使用插件时也一样：用 `to-tickets` 做计划，然后设定一个目标。每个任务的 `subagent` 调用会得到其配置对应的智能体（`execute`、`execute-deep`、`review`，由 `jtasks doctor --fix --yes` 安装，或者是你在计划中指定的任意智能体）。侧边栏显示清单和进度条。
 
 ## 在终端或 Codex 中
 
