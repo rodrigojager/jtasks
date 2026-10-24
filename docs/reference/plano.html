@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano: goal-tasks</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1d1c1a; --muted: #6b675f; --line: #dedad2; --soft: #f1eee7;
+    --accent: #b5481f; --ok: #2f7d4f; --warn: #a66a00; --code-bg: #f4f1ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161513; --fg: #ebe7df; --muted: #9b968b; --line: #332f2a; --soft: #211f1b; --accent: #e07a4c; --ok: #6fc28f; --warn: #e0a84a; --code-bg: #1f1d19; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 22px; margin: 44px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+  h3 { font-size: 17px; margin: 24px 0 6px; }
+  p, li { max-width: 80ch; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; line-height: 1.45; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 9px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .decisions { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 14px 0; }
+  .decision { background: var(--soft); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; }
+  .decision b { display: block; margin-bottom: 2px; }
+  .changed { border-left-color: var(--ok); }
+  .changed::before { content: "revisto"; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ok); display: block; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+  .box h3 { margin-top: 4px; }
+  ol.phases li { margin-bottom: 10px; }
+  .toc { columns: 2; column-gap: 24px; font-size: 14.5px; padding-left: 18px; }
+  @media (max-width: 720px) { .toc { columns: 1; } }
+  small { color: var(--muted); }
+  .warn { color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>goal-tasks</h1>
+<p class="lead">Lista de tarefas determinística, com dependências e paralelismo, acompanhada por uma barra de progresso e um checklist no Claude Code (mod) e no OpenCode (plugin), compatível com o <code>/goal</code> dos dois. Revisão 4, 23/10/2026: a posse de arquivos passa a ser imposta por um serviço de travas com fila (pré-requisito, plano próprio em <a href="plano-jlock.html">plano-jlock.html</a>); worktrees só sob demanda; livro-razão de tudo que a ferramenta cria. Nada foi implementado ainda.</p>
+
+<ol class="toc">
+  <li><a href="#decisoes">As decisões</a></li>
+  <li><a href="#arquitetura">Arquitetura e pastas</a></li>
+  <li><a href="#planejar">Do plano às tarefas, sem parser frágil</a></li>
+  <li><a href="#posse">Paralelismo por posse de arquivos</a></li>
+  <li><a href="#formato">Os arquivos de uma execução</a></li>
+  <li><a href="#tool">A ferramenta <code>tasks</code></a></li>
+  <li><a href="#ledger">Livro-razão e desfazer</a></li>
+  <li><a href="#execucoes">N janelas, N execuções</a></li>
+  <li><a href="#retomar">Retomar, pausar, tentar de novo</a></li>
+  <li><a href="#worktrees">Worktrees, só sob demanda</a></li>
+  <li><a href="#limpar">Limpar e arquivar</a></li>
+  <li><a href="#fluxo">O fluxo com o /goal</a></li>
+  <li><a href="#perfis">Perfis de agente</a></li>
+  <li><a href="#claude">Claude Code: o mod</a></li>
+  <li><a href="#opencode">OpenCode: o plugin</a></li>
+  <li><a href="#determinismo">Onde fica o determinismo</a></li>
+  <li><a href="#testes">Testes</a></li>
+  <li><a href="#fases">Ordem de entrega</a></li>
+  <li><a href="#riscos">Riscos e pontos a confirmar</a></li>
+</ol>
+
+<h2 id="decisoes">1. As decisões</h2>
+<div class="decisions">
+  <div class="decision"><b>A fonte da verdade é um arquivo JSON por execução, no projeto, escrito só por uma ferramenta.</b> A ferramenta <code>tasks</code> (mod no Claude Code, plugin no OpenCode, CLI no terminal) valida esquema e transições e grava de forma atômica. O modelo escolhe a ação; nunca edita JSON nem Markdown.</div>
+  <div class="decision"><b>O JSON nasce validado: a skill entrega o plano pela ferramenta, e os tickets Markdown são gerados dele.</b> O passo final da <code>to-tickets</code> chama <code>tasks plan</code>; a ferramenta devolve os erros exatos até passar, e só então grava.</div>
+  <div class="decision changed"><b>Paralelismo por posse de arquivos, na mesma pasta, sem worktrees, com travas de verdade.</b> Cada tarefa declara os arquivos (ou globs) que vai tocar. A posse é adquirida no <b>jlock</b> (CLI de travas da máquina, plano próprio): um dono por chave, fila em ordem de chegada para quem espera, dois pedidos simultâneos resolvidos por criação atômica de arquivo, travas de processo morto recuperadas por heartbeat, e deadlock detectado antes de entrar na fila. Um subagente que precisa de um arquivo não declarado pede com <code>tasks claim</code>: se estiver em uso, ele entra na fila e a tarefa ganha uma <b>dependência dinâmica</b> ("aguardando T02: types.ts"), visível no painel. A guarda nas ferramentas de edição recusa qualquer escrita fora da posse. O ralph v1 já fazia a posse estática com <code>files_allowed</code>; a fila e a espera são o que faltava.</div>
+  <div class="decision changed"><b>Commits por tarefa, feitos pela ferramenta.</b> O subagente não roda git. No <code>done</code>, a ferramenta faz <code>git add</code> só dos arquivos da posse e um commit <code>T04: título</code>. Cada tarefa vira um commit isolado: reverter uma tarefa é <code>git revert</code> de um commit, e o diff de cada tarefa fica auditável.</div>
+  <div class="decision changed"><b>Worktrees existem, mas só quando a execução pede.</b> Política <code>worktrees: "none"</code> por padrão. <code>"per-task"</code> fica para o caso de tarefas que precisam tocar os mesmos arquivos ao mesmo tempo ou rodar builds que colidem. Quando usadas, são registradas, integradas e removidas pela ferramenta.</div>
+  <div class="decision changed"><b>Tudo que a ferramenta cria fora do código entra num livro-razão, e tem desfazer.</b> Branches, commits, worktrees, junções, pastas, linhas em <code>.git/info/exclude</code>, arquivos arquivados: cada efeito é um registro com como desfazê-lo. <code>tasks ledger</code> lista; <code>tasks undo</code> desfaz na ordem inversa, recusando quando há trabalho não salvo. Nada do que fizermos vira caça ao tesouro depois.</div>
+  <div class="decision changed"><b>Os projetos de hoje não são tocados.</b> <code>tasks gc --scan</code> é só relatório por padrão: lista pastas, tamanhos, idades, quem é o dono e se o branch foi integrado. Agir exige o caminho explícito e <code>--yes</code>. Nada roda sozinho nos três projetos em andamento.</div>
+  <div class="decision"><b>Cada execução tem um id, e a interface mostra só a execução ligada à sessão atual.</b> N janelas no mesmo projeto não se misturam; a ligação fica no estado da sessão, não num ponteiro global.</div>
+  <div class="decision"><b>Retomar, pausar e tentar de novo são ações da ferramenta.</b> "De onde parou" é a fronteira do grafo.</div>
+  <div class="decision"><b>Tudo de desenvolvimento fica sob <code>.scratch/goal-tasks/</code>, excluído do git localmente, e some com um comando.</b></div>
+  <div class="decision"><b>Um núcleo compartilhado, em um repositório só; as interfaces só leem; o /goal continua sendo o motor.</b> Progresso = <code>floor(feitas / total × 100)</code>, com <code>feitas/total</code>, puladas e falhas ao lado.</div>
+</div>
+
+<h2 id="arquitetura">2. Arquitetura e pastas</h2>
+<pre>
+ projeto/
+ ├─ .scratch/goal-tasks/                 ← só desenvolvimento (excluído do git em .git/info/exclude)
+ │   └─ runs/
+ │       ├─ cursory-261023-k7f2/          ← uma execução (run-id = slug-data-4 aleatórios)
+ │       │   ├─ run.json                 ← meta: objetivo, status, política, sessões ligadas
+ │       │   ├─ tasks.json               ← a lista (fonte da verdade), com a posse de cada tarefa
+ │       │   ├─ tickets/NN-slug.md       ← gerados a partir do tasks.json (leitura humana)
+ │       │   ├─ ledger.jsonl             ← cada efeito criado (branch, commit, worktree…) e como desfazer
+ │       │   └─ log.jsonl                ← cada transição, com hora, ator e evidência
+ │       └─ auth-261024-p0q9/            ← outra execução, de outra janela
+ └─ (código do projeto: edições só dentro da posse de cada tarefa)
+
+ %USERPROFILE%\.goal-tasks\
+ ├─ ledger.jsonl                         ← índice global: todo efeito de todos os projetos
+ └─ archive\&lt;repo&gt;\&lt;run&gt;\                 ← execuções arquivadas
+
+ D:\worktrees\&lt;repo&gt;\&lt;run&gt;\&lt;task&gt;\        ← só quando a execução pede worktree
+
+ Claude Code: mod `goal-tasks` (ferramenta + painel + /tasks)   ─┐  mesmo core.js
+ OpenCode:    plugin `goal-tasks` (ferramenta + seção na sidebar) ─┤
+ Terminal:    CLI `tasks` (bun)                                  ─┘
+</pre>
+<p>Núcleo em TypeScript sem dependências, compilado para um <code>core.js</code> versionado: o módulo de hooks do Claude Code roda sem Node e sem <code>node_modules</code>, e a cópia final do OpenCode também.</p>
+
+<h2 id="planejar">3. Do plano às tarefas, sem parser frágil</h2>
+<ol>
+  <li>A <code>to-tickets</code> continua igual nos passos 1 a 4 (contexto, código, fatias verticais, aprovação sua). Ganha uma pergunta a mais no passo 4: <b>quais arquivos cada fatia toca</b>. A skill já explora o código, então sabe responder.</li>
+  <li>O passo 5 chama <code>tasks plan</code> com a lista em JSON (<code>id</code>, <code>title</code>, <code>what</code>, <code>dependsOn</code>, <code>files</code>, <code>acceptance[]</code>, <code>profile</code>, <code>boundary</code>).</li>
+  <li><code>tasks plan</code> valida e devolve erros exatos: id repetido, dependência inexistente, ciclo, perfil desconhecido, <b>posse em comum entre tarefas sem dependência entre si</b> ("T04 e T05 tocam <code>src/humanizer/move.ts</code> e podem rodar juntas: adicione uma dependência ou separe o arquivo"). O modelo corrige e chama de novo. Nada é gravado até passar.</li>
+  <li>Ao passar, grava <code>tasks.json</code> e gera <code>tickets/NN-slug.md</code> (com uma seção <b>Files</b>). O ticket é visão; o JSON é a verdade.</li>
+</ol>
+<p>Tickets antigos: <code>tasks import &lt;dir&gt; --check</code> relata o que leu e o que faltou (os de hoje não têm posse: a importação marca essas tarefas como <code>exclusive</code>, isto é, nunca em paralelo, até alguém declarar os arquivos). Onde a skill fica: hoje em <code>~\.agents\skills</code>; para o Claude Code, dentro do próprio plugin (<code>skills/</code>).</p>
+
+<h2 id="posse">4. Paralelismo por posse de arquivos</h2>
+<h3>Regras</h3>
+<ul>
+  <li><code>files</code> é uma lista de caminhos ou globs relativos ao repositório. <code>exclusive: true</code> significa "toca coisa demais ou desconhecida": roda sozinha.</li>
+  <li><b>Fronteira:</b> tarefa pronta = pendente, dependências satisfeitas, e <b>posse livre no jlock</b> (nenhuma chave em uso ou em interseção com uma em uso, por qualquer execução, ferramenta ou script na máquina; as chaves são caminhos absolutos, e uma pasta travada cobre o que está dentro dela). Interseção é calculada por glob; na dúvida, conta como interseção. <code>start</code> adquire todas as chaves da posse de uma vez, em ordem canônica (sem espera: se alguma estiver em uso, a tarefa não estava pronta). Uma tarefa <code>exclusive</code> adquire a chave <code>*</code>, que conflita com tudo.</li>
+  <li><b>Validação do plano:</b> duas tarefas sem relação de dependência e com posse em comum são um erro. Isso força o planejador a decidir a ordem na hora do plano, não na hora da execução.</li>
+  <li><b>Pedido em tempo de execução:</b> <code>tasks claim T04 src/x.ts</code> adquire a trava no jlock. Livre → entra na posse na hora. Em uso → a tarefa entra na fila dessa chave e fica <code>waiting</code> (estado derivado), com <code>waitingFor: { key, holder: "T05", position }</code>; a chamada espera até ser atendida ou até <code>--timeout</code>, e então o subagente decide: continuar esperando, fazer o que não depende daquele arquivo, ou <code>tasks fail</code>. Se o pedido criaria um deadlock (T05 já espera por algo de T04), o jlock recusa com a cadeia, e a resposta diz quem deve ceder. Todo <code>claim</code> vai para o log; no fim, a ferramenta sugere atualizar o plano com o que foi reclamado.</li>
+  <li><b>Guarda:</b> no Claude Code, <code>tool.call</code> em <code>Edit</code>/<code>Write</code>/<code>NotebookEdit</code> do subagente é recusado fora da posse, com a mensagem "fora da posse de T04; use tasks claim". <code>Bash</code> de subagente é recusado quando o comando é mutador de git (<code>commit</code>, <code>checkout</code>, <code>reset</code>, <code>stash</code>, <code>add</code>) ou de arquivos (<code>rm</code>, <code>mv</code>, <code>&gt;</code>, <code>sed -i</code>) fora da posse. Leitura, build e teste são livres. No OpenCode, um hook de permissão aplica as mesmas regras.</li>
+  <li><b>Builds e testes que colidem</b> (mesma pasta de saída, mesma porta): a tarefa declara <code>exclusive: true</code> ou a execução define um <code>serialize: ["bun test", "dotnet build"]</code>, e a ferramenta enfileira esses comandos entre tarefas em andamento. Alternativa: uma tarefa final de integração, bloqueada por todas, roda a suíte uma vez.</li>
+</ul>
+<h3>Por que a trava do Windows não basta</h3>
+<p>A trava que o Windows dá ao abrir um arquivo (modo de compartilhamento) vale enquanto o handle está aberto, é obrigatória para todos (travaria o seu editor também), morre com o processo e não tem fila nem identidade de tarefa. As ferramentas de edição dos agentes abrem, escrevem e fecham em milissegundos; a posse de que precisamos dura a tarefa inteira (minutos), atravessa dezenas de aberturas e processos que nascem e morrem, e precisa de fila, lista e sobrevivência a crash. São problemas diferentes. O jlock é o preço do paralelismo na mesma pasta sem worktrees; com um agente por vez, nada disso seria necessário.</p>
+
+<h3>Por que travar por arquivo, não por função</h3>
+<p>Travar por função (duas tarefas editando funções diferentes do mesmo arquivo) parece dar mais paralelismo, mas não se sustenta:</p>
+<ul>
+  <li><b>O arquivo continua sendo gravado inteiro.</b> As ferramentas de edição leem o arquivo todo, alteram e gravam o arquivo todo. Dois processos fazendo isso no mesmo arquivo perdem a alteração de um deles (atualização perdida), mesmo que em funções diferentes. Para evitar, seria preciso uma trava por arquivo em volta de cada gravação, de qualquer jeito.</li>
+  <li><b>Quase toda tarefa toca o que não é função:</b> imports, tipos, constantes, exports, campos de classe. Duas tarefas adicionando um import cada colidem fora da "função".</li>
+  <li><b>Assinatura, renomeação, extração e chamadas no mesmo arquivo</b> atravessam funções: a posse teria de ser renegociada o tempo todo, com mais <code>claim</code>, mais decisões do modelo e mais falhas.</li>
+  <li><b>Depende de um parser por linguagem</b>, e de analisar código no meio de uma edição, muitas vezes com erro de sintaxe: a guarda não consegue decidir de forma determinística. Arquivos sem funções (JSON, Markdown, CSS) ficam de fora.</li>
+  <li><b>Commit por tarefa e testes quebram:</b> o arquivo na árvore de trabalho mistura as duas edições pela metade; o commit teria de ser por trecho (frágil), e os testes de uma tarefa rodam com o código inacabado da outra.</li>
+</ul>
+<p>Quando um arquivo é um "hub" (um <code>routes.ts</code> gigante, um <code>types.ts</code> central) e a posse por arquivo serializa demais, o remédio determinístico é o que a própria to-tickets já manda: <b>pré-refatorar</b>, dividindo o hub em módulos numa tarefa prévia, para que a posse por arquivo volte a ser fina. Fora isso, as tarefas que tocam o hub rodam em sequência e as outras em paralelo. A trava por função fica registrada como ideia para o futuro, só se um projeto real mostrar contenção que a pré-refatoração não resolva.</p>
+
+<h3>Commit por tarefa</h3>
+<p>No <code>done</code>, a ferramenta confere o <code>git status</code>: arquivos modificados fora da posse → recusa, lista e pede <code>claim</code> ou <code>release</code>. Dentro da posse → <code>git add &lt;arquivos&gt;</code> e <code>git commit -m "T04: título"</code> no branch da execução (<code>gt/&lt;run&gt;</code>, criado a partir do branch atual no <code>plan</code>). O hash entra no <code>ledger</code>. Se você preferir trabalhar no branch atual, <code>run.json</code> aceita <code>branch: "current"</code>; os commits continuam um por tarefa.</p>
+
+<h2 id="formato">5. Os arquivos de uma execução</h2>
+<h3><code>run.json</code></h3>
+<pre><code>{
+  "version": 1,
+  "id": "cursory-261023-k7f2",
+  "feature": "cursory-nativo",
+  "objective": "Integrar o gerador de movimento Cursory ao humanizer",
+  "status": "active",                        // active | paused | done
+  "created": "2026-10-23T22:40:00Z",
+  "repo": { "root": "D:/Temp/spybrowser", "baseBranch": "main", "branch": "gt/cursory-261023-k7f2" },
+  "worktrees": { "policy": "none" },         // ou { "policy": "per-task", "root": "D:/worktrees/spybrowser", "deps": "pnpm-store" }
+  "serialize": ["bun test"],
+  "maxAttempts": 2,
+  "sessions": [ { "tool": "claude", "id": "a8ec2aca…", "boundAt": "…" } ]
+}</code></pre>
+
+<h3><code>tasks.json</code></h3>
+<pre><code>{
+  "version": 1, "run": "cursory-261023-k7f2", "revision": 41,
+  "profiles": {
+    "impl":   { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "impl" } },
+    "deep":   { "claude": { "model": "opus",   "effort": "high" },                                "opencode": { "agent": "impl-deep" } },
+    "review": { "claude": { "model": "sonnet", "effort": "high",   "role": "code-reviewer" },     "opencode": { "agent": "review" } }
+  },
+  "tasks": [
+    { "id": "T01", "title": "Tornar o movimento substituível", "status": "done",
+      "dependsOn": [], "profile": "impl",
+      "files": ["src/humanizer/trajectory.ts", "src/humanizer/move.ts", "tests/humanizer/**"],
+      "acceptance": [ { "text": "Automação local percorre movimento, hover e clique", "done": true } ],
+      "attempts": 1, "owner": null, "startedAt": "…", "finishedAt": "…",
+      "commit": "9f1c2ab", "evidence": "bun test: 93 passed; regressão local idêntica antes/depois" },
+    { "id": "T02", "title": "Gerador de gravações nativo", "status": "in_progress",
+      "dependsOn": ["T01"], "profile": "impl", "files": ["src/recorder/**"],
+      "claimed": ["src/humanizer/types.ts"],
+      "attempts": 2, "owner": "claude:a8ec2aca/agent:7f3a", "startedAt": "…" },
+    { "id": "T03", "title": "Paridade completa", "status": "skipped", "dependsOn": ["T01"], "profile": "deep",
+      "files": ["src/humanizer/parity/**"], "reason": "coberto por T01 após a refatoração" },
+    { "id": "T04", "title": "Mouse move", "status": "failed", "dependsOn": ["T02"], "profile": "impl",
+      "files": ["src/humanizer/move.ts"], "attempts": 2, "error": "src/humanizer/types.ts em uso por T02" },
+    { "id": "T05", "title": "Atraso e escala", "status": "pending", "dependsOn": ["T02"], "profile": "deep",
+      "files": ["src/humanizer/timing.ts"] },
+    { "id": "T12", "title": "Integração: suíte completa", "status": "pending",
+      "dependsOn": ["T05", "T06", "T07"], "profile": "review", "exclusive": true }
+  ]
+}</code></pre>
+
+<h3>Estados</h3>
+<table>
+  <tr><th>Gravado</th><th>Significa</th><th>Transições</th></tr>
+  <tr><td><code>pending</code></td><td>ainda não começou</td><td>→ <code>in_progress</code> (só se pronta e a execução não estiver pausada), → <code>skipped</code></td></tr>
+  <tr><td><code>in_progress</code></td><td>tem <code>owner</code>, <code>startedAt</code> e a posse travada</td><td>→ <code>done</code> (exige <code>evidence</code>; faz o commit), → <code>skipped</code>, → <code>failed</code> (exige <code>error</code>), → <code>pending</code> por <code>release</code></td></tr>
+  <tr><td><code>done</code></td><td>concluída e commitada</td><td>final; <code>retry</code> reabre (o commit anterior fica no histórico)</td></tr>
+  <tr><td><code>skipped</code></td><td>pulada com motivo; libera as dependentes</td><td><code>retry</code> → <code>pending</code></td></tr>
+  <tr><td><code>failed</code></td><td>erro ou <code>maxAttempts</code>; bloqueia as dependentes</td><td><code>retry</code> → <code>pending</code>; <code>skip</code> → <code>skipped</code></td></tr>
+</table>
+<p>Derivados, nunca gravados: <code>ready</code> (pendente, dependências satisfeitas, posse livre), <code>blocked</code> (dependência aberta ou falha, ou posse em uso) e <code>waiting</code> (em andamento, na fila de uma chave de outra tarefa). O painel mostra o motivo: <code>⛔ T04</code>, <code>🔒 T02</code> ou <code>⏳ T02: types.ts</code>.</p>
+
+<h3>Regras do núcleo</h3>
+<ul>
+  <li>ids únicos e estáveis; dependências existentes; sem ciclos; posse sem conflito entre independentes.</li>
+  <li><code>start</code> falha se não pronta, com dono, posse em uso, ou execução pausada.</li>
+  <li><code>done</code> sem evidência é recusado; com arquivos modificados fora da posse também.</li>
+  <li>Gravação atômica (<code>.tmp</code> + rename), releitura antes de escrever, <code>revision</code> incremental.</li>
+</ul>
+
+<h2 id="tool">6. A ferramenta <code>tasks</code></h2>
+<p>Mesmo nome e contrato nas três formas. Resposta em texto compacto e em JSON. Todas aceitam <code>run</code> opcional; sem ele, a execução ligada à sessão.</p>
+<table>
+  <tr><th>Grupo</th><th>Ação</th><th>O que faz</th></tr>
+  <tr><td rowspan="3">plano</td><td><code>plan</code></td><td>cria a execução a partir do JSON validado (inclusive conflito de posse); gera os tickets; cria o branch; liga à sessão; exclui <code>.scratch/</code> do git localmente (efeito no ledger)</td></tr>
+  <tr><td><code>import &lt;dir&gt; [--check|--yes]</code></td><td>tickets Markdown antigos → nova execução (tarefas sem posse viram <code>exclusive</code>)</td></tr>
+  <tr><td><code>validate &lt;json|dir&gt;</code></td><td>valida sem gravar</td></tr>
+  <tr><td rowspan="4">execução</td><td><code>runs</code></td><td>lista as execuções do projeto com status e progresso</td></tr>
+  <tr><td><code>resume &lt;run&gt; [--keep-owners]</code></td><td>liga a sessão, tira de <code>paused</code>, libera tarefas de agentes que já não existem, mostra status e fronteira</td></tr>
+  <tr><td><code>pause</code> / <code>unpause</code></td><td>pausa: <code>start</code> recusado; o protocolo manda parar</td></tr>
+  <tr><td><code>status</code></td><td><code>feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3</code> + fronteira + travas ativas</td></tr>
+  <tr><td rowspan="7">tarefa</td><td><code>next [limit]</code></td><td>as prontas, com perfil, critérios, posse e caminho do ticket</td></tr>
+  <tr><td><code>start id</code></td><td>→ em andamento; trava a posse</td></tr>
+  <tr><td><code>claim id &lt;arquivo…&gt;</code></td><td>acrescenta à posse se livre; senão "em uso por Txx"</td></tr>
+  <tr><td><code>done id --evidence</code></td><td>confere o status do git → commit só da posse → feita → libera a posse</td></tr>
+  <tr><td><code>skip id --reason</code> / <code>fail id --error</code></td><td>pular ou registrar falha; libera a posse</td></tr>
+  <tr><td><code>retry id</code> / <code>retry --all-failed</code></td><td>pulada ou falha → pendente</td></tr>
+  <tr><td><code>release id</code></td><td>em andamento → pendente (<code>attempts</code>+1; no <code>maxAttempts</code> vira <code>failed</code>); edições não commitadas ficam no disco e são listadas</td></tr>
+  <tr><td rowspan="3">ledger</td><td><code>ledger [--all-projects]</code></td><td>tudo que a ferramenta criou: tipo, caminho, execução, tarefa, hora, estado (ativo/desfeito)</td></tr>
+  <tr><td><code>undo &lt;id&gt; | --run &lt;run&gt; | --task id</code></td><td>desfaz na ordem inversa (revert de commit, remoção de branch/worktree/junção/pasta, linha do exclude); recusa se houver trabalho não salvo</td></tr>
+  <tr><td><code>effects --check</code></td><td>compara o ledger com o disco e o git: o que sumiu por fora, o que ficou</td></tr>
+  <tr><td rowspan="2">worktrees</td><td><code>worktrees</code></td><td>registro da execução × <code>git worktree list</code> × disco (só se a política usar)</td></tr>
+  <tr><td><code>gc --scan &lt;raiz&gt; [--yes]</code></td><td><b>relatório</b>: pastas, tamanho, idade, repositório dono, branch integrado?; só remove com caminho explícito e <code>--yes</code></td></tr>
+  <tr><td rowspan="2">limpeza</td><td><code>clean [run|--all] [--yes]</code></td><td>remove a pasta da execução; antes, lista os efeitos ainda ativos no ledger e pede confirmação</td></tr>
+  <tr><td><code>archive run</code></td><td>move para <code>%USERPROFILE%\.goal-tasks\archive\&lt;repo&gt;\&lt;run&gt;</code>; <code>resume --from-archive</code> traz de volta</td></tr>
+</table>
+
+<h2 id="ledger">7. Livro-razão e desfazer</h2>
+<p>Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio código da tarefa escreve um registro em <code>ledger.jsonl</code> da execução e no índice global <code>%USERPROFILE%\.goal-tasks\ledger.jsonl</code>:</p>
+<pre><code>{ "id": "e-0007", "at": "2026-10-23T23:02:10Z", "run": "cursory-261023-k7f2", "task": "T01",
+  "type": "commit", "repo": "D:/Temp/spybrowser", "ref": "9f1c2ab", "branch": "gt/cursory-261023-k7f2",
+  "undo": { "kind": "git-revert", "ref": "9f1c2ab" }, "state": "active" }
+{ "id": "e-0002", "type": "branch",   "ref": "gt/cursory-261023-k7f2", "from": "main", "undo": { "kind": "git-branch-delete" } }
+{ "id": "e-0001", "type": "exclude",  "path": ".git/info/exclude", "line": ".scratch/", "undo": { "kind": "remove-line" } }
+{ "id": "e-0011", "type": "worktree", "path": "D:/worktrees/spybrowser/…/T05", "undo": { "kind": "worktree-remove" } }
+{ "id": "e-0012", "type": "junction", "path": "D:/worktrees/…/T05/node_modules", "undo": { "kind": "rmdir-junction" } }</code></pre>
+<ul>
+  <li><b>Tipos:</b> <code>exclude</code>, <code>branch</code>, <code>commit</code>, <code>worktree</code>, <code>junction</code>, <code>dir</code>, <code>archive</code>, <code>agent-config</code> (agentes criados no <code>opencode.json</code>).</li>
+  <li><b><code>tasks ledger</code></b> responde "o que está sendo feito" em qualquer momento, por execução ou por projeto, inclusive de outras janelas, porque o índice global é um arquivo só.</li>
+  <li><b><code>tasks undo</code></b> desfaz na ordem inversa e marca <code>state: "undone"</code>. Recusa quando o alvo tem mudanças não salvas (worktree suja, branch com commits não integrados) e diz o que fazer. Um <code>git revert</code> cria um commit novo, que também entra no ledger.</li>
+  <li><b><code>tasks effects --check</code></b> acha o que foi removido por fora (pasta apagada à mão) e marca <code>state: "gone"</code>, e o que ficou de uma execução já limpa.</li>
+  <li><b>Projetos atuais:</b> o que não passou pela ferramenta não está no ledger, e não vai estar. Para eles, o que existe é o relatório do <code>gc --scan</code>, para quando os três terminarem.</li>
+</ul>
+
+<h2 id="execucoes">8. N janelas, N execuções</h2>
+<ul>
+  <li><b>Id:</b> <code>&lt;slug&gt;-&lt;aammdd&gt;-&lt;4 aleatórios&gt;</code>, no nome da pasta, do branch, do <code>owner</code> de cada tarefa e dos efeitos do ledger.</li>
+  <li><b>Ligação sessão → execução:</b> Claude Code em <code>$.state</code> (estado da sessão; sobrevive a reload e compactação); OpenCode em <code>ctx.storage</code> por sessão raiz, filhas herdam pela <code>session.family</code>. Nenhum ponteiro global no disco.</li>
+  <li><b>Subagentes</b> herdam a ligação e recebem <code>--run &lt;id&gt; --task T04</code>; chamada com <code>run</code> diferente do ligado é recusada.</li>
+  <li><b>Interface:</b> só a execução ligada; sem ligação, a lista de <code>tasks runs</code>.</li>
+  <li><b>Duas janelas na mesma execução</b> dividindo a fronteira: funciona, por dono único, posse e <code>revision</code>.</li>
+  <li><b>Duas execuções no mesmo projeto ao mesmo tempo:</b> as travas do jlock são da máquina inteira (registro em <code>%LOCALAPPDATA%\jlock</code>), não da execução. Duas execuções, ou um Claude Code e um OpenCode em janelas diferentes, disputam os mesmos arquivos pela mesma fila; quem chegou depois espera. O painel mostra "aguardando auth-261024-p0q9/T03".</li>
+</ul>
+
+<h2 id="retomar">9. Retomar, pausar, tentar de novo</h2>
+<ul>
+  <li><b>Retomar:</b> <code>tasks resume &lt;run&gt;</code> em qualquer janela. A posição é a fronteira; <code>next</code> devolve as primeiras não executadas. Tarefas em andamento de agentes mortos são liberadas (as edições não commitadas ficam no disco e são listadas para a próxima tentativa aproveitar ou descartar).</li>
+  <li><b>Pausar:</b> <code>tasks pause</code>: <code>start</code> recusado; o resumo no prompt diz "pausada: não inicie tarefas"; os subagentes em andamento terminam.</li>
+  <li><b>Tentar de novo:</b> <code>tasks retry T04</code>; histórico no <code>log.jsonl</code>; <code>attempts</code> conta.</li>
+  <li><b>Falha automática:</b> <code>release</code> no fim de agente morto; no <code>maxAttempts</code> vira <code>failed</code>, dependentes ficam <code>blocked</code>, o resto segue. O goal termina com "restam N (M falhas)".</li>
+</ul>
+
+<h2 id="worktrees">10. Worktrees, só sob demanda</h2>
+<p>Com posse por arquivo, a maioria das execuções não precisa de worktree. Ela entra quando duas tarefas precisam do mesmo arquivo ao mesmo tempo (raro, e quase sempre sinal de fatia mal cortada) ou quando builds/testes colidem de um jeito que <code>serialize</code> não resolve. Nesse caso, <code>worktrees.policy = "per-task"</code>, e vale tudo o que segue, sempre pelo ledger:</p>
+<ul>
+  <li>Raiz central fora do repositório (<code>D:\worktrees\&lt;repo&gt;\&lt;run&gt;\&lt;task&gt;</code>), caminhos curtos.</li>
+  <li>Branch por tarefa a partir do branch da execução; no <code>done</code>, merge <code>--no-ff</code> numa worktree de integração da execução, nunca no seu checkout. Conflito → <code>failed</code>; <code>tasks merge</code> depois de resolver.</li>
+  <li>Dependências sem cópia (NTFS não tem copy-on-write): pnpm store com hard links; ou junção de <code>node_modules</code> para o checkout principal com lockfile igual; ou instalação própria só se o lockfile mudou. Estratégia registrada.</li>
+  <li>Remoção após o merge; arquivo aberto no Windows → <code>remove-pending</code> e nova tentativa no <code>gc</code>. Nunca mata processos.</li>
+  <li>Guarda de escopo: subagente só edita dentro da sua worktree.</li>
+</ul>
+<p>O que já existe (Claude Code <code>EnterWorktree</code>/<code>Agent isolation</code>, OpenCode API <code>worktree</code>, <code>herdr worktree</code>) cria mas não integra nem limpa; é daí que vêm as órfãs. Não vamos usar essas rotas para subagentes; quando a nossa política criar worktree, é a ferramenta que cria, registra e remove.</p>
+
+<h2 id="limpar">11. Limpar e arquivar</h2>
+<ul>
+  <li>Tudo em <code>.scratch/goal-tasks/</code>, excluído do git em <code>.git/info/exclude</code> (local). Tickets antigos ficam onde estão.</li>
+  <li><code>tasks clean &lt;run&gt;</code>: mostra os efeitos ainda ativos no ledger (branch, worktrees) e pergunta se desfaz junto; apaga a pasta da execução. <code>--all</code> remove <code>.scratch/goal-tasks/</code>. Os commits ficam (são código).</li>
+  <li><code>tasks archive &lt;run&gt;</code>: move para fora do projeto; <code>resume --from-archive</code> traz de volta.</li>
+  <li>Plano novo num projeto com N planos antigos: outra execução, ligada à sessão; os antigos só aparecem em <code>tasks runs</code>.</li>
+</ul>
+
+<h2 id="fluxo">12. O fluxo com o /goal</h2>
+<pre>
+Planejar     to-tickets (passos 1–4, agora com "quais arquivos") → tasks plan
+Claude Code  /goal todas as tarefas da execução cursory-261023-k7f2 estão done ou skipped
+             (a ferramenta tasks responde "restam 0")
+OpenCode     create_goal com o mesmo objetivo; update_goal com a saída de tasks status
+Retomar      em qualquer janela: tasks resume cursory-261023-k7f2 → /goal de novo
+</pre>
+<p>Protocolo de execução (texto fixo, injetado no sistema enquanto houver execução ligada):</p>
+<pre>
+1. Chame tasks next.
+2. Para cada tarefa devolvida, abra um subagente com o perfil indicado, todos na mesma
+   mensagem (paralelo). O prompt leva só: --run &lt;id&gt; --task &lt;id&gt;, título, critérios, posse
+   (os arquivos que pode tocar), caminho do ticket, e "chame tasks start no começo; se precisar
+   de outro arquivo, tasks claim; não rode git; no fim, tasks done com evidência ou tasks fail".
+3. Quando terminarem, chame tasks status. "restam 0" → goal cumprido com essa saída como
+   evidência. "pausada" → pare. Senão volte ao passo 1.
+4. Nunca edite tasks.json, tickets ou o git à mão; só pela ferramenta.
+</pre>
+<p><b>Contexto contínuo</b> (sem subagentes): passo 2 vira "faça a tarefa você mesmo, dentro da posse". <b>Compactação:</b> Claude Code via <code>prompt.section</code> + <code>session.compact</code>; OpenCode via hooks <code>context</code> e <code>compaction</code>. A lista nunca se perde.</p>
+
+<h2 id="perfis">13. Perfis de agente</h2>
+<div class="cols">
+  <div class="box">
+    <h3>Claude Code</h3>
+    <p><code>Agent</code> com <code>model</code>, <code>effort</code> e <code>--role &lt;id&gt;</code> no prompt. O mod reforça em <code>agent.spawn</code>: lê <code>--task</code>, resolve o perfil, devolve <code>{ model }</code>; perfil desconhecido → <code>{ deny }</code>. Provedor sempre Anthropic. O <code>effort</code> só por instrução explícita: o perfil no <code>tasks.json</code> é essa instrução.</p>
+  </div>
+  <div class="box">
+    <h3>OpenCode</h3>
+    <p>Agentes do <code>opencode.json</code> com <code>model: { providerID, modelID, variant }</code>. O orquestrador chama <code>subagent</code> com <code>agent: "impl"</code>. O plugin garante os agentes via <code>agent.transform</code> (efeito <code>agent-config</code> no ledger).</p>
+  </div>
+</div>
+
+<h2 id="claude">14. Claude Code: o mod</h2>
+<pre>
+.claude-plugin/plugin.json   { name: "goal-tasks", version, description, types: "./types/index.d.ts" }
+hooks/hooks.json             { "modules": ["./register.tsx"] }
+hooks/register.tsx           o módulo (importa ../core/core.js)
+types/index.d.ts             PluginState: { "goal-tasks": { run?: string, collapsed: boolean } }
+skills/to-tickets/SKILL.md   a skill, viajando com a ferramenta que ela chama
+</pre>
+<table>
+  <tr><th>Peça</th><th>API do mod</th><th>Função</th></tr>
+  <tr><td>ferramenta</td><td><code>$.tool.register</code> em <code>session.start</code></td><td>a <code>tasks</code>; arquivos via <code>$.fs</code>; git via <code>$.process.run</code></td></tr>
+  <tr><td>ligação</td><td><code>$.state</code> (<code>run</code>)</td><td>execução da sessão; subagentes compartilham</td></tr>
+  <tr><td>painel</td><td><code>$.ui.open({ id: "tasks" })</code> + <code>ui.render</code> em <code>{ component: "Pane" }</code></td><td>checklist + barra; abre sozinho com execução ligada e largura suficiente</td></tr>
+  <tr><td>toggle</td><td><code>$.command.register({ name: "tasks" })</code> + <code>command.run</code>; botão "▾/▸" via <code>ui.press</code></td><td><code>/tasks</code> abre/fecha; o botão recolhe para uma linha; <code>collapsed</code> em <code>$.store</code></td></tr>
+  <tr><td>atualização</td><td><code>$.clock.every(2000)</code> + <code>$.fs.stat/read</code>; <code>atom/update</code></td><td>acompanha escritas de outro processo</td></tr>
+  <tr><td>contexto</td><td><code>prompt.section</code> + <code>$.ui.invalidate("prompt.section")</code>; <code>session.compact</code></td><td>resumo sempre no prompt; sobrevive à compactação</td></tr>
+  <tr><td>perfil</td><td><code>on("agent.spawn")</code></td><td>modelo do subagente pelo perfil</td></tr>
+  <tr><td>guarda de posse</td><td><code>on("tool.call", { tool: "Edit" | "Write" | "NotebookEdit" | "Bash" })</code> com <code>e.agentId</code></td><td>recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de <code>tasks.json</code></td></tr>
+  <tr><td>agente morto</td><td><code>on("turn.complete")</code> com <code>e.agentId</code></td><td><code>release</code> da tarefa que ficou em andamento</td></tr>
+</table>
+<pre>
+▾ Tasks · cursory-261023-k7f2
+████████▌░░░░░░░  58% · 7/12 · 1 pulada · 1 falha
+☑ T01 Movimento substituível      9f1c2ab
+☑ T02 Gerador nativo              3be77d0
+⊘ T03 Paridade completa
+✗ T04 Mouse move                  types.ts em uso por T02
+◐ T05 Atraso e escala             deep·opus
+☐ T06 Fill/clear                  ⛔ T04
+☐ T07 Insert text                 🔒 T05
+…
+</pre>
+<p>Recolhido: <code>▸ Tasks 7/12 · 58%</code>. Pausado: <code>Tasks · pausada</code>. Sem ligação: a lista de <code>tasks runs</code>.</p>
+
+<h2 id="opencode">15. OpenCode: o plugin</h2>
+<table>
+  <tr><th>Peça</th><th>API</th><th>Função</th></tr>
+  <tr><td>ferramenta</td><td><code>ctx.tool.register</code> (como o <code>roles</code>)</td><td>a <code>tasks</code>, lado servidor</td></tr>
+  <tr><td>ligação</td><td><code>ctx.storage</code> por sessão raiz; <code>session.family</code></td><td>execução da sessão</td></tr>
+  <tr><td>contexto</td><td><code>ctx.session.hook("context")</code> e <code>("compaction")</code></td><td>resumo em cada requisição</td></tr>
+  <tr><td>seção</td><td><code>context.ui.slot({ append: "sidebar.content" })</code></td><td>"▼ Tasks · run", barra <code>Meter</code> do HUD, checklist; clique dobra</td></tr>
+  <tr><td>dados</td><td>RPC <code>tasks.state</code> + releitura após <code>session.tool.success</code></td><td>a TUI nunca toca o arquivo</td></tr>
+  <tr><td>perfis</td><td><code>agent.transform</code></td><td>agentes <code>impl</code>/<code>deep</code>/<code>review</code></td></tr>
+  <tr><td>guarda de posse</td><td>hook de permissão</td><td>mesmas regras do mod</td></tr>
+  <tr><td>goal</td><td>sem espelhar em <code>update_goal_plan</code></td><td>objetivo + evidência; o paralelismo é nosso</td></tr>
+</table>
+
+<h2 id="determinismo">16. Onde fica o determinismo</h2>
+<table>
+  <tr><th>Determinístico (código)</th><th>Interpretativo (modelo)</th></tr>
+  <tr><td>esquema e validação do plano (inclusive conflito de posse), geração dos tickets, transições, fronteira com posse, ciclos, dono único, <code>revision</code>, gravação atômica, progresso, ligação sessão → execução, pausa, retomada, falha por <code>maxAttempts</code>, guarda de posse e de git, commit por tarefa, ledger e desfazer, worktrees quando pedidas, gc como relatório, limpeza e arquivamento, desenho das interfaces, reinjeção após compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto</td><td>quebrar o plano em tarefas e dizer quais arquivos cada uma toca (to-tickets), executar cada tarefa, pedir um arquivo a mais (<code>claim</code>), decidir que está feita e escrever a evidência, pular com motivo</td></tr>
+</table>
+
+<h2 id="testes">17. Testes</h2>
+<ul>
+  <li><b>Núcleo</b> (bun test): esquema e mensagens do <code>plan</code>, inclusive conflito de posse; geração dos tickets e <code>import</code> de volta; importação dos 24 tickets reais (viram <code>exclusive</code>); fronteira com posse, puladas e falhas; <code>claim</code> negado e concedido; interseção de globs; ciclos; dois <code>start</code> na mesma tarefa; <code>revision</code> concorrente; <code>resume</code>; <code>maxAttempts</code>; progresso; ledger e <code>undo</code> em ordem inversa.</li>
+  <li><b>Git</b> (repositório temporário em <code>D:\claude-cache</code>): branch da execução, commit só da posse, <code>done</code> recusado com arquivo fora da posse, <code>undo</code> de commit (revert) e de branch; e, para a política opcional, worktree, merge limpo, conflito, remoção, <code>remove-pending</code>, <code>gc --scan</code> achando uma órfã fabricada e <b>não</b> tocando nela sem <code>--yes</code>.</li>
+  <li><b>OpenCode</b>: sandbox com modelo falso roteirizado chamando <code>tasks next/start/claim/done</code> e emitindo duas chamadas <code>subagent</code> na mesma resposta; a TUI real mostra a seção mudando; a guarda recusa uma edição fora da posse.</li>
+  <li><b>Claude Code</b>: <code>claude plugin validate</code>, <code>tsc -p</code>, <code>claude plugin test</code> com desenho do painel, <code>/tasks</code>, e a guarda recusando <code>Edit</code> fora da posse e <code>Bash git commit</code>.</li>
+  <li>Sem gastar tokens de modelo real.</li>
+</ul>
+
+<h2 id="fases">18. Ordem de entrega</h2>
+<ol class="phases">
+  <li><b>jlock</b> (plano e repositório próprios): o CLI de travas com fila, heartbeat, deadlock, lista e force unlock, com seus testes de corrida. Pré-requisito de tudo que segue; o goal-tasks o chama como processo.</li>
+  <li><b>Núcleo + CLI + ledger.</b> Formato com posse (adquirida no jlock), <code>plan</code>/<code>validate</code>/<code>import</code>, tickets, transições, fronteira com posse, <code>claim</code>, <code>runs</code>/<code>resume</code>/<code>pause</code>/<code>retry</code>, commit por tarefa, <code>ledger</code>/<code>undo</code>/<code>effects</code>, <code>clean</code>/<code>archive</code>, testes. Já dá para rodar um goal pelo terminal, com tudo rastreado.</li>
+  <li><b>OpenCode.</b> Ferramenta, ligação, contexto, seção, perfis, guarda de posse. Reaproveita o HUD.</li>
+  <li><b>Claude Code.</b> Mod com ferramenta, ligação, painel, <code>/tasks</code>, reinjeção, perfil no spawn, guarda de posse e de git, liberação de agente morto.</li>
+  <li><b>Skill.</b> A pergunta "quais arquivos" no passo 4 e a chamada de <code>tasks plan</code> no passo 5 da <code>to-tickets</code>; esquema anexado; cópia dentro do plugin para o Claude Code.</li>
+  <li><b><code>gc --scan</code> como relatório.</b> Para olhar as órfãs atuais sem tocar nelas; a remoção, quando os três projetos terminarem.</li>
+  <li><b>Worktrees sob demanda</b> (política <code>per-task</code>), só se uma execução real precisar.</li>
+  <li><b>Depois.</b> Codex e pi pelo CLI; ralph v1 como executor externo, se quiser rodar sem janela aberta.</li>
+</ol>
+
+<h2 id="riscos">19. Riscos e pontos a confirmar</h2>
+<table>
+  <tr><th>Ponto</th><th>Como resolver</th></tr>
+  <tr><td>Posse declarada no plano fica incompleta (o modelo descobre arquivos durante a tarefa)</td><td><code>claim</code> em tempo de execução, logado; no fim, a ferramenta sugere atualizar o plano. Fatias verticais da to-tickets já tendem a ter posse bem definida.</td></tr>
+  <tr><td>Guarda de <code>Bash</code> por padrão de comando é imperfeita</td><td>Cobre git mutador e os escritores comuns; o <code>done</code> confere o <code>git status</code> inteiro e recusa qualquer alteração fora da posse, então o que escapar da guarda é pego antes do commit.</td></tr>
+  <tr><td>Testes/builds em paralelo na mesma pasta</td><td><code>serialize</code> na execução ou tarefa <code>exclusive</code> de integração.</td></tr>
+  <tr><td>Subagentes do Claude Code enxergam a ferramenta do mod? O <code>tool.call</code> traz <code>e.agentId</code>?</td><td>Primeiro teste; os tipos indicam que sim. Alternativas no plano.</td></tr>
+  <tr><td>Espera na fila que nunca termina (dono travado, longo ou morto)</td><td>Heartbeat do dono: morto → trava quebrada e registrada; vivo e longo → <code>--timeout</code> no <code>claim</code> e a tarefa decide; o painel mostra há quanto tempo espera e quem segura.</td></tr>
+  <tr><td>Órfãs e efeitos das execuções de hoje</td><td>Fora do alcance do ledger por construção; só relatório via <code>gc --scan</code>, remoção quando você quiser e com <code>--yes</code>.</td></tr>
+  <tr><td>O avaliador do /goal só vê a conversa</td><td>A saída de <code>tasks status</code> é texto na conversa. Alternativa sem avaliador: Stop hook clássico lendo o arquivo.</td></tr>
+  <tr><td>Largura do painel do Claude Code</td><td>Abre sozinho só a partir de ~110–144 colunas; abaixo, <code>/tasks</code> à mão.</td></tr>
+</table>
+
+<p><small>Fontes consultadas em 23/10/2026: tipos dos mods do Claude Code (build 2.1.309) e as ferramentas EnterWorktree/ExitWorktree/Agent; API de plugin do OpenCode 2.1.3; plugin de goal do OpenCode 0.1.68; Codex CLI (goal, update_plan); pi-goal e rpiv-todo; ralph (<code>files_allowed</code>) e ralph-v2; skill to-tickets e os 24 tickets do spybrowser; <code>herdr worktree</code>; artigos sobre worktrees para agentes paralelos.</small></p>
+
+</main>
+</body>
+</html>

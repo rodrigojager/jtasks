@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano: jlock</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1d1c1a; --muted: #6b675f; --line: #dedad2; --soft: #f1eee7;
+    --accent: #b5481f; --ok: #2f7d4f; --warn: #a66a00; --code-bg: #f4f1ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161513; --fg: #ebe7df; --muted: #9b968b; --line: #332f2a; --soft: #211f1b; --accent: #e07a4c; --ok: #6fc28f; --warn: #e0a84a; --code-bg: #1f1d19; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 22px; margin: 44px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+  h3 { font-size: 17px; margin: 24px 0 6px; }
+  p, li { max-width: 80ch; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; line-height: 1.45; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 9px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .decisions { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 14px 0; }
+  .decision { background: var(--soft); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; }
+  .decision b { display: block; margin-bottom: 2px; }
+  .changed { border-left-color: var(--ok); }
+  .changed::before { content: "revisto"; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ok); display: block; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); }
+  small { color: var(--muted); }
+  ol.phases li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>jlock</h1>
+<p class="lead">Um CLI de travas por arquivo (ou por qualquer nome) para a máquina inteira, no Windows: um dono por chave, fila em ordem de chegada, dois pedidos simultâneos decididos por uma operação atômica do sistema de arquivos, travas de processo morto recuperadas, deadlock detectado, listagem de tudo que está travado e por quem, e <code>unlock --force</code>. Sem servidor: funciona ainda que qualquer processo caia. Independente do <a href="plano.html">goal-tasks</a>, que será o primeiro usuário. Revisão 3, 23/10/2026; nada foi implementado ainda. Nome escolhido: <code>jlock</code> (livre no npm e no PyPI em 23/10/2026; no GitHub só há repositórios pequenos e sem relação com esse nome).</p>
+
+<h2 id="existente">1. O que existe, e o que foi verificado</h2>
+<table>
+  <tr><th>Opção</th><th>O que dá</th><th>O que falta</th></tr>
+  <tr><td><code>LockFileEx</code> (Windows)</td><td>trava exclusiva, bloqueante; o SO libera quando o processo morre</td><td>sem ordem de chegada garantida; sem lista do que está travado; precisa de FFI (o mod do Claude Code não tem)</td></tr>
+  <tr><td><code>flock(1)</code> + <code>lslocks</code> do Linux</td><td>o modelo de CLI: <code>flock arquivo comando</code> segura a trava enquanto o comando roda, o kernel libera na morte do processo; <code>lslocks</code> lista as travas ativas com PID e caminho</td><td>não existe no Windows; sem ordem de chegada garantida; a lista mostra PIDs, não tarefas; sem deadlock; sem segurar entre invocações sem processo residente</td></tr>
+  <tr><td><code>proper-lockfile</code> (npm)</td><td>exclusão por <code>mkdir</code> atômico, heartbeat por mtime, trava morta, aviso "trava comprometida"</td><td>sem fila (tentativas ao acaso); sem CLI; sem lista global</td></tr>
+  <tr><td>PR #5469 do projeto GAIA (AMD)</td><td>desenho de referência de fila justa entre processos (uma senha por esperador)</td><td>não é ferramenta; sem deadlock</td></tr>
+</table>
+<p>Nenhuma pronta. O jlock junta o modelo de uso do <code>flock(1)</code>, a fila do GAIA e o heartbeat do proper-lockfile, e acrescenta a lista global, o force unlock e a detecção de deadlock. <b>Multiplataforma:</b> a criação exclusiva de arquivo é atômica também em ext4, Btrfs e APFS, então o mesmo binário serve em Linux e macOS; lá o jlock é conveniência (o <code>flock</code> e o <code>lslocks</code> cobrem parte), no Windows é necessidade. Worktrees com copy-on-write (Btrfs, XFS, ZFS; não ext4) barateiam o disco, mas não resolvem o merge nem as órfãs: a escolha por posse de arquivos não depende do sistema operacional.</p>
+
+<h3>Primitivas testadas neste computador (Bun 1.3.14, NTFS, 23/10/2026)</h3>
+<p><small>Testadas em Bun por conveniência; são chamadas do sistema (<code>CreateFile</code> com <code>CREATE_NEW</code>, <code>MoveFileEx</code>, <code>DeleteFile</code>) e valem igual para o binário em Rust, que as chama direto. Os testes serão refeitos em <code>cargo test</code>.</small></p>
+<table>
+  <tr><th>Operação</th><th>Resultado</th><th>Uso</th></tr>
+  <tr><td>criar arquivo exclusivamente (<code>open … "wx"</code>) com 12 processos competindo, 30 rodadas</td><td class="ok">sempre exatamente 1 vencedor; perdedores com <code>EEXIST</code>; conteúdo íntegro</td><td>decidir quem pega a trava; emitir senhas únicas</td></tr>
+  <tr><td><code>mkdir</code> repetido</td><td class="ok"><code>EEXIST</code></td><td>equivalente; não usado</td></tr>
+  <tr><td>renomear por cima de arquivo existente fechado</td><td class="ok">funciona</td><td>quebrar trava morta; substituir arquivos derivados</td></tr>
+  <tr><td>apagar arquivo que outro processo Bun lê</td><td class="ok">funciona</td><td>liberar com leitores concorrentes (<code>list</code> rodando)</td></tr>
+  <tr><td>arquivo preso por programa sem compartilhamento de exclusão (editor, antivírus)</td><td class="warn">não testado; o Windows recusa com <code>EBUSY</code>/<code>EPERM</code></td><td>tentativas com espera crescente; nunca matar processos</td></tr>
+</table>
+
+<h2 id="decisoes">2. As decisões</h2>
+<div class="decisions">
+  <div class="decision changed"><b>Um CLI independente, instalado no PATH, para qualquer uso.</b> Repositório próprio (<code>D:\tools\jlock</code> em desenvolvimento). O goal-tasks é o primeiro usuário, mas scripts, o Codex por shell, o pi, ou você no terminal, usam igual.</div>
+  <div class="decision changed"><b>Em Rust, um binário estático, sem runtime.</b> O jlock é chamado dezenas de vezes por minuto por outros processos (adquirir, renovar, liberar) e fica residente um <code>hold</code> por tarefa em andamento. Isso pede partida em milissegundos e memória mínima: um binário Rust parte em 1–5 ms e ocupa 1–2 MB; um script Bun parte em 30–50 ms, ocupa 30–50 MB por processo e exige o Bun instalado na máquina. Rust também chama as primitivas do sistema sem FFI: <code>create_new</code> (criação exclusiva, atômica em NTFS, ext4, Btrfs e APFS), <code>LockFileEx</code> no Windows, <code>flock</code> em Linux e macOS. Você já tem a toolchain (<code>~\.cargo\bin</code> no PATH) e um projeto Rust em uso. Go daria quase o mesmo (binário de 3–8 MB, partida um pouco maior); .NET com NativeAOT também, com binário maior. O custo é algum tempo a mais de desenvolvimento, pago uma vez. O goal-tasks, em TypeScript, chama o binário como processo; não há segunda implementação do protocolo em lugar nenhum.</div>
+  <div class="decision changed"><b>Identidade genérica: dono, grupo, intenção e metadados.</b> O jlock não sabe o que é tarefa nem execução. Quem adquire informa um <code>owner</code> (quem segura: <code>claude:a8ec2aca</code>, <code>pid:12345</code>, <code>user:rodrigo</code>; sem informar, vira <code>pid:&lt;pid&gt;</code>), opcionalmente um <code>group</code> (para liberar e listar em lote), um <code>intent</code> (texto livre, para humanos) e <code>meta</code> (pares chave=valor opacos, mostrados na lista e no JSON). O goal-tasks usa <code>group</code> = id da execução e <code>meta task=T04 tool=claude</code>; um script de deploy usa <code>owner user:rodrigo intent "deploy prod"</code>. Mesmo modelo, usos diferentes.</div>
+  <div class="decision changed"><b>Registro em um lugar comum do disco, sem servidor.</b> <code>%LOCALAPPDATA%\jlock\</code> (configurável por <code>JLOCK_HOME</code>). Nada de processo a manter vivo: se qualquer coisa cair, o estado está no disco e o próximo participante continua. Travas de quem caiu expiram pelo heartbeat.</div>
+  <div class="decision changed"><b>O registro é uma pasta com um arquivo por trava, não um arquivo único.</b> "Consultar o arquivo e depois registrar" são dois passos, e dois pedidos no mesmo instante leriam "livre" os dois. A criação exclusiva de <code>holder.json</code> é consulta e registro numa operação só, decidida pelo sistema de arquivos. A "lista de tudo que está travado" é a leitura dessa pasta (<code>jlock list</code>); um <code>index.json</code> derivado pode existir para leitura rápida, mas nunca é a verdade.</div>
+  <div class="decision"><b>Fila estrita por senha.</b> Quem quer a trava cria uma senha (arquivo com hora em microssegundos + aleatório). Só o dono da menor senha viva tenta pegar; os outros esperam. Ordem de chegada de verdade.</div>
+  <div class="decision"><b>Heartbeat para dono e esperadores.</b> Renovação do mtime a cada 5 s; sem renovação por 30 s, está morto: qualquer participante quebra a trava ou descarta a senha, com registro. Um dono que descobre a trava quebrada recebe "trava perdida" e para, nunca continua escrevendo.</div>
+  <div class="decision"><b>Deadlock detectado.</b> O grafo "quem espera por quem" está na pasta. Um pedido que fecharia um ciclo é recusado com a cadeia; num ciclo formado por pedidos simultâneos, quem tem a senha mais nova desiste.</div>
+  <div class="decision changed"><b>Chaves são caminhos absolutos normalizados ou nomes.</b> Caminho → resolvido, minúsculas, barras "/"; uma trava num diretório conflita com travas em qualquer caminho dentro dele, e vice-versa. Nome (<code>name:porta-3000</code>, <code>name:deploy</code>) → igualdade exata. Assim o mesmo CLI trava arquivos, pastas inteiras ou recursos quaisquer.</div>
+  <div class="decision changed"><b><code>unlock --force</code> existe, com registro de quem forçou.</b> O dono descobre no próximo heartbeat e para. É a válvula para o caso humano; o automático é o heartbeat.</div>
+  <div class="decision changed"><b>Zero sobras: a pasta volta a ficar vazia quando nada está travado.</b> Todo arquivo do jlock tem um dono responsável por apagá-lo e um prazo de expiração para o caso de o dono morrer. O <code>release</code> apaga a trava e, se não há fila, a pasta da chave inteira. Registros de quebra viram uma linha no log e o arquivo some no mesmo instante. Cada chamada varre a própria chave; uma vez por minuto, qualquer chamada varre tudo. O log é o único arquivo que cresce, e é rotacionado por tamanho. Invariante testado: depois de mil ciclos com oito processos, <code>locks\</code> está vazia.</div>
+  <div class="decision"><b>Trava consultiva.</b> Só quem usa o jlock a respeita. Para agentes, as guardas do goal-tasks (mod e plugin) fazem o respeito ser forçado; para pessoas e editores, não há bloqueio, nem deve haver.</div>
+</div>
+
+<h2 id="disco">3. Layout no disco</h2>
+<pre>
+%LOCALAPPDATA%\jlock\
+├─ locks\
+│  └─ 3f9a…c21\                     ← uma chave: sha1 da chave normalizada
+│     ├─ key                         ← a chave em texto ("d:/temp/spybrowser/src/humanizer/types.ts")
+│     ├─ holder.json                 ← existe = ocupada; conteúdo = quem; mtime = heartbeat
+│     ├─ queue\
+│     │   ├─ 1792794410123456-7c1e.json   ← senha; conteúdo = quem; mtime = heartbeat do esperador
+│     │   └─ 1792794411004211-02bd.json
+│     └─ broken\
+│         └─ 1792794500000000-expired.json   ← travas quebradas (expirada ou forçada), com quem e quando
+├─ index.json                        ← derivado: {chave → dono, fila}, reescrito por rename; só para leitura rápida
+└─ log.jsonl                         ← acquire/release/expire/force, para auditoria
+</pre>
+<pre><code>// holder.json e as senhas têm o mesmo corpo
+{ "key": "d:/temp/spybrowser/src/humanizer/types.ts",
+  "owner": "claude:a8ec2aca",                       // quem segura; obrigatório (padrão: "pid:&lt;pid&gt;")
+  "group": "cursory-261023-k7f2",                   // opcional: lote para list/release/unlock
+  "intent": "T04 Mouse move",                       // opcional: texto para humanos
+  "meta": { "task": "T04", "tool": "claude" },      // opcional: opaco para o jlock
+  "pid": 171828, "host": "RODRIGO-PC", "cwd": "D:/Temp/spybrowser",
+  "since": "2026-10-23T23:06:50.123Z",
+  "ttl": "2h" }                                     // opcional: prazo máximo mesmo com heartbeat</code></pre>
+<p>O jlock compara <code>owner</code> por igualdade (quem apresenta o mesmo <code>owner</code> pode liberar), agrupa por <code>group</code>, mostra <code>intent</code> e <code>meta</code>, e não interpreta nenhum deles. <code>ttl</code> é um prazo máximo de posse, para processos vivos mas descontrolados; expira com registro, como a morte. <code>pid</code> e <code>host</code> são preenchidos pelo próprio jlock, e o PID vivo ou morto é uma segunda pista de morte, além do heartbeat.</p>
+
+<h2 id="cli">4. O CLI</h2>
+<table>
+  <tr><th>Comando</th><th>O que faz</th></tr>
+  <tr><td><code>jlock acquire &lt;chave…&gt; [--owner &lt;id&gt;] [--group &lt;g&gt;] [--intent "…"] [--meta k=v…] [--ttl 2h] [--wait|--no-wait] [--timeout 30s]</code></td><td>pega todas as chaves (ordem canônica, tudo ou nada). Saída: <code>granted</code>; ou <code>queued</code> com dono e posição (com <code>--no-wait</code> ou timeout); ou <code>deadlock</code> com a cadeia. Código de saída distinto para cada caso.</td></tr>
+  <tr><td><code>jlock run &lt;chave…&gt; --owner &lt;id&gt; -- &lt;comando&gt;</code></td><td>como o <code>flock(1)</code>: pega, mantém o heartbeat, roda o comando, libera ao terminar (ou ao morrer: expira). O jeito mais simples de usar em scripts.</td></tr>
+  <tr><td><code>jlock hold &lt;chave…&gt; --owner &lt;id&gt;</code></td><td>processo que fica vivo renovando o heartbeat; encerra ao receber <code>release</code> na entrada padrão ou ao ser encerrado. É o que o mod do Claude Code e scripts longos usam.</td></tr>
+  <tr><td><code>jlock release [&lt;chave…&gt;] [--owner &lt;id&gt;] [--group &lt;g&gt;]</code></td><td>libera (só o dono). Sem chaves: tudo do dono; com <code>--group</code>: tudo do grupo (fim de uma execução).</td></tr>
+  <tr><td><code>jlock heartbeat &lt;chave&gt; --owner &lt;id&gt;</code></td><td>renova; responde <code>lost</code> se a trava não é mais sua.</td></tr>
+  <tr><td><code>jlock list [--owner x] [--group g] [--under D:\proj] [--stale] [--json] [--watch]</code></td><td>tudo que está travado na máquina: chave, dono, há quanto tempo, heartbeat, fila. <code>--watch</code> redesenha a cada segundo (serve para um painel do herdr).</td></tr>
+  <tr><td><code>jlock status &lt;chave&gt;</code></td><td>dono e fila de uma chave, inclusive conflitos por hierarquia (pasta acima ou arquivos dentro).</td></tr>
+  <tr><td><code>jlock graph</code></td><td>quem espera por quem; ciclos.</td></tr>
+  <tr><td><code>jlock unlock &lt;chave&gt; | --owner x | --group g --force [--reason "…"]</code></td><td>quebra a trava de alguém, por chave, dono ou grupo, registrando quem forçou; o dono recebe <code>lost</code> no próximo heartbeat.</td></tr>
+  <tr><td><code>jlock gc</code></td><td>a varredura global agora: expira travas e senhas mortas, consome <code>broken\</code>, remove pastas de chave vazias, rotaciona o log, reescreve o <code>index.json</code>; imprime o que removeu.</td></tr>
+</table>
+<p>Toda saída tem forma de texto curto e, com <code>--json</code>, de objeto. Os códigos de saída: 0 concedido/ok, 10 ocupado (fila), 11 timeout, 12 deadlock, 13 não é o dono, 20 erro de sistema de arquivos.</p>
+
+<h2 id="protocolo">5. O protocolo</h2>
+<pre>
+acquire(key, owner)
+  (1) hierarquia: chaves-caminho conflitam com ancestrais e descendentes travados → a espera é na chave do dono conflitante
+  (2) deadlock: grafo (senhas → donos) + aresta (owner → dono da chave); ciclo com owner → deadlock
+  (3) senha ← criar queue/&lt;agora-µs&gt;-&lt;aleatório&gt;.json com "wx"
+  (4) a cada 200–500 ms (com jitter):
+        renovar mtime da senha
+        descartar senhas com heartbeat &gt; 30 s (renomear para broken/: só um consegue)
+        holder.json com heartbeat &gt; 30 s → renomear para broken/ (só um consegue), registrar "expired"
+        minha senha é a menor viva e holder.json não existe →
+            criar holder.json com "wx": conseguiu → apagar senha → granted
+                                        EEXIST → outro passou à frente neste instante; registrar; continuar
+        senão → --no-wait ou timeout → apagar senha → queued { holder, position }
+        a cada N sondagens: refazer o teste de deadlock; ciclo e minha senha é a mais nova → desistir
+heartbeat: ler holder.json; owner ≠ eu → lost; senão renovar mtime
+release:   owner ≠ eu → not-owner; senão apagar holder.json (o próximo pega em ≤ 0,5 s);
+           queue/ vazia → apagar key, queue/, broken/ e o diretório da chave (rmdir falha com ENOTEMPTY se alguém
+           acabou de entrar na fila: tudo bem, ele apaga depois)
+force:     renomear holder.json para broken/&lt;ts&gt;-forced.json com { by, reason }, anotar no log, apagar o arquivo
+quebra:    renomear → ler → uma linha em log.jsonl → apagar; broken/ é só o alvo do rename, nunca um arquivo fica nele
+senha com ENOENT ao criar: a pasta da chave foi apagada por um release neste instante → recriar e tentar de novo
+</pre>
+
+<h2 id="sobras">6. Zero sobras</h2>
+<p>Cada arquivo tem quem o cria, quem o apaga e o que acontece se esse alguém morrer. Em regime, o número de pastas em <code>locks\</code> é o número de chaves travadas ou com fila <em>agora</em>; com nada travado, zero.</p>
+<table>
+  <tr><th>Arquivo</th><th>Nasce</th><th>Morre</th><th>Se o responsável morrer</th><th>Pior caso de sobra</th></tr>
+  <tr><td><code>locks\&lt;hash&gt;\holder.json</code></td><td>na concessão</td><td>no <code>release</code>, <code>force</code> ou expiração</td><td>expira em 30 s; qualquer participante ou o <code>gc</code> remove</td><td>30 s + até a próxima chamada do jlock</td></tr>
+  <tr><td><code>queue\&lt;senha&gt;.json</code></td><td>ao entrar na fila</td><td>na concessão, no timeout ou na desistência (pelo próprio dono)</td><td>expira em 30 s; removida por quem passar ou pelo <code>gc</code></td><td>idem</td></tr>
+  <tr><td><code>broken\…</code></td><td>só como alvo do rename atômico</td><td>milissegundos depois: quem quebrou anota uma linha no log e apaga</td><td>morreu entre o rename e o apagar: o <code>gc</code> anota e apaga</td><td>até a próxima varredura</td></tr>
+  <tr><td><code>locks\&lt;hash&gt;\</code> (a pasta da chave, com <code>key</code>)</td><td>no primeiro pedido da chave</td><td>no <code>release</code> que deixa a fila vazia, ou no <code>gc</code></td><td>pasta vazia é removida por qualquer varredura</td><td>até a próxima varredura</td></tr>
+  <tr><td><code>index.json</code></td><td>derivado, um só</td><td>reescrito por rename a cada mudança</td><td>—</td><td>um arquivo, sempre</td></tr>
+  <tr><td><code>log.jsonl</code></td><td>uma linha por acquire, release, expiração e force</td><td>rotação por tamanho: 5 MB, uma cópia anterior (<code>log.1.jsonl</code>), configurável</td><td>—</td><td>10 MB, sempre</td></tr>
+</table>
+<h3>Varredura</h3>
+<ul>
+  <li><b>Local, em toda chamada:</b> quem mexe numa chave remove ali mesmo senhas expiradas, trava expirada e, ao sair, a pasta vazia.</li>
+  <li><b>Global, no máximo uma vez por minuto:</b> qualquer chamada (<code>acquire</code>, <code>release</code>, <code>list</code>, <code>status</code>) confere um carimbo <code>last-sweep</code>; se passou um minuto, varre <code>locks\</code> inteira: expira mortos, consome <code>broken\</code>, remove pastas vazias, rotaciona o log, reescreve o índice. Custa uma listagem de diretório; com dezenas de chaves, milissegundos.</li>
+  <li><b>Manual:</b> <code>jlock gc</code> faz a global agora e imprime o que removeu.</li>
+</ul>
+<p>Por que um arquivo por trava não vira "um milhão de arquivos": o arquivo existe só enquanto a trava existe. O que acumula em sistemas assim é o que ninguém apaga: aqui, cada arquivo tem dois removedores (o dono e a expiração), e a pasta é removida quando esvazia. Tamanho de uma pasta de chave enquanto viva: três arquivos abaixo de 1 KB.</p>
+
+<h2 id="garantias">7. Garantias e limites</h2>
+<table>
+  <tr><th>Garantido</th><th>Não garantido (e por quê não importa)</th></tr>
+  <tr><td>um dono por chave a qualquer instante</td><td>impedir quem não usa o jlock (consultivo; os agentes são forçados pelas guardas do goal-tasks)</td></tr>
+  <tr><td>ordem de chegada estrita entre esperadores vivos</td><td>entrega instantânea (até 0,5 s)</td></tr>
+  <tr><td>trava de processo morto recuperada em ≤ 30 s, com registro</td><td>distinguir morto de congelado por mais de 30 s (o congelado recebe <code>lost</code> e para)</td></tr>
+  <tr><td>deadlock detectado e resolvido deterministicamente</td><td>coordenação entre máquinas</td></tr>
+  <tr><td>a lista é sempre a verdade (é a pasta)</td><td>—</td></tr>
+  <tr><td><code>locks\</code> vazia quando nada está travado; sobras vivem no máximo até a próxima varredura (≤ 1 min após a próxima chamada)</td><td>limpeza sem nenhuma chamada do jlock: uma máquina onde ninguém mais chama o jlock fica com os poucos arquivos da última morte até a próxima chamada ou <code>gc</code></td></tr>
+  <tr><td>funciona sem nenhum processo residente</td><td>—</td></tr>
+</table>
+
+<h2 id="uso">8. Quem usa, e como</h2>
+<table>
+  <tr><th>Usuário</th><th>Como</th><th>Respeito forçado?</th></tr>
+  <tr><td>goal-tasks (mod do Claude Code)</td><td><code>$.process.run("jlock acquire …")</code> no <code>start</code>/<code>claim</code>; <code>$.process.spawn("jlock hold …")</code> enquanto a tarefa anda; <code>release</code> no fim; a guarda em <code>tool.call</code> recusa edição fora da posse</td><td>sim, pela guarda</td></tr>
+  <tr><td>goal-tasks (plugin do OpenCode)</td><td>o mesmo, pelo processo do servidor do plugin; hook de permissão como guarda</td><td>sim</td></tr>
+  <tr><td>Codex, pi, outros agentes</td><td>skill curta: "antes de editar arquivos, <code>jlock acquire</code>; ao terminar, <code>release</code>"; <code>jlock run</code> para comandos</td><td>não (depende do modelo seguir), por isso é a última opção</td></tr>
+  <tr><td>scripts e você</td><td><code>jlock run D:\proj\dist -- bun run build</code>; <code>jlock list --watch</code> num painel</td><td>—</td></tr>
+</table>
+<p>Alterar o <code>/goal</code> das ferramentas não é necessário: o goal continua sendo o motor, e o jlock entra pela ferramenta <code>tasks</code> e pelas guardas.</p>
+
+<h2 id="falhas">9. Falhas e recuperação</h2>
+<table>
+  <tr><th>Situação</th><th>O que acontece</th></tr>
+  <tr><td>dono morre</td><td>heartbeat para; em ≤ 30 s qualquer participante (ou <code>jlock gc</code>) quebra a trava com registro; a fila segue</td></tr>
+  <tr><td>esperador morre</td><td>senha expira em ≤ 30 s; a fila fecha o buraco</td></tr>
+  <tr><td>dois pedidos no mesmo microssegundo</td><td>o aleatório da senha desempata a ordem; a criação exclusiva decide a posse</td></tr>
+  <tr><td>dois participantes quebram a mesma trava morta</td><td>rename atômico: um consegue, o outro recebe <code>ENOENT</code> e segue</td></tr>
+  <tr><td>dono congelado &gt; 30 s mas vivo</td><td>trava quebrada; ele vê <code>lost</code> e para; quem o chamou trata (no goal-tasks: a tarefa falha com "trava perdida")</td></tr>
+  <tr><td><code>unlock --force</code> por engano</td><td>o registro em <code>broken/</code> e no <code>log.jsonl</code> diz quem, quando e por quê; o dono para em vez de sobrescrever</td></tr>
+  <tr><td>antivírus/editor segurando um arquivo do jlock</td><td><code>EBUSY</code>/<code>EPERM</code> → tentativas com espera crescente (50 ms … 2 s); persistiu → erro claro, código 20, sem matar processo</td></tr>
+  <tr><td>relógio do sistema salta</td><td>pode expirar travas vivas uma vez; donos recebem <code>lost</code> e param, nunca escrevem às cegas</td></tr>
+  <tr><td>caminho longo, maiúsculas, barras</td><td>chave normalizada; o diretório usa o hash</td></tr>
+  <tr><td>disco cheio ou sem permissão em <code>%LOCALAPPDATA%</code></td><td>erro ≠ <code>EEXIST</code> é reportado, nunca lido como "ocupado"; <code>JLOCK_HOME</code> permite outro lugar</td></tr>
+  <tr><td><code>index.json</code> corrompido ou velho</td><td>é derivado: ignorado e reescrito a partir da pasta</td></tr>
+  <tr><td>pasta da chave apagada no instante em que alguém cria a senha</td><td>a criação da senha falha com <code>ENOENT</code>; o pedinte recria a pasta e tenta de novo; o <code>rmdir</code> do outro lado falha com <code>ENOTEMPTY</code> se a senha chegou antes, e nada se perde</td></tr>
+</table>
+
+<h2 id="testes">10. Testes</h2>
+<ul>
+  <li><b>Corrida</b> (já escrita em <code>D:\claude-cache\lock-race</code>; vira teste do repositório): N processos × M rodadas, um vencedor, conteúdo íntegro.</li>
+  <li><b>Ordem de chegada:</b> 8 processos com atrasos conhecidos; concessão na ordem das senhas.</li>
+  <li><b>Hierarquia:</b> trava em <code>D:\p\src</code> faz <code>D:\p\src\a.ts</code> esperar, e vice-versa; <code>D:\p\docs</code> não espera.</li>
+  <li><b>Nomes:</b> <code>name:x</code> conflita só com <code>name:x</code>.</li>
+  <li><b>Dono morto / esperador morto</b> (processos filhos nossos, encerrados por PID): recuperação em ≤ 30 s com heartbeat encurtado no teste; <code>broken/</code> registra.</li>
+  <li><b>Trava perdida</b> e <b><code>unlock --force</code>:</b> o dono recebe <code>lost</code>; o registro tem quem forçou.</li>
+  <li><b>Deadlock:</b> A segura x e pede y; B segura y e pede x; o segundo é recusado com a cadeia; variante simultânea → a senha mais nova desiste.</li>
+  <li><b>Conjuntos:</b> {a,b} e {b,a} nunca travam.</li>
+  <li><b><code>run</code>:</b> o comando roda com a trava; ao matar o <code>run</code> (processo nosso), a trava expira.</li>
+  <li><b><code>list</code>/<code>index.json</code>:</b> a lista bate com a pasta mesmo com o índice apagado.</li>
+  <li><b>Zero sobras:</b> 8 processos × 1000 ciclos de <code>acquire</code>/<code>release</code> em chaves variadas, com mortes provocadas no meio (processos nossos, por PID); no fim, <code>locks\</code> vazia, <code>broken\</code> inexistente, log dentro do limite de rotação.</li>
+  <li><b>Windows:</b> <code>release</code> com <code>list --watch</code> lendo ao mesmo tempo; chaves com maiúsculas e barras invertidas normalizam igual.</li>
+</ul>
+
+<h2 id="entrega">11. Entrega</h2>
+<ol class="phases">
+  <li>Crate <code>jlock</code> (Rust; dependências mínimas: <code>serde_json</code> e o acesso ao SO): núcleo (chaves, hierarquia, senha, fila, heartbeat, quebra, grafo, deadlock, varredura) + testes de corrida, ordem e morte com processos reais (<code>cargo test</code> dispara filhos do próprio binário).</li>
+  <li>CLI: <code>acquire</code>, <code>release</code>, <code>hold</code>, <code>run</code>, <code>list</code>, <code>status</code>, <code>unlock --force</code>, <code>gc</code>, <code>graph</code>; <code>cargo install --path .</code> deixa <code>jlock.exe</code> em <code>~\.cargo\bin</code>, que já está no PATH; README. Builds para Linux e macOS depois, pelo CI do repositório.</li>
+  <li>Integração no goal-tasks (<code>start</code>, <code>claim</code>, <code>waiting</code>, <code>lost</code>) e o teste entre ferramentas no sandbox do OpenCode.</li>
+  <li>Skill curta para agentes sem guarda (Codex, pi).</li>
+</ol>
+<p>Tamanho estimado: núcleo de 500 a 700 linhas de Rust, CLI de outras 300, mais testes. Repositório próprio; o goal-tasks o chama como processo (saída <code>--json</code> e códigos de saída) e não o embute.</p>
+<h3>Opcional, depois</h3>
+<ul>
+  <li><b>Trava do SO por baixo</b> em <code>hold</code>/<code>run</code>: <code>LockFileEx</code> no Windows, <code>flock</code> em Linux e macOS, sobre o <code>holder.json</code> aberto. Dá liberação imediata pelo kernel quando o processo morre, somada ao heartbeat; em Rust é direto. Endurecimento; não muda o protocolo nem o formato em disco.</li>
+  <li><b>Painel</b>: <code>jlock list --watch</code> numa aba do herdr já resolve; uma seção no HUD do OpenCode e no painel do Claude Code pode mostrar as travas do repositório atual.</li>
+</ul>
+
+<p><small>Fontes: <a href="https://github.com/moxystudio/node-proper-lockfile">proper-lockfile</a>, <a href="https://github.com/amd/gaia/pull/5469">GAIA PR #5469</a>, <a href="https://www.npmjs.com/package/cross-process-lock">cross-process-lock</a>, <a href="https://devblogs.microsoft.com/oldnewthing/20260430-00/?p=112288%2F">The Old New Thing: fairness em travas entre processos no Windows</a>, <a href="https://en.wikipedia.org/wiki/Ticket_lock">ticket lock</a>, <code>flock(1)</code>; testes de primitivas em <code>D:\claude-cache\lock-race</code>, 23/10/2026.</small></p>
+
+</main>
+</body>
+</html>
