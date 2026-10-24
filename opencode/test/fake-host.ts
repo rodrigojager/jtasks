@@ -149,9 +149,9 @@ export async function fakeHost(directory: string, host?: Host) {
   const addSession = (id: string, parentID?: string) => sessions.set(id, { id, ...(parentID ? { parentID } : {}), location: { directory } })
   addSession("s1")
 
-  /** The model calls the tasks tool in a session. */
+  /** The model calls the jtasks tool in a session. */
   const call = async (sessionID: string, command: string, json?: unknown) => {
-    const tool = tools.find((t) => t.name === "tasks")
+    const tool = tools.find((t) => t.name === "jtasks")
     const r = await tool.execute(json === undefined ? { command } : { command, json }, { sessionID, agent: "build", messageID: "m", id: "c" })
     return { text: r.content as string, ok: r.metadata.ok as boolean }
   }

@@ -7,13 +7,13 @@
   "author": "Rodrigo Jäger",
   "type": "module",
   "bin": {
-    "tasks": "cli/tasks.ts"
+    "jtasks": "cli/jtasks.ts"
   },
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.core.json && tsc -p tsconfig.claude.json",
     "build": "bun scripts/build.ts",
-    "tasks": "bun cli/tasks.ts",
+    "jtasks": "bun cli/jtasks.ts",
     "test:opencode": "cd opencode && bun test",
     "test:claude": "claude plugin test claude"
   },

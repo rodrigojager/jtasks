@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/rodrigojager/jtasks/skills/to-tickets/schema.json",
   "title": "jtasks plan",
-  "description": "The plan (or one batch of it) that `tasks plan` / `tasks plan --add` takes: a list of tasks, or an object with `tasks`.",
+  "description": "The plan (or one batch of it) that `jtasks plan` / `jtasks plan --add` takes: a list of tasks, or an object with `tasks`.",
   "oneOf": [
     { "type": "array", "items": { "$ref": "#/$defs/task" } },
     {

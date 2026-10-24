@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// The `tasks` CLI: the core's tool on the terminal, with the Node host.
+// The `jtasks` CLI: the core's tool on the terminal, with the Node host.
 
 import { join } from "node:path"
 import { runTool } from "../src/index.ts"

@@ -1,4 +1,4 @@
-// jtasks for Claude Code: the `tasks` tool (the core's runTool on a host made of $.fs and $.process), the run
+// jtasks for Claude Code: the `jtasks` tool (the core's runTool on a host made of $.fs and $.process), the run
 // bound to the session in $.state (subagents share it), the protocol section in the system prompt while a run is
 // bound (prompt.compose runs at every request, so it is back after a compaction too), and the "Tasks" pane with
 // /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open.
@@ -18,7 +18,7 @@ const RUN = { plugin: 'jtasks', key: 'run' } as const
 const viewAtom = atom({ plugin: 'jtasks', key: 'view' } as const, null as PaneView | null, { shape: 'view-1' })
 const collapsedAtom = atom({ plugin: 'jtasks', key: 'collapsed' } as const, false)
 const AGENTS = { plugin: 'jtasks', key: 'agents' } as const
-const FULL_NAME = 'mcp__jtasks__tasks'
+const FULL_NAME = 'mcp__jtasks__jtasks'
 
 /** Actions that may name another run than the bound one (they create, bind or only list). */
 const ANY_RUN = new Set(['plan', 'resume', 'import', 'runs', 'ledger', 'gc', 'help', 'version', 'validate', 'clean', 'archive', 'undo'])

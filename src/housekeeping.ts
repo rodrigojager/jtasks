@@ -65,7 +65,7 @@ defineAction(
     lines.push(all ? tr("clean.delete_all", { target, n: ids.length }) : tr("clean.delete", { target }))
     if (left.length) {
       lines.push(tr("clean.effects"))
-      for (const e of left) lines.push(`  ${effectLine(e)}  →  tasks undo ${e.id} --run ${e.run}`)
+      for (const e of left) lines.push(`  ${effectLine(e)}  →  jtasks undo ${e.id} --run ${e.run}`)
     }
     if (busy.length) throw new ToolError(`${lines.join("\n")}\n${tr("clean.busy", { tasks: busy.join(", ") })}`)
     if (!args.options.yes) {

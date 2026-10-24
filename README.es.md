@@ -31,29 +31,29 @@ esos archivos quedan bloqueados mientras se ejecuta.
   cambiaron sus archivos y hace el commit (`T04: título`). Un commit por tarea: revertir una tarea es revertir un
   commit.
 - **Reanudar.** En qué punto está la ejecución lo dice el estado de la lista, no la memoria del modelo:
-  `tasks resume` en cualquier ventana muestra qué está hecho, qué se ejecuta y qué espera, y devuelve las tareas de
+  `jtasks resume` en cualquier ventana muestra qué está hecho, qué se ejecuta y qué espera, y devuelve las tareas de
   un agente que murió.
 - **Deshacer.** Ramas, commits, carpetas, líneas en `.git/info/exclude`: cada efecto que deja la herramienta está
-  en un ledger, junto con la forma de deshacerlo (`tasks ledger`, `tasks undo`).
+  en un ledger, junto con la forma de deshacerlo (`jtasks ledger`, `jtasks undo`).
 
 ## Cómo funciona
 
 ```mermaid
 flowchart LR
-  plan["plan (JSON, por lotes)"] -->|tasks plan| list[("tasks.json\n+ tickets")]
-  list -->|tasks next| ready["tareas listas"]
-  ready -->|un subagente por tarea| work["tasks start\n(jlock hold)"]
+  plan["plan (JSON, por lotes)"] -->|jtasks plan| list[("tasks.json\n+ tickets")]
+  list -->|jtasks next| ready["tareas listas"]
+  ready -->|un subagente por tarea| work["jtasks start\n(jlock hold)"]
   work -->|edita dentro de la posesión\nclaim para más archivos| work
-  work -->|tasks done --evidence| commit["un commit\npor tarea"]
+  work -->|jtasks done --evidence| commit["un commit\npor tarea"]
   commit --> ledger[("ledger:\ncada efecto, reversible")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
-La herramienta tiene tres formas con los mismos comandos: un mod para Claude Code (una herramienta `tasks`, un
+La herramienta tiene tres formas con los mismos comandos: un mod para Claude Code (una herramienta `jtasks`, un
 panel con la lista de comprobación y una barra de progreso, `/jtasks`), un plugin para OpenCode (la misma
-herramienta y una sección en la barra lateral) y un CLI, `tasks`, para una terminal o cualquier otro agente.
+herramienta y una sección en la barra lateral) y un CLI, `jtasks`, para una terminal o cualquier otro agente.
 Mientras una ejecución está ligada a una sesión, el mod y el plugin ponen el protocolo en el prompt del modelo:
-`tasks next`, un subagente por tarea lista, `tasks status` hasta que no quede nada. Una guarda rechaza las
+`jtasks next`, un subagente por tarea lista, `jtasks status` hasta que no quede nada. Una guarda rechaza las
 ediciones fuera de la posesión de la tarea y los comandos git de los subagentes.
 
 ## Instalación
@@ -62,12 +62,12 @@ Necesitas [bun](https://bun.sh) y `git`. Desde un clon de este repositorio:
 
 ```
 bun install
-bun link            # un comando `tasks` (o ejecuta bun cli/tasks.ts <acción>)
-tasks doctor        # ¿está lista esta máquina?
-tasks doctor --fix --yes   # instala lo que falta: jlock, los agentes de OpenCode, las skills
+bun link            # un comando `jtasks` (o ejecuta bun cli/jtasks.ts <acción>)
+jtasks doctor        # ¿está lista esta máquina?
+jtasks doctor --fix --yes   # instala lo que falta: jlock, los agentes de OpenCode, las skills
 ```
 
-`tasks doctor --fix` sin `--yes` solo enumera lo que haría. Todo lo que instala va al ledger, así que `tasks undo`
+`jtasks doctor --fix` sin `--yes` solo enumera lo que haría. Todo lo que instala va al ledger, así que `jtasks undo`
 lo elimina. Después, para tu agente:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude` (el mod; ver [`claude/README.md`](claude/README.md)).
@@ -92,12 +92,12 @@ Un plan con tres tareas: dos que pueden ejecutarse juntas y una que las une.
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 ejecución a-sum-its-docs-and-the-e-261024-zrqc creada: 3 tarea(s), branch gt/a-sum-its-docs-and-the-e-261024-zrqc
 tickets: 3 en ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-zrqc/tickets
-siguiente paso: tasks next
+siguiente paso: jtasks next
 
-$ tasks next
+$ jtasks next
 listas (2) en a-sum-its-docs-and-the-e-261024-zrqc; pueden ejecutarse en paralelo:
 T01 · Sum · perfil implement · posesión: src/sum.ts
   criterios: sum.ts exports sum
@@ -106,24 +106,24 @@ T02 · Docs · perfil implement · posesión: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-zrqc/tickets/02-docs.md
 bloqueadas: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 en curso (intento 1): posesión bloqueada en jlock (1 clave(s), dueño gt:a-sum-its-docs-and-the-e-261024-zrqc/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-zrqc/tickets/01-sum.md
-otro archivo: tasks claim T01 <archivo>; al final: tasks done T01 --evidence "…" (o tasks fail T01 --error "…")
+otro archivo: jtasks claim T01 <archivo>; al final: jtasks done T01 --evidence "…" (o jtasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 T01 hecha: commit 10af042 (T01: Sum); posesión devuelta
 hechas 1/3 (33%) · quedan 2
 
-$ tasks status
+$ jtasks status
 hechas 1/3 (33%) · quedan 2
 listas: T02
 bloqueadas: T03 ⛔ T02
 bloqueos activos: ninguno
 ```
 
-`tasks next` devolvió T01 y T02 juntas: sus archivos no se solapan, así que dos agentes pueden tomarlas a la vez.
+`jtasks next` devolvió T01 y T02 juntas: sus archivos no se solapan, así que dos agentes pueden tomarlas a la vez.
 T03 espera a las dos. `done` hizo el commit `T01: Sum` solo con `src/sum.ts`.
 
 ## Con Claude Code
@@ -132,22 +132,22 @@ Con el mod cargado, pide a Claude que planifique con la skill `to-tickets` (vien
 tareas, te pide que las apruebes y entrega el plan a la herramienta por lotes. Después, inicia un goal:
 
 ```
-/goal cada tarea de la ejecución <run> está hecha u omitida (tasks status dice que no queda nada)
+/goal cada tarea de la ejecución <run> está hecha u omitida (jtasks status dice que no queda nada)
 ```
 
-Claude llama a `tasks next`, abre un subagente por tarea lista en la misma respuesta (cada uno con el modelo de su
-perfil) y llama a `tasks status` hasta que no quede nada. `/jtasks` abre o cierra el panel.
+Claude llama a `jtasks next`, abre un subagente por tarea lista en la misma respuesta (cada uno con el modelo de su
+perfil) y llama a `jtasks status` hasta que no quede nada. `/jtasks` abre o cierra el panel.
 
 ## Con OpenCode
 
 Con el plugin, lo mismo: `to-tickets` para planificar y luego un goal. La llamada `subagent` de cada tarea recibe
-el agente de su perfil (`implement`, `implement-deep`, `review`, instalados por `tasks doctor --fix --yes`, o
+el agente de su perfil (`implement`, `implement-deep`, `review`, instalados por `jtasks doctor --fix --yes`, o
 cualquier agente que nombres en el plan). La barra lateral muestra la lista de comprobación y la barra de progreso.
 
 ## Desde una terminal o Codex
 
-Sin mod ni plugin, la skill `jtasks` es el protocolo: el agente ejecuta `tasks next`, hace cada tarea dentro de
-su posesión (`tasks start`, `tasks claim`, `tasks done`) y repite hasta que `tasks status` diga que no queda nada.
+Sin mod ni plugin, la skill `jtasks` es el protocolo: el agente ejecuta `jtasks next`, hace cada tarea dentro de
+su posesión (`jtasks start`, `jtasks claim`, `jtasks done`) y repite hasta que `jtasks status` diga que no queda nada.
 Una persona puede hacer lo mismo a mano.
 
 ## Garantías y límites

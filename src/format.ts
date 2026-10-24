@@ -64,13 +64,13 @@ export function protocolText(run: string, summary: string, spawn: string): strin
   return [
     `jtasks: bound run ${run} · ${summary}`,
     "Protocol:",
-    "1. Call tasks next.",
+    "1. Call jtasks next.",
     `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` +
       `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` +
-      '"call tasks start <id> first; if you need another file, tasks claim <id> <file>; do not run git; ' +
-      'at the end, tasks done <id> --evidence with the evidence, or tasks fail <id> --error".',
-    `3. When they finish, call tasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
-    "4. Never edit tasks.json, the tickets or git by hand; only through the tasks tool.",
+      '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' +
+      'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
+    `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
+    "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
   ].join("\n")
 }
 

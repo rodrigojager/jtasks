@@ -19,7 +19,7 @@ No test calls a model; tests that need git and jlock make temporary repositories
 
 Every text a person reads (answers, errors, help, the pane, the sidebar) comes from a catalog in `locales/<tag>.json`.
 `en.json` is the reference: every other catalog has exactly its keys and the same `{markers}`, and English is the
-fallback for a missing key. `test/i18n.test.ts` checks both, and that every line of `tasks help` fits in 100
+fallback for a missing key. `test/i18n.test.ts` checks both, and that every line of `jtasks help` fits in 100
 columns in every language (wide characters count as two).
 
 **Reviews of the text are accepted and welcome in any language, English included**: clarity, tone, the words
@@ -38,7 +38,7 @@ issue with the sentence as it is and your suggestion.
 
 ### What stays in English inside a translation
 
-Action and option names (`tasks claim`, `--evidence`), environment variables (`JTASKS_*`, `JLOCK_*`), file
+Action and option names (`jtasks claim`, `--evidence`), environment variables (`JTASKS_*`, `JLOCK_*`), file
 names (`tasks.json`, `run.json`), task and run ids, and result codes of the JSON when a sentence quotes them.
 
 ### Status of the languages

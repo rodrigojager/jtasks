@@ -31,28 +31,28 @@ jtasks выносит всё это из модели в инструмент. �
 - **Доказательства, а не обещания.** Задача завершается командой `done` с доказательством; инструмент проверяет,
   что изменились только её файлы, и делает коммит (`T04: название`). Один коммит на задачу: откатить задачу —
   значит откатить один коммит.
-- **Возобновление.** Где находится прогон, определяет состояние списка, а не память модели: `tasks resume` в любом
+- **Возобновление.** Где находится прогон, определяет состояние списка, а не память модели: `jtasks resume` в любом
   окне показывает, что выполнено, что в работе, что ждёт, и возвращает задачи умершего агента.
 - **Отмена.** Ветки, коммиты, папки, строки в `.git/info/exclude`: каждый эффект, который оставляет инструмент,
-  записан в реестр вместе со способом его отменить (`tasks ledger`, `tasks undo`).
+  записан в реестр вместе со способом его отменить (`jtasks ledger`, `jtasks undo`).
 
 ## Как это работает
 
 ```mermaid
 flowchart LR
-  plan["план (JSON, пакетами)"] -->|tasks plan| list[("tasks.json\n+ тикеты")]
-  list -->|tasks next| ready["готовые задачи"]
-  ready -->|по субагенту на каждую| work["tasks start\n(jlock hold)"]
+  plan["план (JSON, пакетами)"] -->|jtasks plan| list[("tasks.json\n+ тикеты")]
+  list -->|jtasks next| ready["готовые задачи"]
+  ready -->|по субагенту на каждую| work["jtasks start\n(jlock hold)"]
   work -->|правки внутри владения\nclaim для других файлов| work
-  work -->|tasks done --evidence| commit["один коммит\nна задачу"]
+  work -->|jtasks done --evidence| commit["один коммит\nна задачу"]
   commit --> ledger[("реестр:\nкаждый эффект, отменяемый")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
-У инструмента три формы с одними и теми же командами: мод для Claude Code (инструмент `tasks`, панель с чек-листом
+У инструмента три формы с одними и теми же командами: мод для Claude Code (инструмент `jtasks`, панель с чек-листом
 и индикатором прогресса, `/jtasks`), плагин для OpenCode (тот же инструмент и раздел в боковой панели) и CLI
-`tasks` для терминала или любого другого агента. Пока прогон привязан к сессии, мод и плагин добавляют протокол в
-промпт модели: `tasks next`, по субагенту на каждую готовую задачу, `tasks status`, пока ничего не останется.
+`jtasks` для терминала или любого другого агента. Пока прогон привязан к сессии, мод и плагин добавляют протокол в
+промпт модели: `jtasks next`, по субагенту на каждую готовую задачу, `jtasks status`, пока ничего не останется.
 Защита отклоняет правки вне владения задачи и команды git от субагентов.
 
 ## Установка
@@ -61,13 +61,13 @@ flowchart LR
 
 ```
 bun install
-bun link            # команда `tasks` (или запускайте bun cli/tasks.ts <действие>)
-tasks doctor        # готова ли эта машина?
-tasks doctor --fix --yes   # устанавливает недостающее: jlock, агентов OpenCode, навыки
+bun link            # команда `jtasks` (или запускайте bun cli/jtasks.ts <действие>)
+jtasks doctor        # готова ли эта машина?
+jtasks doctor --fix --yes   # устанавливает недостающее: jlock, агентов OpenCode, навыки
 ```
 
-`tasks doctor --fix` без `--yes` только перечисляет, что он сделал бы. Всё, что он устанавливает, попадает в
-реестр, так что `tasks undo` это удаляет. Затем, для вашего агента:
+`jtasks doctor --fix` без `--yes` только перечисляет, что он сделал бы. Всё, что он устанавливает, попадает в
+реестр, так что `jtasks undo` это удаляет. Затем, для вашего агента:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude` (мод; см. [`claude/README.md`](claude/README.md)).
 - **OpenCode:** добавьте `<jtasks>/opencode` в `plugins` в `opencode.json` (см.
@@ -91,12 +91,12 @@ tasks doctor --fix --yes   # устанавливает недостающее: 
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 прогон a-sum-its-docs-and-the-e-261024-cryc создан, задач: 3, branch gt/a-sum-its-docs-and-the-e-261024-cryc
 тикеты: 3 в ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets
-следующий шаг: tasks next
+следующий шаг: jtasks next
 
-$ tasks next
+$ jtasks next
 готовы (2) в a-sum-its-docs-and-the-e-261024-cryc; можно выполнять параллельно:
 T01 · Sum · профиль implement · владение: src/sum.ts
   критерии: sum.ts exports sum
@@ -105,24 +105,24 @@ T02 · Docs · профиль implement · владение: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/02-docs.md
 заблокированы: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 в работе (попытка 1): владение заблокировано в jlock (ключей: 1, владелец gt:a-sum-its-docs-and-the-e-261024-cryc/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/01-sum.md
-другой файл: tasks claim T01 <файл>; в конце: tasks done T01 --evidence "…" (или tasks fail T01 --error "…")
+другой файл: jtasks claim T01 <файл>; в конце: jtasks done T01 --evidence "…" (или jtasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 T01 выполнена: commit 9d9a342 (T01: Sum); владение возвращено
 выполнено 1/3 (33%) · осталось: 2
 
-$ tasks status
+$ jtasks status
 выполнено 1/3 (33%) · осталось: 2
 готовы: T02
 заблокированы: T03 ⛔ T02
 активные блокировки: нет
 ```
 
-`tasks next` вернул T01 и T02 вместе: их файлы не пересекаются, поэтому два агента могут взять их одновременно. T03
+`jtasks next` вернул T01 и T02 вместе: их файлы не пересекаются, поэтому два агента могут взять их одновременно. T03
 ждёт обе. `done` сделал коммит `T01: Sum`, в который попал только `src/sum.ts`.
 
 ## С Claude Code
@@ -131,23 +131,23 @@ $ tasks status
 разбивает работу на задачи, просит вас их одобрить и передаёт план инструменту пакетами. Затем запустите цель:
 
 ```
-/goal каждая задача прогона <run> выполнена или пропущена (tasks status говорит, что ничего не осталось)
+/goal каждая задача прогона <run> выполнена или пропущена (jtasks status говорит, что ничего не осталось)
 ```
 
-Claude вызывает `tasks next`, открывает по субагенту на каждую готовую задачу в одном и том же ответе (каждый на
-модели своего профиля) и вызывает `tasks status`, пока ничего не останется. `/jtasks` открывает или закрывает
+Claude вызывает `jtasks next`, открывает по субагенту на каждую готовую задачу в одном и том же ответе (каждый на
+модели своего профиля) и вызывает `jtasks status`, пока ничего не останется. `/jtasks` открывает или закрывает
 панель.
 
 ## С OpenCode
 
 С плагином всё так же: `to-tickets`, чтобы спланировать, затем цель. Вызов `subagent` каждой задачи получает агента
-её профиля (`implement`, `implement-deep`, `review`, которых устанавливает `tasks doctor --fix --yes`, или любого
+её профиля (`implement`, `implement-deep`, `review`, которых устанавливает `jtasks doctor --fix --yes`, или любого
 агента, указанного вами в плане). Боковая панель показывает чек-лист и индикатор прогресса.
 
 ## Из терминала или Codex
 
-Без мода и плагина протоколом служит навык `jtasks`: агент выполняет `tasks next`, делает каждую задачу в
-пределах её владения (`tasks start`, `tasks claim`, `tasks done`) и повторяет, пока `tasks status` не скажет, что
+Без мода и плагина протоколом служит навык `jtasks`: агент выполняет `jtasks next`, делает каждую задачу в
+пределах её владения (`jtasks start`, `jtasks claim`, `jtasks done`) и повторяет, пока `jtasks status` не скажет, что
 ничего не осталось. Человек может делать то же самое вручную.
 
 ## Гарантии и ограничения

@@ -26,28 +26,28 @@ file only the tool writes; each task declares the files it owns, and those files
   wait that would close a cycle is refused.
 - **Proof, not promises.** A task is finished with `done` and its evidence; the tool checks that only its files
   changed and makes the commit (`T04: title`). One commit per task: reverting a task is reverting one commit.
-- **Resuming.** Where the run stands is the state of the list, not the model's memory: `tasks resume` in any
+- **Resuming.** Where the run stands is the state of the list, not the model's memory: `jtasks resume` in any
   window shows what is done, what runs, what waits, and gives back the tasks of an agent that died.
 - **Undoing.** Branches, commits, folders, lines in `.git/info/exclude`: every effect the tool leaves is in a ledger
-  with how to undo it (`tasks ledger`, `tasks undo`).
+  with how to undo it (`jtasks ledger`, `jtasks undo`).
 
 ## How it works
 
 ```mermaid
 flowchart LR
-  plan["plan (JSON, in batches)"] -->|tasks plan| list[("tasks.json\n+ tickets")]
-  list -->|tasks next| ready["ready tasks"]
-  ready -->|one subagent each| work["tasks start\n(jlock hold)"]
+  plan["plan (JSON, in batches)"] -->|jtasks plan| list[("tasks.json\n+ tickets")]
+  list -->|jtasks next| ready["ready tasks"]
+  ready -->|one subagent each| work["jtasks start\n(jlock hold)"]
   work -->|edit inside the ownership\nclaim for more files| work
-  work -->|tasks done --evidence| commit["one commit\nper task"]
+  work -->|jtasks done --evidence| commit["one commit\nper task"]
   commit --> ledger[("ledger:\nevery effect, undoable")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
-The tool has three forms with the same commands: a mod for Claude Code (a `tasks` tool, a pane with the checklist and
-a progress bar, `/jtasks`), a plugin for OpenCode (the same tool and a section in the sidebar), and a CLI, `tasks`,
+The tool has three forms with the same commands: a mod for Claude Code (a `jtasks` tool, a pane with the checklist and
+a progress bar, `/jtasks`), a plugin for OpenCode (the same tool and a section in the sidebar), and a CLI, `jtasks`,
 for a terminal or any other agent. While a run is bound to a session, the mod and the plugin put the protocol in the
-model's prompt: `tasks next`, one subagent per ready task, `tasks status` until nothing is left. A guard refuses an
+model's prompt: `jtasks next`, one subagent per ready task, `jtasks status` until nothing is left. A guard refuses an
 edit outside the task's ownership and git commands from subagents.
 
 ## Install
@@ -56,13 +56,13 @@ You need [bun](https://bun.sh) and `git`. From a clone of this repository:
 
 ```
 bun install
-bun link            # a `tasks` command (or run bun cli/tasks.ts <action>)
-tasks doctor        # is this machine ready?
-tasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agents, the skills
+bun link            # a `jtasks` command (or run bun cli/jtasks.ts <action>)
+jtasks doctor        # is this machine ready?
+jtasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agents, the skills
 ```
 
-`tasks doctor --fix` without `--yes` only lists what it would do. Everything it installs goes to the ledger, so
-`tasks undo` removes it. Then, for your agent:
+`jtasks doctor --fix` without `--yes` only lists what it would do. Everything it installs goes to the ledger, so
+`jtasks undo` removes it. Then, for your agent:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude` (the mod; see [`claude/README.md`](claude/README.md)).
 - **OpenCode:** add `<jtasks>/opencode` to `plugins` in `opencode.json` (see [`opencode/README.md`](opencode/README.md)).
@@ -85,12 +85,12 @@ A plan with three tasks: two that can run together and one that joins them.
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 run a-sum-its-docs-and-the-e-261024-gvus created: 3 task(s), branch gt/a-sum-its-docs-and-the-e-261024-gvus
 tickets: 3 in ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets
-next step: tasks next
+next step: jtasks next
 
-$ tasks next
+$ jtasks next
 ready (2) in a-sum-its-docs-and-the-e-261024-gvus; they can run in parallel:
 T01 · Sum · profile implement · ownership: src/sum.ts
   criteria: sum.ts exports sum
@@ -99,24 +99,24 @@ T02 · Docs · profile implement · ownership: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/02-docs.md
 blocked: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 in progress (attempt 1): ownership locked in jlock (1 key(s), owner gt:a-sum-its-docs-and-the-e-261024-gvus/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
-another file: tasks claim T01 <file>; at the end: tasks done T01 --evidence "…" (or tasks fail T01 --error "…")
+another file: jtasks claim T01 <file>; at the end: jtasks done T01 --evidence "…" (or jtasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 T01 done: commit 22c742c (T01: Sum); ownership given back
 done 1/3 (33%) · 2 left
 
-$ tasks status
+$ jtasks status
 done 1/3 (33%) · 2 left
 ready: T02
 blocked: T03 ⛔ T02
 active locks: none
 ```
 
-`tasks next` returned T01 and T02 together: their files do not overlap, so two agents can take them at once. T03
+`jtasks next` returned T01 and T02 together: their files do not overlap, so two agents can take them at once. T03
 waits for both. `done` made the commit `T01: Sum` with only `src/sum.ts`.
 
 ## With Claude Code
@@ -125,22 +125,22 @@ With the mod loaded, ask Claude to plan with the `to-tickets` skill (it travels 
 into tasks, asks you to approve them, and hands the plan to the tool in batches. Then start a goal:
 
 ```
-/goal every task of run <run> is done or skipped (tasks status says nothing is left)
+/goal every task of run <run> is done or skipped (jtasks status says nothing is left)
 ```
 
-Claude calls `tasks next`, opens one subagent per ready task in the same response (each on its profile's model), and
-calls `tasks status` until nothing is left. `/jtasks` opens or closes the pane.
+Claude calls `jtasks next`, opens one subagent per ready task in the same response (each on its profile's model), and
+calls `jtasks status` until nothing is left. `/jtasks` opens or closes the pane.
 
 ## With OpenCode
 
 With the plugin, the same: `to-tickets` to plan, then a goal. Each task's `subagent` call gets the agent of its
-profile (`implement`, `implement-deep`, `review`, installed by `tasks doctor --fix --yes`, or any agent you name in
+profile (`implement`, `implement-deep`, `review`, installed by `jtasks doctor --fix --yes`, or any agent you name in
 the plan). The sidebar shows the checklist and the progress bar.
 
 ## From a terminal or Codex
 
-Without a mod or a plugin, the `jtasks` skill is the protocol: the agent runs `tasks next`, does each task inside
-its ownership (`tasks start`, `tasks claim`, `tasks done`), and repeats until `tasks status` says nothing is left. A
+Without a mod or a plugin, the `jtasks` skill is the protocol: the agent runs `jtasks next`, does each task inside
+its ownership (`jtasks start`, `jtasks claim`, `jtasks done`), and repeats until `jtasks status` says nothing is left. A
 person can do the same by hand.
 
 ## Guarantees and limits

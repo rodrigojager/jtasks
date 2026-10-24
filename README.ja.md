@@ -16,23 +16,23 @@ jtasks はそのすべてをモデルから取り出し、ツールに移しま�
 - **今何を実行できるか。** タスクは、依存先が完了し、ファイルが空いているときに準備完了になります。互いに依存関係のない 2 つのタスクはファイルを共有してはいけません。ツールはそのような計画を拒否し、どのタスクとどのファイルかを示します。
 - **誰が何を変えるか。** タスクの実行中、そのファイルはマシン全体のロックツール [jlock](https://github.com/rodrigojager/jlock) にロックとして保持されます。そのうちの 1 つが必要な別のタスクは、キューに並んで待つ（`claim`）か、別のことをします。循環を作るような待ちは拒否されます。
 - **約束ではなく証拠。** タスクは `done` と証拠をもって完了します。ツールはそのタスクのファイルだけが変わったことを確認し、コミット（`T04: タイトル`）を作ります。タスクごとに 1 コミットなので、タスクを revert することはコミットを 1 つ revert することです。
-- **再開。** 実行がどこまで進んだかは、モデルの記憶ではなくリストの状態でわかります。どのウィンドウでも `tasks resume` を実行すれば、何が完了し、何が進行中で、何が待っているかが表示され、落ちたエージェントが持っていたタスクが戻されます。
-- **取り消し。** ブランチ、コミット、フォルダ、`.git/info/exclude` の行など、ツールが残す副作用はすべて、取り消し方とともに ledger に記録されます（`tasks ledger`、`tasks undo`）。
+- **再開。** 実行がどこまで進んだかは、モデルの記憶ではなくリストの状態でわかります。どのウィンドウでも `jtasks resume` を実行すれば、何が完了し、何が進行中で、何が待っているかが表示され、落ちたエージェントが持っていたタスクが戻されます。
+- **取り消し。** ブランチ、コミット、フォルダ、`.git/info/exclude` の行など、ツールが残す副作用はすべて、取り消し方とともに ledger に記録されます（`jtasks ledger`、`jtasks undo`）。
 
 ## 仕組み
 
 ```mermaid
 flowchart LR
-  plan["計画（JSON、バッチ単位）"] -->|tasks plan| list[("tasks.json\n+ チケット")]
-  list -->|tasks next| ready["準備完了のタスク"]
-  ready -->|タスクごとにサブエージェント 1 つ| work["tasks start\n(jlock hold)"]
+  plan["計画（JSON、バッチ単位）"] -->|jtasks plan| list[("tasks.json\n+ チケット")]
+  list -->|jtasks next| ready["準備完了のタスク"]
+  ready -->|タスクごとにサブエージェント 1 つ| work["jtasks start\n(jlock hold)"]
   work -->|所有権の中で編集\n追加のファイルは claim| work
-  work -->|tasks done --evidence| commit["タスクごとに\n1 コミット"]
+  work -->|jtasks done --evidence| commit["タスクごとに\n1 コミット"]
   commit --> ledger[("ledger:\nすべての副作用、取り消し可能")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
-ツールには同じコマンドを持つ 3 つの形があります。Claude Code 用の mod（`tasks` ツール、チェックリストと進捗バーを表示するペイン、`/jtasks`）、OpenCode 用のプラグイン（同じツールとサイドバーのセクション）、そしてターミナルや他のエージェント向けの CLI `tasks` です。実行がセッションに結び付いている間、mod とプラグインはモデルのプロンプトにプロトコルを入れます。`tasks next`、準備完了のタスクごとにサブエージェント 1 つ、そして残りがなくなるまで `tasks status`。ガードは、タスクの所有権の外での編集と、サブエージェントからの git コマンドを拒否します。
+ツールには同じコマンドを持つ 3 つの形があります。Claude Code 用の mod（`jtasks` ツール、チェックリストと進捗バーを表示するペイン、`/jtasks`）、OpenCode 用のプラグイン（同じツールとサイドバーのセクション）、そしてターミナルや他のエージェント向けの CLI `jtasks` です。実行がセッションに結び付いている間、mod とプラグインはモデルのプロンプトにプロトコルを入れます。`jtasks next`、準備完了のタスクごとにサブエージェント 1 つ、そして残りがなくなるまで `jtasks status`。ガードは、タスクの所有権の外での編集と、サブエージェントからの git コマンドを拒否します。
 
 ## インストール
 
@@ -40,12 +40,12 @@ flowchart LR
 
 ```
 bun install
-bun link            # `tasks` コマンドを作る（または bun cli/tasks.ts <action> を実行）
-tasks doctor        # このマシンは準備できているか?
-tasks doctor --fix --yes   # 足りないものをインストール: jlock、OpenCode のエージェント、スキル
+bun link            # `jtasks` コマンドを作る（または bun cli/jtasks.ts <action> を実行）
+jtasks doctor        # このマシンは準備できているか?
+jtasks doctor --fix --yes   # 足りないものをインストール: jlock、OpenCode のエージェント、スキル
 ```
 
-`--yes` なしの `tasks doctor --fix` は、何をするかを一覧にするだけです。インストールしたものはすべて ledger に入るので、`tasks undo` で削除できます。そのうえで、使うエージェントに合わせて:
+`--yes` なしの `jtasks doctor --fix` は、何をするかを一覧にするだけです。インストールしたものはすべて ledger に入るので、`jtasks undo` で削除できます。そのうえで、使うエージェントに合わせて:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude`（mod。[`claude/README.md`](claude/README.md) を参照）。
 - **OpenCode:** `opencode.json` の `plugins` に `<jtasks>/opencode` を追加（[`opencode/README.md`](opencode/README.md) を参照）。
@@ -68,12 +68,12 @@ tasks doctor --fix --yes   # 足りないものをインストール: jlock、Op
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 実行 a-sum-its-docs-and-the-e-261024-bvqd を作成: タスク 3 件、branch gt/a-sum-its-docs-and-the-e-261024-bvqd
 チケット: 3 件（~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets）
-次の手順: tasks next
+次の手順: jtasks next
 
-$ tasks next
+$ jtasks next
 a-sum-its-docs-and-the-e-261024-bvqd で準備完了（2）。並列に実行できる:
 T01 · Sum · プロファイル implement · 所有権: src/sum.ts
   受け入れ基準: sum.ts exports sum
@@ -82,42 +82,42 @@ T02 · Docs · プロファイル implement · 所有権: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/02-docs.md
 ブロック中: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 進行中（試行 1）: 所有権を jlock でロック（キー 1 個、所有者 gt:a-sum-its-docs-and-the-e-261024-bvqd/T01）
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/01-sum.md
-別のファイル: tasks claim T01 <ファイル>。終わったら: tasks done T01 --evidence "…"（または tasks fail T01 --error "…"）
+別のファイル: jtasks claim T01 <ファイル>。終わったら: jtasks done T01 --evidence "…"（または jtasks fail T01 --error "…"）
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 T01 完了: commit e360b3d (T01: Sum)。所有権を返却
 完了 1/3（33%） · 残り 2
 
-$ tasks status
+$ jtasks status
 完了 1/3（33%） · 残り 2
 準備完了: T02
 ブロック中: T03 ⛔ T02
 有効なロック: なし
 ```
 
-`tasks next` は T01 と T02 を一緒に返しました。ファイルが重ならないので、2 つのエージェントが同時に取りかかれます。T03 は両方を待ちます。`done` は `src/sum.ts` だけを含むコミット `T01: Sum` を作りました。
+`jtasks next` は T01 と T02 を一緒に返しました。ファイルが重ならないので、2 つのエージェントが同時に取りかかれます。T03 は両方を待ちます。`done` は `src/sum.ts` だけを含むコミット `T01: Sum` を作りました。
 
 ## Claude Code で使う
 
 mod を読み込んだら、`to-tickets` スキル（mod に同梱）で計画を立てるよう Claude に頼みます。Claude は作業をタスクに分け、承認を求め、計画をバッチ単位でツールに渡します。それから目標を設定します:
 
 ```
-/goal 実行 <run> のすべてのタスクが完了またはスキップされている（tasks status で残りがない）
+/goal 実行 <run> のすべてのタスクが完了またはスキップされている（jtasks status で残りがない）
 ```
 
-Claude は `tasks next` を呼び、同じ応答の中で準備完了のタスクごとにサブエージェントを 1 つ開き（それぞれプロファイルのモデルで動きます）、残りがなくなるまで `tasks status` を呼びます。`/jtasks` でペインを開閉します。
+Claude は `jtasks next` を呼び、同じ応答の中で準備完了のタスクごとにサブエージェントを 1 つ開き（それぞれプロファイルのモデルで動きます）、残りがなくなるまで `jtasks status` を呼びます。`/jtasks` でペインを開閉します。
 
 ## OpenCode で使う
 
-プラグインでも同じです。`to-tickets` で計画を立て、目標を設定します。各タスクの `subagent` 呼び出しには、そのプロファイルのエージェント（`implement`、`implement-deep`、`review`。`tasks doctor --fix --yes` でインストールされます。または計画で指定した任意のエージェント）が割り当てられます。サイドバーにはチェックリストと進捗バーが表示されます。
+プラグインでも同じです。`to-tickets` で計画を立て、目標を設定します。各タスクの `subagent` 呼び出しには、そのプロファイルのエージェント（`implement`、`implement-deep`、`review`。`jtasks doctor --fix --yes` でインストールされます。または計画で指定した任意のエージェント）が割り当てられます。サイドバーにはチェックリストと進捗バーが表示されます。
 
 ## ターミナルまたは Codex から使う
 
-mod もプラグインもないときは、`jtasks` スキルがプロトコルになります。エージェントは `tasks next` を実行し、各タスクをその所有権の中で行い（`tasks start`、`tasks claim`、`tasks done`）、`tasks status` で残りがなくなるまで繰り返します。人が手で同じことをすることもできます。
+mod もプラグインもないときは、`jtasks` スキルがプロトコルになります。エージェントは `jtasks next` を実行し、各タスクをその所有権の中で行い（`jtasks start`、`jtasks claim`、`jtasks done`）、`jtasks status` で残りがなくなるまで繰り返します。人が手で同じことをすることもできます。
 
 ## 保証と限界
 

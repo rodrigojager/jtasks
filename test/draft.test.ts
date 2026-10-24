@@ -39,7 +39,7 @@ describe("plan in batches", () => {
     await tasksOk(repo, ["plan", "--add"], { json: batch3 })
 
     const runs = await tasksOk(repo, ["runs"])
-    expect(runs.text).toBe("nenhuma execução neste repositório (crie uma com tasks plan)")
+    expect(runs.text).toBe("nenhuma execução neste repositório (crie uma com jtasks plan)")
 
     const show = await tasksOk(repo, ["plan", "--show"])
     expect(show.text.split("\n")).toEqual([
@@ -95,7 +95,7 @@ describe("plan in batches", () => {
     await tasksOk(repo, ["plan", "--fix", "T02"], { json: { title: "b", files: [] } })
     await tasksOk(repo, ["plan", "--fix", "T03"], { json: { id: "T03", title: "c", dependsOn: ["T01"], files: ["src"] } })
     const unknown = await tasks(repo, ["plan", "--fix", "T09"], { json: { title: "x" } })
-    expect(unknown.text).toBe("o rascunho não tem a tarefa T09 (veja tasks plan --show)")
+    expect(unknown.text).toBe("o rascunho não tem a tarefa T09 (veja jtasks plan --show)")
     const renamed = await tasks(repo, ["plan", "--fix", "T03"], { json: { id: "T07", title: "x" } })
     expect(renamed.text).toContain("--fix T03 recebeu a tarefa T07: o id não muda numa correção")
     await tasksOk(repo, ["plan", "--commit"])
@@ -104,7 +104,7 @@ describe("plan in batches", () => {
   test("a second --draft is refused while one is open; --add without a draft explains", async () => {
     const repo = makeRepo()
     const none = await tasks(repo, ["plan", "--add"], { json: batch1 })
-    expect(none.text).toBe("não há rascunho aberto: comece com tasks plan --draft")
+    expect(none.text).toBe("não há rascunho aberto: comece com jtasks plan --draft")
     const opened = await tasksOk(repo, ["plan", "--draft"])
     const again = await tasks(repo, ["plan", "--draft"])
     expect(again.ok).toBe(false)

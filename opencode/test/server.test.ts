@@ -37,7 +37,7 @@ async function setup() {
 }
 
 describe("OpenCode plugin", () => {
-  test("registers the tasks tool and its hooks", async () => {
+  test("registers the jtasks tool and its hooks", async () => {
     const { h } = await setup()
     expect(PLUGIN_ID).toBe("jtasks")
     expect(h.tools.map((t) => t.name)).toEqual([TOOL_NAME])
@@ -58,15 +58,15 @@ describe("OpenCode plugin", () => {
     const system = await h.request("s1")
     expect(system).toHaveLength(2)
     expect(system[1]!.text).toContain(`jtasks: bound run ${run} · feitas 0/3 (0%) · restam 3`)
-    expect(system[1]!.text).toContain("1. Call tasks next.")
+    expect(system[1]!.text).toContain("1. Call jtasks next.")
 
     const next = await h.call("s1", "next")
     expect(next.text).toContain("prontas (2)")
 
     // One model response with two subagent calls: both pass the hook, each gets its profile's agent.
     const [a, b] = await Promise.all([
-      h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 Movimento. Chame tasks start T01…` }),
-      h.subagent("s1", { agent: "build", description: "T02", prompt: `--run ${run} --task T02 Gravador. Chame tasks start T02…` }),
+      h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 Movimento. Chame jtasks start T01…` }),
+      h.subagent("s1", { agent: "build", description: "T02", prompt: `--run ${run} --task T02 Gravador. Chame jtasks start T02…` }),
     ])
     expect(a.agent).toBe("implement")
     expect(b.agent).toBe("implement-deep")
@@ -113,11 +113,11 @@ describe("OpenCode plugin", () => {
     expect(await h.permission("c1", "edit", [join(repo, "src/move.ts")])).toMatchObject({ effect: "allow" })
     expect(await h.permission("c1", "edit", ["src/other.ts"])).toMatchObject({
       effect: "deny",
-      message: "fora da posse de T01: src/other.ts; use tasks claim T01 src/other.ts",
+      message: "fora da posse de T01: src/other.ts; use jtasks claim T01 src/other.ts",
     })
     expect(await h.permission("c1", "shell", ['git commit -m "x"'])).toMatchObject({
       effect: "deny",
-      message: "subagente não roda git commit: o commit é feito por tasks done T01",
+      message: "subagente não roda git commit: o commit é feito por jtasks done T01",
     })
     expect(await h.permission("c1", "shell", ["bun test"])).toMatchObject({ effect: "allow" })
     expect(await h.permission("c1", "read", ["src/other.ts"])).toMatchObject({ effect: "allow" })
@@ -164,7 +164,7 @@ describe("OpenCode plugin", () => {
     const planned = await h.call("s2", "plan", ghost)
     expect(planned.ok).toBe(true)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const line = 'aviso: o perfil "implement" aponta o agente "ghost", que não existe: instale os agentes do jtasks com tasks doctor --fix, ou aponte um agente seu no plano'
+    const line = 'aviso: o perfil "implement" aponta o agente "ghost", que não existe: instale os agentes do jtasks com jtasks doctor --fix, ou aponte um agente seu no plano'
     expect(planned.text.split("\n")).toContain(line)
     h.addSession("s3")
     const resumed = await h.call("s3", `resume ${run}`)

@@ -2,14 +2,14 @@
 // temporary repository with its own JTASKS_HOME and JLOCK_HOME and in the README's language, with the plan of
 // the README's first ```json block as plan.json. `test/readmes.test.ts` compares the README with the real output
 // (run ids, commit hashes and paths aside); `bun scripts/readme-example.ts` writes the real output into the eleven
-// READMEs. A block holds `$ tasks …` commands and `$ echo "<text>" > <file>` edits, each followed by its output.
+// READMEs. A block holds `$ jtasks …` commands and `$ echo "<text>" > <file>` edits, each followed by its output.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { splitCommand } from "../src/tool.ts"
 
 const ROOT = join(import.meta.dir, "..").replace(/\\/g, "/")
-const CLI = `${ROOT}/cli/tasks.ts`
+const CLI = `${ROOT}/cli/jtasks.ts`
 export const MARK = "<!-- jtasks-example -->"
 /** How the READMEs show the temporary repository's path. */
 export const SHOWN_REPO = "~/project"
@@ -123,7 +123,7 @@ export function runBlock(block: Block, plan: string, tag: string): string[] {
         outputs.push("")
         continue
       }
-      if (argv[0] !== "tasks") throw new Error(`not a tasks command: ${step.command}`)
+      if (argv[0] !== "jtasks") throw new Error(`not a jtasks command: ${step.command}`)
       const p = Bun.spawnSync(["bun", CLI, ...argv.slice(1)], { cwd: repo, env })
       const text = `${p.stdout.toString()}${p.stderr.toString()}`.replace(/\s+$/, "")
       outputs.push(text.split(repo).join(SHOWN_REPO).replace(/\r\n/g, "\n"))

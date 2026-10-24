@@ -128,7 +128,7 @@ describe("validatePlan", () => {
   })
 })
 
-describe("tasks validate", () => {
+describe("jtasks validate", () => {
   const host = createNodeHost()
 
   test("prints every error and exits 1; a good plan says ok", async () => {
@@ -146,7 +146,7 @@ describe("tasks validate", () => {
   test("the CLI process exits with the code", () => {
     const dir = tempDir("validate-cli")
     writeFileSync(`${dir}/bad.json`, "[{}]")
-    const proc = Bun.spawnSync(["bun", `${import.meta.dir}/../cli/tasks.ts`, "validate", "@bad.json"], { cwd: dir })
+    const proc = Bun.spawnSync(["bun", `${import.meta.dir}/../cli/jtasks.ts`, "validate", "@bad.json"], { cwd: dir })
     expect(proc.exitCode).toBe(1)
     expect(proc.stderr.toString()).toContain(`tarefa #1: falta "id"`)
   })

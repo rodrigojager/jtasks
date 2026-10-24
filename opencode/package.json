@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "jtasks for OpenCode v2: the tasks tool, run binding, protocol in context, profiles and the ownership guard.",
+  "description": "jtasks for OpenCode v2: the jtasks tool, run binding, protocol in context, profiles and the ownership guard.",
   "license": "MIT",
   "author": "Rodrigo Jäger",
   "exports": {

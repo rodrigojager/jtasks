@@ -76,7 +76,7 @@ export async function writeRun(host: Host, dir: string, run: RunFile): Promise<v
 }
 
 /**
- * Writes `tasks` as revision `expected + 1`, after re-reading the file: if someone else wrote meanwhile, the write
+ * Writes `jtasks` as revision `expected + 1`, after re-reading the file: if someone else wrote meanwhile, the write
  * is refused with `StaleRevisionError` and nothing changes.
  */
 export async function writeTasks(host: Host, dir: string, tasks: TasksFile, expected: number): Promise<TasksFile> {

@@ -16,23 +16,23 @@ jtasks यह सब मॉडल से निकालकर एक टूल 
 - **अभी क्या चल सकता है।** कोई कार्य तब तैयार होता है जब उसकी निर्भरताएँ पूरी हो चुकी हों और उसकी फ़ाइलें मुक्त हों। जिन दो कार्यों के बीच कोई निर्भरता नहीं है, वे कोई फ़ाइल साझा नहीं कर सकते: टूल ऐसी योजना अस्वीकार करता है और बताता है कि कौन से कार्य और कौन सी फ़ाइल।
 - **कौन क्या बदलता है।** कार्य चलने के दौरान उसकी फ़ाइलें [jlock](https://github.com/rodrigojager/jlock) में लॉक के रूप में रखी जाती हैं, जो पूरी मशीन पर लागू लॉक टूल है। जिस दूसरे कार्य को उनमें से कोई फ़ाइल चाहिए, वह कतार में प्रतीक्षा करता है (`claim`) या कुछ और करता है; जो प्रतीक्षा एक चक्र बना दे, उसे अस्वीकार कर दिया जाता है।
 - **वादे नहीं, सबूत।** कार्य `done` और उसके सबूत के साथ पूरा होता है; टूल जाँचता है कि केवल उसकी फ़ाइलें बदलीं और commit बनाता है (`T04: शीर्षक`)। हर कार्य का एक commit: किसी कार्य को revert करना एक commit को revert करना है।
-- **फिर से शुरू करना।** रन कहाँ तक पहुँचा, यह सूची की स्थिति बताती है, मॉडल की याददाश्त नहीं: किसी भी विंडो में `tasks resume` दिखाता है कि क्या पूरा हुआ, क्या चल रहा है, क्या प्रतीक्षा में है, और मर चुके एजेंट के कार्य वापस कतार में लौटा देता है।
-- **पूर्ववत करना।** ब्रांच, commit, फ़ोल्डर, `.git/info/exclude` की पंक्तियाँ: टूल जो भी प्रभाव छोड़ता है, वह ledger में उसे पूर्ववत करने के तरीके के साथ दर्ज होता है (`tasks ledger`, `tasks undo`)।
+- **फिर से शुरू करना।** रन कहाँ तक पहुँचा, यह सूची की स्थिति बताती है, मॉडल की याददाश्त नहीं: किसी भी विंडो में `jtasks resume` दिखाता है कि क्या पूरा हुआ, क्या चल रहा है, क्या प्रतीक्षा में है, और मर चुके एजेंट के कार्य वापस कतार में लौटा देता है।
+- **पूर्ववत करना।** ब्रांच, commit, फ़ोल्डर, `.git/info/exclude` की पंक्तियाँ: टूल जो भी प्रभाव छोड़ता है, वह ledger में उसे पूर्ववत करने के तरीके के साथ दर्ज होता है (`jtasks ledger`, `jtasks undo`)।
 
 ## यह कैसे काम करता है
 
 ```mermaid
 flowchart LR
-  plan["योजना (JSON, बैचों में)"] -->|tasks plan| list[("tasks.json\n+ टिकट")]
-  list -->|tasks next| ready["तैयार कार्य"]
-  ready -->|हर कार्य के लिए एक सबएजेंट| work["tasks start\n(jlock hold)"]
+  plan["योजना (JSON, बैचों में)"] -->|jtasks plan| list[("tasks.json\n+ टिकट")]
+  list -->|jtasks next| ready["तैयार कार्य"]
+  ready -->|हर कार्य के लिए एक सबएजेंट| work["jtasks start\n(jlock hold)"]
   work -->|स्वामित्व के अंदर संपादन\nऔर फ़ाइलों के लिए claim| work
-  work -->|tasks done --evidence| commit["हर कार्य का\nएक commit"]
+  work -->|jtasks done --evidence| commit["हर कार्य का\nएक commit"]
   commit --> ledger[("ledger:\nहर प्रभाव, पूर्ववत करने योग्य")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
-टूल के तीन रूप हैं, सभी में वही कमांड: Claude Code के लिए एक mod (एक `tasks` टूल, चेकलिस्ट और प्रगति पट्टी वाला एक पैन, `/jtasks`), OpenCode के लिए एक प्लगइन (वही टूल और साइडबार में एक खंड), और एक CLI, `tasks`, टर्मिनल या किसी भी दूसरे एजेंट के लिए। जब कोई रन किसी सत्र से बँधा होता है, mod और प्लगइन मॉडल के प्रॉम्प्ट में प्रोटोकॉल डालते हैं: `tasks next`, हर तैयार कार्य के लिए एक सबएजेंट, और `tasks status` जब तक कुछ शेष न रहे। एक गार्ड कार्य के स्वामित्व के बाहर संपादन और सबएजेंट की git कमांड को अस्वीकार करता है।
+टूल के तीन रूप हैं, सभी में वही कमांड: Claude Code के लिए एक mod (एक `jtasks` टूल, चेकलिस्ट और प्रगति पट्टी वाला एक पैन, `/jtasks`), OpenCode के लिए एक प्लगइन (वही टूल और साइडबार में एक खंड), और एक CLI, `jtasks`, टर्मिनल या किसी भी दूसरे एजेंट के लिए। जब कोई रन किसी सत्र से बँधा होता है, mod और प्लगइन मॉडल के प्रॉम्प्ट में प्रोटोकॉल डालते हैं: `jtasks next`, हर तैयार कार्य के लिए एक सबएजेंट, और `jtasks status` जब तक कुछ शेष न रहे। एक गार्ड कार्य के स्वामित्व के बाहर संपादन और सबएजेंट की git कमांड को अस्वीकार करता है।
 
 ## इंस्टॉल
 
@@ -40,12 +40,12 @@ flowchart LR
 
 ```
 bun install
-bun link            # एक `tasks` कमांड (या bun cli/tasks.ts <action> चलाएँ)
-tasks doctor        # क्या यह मशीन तैयार है?
-tasks doctor --fix --yes   # जो नहीं है उसे इंस्टॉल करता है: jlock, OpenCode के एजेंट, स्किल
+bun link            # एक `jtasks` कमांड (या bun cli/jtasks.ts <action> चलाएँ)
+jtasks doctor        # क्या यह मशीन तैयार है?
+jtasks doctor --fix --yes   # जो नहीं है उसे इंस्टॉल करता है: jlock, OpenCode के एजेंट, स्किल
 ```
 
-`--yes` के बिना `tasks doctor --fix` केवल यह सूची दिखाता है कि वह क्या करेगा। वह जो कुछ इंस्टॉल करता है, सब ledger में जाता है, इसलिए `tasks undo` उसे हटा देता है। फिर, अपने एजेंट के लिए:
+`--yes` के बिना `jtasks doctor --fix` केवल यह सूची दिखाता है कि वह क्या करेगा। वह जो कुछ इंस्टॉल करता है, सब ledger में जाता है, इसलिए `jtasks undo` उसे हटा देता है। फिर, अपने एजेंट के लिए:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude` (mod; देखें [`claude/README.md`](claude/README.md))।
 - **OpenCode:** `opencode.json` में `plugins` में `<jtasks>/opencode` जोड़ें (देखें [`opencode/README.md`](opencode/README.md))।
@@ -68,12 +68,12 @@ tasks doctor --fix --yes   # जो नहीं है उसे इंस्�
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 रन a-sum-its-docs-and-the-e-261024-1k5o बनाया गया: 3 कार्य, branch gt/a-sum-its-docs-and-the-e-261024-1k5o
 टिकट: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-1k5o/tickets में 3
-अगला कदम: tasks next
+अगला कदम: jtasks next
 
-$ tasks next
+$ jtasks next
 a-sum-its-docs-and-the-e-261024-1k5o में तैयार (2); ये समानांतर चल सकते हैं:
 T01 · Sum · प्रोफ़ाइल implement · स्वामित्व: src/sum.ts
   मानदंड: sum.ts exports sum
@@ -82,42 +82,42 @@ T02 · Docs · प्रोफ़ाइल implement · स्वामित्
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-1k5o/tickets/02-docs.md
 अवरुद्ध: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 प्रगति पर (प्रयास 1): स्वामित्व jlock में लॉक (1 कुंजी, स्वामी gt:a-sum-its-docs-and-the-e-261024-1k5o/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-1k5o/tickets/01-sum.md
-दूसरी फ़ाइल: tasks claim T01 <फ़ाइल>; अंत में: tasks done T01 --evidence "…" (या tasks fail T01 --error "…")
+दूसरी फ़ाइल: jtasks claim T01 <फ़ाइल>; अंत में: jtasks done T01 --evidence "…" (या jtasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 T01 पूरा: commit 9a4a0e5 (T01: Sum); स्वामित्व लौटाया गया
 पूरे 1/3 (33%) · 2 शेष
 
-$ tasks status
+$ jtasks status
 पूरे 1/3 (33%) · 2 शेष
 तैयार: T02
 अवरुद्ध: T03 ⛔ T02
 सक्रिय लॉक: कोई नहीं
 ```
 
-`tasks next` ने T01 और T02 एक साथ लौटाए: उनकी फ़ाइलें आपस में नहीं टकरातीं, इसलिए दो एजेंट उन्हें एक साथ ले सकते हैं। T03 दोनों की प्रतीक्षा करता है। `done` ने केवल `src/sum.ts` के साथ commit `T01: Sum` बनाया।
+`jtasks next` ने T01 और T02 एक साथ लौटाए: उनकी फ़ाइलें आपस में नहीं टकरातीं, इसलिए दो एजेंट उन्हें एक साथ ले सकते हैं। T03 दोनों की प्रतीक्षा करता है। `done` ने केवल `src/sum.ts` के साथ commit `T01: Sum` बनाया।
 
 ## Claude Code के साथ
 
 mod लोड होने पर, Claude से `to-tickets` स्किल (यह mod के साथ आती है) से योजना बनाने को कहें: वह काम को कार्यों में बाँटता है, आपसे उन्हें स्वीकृत करवाता है, और योजना को बैचों में टूल को सौंपता है। फिर एक लक्ष्य शुरू करें:
 
 ```
-/goal रन <run> का हर कार्य पूरा या स्किप हो चुका है (tasks status बताता है कि कुछ शेष नहीं)
+/goal रन <run> का हर कार्य पूरा या स्किप हो चुका है (jtasks status बताता है कि कुछ शेष नहीं)
 ```
 
-Claude `tasks next` बुलाता है, उसी उत्तर में हर तैयार कार्य के लिए एक सबएजेंट खोलता है (हर एक अपनी प्रोफ़ाइल के मॉडल पर), और `tasks status` तब तक बुलाता है जब तक कुछ शेष न रहे। `/jtasks` पैन खोलता या बंद करता है।
+Claude `jtasks next` बुलाता है, उसी उत्तर में हर तैयार कार्य के लिए एक सबएजेंट खोलता है (हर एक अपनी प्रोफ़ाइल के मॉडल पर), और `jtasks status` तब तक बुलाता है जब तक कुछ शेष न रहे। `/jtasks` पैन खोलता या बंद करता है।
 
 ## OpenCode के साथ
 
-प्लगइन के साथ भी यही: योजना के लिए `to-tickets`, फिर एक लक्ष्य। हर कार्य की `subagent` कॉल को उसकी प्रोफ़ाइल का एजेंट मिलता है (`implement`, `implement-deep`, `review`, जिन्हें `tasks doctor --fix --yes` इंस्टॉल करता है, या योजना में आपके बताए किसी भी एजेंट)। साइडबार चेकलिस्ट और प्रगति पट्टी दिखाता है।
+प्लगइन के साथ भी यही: योजना के लिए `to-tickets`, फिर एक लक्ष्य। हर कार्य की `subagent` कॉल को उसकी प्रोफ़ाइल का एजेंट मिलता है (`implement`, `implement-deep`, `review`, जिन्हें `jtasks doctor --fix --yes` इंस्टॉल करता है, या योजना में आपके बताए किसी भी एजेंट)। साइडबार चेकलिस्ट और प्रगति पट्टी दिखाता है।
 
 ## टर्मिनल या Codex से
 
-mod या प्लगइन के बिना, `jtasks` स्किल ही प्रोटोकॉल है: एजेंट `tasks next` चलाता है, हर कार्य उसके स्वामित्व के अंदर करता है (`tasks start`, `tasks claim`, `tasks done`), और तब तक दोहराता है जब तक `tasks status` यह न बताए कि कुछ शेष नहीं। कोई व्यक्ति भी यही हाथ से कर सकता है।
+mod या प्लगइन के बिना, `jtasks` स्किल ही प्रोटोकॉल है: एजेंट `jtasks next` चलाता है, हर कार्य उसके स्वामित्व के अंदर करता है (`jtasks start`, `jtasks claim`, `jtasks done`), और तब तक दोहराता है जब तक `jtasks status` यह न बताए कि कुछ शेष नहीं। कोई व्यक्ति भी यही हाथ से कर सकता है।
 
 ## गारंटियाँ और सीमाएँ
 

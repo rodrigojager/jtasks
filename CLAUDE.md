@@ -1,7 +1,7 @@
 # jtasks — regras para quem trabalha neste repositório
 
 Este repositório é o `jtasks`: lista de tarefas determinística com dependências e paralelismo por posse de
-arquivos, como ferramenta `tasks` (mod do Claude Code, plugin do OpenCode e CLI). O plano completo está em
+arquivos, como ferramenta `jtasks` (mod do Claude Code, plugin do OpenCode e CLI). O plano completo está em
 `docs/PLAN.md`; é a fonte de verdade. Em dúvida, o plano manda. `docs/reference/` guarda os HTML originais, só
 como histórico.
 
@@ -13,9 +13,9 @@ Itens 2 a 6 da seção 18 do plano entregues (núcleo + CLI + ledger, plugin do 
 cujos bloqueios estão `done`), `**Status:**` no arquivo, critérios `- [ ]`, um commit por ticket (`NN: <título>`).
 Uso em `docs/USAGE.md`; desvios em `docs/DEVIATIONS.md`. Segunda leva (plano rev. 5.2, seção 18 itens 9 a 15):
 tickets 19 a 30 (nomes completos dos perfis, posse pelo `hold --detach`/`--release-on-eof`, barra no estilo do HUD,
-onze idiomas, `tasks doctor`, skills por agente, READMEs, teste real do mod), mais o ticket 18 no jlock.
+onze idiomas, `jtasks doctor`, skills por agente, READMEs, teste real do mod), mais o ticket 18 no jlock.
 
-Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/tasks.ts`, `dist/` e as cópias em
+Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem
 velhas), `opencode/` (plugin), `claude/` (mod; tipos em `vendor/claude-code.d.ts`, `tsconfig.claude.json`),
 `skills/<agente>/<skill>/` (gerados de `skills/source/` pelo build, que também copia os do Claude Code para o mod). Verificação: `bun test`, `cd opencode && bun test`,

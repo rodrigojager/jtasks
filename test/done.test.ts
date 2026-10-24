@@ -96,7 +96,7 @@ describe("done: one commit per task", () => {
     const outside = await tasks(repo, ["done", "T01", "--evidence", "ok"])
     expect(outside.ok).toBe(false)
     expect(outside.text).toContain("arquivos modificados fora da posse: README.md, notes/n.md")
-    expect(outside.text).toContain("tasks claim T01 <arquivo>")
+    expect(outside.text).toContain("jtasks claim T01 <arquivo>")
     expect(tasksFile(dir).tasks[0]!.status).toBe("in_progress")
     expect(sh(repo, "git", "log", "--format=%s", "-1").trim()).toBe("init")
   })

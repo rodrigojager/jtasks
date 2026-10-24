@@ -1,13 +1,13 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the jtasks `tasks` tool in batches (it validates, writes tasks.json and generates the tickets).
+description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the `jtasks` tool in batches (it validates, writes tasks.json and generates the tickets).
 disable-model-invocation: true
 ---
 
 # To Tickets
 
 Break a plan, spec, or conversation into **tasks**: tracer-bullet vertical slices, each declaring the tasks that
-**block** it and the **files it owns**. The plan is delivered through the `tasks` tool (jtasks), never written
+**block** it and the **files it owns**. The plan is delivered through the `jtasks` tool (jtasks), never written
 by hand: the tool validates it, writes `tasks.json` and generates the tickets from it.
 
 ## Process
@@ -74,29 +74,29 @@ Ask the user:
 
 Iterate until the user approves the breakdown.
 
-### 5. Hand the plan to the `tasks` tool, in batches
+### 5. Hand the plan to the `jtasks` tool, in batches
 
-In Claude Code with the jtasks mod, every `tasks …` command below goes through the `mcp__jtasks__tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
+In Claude Code with the jtasks mod, every `jtasks …` command below goes through the `mcp__jtasks__jtasks` tool: `command` is the command line without `jtasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write first (`jtasks plan --add @batch1.json`) or on standard input (`-`).
 
 Turn the approved breakdown into JSON (schema in `schema.json` beside this file; a small example in
 `example-plan.json`) and deliver it through the tool, in batches of up to ~20 tasks, so no single answer has to hold
 the whole plan:
 
-1. `tasks plan --draft --name <feature-slug> --objective "<one line>"` opens a draft (not a run yet).
-2. `tasks plan --add` with the first batch as `json` (a list of tasks, or `{ "tasks": [...], "profiles": ...,
+1. `jtasks plan --draft --name <feature-slug> --objective "<one line>"` opens a draft (not a run yet).
+2. `jtasks plan --add` with the first batch as `json` (a list of tasks, or `{ "tasks": [...], "profiles": ...,
    "serialize": [...] }`). The tool validates what it can inside the batch (schema, repeated ids, profiles, patterns
    in `files`) and refuses the whole batch on any error, listing every error.
-3. Repeat `tasks plan --add` for the next batches. A task may depend on a task of a later batch.
-4. `tasks plan --show` prints ids, titles, dependencies and ownership: check it against the approved breakdown.
-5. `tasks plan --commit` runs the complete validation (dependencies across batches, cycles, ownership shared by
+3. Repeat `jtasks plan --add` for the next batches. A task may depend on a task of a later batch.
+4. `jtasks plan --show` prints ids, titles, dependencies and ownership: check it against the approved breakdown.
+5. `jtasks plan --commit` runs the complete validation (dependencies across batches, cycles, ownership shared by
    independent tasks). On success it writes `tasks.json`, generates the tickets, creates the run's branch and binds
    the run to this session.
 
-When the tool returns errors, fix **only the task named**: `tasks plan --fix <id>` with that task's corrected JSON.
+When the tool returns errors, fix **only the task named**: `jtasks plan --fix <id>` with that task's corrected JSON.
 Never resend the other tasks, and never work around a refusal by removing ownership: add the dependency or split the
 file, as the message says. Then `--commit` again.
 
-A small plan can also go in one call: `tasks plan` with the whole plan as `json`.
+A small plan can also go in one call: `jtasks plan` with the whole plan as `json`.
 
 **Never edit `tasks.json`, the tickets, `run.json` or the git history by hand**: every change goes through the tool.
-After the plan, the execution follows the protocol the mod injects into the prompt (`tasks next`, one subagent per ready task, `tasks status` until nothing is left); without the mod, the `jtasks` skill.
+After the plan, the execution follows the protocol the mod injects into the prompt (`jtasks next`, one subagent per ready task, `jtasks status` until nothing is left); without the mod, the `jtasks` skill.

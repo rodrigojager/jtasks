@@ -49,7 +49,7 @@ describe("gc --scan", () => {
     const orphan = `${root}/wt-orphan`
     const noYes = await tasks(repo, ["gc", "--remove", orphan])
     expect(noYes.ok).toBe(false)
-    expect(noYes.text).toBe(`nada foi removido: confirme com tasks gc --remove ${orphan} --yes`)
+    expect(noYes.text).toBe(`nada foi removido: confirme com jtasks gc --remove ${orphan} --yes`)
     expect(existsSync(orphan)).toBe(true)
     const outside = await tasks(repo, ["gc", "--remove", root, "--yes"])
     expect(outside.text).toContain("não é algo que o relatório do gc lista")

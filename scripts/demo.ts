@@ -9,7 +9,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 const REPO = join(import.meta.dir, "..").replace(/\\/g, "/")
-const CLI = `${REPO}/cli/tasks.ts`
+const CLI = `${REPO}/cli/jtasks.ts`
 const base = (process.platform === "win32" ? "D:/claude-cache" : tmpdir()).replace(/\\/g, "/")
 const ROOT = `${base}/jtasks-demo-${process.pid}-${Date.now().toString(36)}`
 const WORK = `${ROOT}/repo`
@@ -46,7 +46,7 @@ function run(shown: string, argv: string[], options: { allowFail?: boolean } = {
 }
 
 const shell = (a: string) => (/[\s;"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a)
-const tasks = (args: string[], options?: { allowFail?: boolean }) => run(`tasks ${args.map(shell).join(" ")}`, ["bun", CLI, ...args], options)
+const tasks = (args: string[], options?: { allowFail?: boolean }) => run(`jtasks ${args.map(shell).join(" ")}`, ["bun", CLI, ...args], options)
 const quiet = (...argv: string[]) => Bun.spawnSync(argv, { cwd: WORK, env })
 
 function file(rel: string, text: string) {

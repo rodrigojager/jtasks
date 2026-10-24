@@ -25,7 +25,7 @@ const json = (file: string) => JSON.parse(readFileSync(file, "utf8"))
 const branches = (repo: string) => sh(repo, "git", "branch", "--format=%(refname:short)").split("\n").filter(Boolean)
 const excludeText = (repo: string) => readFileSync(join(repo, ".git/info/exclude"), "utf8")
 
-describe("tasks plan", () => {
+describe("jtasks plan", () => {
   test("creates run.json, tasks.json, tickets, the run branch and the ledger", async () => {
     const repo = makeRepo()
     const r = await tasksOk(repo, ["plan"], { json: plan })

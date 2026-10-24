@@ -1,4 +1,4 @@
-// The files of a run (plan section 5) and the plan the model hands to `tasks plan` (section 3).
+// The files of a run (plan section 5) and the plan the model hands to `jtasks plan` (section 3).
 
 export type TaskStatus = "pending" | "in_progress" | "done" | "skipped" | "failed"
 export type RunStatus = "active" | "paused" | "done"

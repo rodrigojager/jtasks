@@ -19,7 +19,7 @@ describe("edit guard", () => {
   test("outside the ownership is refused with the plan's message", () => {
     expect(checkEdit(base, "src/humanizer/other.ts")).toEqual({
       allow: false,
-      reason: "fora da posse de T04: src/humanizer/other.ts; use tasks claim T04 src/humanizer/other.ts",
+      reason: "fora da posse de T04: src/humanizer/other.ts; use jtasks claim T04 src/humanizer/other.ts",
     })
     expect(checkEdit({ ...base, cwd: "D:/Proj/src" }, "humanizer/x.ts").allow).toBe(false)
   })
@@ -42,7 +42,7 @@ describe("shell guard", () => {
   test("git mutators of a subagent are refused; reading git is free", () => {
     expect(checkShell(base, 'git commit -m "x"')).toEqual({
       allow: false,
-      reason: "subagente não roda git commit: o commit é feito por tasks done T04",
+      reason: "subagente não roda git commit: o commit é feito por jtasks done T04",
     })
     for (const c of ["git add .", "git -C D:/Proj checkout main", "git stash", "git reset --hard", "bun test && git switch x"])
       expect(checkShell(base, c).allow).toBe(false)

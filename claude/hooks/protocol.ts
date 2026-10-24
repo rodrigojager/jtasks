@@ -4,13 +4,13 @@
 import { progressLine, protocolText, readRun, readTasks, runDir, tr, VERSION, type Host } from '../core/core.js'
 import type { BoundRun } from '../types'
 
-export const TOOL_NAME = 'tasks'
+export const TOOL_NAME = 'jtasks'
 export const SECTION_ID = 'jtasks:protocol'
 
 // What the model reads is English in every language (plan section 21); the answers are in the person's language.
 export const TOOL_DESCRIPTION =
   `jtasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
-  '"command" is the tasks CLI command line without the "tasks" (e.g. "next", "start T04", "claim T04 src/x.ts", ' +
+  '"command" is the jtasks CLI command line without the "jtasks" (e.g. "next", "start T04", "claim T04 src/x.ts", ' +
   '"done T04 --evidence \\"bun test: 12 passed\\"", "status", "plan --add"); "json" carries the plan, the batch or ' +
   'the task in JSON (plan, plan --add, plan --fix <id>). "help" lists the actions. Never edit tasks.json, the tickets ' +
   'or git by hand: only through this tool.'
@@ -18,7 +18,7 @@ export const TOOL_DESCRIPTION =
 export const TOOL_SCHEMA = {
   type: 'object',
   properties: {
-    command: { type: 'string', description: 'The tasks command line, without the "tasks": "next", "start T04", "status"…' },
+    command: { type: 'string', description: 'The jtasks command line, without the "jtasks": "next", "start T04", "status"…' },
     json: { description: 'A plan, batch or task in JSON, for plan, plan --add and plan --fix.' },
   },
   required: ['command'],

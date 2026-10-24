@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { installMachine, installSession } from './machine.ts'
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__jtasks__tasks'
+const TOOL = 'mcp__jtasks__jtasks'
 const PLAN = {
   tasks: [
     { id: 'T01', title: 'Base', files: ['src/a.ts', 'src/lib'] },
@@ -46,7 +46,7 @@ test('a subagent edits inside its ownership; outside it is refused with the plan
   expect((await $.tool.call(edit(`${ROOT}/src/lib/x.ts`, 'agent-1') as never)).deny).toBeUndefined()
   const outside = await $.tool.call(edit(`${ROOT}/src/other.ts`, 'agent-1') as never)
   expect(outside.deny).toContain("jtasks: ")
-  expect(outside.deny).toContain('jtasks: fora da posse de T01: src/other.ts; use tasks claim T01 src/other.ts')
+  expect(outside.deny).toContain('jtasks: fora da posse de T01: src/other.ts; use jtasks claim T01 src/other.ts')
   const write = await $.tool.call({ tool: 'Write', file_path: `${ROOT}/README.md`, content: 'x', agentId: 'agent-1' } as never)
   expect(write.deny).toContain('fora da posse de T01: README.md')
   expect(ran.filter((c) => c.tool === 'Edit')).toHaveLength(2)
@@ -56,7 +56,7 @@ test('git that changes the repository is refused to a subagent; reading and test
   await scene($, on)
   const commit = await $.tool.call({ tool: 'Bash', command: 'git commit -am "x"', agentId: 'agent-1' } as never)
   expect(commit.deny).toContain("jtasks: ")
-  expect(commit.deny).toContain('subagente não roda git commit: o commit é feito por tasks done T01')
+  expect(commit.deny).toContain('subagente não roda git commit: o commit é feito por jtasks done T01')
   expect((await $.tool.call({ tool: 'Bash', command: 'echo x > src/other.ts', agentId: 'agent-1' } as never)).deny).toContain("jtasks: ")
   expect((await $.tool.call({ tool: 'Bash', command: 'git status && bun test', agentId: 'agent-1' } as never)).deny).toBeUndefined()
   expect((await $.tool.call({ tool: 'Bash', command: 'git commit -am "x"' } as never)).deny).toBeUndefined()

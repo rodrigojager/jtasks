@@ -5,7 +5,7 @@ import { installMachine, installSession } from './machine.ts'
 declare const setTimeout: (fn: () => void, ms: number) => unknown
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__jtasks__tasks'
+const TOOL = 'mcp__jtasks__jtasks'
 
 const PLAN = {
   objective: 'Duas fatias',
@@ -23,12 +23,12 @@ async function call($: any, command: string, json?: unknown): Promise<string> {
   return String(r.result)
 }
 
-test('session.start registers the tasks tool, in the prompt from the start', async ($, on) => {
+test('session.start registers the jtasks tool, in the prompt from the start', async ($, on) => {
   installMachine(on, ROOT)
   const session = installSession(on, ROOT)
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-  expect(session.tools).toEqual(['tasks'])
-  expect(await call($, 'version')).toBe('tasks 0.1.0')
+  expect(session.tools).toEqual(['jtasks'])
+  expect(await call($, 'version')).toBe('jtasks 0.1.0')
   expect(await call($, 'help')).toContain('plan <json|@arquivo>')
 })
 
@@ -74,7 +74,7 @@ test('the protocol section is in the system prompt only while a run is bound', a
   const section = after.sections[1]!
   expect(section.scope).toBe('session')
   expect(section.text).toContain(`jtasks: bound run ${run} · feitas 0/2 (0%) · restam 2`)
-  expect(section.text).toContain('1. Call tasks next.')
+  expect(section.text).toContain('1. Call jtasks next.')
   expect(section.text).toContain('the Agent tool')
 })
 

@@ -1,8 +1,8 @@
-// `tasks doctor` (plan section 22): is this machine ready for jtasks? Eight checks, in the model of
+// `jtasks doctor` (plan section 22): is this machine ready for jtasks? Eight checks, in the model of
 // `jlock doctor`, each with what to do when it is not ok. It only reads (a temporary file in JTASKS_HOME, removed
-// even on failure). `tasks doctor --fix` lists what it would install; `--fix --yes` installs it: jlock through its
+// even on failure). `jtasks doctor --fix` lists what it would install; `--fix --yes` installs it: jlock through its
 // official installer, the OpenCode agents and the skills of the three agents, each file recorded in the global
-// ledger so `tasks undo <g-id>` removes it. It never overwrites a file that differs, never touches PATH, and never
+// ledger so `jtasks undo <g-id>` removes it. It never overwrites a file that differs, never touches PATH, and never
 // installs the mod or the plugin.
 
 import { choose, systemLocale, tr } from "./i18n.ts"
@@ -127,7 +127,7 @@ async function checkOpenCode(host: Host, cwd: string): Promise<Check> {
   }
   const plugin = /jtasks/.test(configText) ? tr("doctor.opencode_plugin_listed") : tr("doctor.opencode_plugin_absent")
   if (missing.length)
-    return { name: "opencode", status: "warn", detail: tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "tasks doctor --fix --yes" }
+    return { name: "opencode", status: "warn", detail: tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "jtasks doctor --fix --yes" }
   return { name: "opencode", status: "ok", detail: tr("doctor.opencode_ok", { plugin }) }
 }
 
@@ -154,7 +154,7 @@ async function checkSkills(host: Host): Promise<Check> {
   if (!present.length) return { name: "skills", status: "ok", detail: tr("doctor.skills_no_agents") }
   const missing = await missingSkills(host)
   if (missing.length)
-    return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "tasks doctor --fix --yes" }
+    return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "jtasks doctor --fix --yes" }
   return { name: "skills", status: "ok", detail: tr("doctor.skills_ok", { agents: present.join(", ") }) }
 }
 

@@ -9,16 +9,16 @@ Windows first: jlock was validated on Windows, and so was this.
 
 ## Install
 
-From a clone, with [bun](https://bun.sh) and `git`: `bun install`, `bun link` (a `tasks` command; or
-`bun D:/jtasks/cli/tasks.ts <action>`), then:
+From a clone, with [bun](https://bun.sh) and `git`: `bun install`, `bun link` (a `jtasks` command; or
+`bun D:/jtasks/cli/jtasks.ts <action>`), then:
 
 ```
-tasks doctor               # is this machine ready? eight checks, each with what to do
-tasks doctor --fix         # what it would install (writes nothing)
-tasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skills
+jtasks doctor               # is this machine ready? eight checks, each with what to do
+jtasks doctor --fix         # what it would install (writes nothing)
+jtasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skills
 ```
 
-`tasks doctor` checks, in this order: the version (jtasks and the runtime); `git`; `jlock` (in `PATH`, at least
+`jtasks doctor` checks, in this order: the version (jtasks and the runtime); `git`; `jlock` (in `PATH`, at least
 0.1.0, 0.1.1 for `--release-on-eof`, and its own `jlock doctor --json`); `JTASKS_HOME` (a writable folder, the
 global ledger); OpenCode (the agents `implement`, `implement-deep`, `review` in `~/.config/opencode/agents/`, the
 project's `.opencode/agents/` or `opencode.json`, and whether the plugin is configured); Claude Code (found, and
@@ -29,13 +29,13 @@ change it), 20 with one; `--json` gives `{ result, checks: [{ name, status, deta
 `--fix --yes` installs jlock through its official installer (which puts it in its own folder and adds that to the
 user's `PATH`, as it does when you run it by hand), and copies the three OpenCode agents and the skills from this
 repository. A file that already exists is never replaced (it is reported). Each file it creates is an effect in the
-global ledger (`tasks ledger --all-projects`, ids `g-…`), and `tasks undo <g-id>` removes it. It never installs the
+global ledger (`jtasks ledger --all-projects`, ids `g-…`), and `jtasks undo <g-id>` removes it. It never installs the
 mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs `--fix`; in the mod and the plugin
 `doctor` only diagnoses. `JTASKS_USER_HOME` makes it look and install somewhere else than the user's home.
 
-- **CLI:** the `tasks` command above (it needs `jlock` in `PATH`; `tasks doctor --fix --yes` installs it).
+- **CLI:** the `jtasks` command above (it needs `jlock` in `PATH`; `jtasks doctor --fix --yes` installs it).
 - **Claude Code mod:** `claude --plugin-dir D:/jtasks/claude` for one session, or add the repository as a
-  marketplace and install `jtasks`. The tool is `mcp__jtasks__tasks`; the pane opens with `/jtasks`
+  marketplace and install `jtasks`. The tool is `mcp__jtasks__jtasks`; the pane opens with `/jtasks`
   (Claude Code has its own `/tasks`). See [`claude/README.md`](../claude/README.md).
 - **OpenCode plugin:** `"plugins": ["D:/jtasks/opencode"]` in an `opencode.jsonc`. See
   [`opencode/README.md`](../opencode/README.md).
@@ -119,11 +119,11 @@ Owner `gt:<run>/<task>`, group `<run>`, intent = the task's title, meta `task`, 
 `jlock list --group <run> --json` is the run's locks and `jlock list --under <repo> --json` everything locked in the
 repository. Every hold carries the run's `holdTtl` (`--ttl`), the safety net when nobody gives a lock back. How a
 host holds them: the CLI and the mod use `jlock hold --detach` (one call, the answer in hand; jlock's own keeper
-holds the lock until `tasks done`/`skip`/`fail`/`release`, which run `jlock release --group <run> --owner <owner>`,
+holds the lock until `jtasks done`/`skip`/`fail`/`release`, which run `jlock release --group <run> --owner <owner>`,
 or until the ttl); the OpenCode plugin, which stays open, uses `jlock hold --release-on-eof` with the hold's
 standard input open, so OpenCode dying frees its locks at once (jlock 0.1.1 or newer; an older jlock gets
 `--detach`). The tool needs jlock 0.1.0 at least and checks `jlock --version` once per process. A lock that
-expired or was broken shows up in `tasks status` as `posse perdida`; `tasks resume` gives the task back to the
+expired or was broken shows up in `jtasks status` as `posse perdida`; `jtasks resume` gives the task back to the
 queue.
 
 ## Variables
@@ -131,7 +131,7 @@ queue.
 | Variable | Default | Use |
 |---|---|---|
 | `JTASKS_HOME` | `%USERPROFILE%\.jtasks` | global ledger index and archived runs |
-| `JTASKS_USER_HOME` | the user's home | where `tasks doctor` looks for and installs agents and skills |
+| `JTASKS_USER_HOME` | the user's home | where `jtasks doctor` looks for and installs agents and skills |
 | `JTASKS_RUN` | unset | the CLI's bound run |
 | `JTASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
@@ -152,22 +152,22 @@ language), ids, `tasks.json`, `run.json`, `log.jsonl`, the ledger, the section h
 injected into its prompt is English and quotes the tool's answers (`restam 0`, `0 left`) in the tool's language.
 
 ```
-tasks next --lang en
-tasks help claim --lang pt-BR
+jtasks next --lang en
+jtasks help claim --lang pt-BR
 ```
 
 ## With `/goal`
 
 ```
-Planejar     to-tickets (passos 1–4, com "quais arquivos") → tasks plan --draft / --add / --commit
-Claude Code  /goal todas as tarefas da execução <run> estão done ou skipped (tasks status responde "restam 0")
-OpenCode     create_goal com o mesmo objetivo; update_goal com a saída de tasks status
-Retomar      em qualquer janela: tasks resume <run> → /goal de novo
+Planejar     to-tickets (passos 1–4, com "quais arquivos") → jtasks plan --draft / --add / --commit
+Claude Code  /goal todas as tarefas da execução <run> estão done ou skipped (jtasks status responde "restam 0")
+OpenCode     create_goal com o mesmo objetivo; update_goal com a saída de jtasks status
+Retomar      em qualquer janela: jtasks resume <run> → /goal de novo
 ```
 
-While a run is bound, the mod and the plugin inject the execution protocol: `tasks next`; one subagent per ready task
-(all in one response), whose prompt carries `--run <run> --task <id>`, and which calls `tasks start`, `tasks claim`
-when it needs another file, never git, and `tasks done` with evidence (or `tasks fail`); then `tasks status` until
+While a run is bound, the mod and the plugin inject the execution protocol: `jtasks next`; one subagent per ready task
+(all in one response), whose prompt carries `--run <run> --task <id>`, and which calls `jtasks start`, `jtasks claim`
+when it needs another file, never git, and `jtasks done` with evidence (or `jtasks fail`); then `jtasks status` until
 "restam 0".
 
 ## Demonstration and tests

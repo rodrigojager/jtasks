@@ -1,4 +1,4 @@
-// The `tasks` tool: one contract for the CLI, the Claude Code mod and the OpenCode plugin. Each form turns its
+// The `jtasks` tool: one contract for the CLI, the Claude Code mod and the OpenCode plugin. Each form turns its
 // input into an argument list (the CLI's own argv, or the tool's `command` string split like a shell would) plus an
 // optional structured `json`, and gets back `{ ok, code, text, data }`.
 
@@ -196,12 +196,12 @@ type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>
 const actions = new Map<string, Action>()
 const usages: string[] = []
 
-/** A line in `tasks help` that belongs to no action of its own (variants of one): its catalog key. */
+/** A line in `jtasks help` that belongs to no action of its own (variants of one): its catalog key. */
 export function addUsage(usage: string) {
   usages.push(usage)
 }
 
-/** Adds an action to the tool, with its line in `tasks help` (a catalog key, `help.<action>` or `help.<action>.…`). */
+/** Adds an action to the tool, with its line in `jtasks help` (a catalog key, `help.<action>` or `help.<action>.…`). */
 export function defineAction(name: string, fn: Action, usage?: string) {
   actions.set(name, fn)
   if (usage) usages.push(usage)
@@ -211,7 +211,7 @@ export function ok(text: string, data?: unknown, extra: Partial<ToolResult> = {}
   return { ok: true, code: 0, text, data, ...extra }
 }
 
-// `tasks help` lists every action; `tasks help <action>` (or `<action> --help`) only that action's lines.
+// `jtasks help` lists every action; `jtasks help <action>` (or `<action> --help`) only that action's lines.
 defineAction("help", async (_ctx, args) => {
   const wanted = args.action === "help" ? args.positionals[0] : args.action
   if (wanted) {
@@ -223,7 +223,7 @@ defineAction("help", async (_ctx, args) => {
     [tr("help.title", { version: VERSION }), "", ...usages.map((k) => `  ${tr(k)}`), "", `  ${tr("help.json")}`, `  ${tr("help.lang")}`].join("\n"),
   )
 })
-defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }))
+defineAction("version", async () => ok(`jtasks ${VERSION}`, { version: VERSION }))
 
 defineAction("validate", async (ctx, args) => {
   const arg = args.positionals[0]

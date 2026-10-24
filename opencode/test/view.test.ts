@@ -99,6 +99,6 @@ describe("view", () => {
   test("without a bound run: the list of runs", () => {
     const v = runsView([{ run: { id: "a-261024-aaaa", status: "active" } as RunFile, tasks: s.tasks }])
     expect(viewLines(v, { collapsed: false, width: 40 })).toEqual(["▾ Tasks · sem execução ligada", "a-261024-aaaa · active · 2/8 (25%)"])
-    expect(viewLines(runsView([]), { collapsed: false, width: 40 })[1]).toBe("nenhuma execução (tasks plan)")
+    expect(viewLines(runsView([]), { collapsed: false, width: 40 })[1]).toBe("nenhuma execução (jtasks plan)")
   })
 })

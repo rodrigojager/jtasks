@@ -35,7 +35,7 @@ describe("to-tickets skill", () => {
   test("the skill states the batch commands, the ownership rules and the never-by-hand rule, in every host", () => {
     for (const host of HOSTS) {
       const text = read(host, "to-tickets")
-      for (const needle of ["tasks plan --draft", "tasks plan --add", "tasks plan --fix <id>", "tasks plan --show", "tasks plan --commit", "`dir/**`", "`src/*.ts` is refused", "Never edit `tasks.json`"])
+      for (const needle of ["jtasks plan --draft", "jtasks plan --add", "jtasks plan --fix <id>", "jtasks plan --show", "jtasks plan --commit", "`dir/**`", "`src/*.ts` is refused", "Never edit `tasks.json`"])
         expect(text, host).toContain(needle)
     }
   })
@@ -61,16 +61,16 @@ describe("the skills of every agent", () => {
       expect(headings[2]).toEqual(headings[0]!)
       expect(headings[0]!.length).toBeGreaterThan(3)
     }
-    expect(read("claude-code", "jtasks")).toContain("mcp__jtasks__tasks")
+    expect(read("claude-code", "jtasks")).toContain("mcp__jtasks__jtasks")
     expect(read("opencode", "jtasks")).toContain("`subagent` tool")
     expect(read("codex", "jtasks")).toContain("in the shell")
-    expect(read("codex", "jtasks")).not.toContain("mcp__jtasks__tasks")
+    expect(read("codex", "jtasks")).not.toContain("mcp__jtasks__jtasks")
   })
 
   test("jtasks covers doctor, the loop, ownership, timeout, deadlock, lost ownership, /goal and the exit codes", () => {
     for (const host of HOSTS) {
       const text = read(host, "jtasks")
-      for (const needle of ["tasks doctor", "tasks next", "tasks start <id>", "tasks claim <id> <file>", "tasks done <id> --evidence", "tasks fail <id>", "tasks status", "Deadlock", "Ownership lost", "Without /goal", "With /goal", "## Exit codes"])
+      for (const needle of ["jtasks doctor", "jtasks next", "jtasks start <id>", "jtasks claim <id> <file>", "jtasks done <id> --evidence", "jtasks fail <id>", "jtasks status", "Deadlock", "Ownership lost", "Without /goal", "With /goal", "## Exit codes"])
         expect(text, `${host}: ${needle}`).toContain(needle)
     }
   })

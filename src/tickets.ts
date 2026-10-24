@@ -73,7 +73,7 @@ export function ticketPath(runDir: string, tasks: Task[], id: string): string | 
   return index < 0 ? undefined : join(runDir, "tickets", ticketFileName(tasks[index]!, index))
 }
 
-// ── Reading tickets back (`tasks import`, `tasks validate <dir>`) ─────────────────────────────────────────────
+// ── Reading tickets back (`jtasks import`, `jtasks validate <dir>`) ─────────────────────────────────────────────
 
 export interface ParsedTicket {
   file: string

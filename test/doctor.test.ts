@@ -19,7 +19,7 @@ async function doctor(cwd: string, vars: Record<string, string>, argv: string[] 
 const checksOf = (r: { data?: unknown }) => (r.data as { checks: Check[] }).checks
 const check = (r: { data?: unknown }, name: string) => checksOf(r).find((c) => c.name === name)!
 
-describe("tasks doctor", () => {
+describe("jtasks doctor", () => {
   test("a healthy machine: eight checks in order, none failing, exit 0, the same in --json", async () => {
     const repo = makeRepo()
     const home = tempDir("user-home")
@@ -54,7 +54,7 @@ describe("tasks doctor", () => {
     const r = await doctor(repo, { JLOCK_BIN: "jlock-that-does-not-exist", JTASKS_USER_HOME: tempDir("user-home") })
     expect(r.code).toBe(20)
     expect(check(r, "jlock").status).toBe("fail")
-    expect(check(r, "jlock").fix).toContain("tasks doctor --fix --yes")
+    expect(check(r, "jlock").fix).toContain("jtasks doctor --fix --yes")
   })
 
   test("OpenCode installed without the agents and the skills: warnings, exit 0", async () => {
@@ -63,9 +63,9 @@ describe("tasks doctor", () => {
     mkdirSync(join(home, ".config/opencode"), { recursive: true })
     const r = await doctor(repo, { JTASKS_USER_HOME: home })
     expect(r.code).toBe(0)
-    expect(check(r, "opencode")).toMatchObject({ status: "warn", fix: "tasks doctor --fix --yes" })
+    expect(check(r, "opencode")).toMatchObject({ status: "warn", fix: "jtasks doctor --fix --yes" })
     expect(check(r, "opencode").detail).toContain("implement, implement-deep, review")
-    expect(check(r, "skills")).toMatchObject({ status: "warn", fix: "tasks doctor --fix --yes" })
+    expect(check(r, "skills")).toMatchObject({ status: "warn", fix: "jtasks doctor --fix --yes" })
     expect(check(r, "skills").detail).toContain("opencode/to-tickets, opencode/jtasks")
   })
 

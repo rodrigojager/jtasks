@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { installMachine, installSession } from './machine.ts'
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__jtasks__tasks'
+const TOOL = 'mcp__jtasks__jtasks'
 const PLAN = {
   serialize: ['bun test'],
   profiles: {

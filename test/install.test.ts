@@ -17,7 +17,7 @@ function agentHome(): string {
   return home
 }
 
-describe("tasks doctor --fix", () => {
+describe("jtasks doctor --fix", () => {
   test("without --yes it lists what it would install and writes nothing", async () => {
     const repo = makeRepo()
     const home = agentHome()
@@ -77,6 +77,6 @@ describe("tasks doctor --fix", () => {
     const repo = makeRepo()
     const r = await tasks(repo, ["doctor", "--fix", "--yes"], { tool: "claude", packageRoot: REPO_ROOT })
     expect(r.ok).toBe(false)
-    expect(r.text).toContain("tasks doctor --fix --yes")
+    expect(r.text).toContain("jtasks doctor --fix --yes")
   })
 })

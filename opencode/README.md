@@ -1,6 +1,6 @@
 # jtasks for OpenCode
 
-The OpenCode v2 plugin of [jtasks](../README.md): the `tasks` tool with the same contract as the CLI, the run
+The OpenCode v2 plugin of [jtasks](../README.md): the `jtasks` tool with the same contract as the CLI, the run
 bound to the root session, the execution protocol and the run's progress in every model request (and in
 compaction), the agent of each task's profile on its `subagent` call, and the ownership guard on `edit` and
 `shell` permissions.
@@ -26,10 +26,10 @@ OpenCode loads the folder's `server.ts`; the package also exports `./tui` (`tui.
 
 A task's profile names the OpenCode agent its `subagent` call must use (`opencode.agent`). The default profiles name
 `implement`, `implement-deep` and `review`, and the package brings those three agents ready in `agents/`
-(`mode: subagent`, the task protocol in the body: `tasks start` first, `tasks claim` for one more file, never git,
-`tasks done` with evidence or `tasks fail`). A plugin cannot create agents, so they have to be installed where
-OpenCode reads them: `tasks doctor --fix --yes` copies them to `~/.config/opencode/agents/` (recorded in the global
-ledger, undone by `tasks undo`), or copy them yourself. A profile may name any agent you already have instead; a
+(`mode: subagent`, the task protocol in the body: `jtasks start` first, `jtasks claim` for one more file, never git,
+`jtasks done` with evidence or `jtasks fail`). A plugin cannot create agents, so they have to be installed where
+OpenCode reads them: `jtasks doctor --fix --yes` copies them to `~/.config/opencode/agents/` (recorded in the global
+ledger, undone by `jtasks undo`), or copy them yourself. A profile may name any agent you already have instead; a
 profile with `opencode.model` gives that agent the model for the session (see `docs/DEVIATIONS.md`). After
 `plan --commit` and `resume`, the tool warns about a profile whose agent does not exist; the run is created anyway.
 
@@ -80,7 +80,7 @@ A subagent's session that goes idle (or is deleted) while its task is still in p
 queue: `release --agent-ended` (the attempt was counted at `start`; at `maxAttempts` the task fails), its locks are
 released, the edits stay on disk and the log says `agent-ended`. The root session going idle is the orchestrator
 waiting and changes nothing. If OpenCode itself dies, each `jlock hold --release-on-eof` reads the end of its input
-and the locks are freed at once; `tasks status` then shows `posse perdida` and `tasks resume` gives the tasks back.
+and the locks are freed at once; `jtasks status` then shows `posse perdida` and `jtasks resume` gives the tasks back.
 
 ## Tests
 

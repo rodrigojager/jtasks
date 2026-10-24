@@ -20,7 +20,7 @@ export declare function readRun(host: Host, dir: string): Promise<RunFile | unde
 export declare function readTasks(host: Host, dir: string): Promise<TasksFile | undefined>;
 export declare function writeRun(host: Host, dir: string, run: RunFile): Promise<void>;
 /**
- * Writes `tasks` as revision `expected + 1`, after re-reading the file: if someone else wrote meanwhile, the write
+ * Writes `jtasks` as revision `expected + 1`, after re-reading the file: if someone else wrote meanwhile, the write
  * is refused with `StaleRevisionError` and nothing changes.
  */
 export declare function writeTasks(host: Host, dir: string, tasks: TasksFile, expected: number): Promise<TasksFile>;

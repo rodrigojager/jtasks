@@ -7,7 +7,7 @@ export type BoundRun = {
   root: string
 }
 
-/** The task a subagent works on (from its spawn's `--task`, or its own `tasks start`). */
+/** The task a subagent works on (from its spawn's `--task`, or its own `jtasks start`). */
 export type AgentTask = {
   run: string
   task: string

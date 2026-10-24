@@ -63,9 +63,9 @@ export declare function splitCommand(line: string): string[];
 /** `what` is the catalog key of what is read (`json.plan`, `json.batch`, `json.task`). */
 export declare function readJsonArg(ctx: ToolContext, arg: string | undefined, what?: string): Promise<unknown>;
 type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>;
-/** A line in `tasks help` that belongs to no action of its own (variants of one): its catalog key. */
+/** A line in `jtasks help` that belongs to no action of its own (variants of one): its catalog key. */
 export declare function addUsage(usage: string): void;
-/** Adds an action to the tool, with its line in `tasks help` (a catalog key, `help.<action>` or `help.<action>.…`). */
+/** Adds an action to the tool, with its line in `jtasks help` (a catalog key, `help.<action>` or `help.<action>.…`). */
 export declare function defineAction(name: string, fn: Action, usage?: string): void;
 export declare function ok(text: string, data?: unknown, extra?: Partial<ToolResult>): ToolResult;
 /** Runs one command of the tool. Never throws: errors come back as `{ ok: false }`. */

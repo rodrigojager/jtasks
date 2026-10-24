@@ -31,8 +31,8 @@ describe("clean", () => {
     const r = await tasksOk(repo, ["clean", run])
     expect(r.text).toContain(`apagar ${dir}; os commits ficam (são código)`)
     expect(r.text).toContain(`e-0003 · branch · gt/${run} (de main)`)
-    expect(r.text).toContain(`→  tasks undo e-0003 --run ${run}`)
-    expect(r.text).toContain(`nada foi apagado; confirme com tasks clean ${run} --yes`)
+    expect(r.text).toContain(`→  jtasks undo e-0003 --run ${run}`)
+    expect(r.text).toContain(`nada foi apagado; confirme com jtasks clean ${run} --yes`)
     expect(existsSync(dir)).toBe(true)
   })
 
@@ -52,7 +52,7 @@ describe("clean", () => {
       ["exclude", "active"],
       ["branch", "active"],
     ])
-    expect((await tasksOk(repo, ["runs"])).text).toBe("nenhuma execução neste repositório (crie uma com tasks plan)")
+    expect((await tasksOk(repo, ["runs"])).text).toBe("nenhuma execução neste repositório (crie uma com jtasks plan)")
   })
 
   test("--all --yes removes .scratch/jtasks", async () => {
@@ -69,7 +69,7 @@ describe("archive", () => {
     const { repo, run, dir } = await newRun()
     const r = await tasksOk(repo, ["archive", run])
     const to = join(process.env.JTASKS_HOME!, "archive", repo.split("/").pop()!, run).replace(/\\/g, "/")
-    expect(r.text).toBe(`execução ${run} arquivada em ${to}; volta com tasks resume ${run} --from-archive`)
+    expect(r.text).toBe(`execução ${run} arquivada em ${to}; volta com jtasks resume ${run} --from-archive`)
     expect(existsSync(dir)).toBe(false)
     expect(existsSync(join(to, "tasks.json"))).toBe(true)
     expect((await tasksOk(repo, ["runs"])).text).not.toContain(run)

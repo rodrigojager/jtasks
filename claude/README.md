@@ -1,6 +1,6 @@
 # jtasks for Claude Code
 
-The Claude Code mod of [jtasks](../README.md): the `tasks` tool (`mcp__jtasks__tasks`, the same contract as
+The Claude Code mod of [jtasks](../README.md): the `jtasks` tool (`mcp__jtasks__jtasks`, the same contract as
 the CLI), the run bound to the session (`$.state`, shared by subagents), the execution protocol in the system
 prompt while a run is bound, a "Tasks" pane with the checklist and `/jtasks` (Claude Code has its own `/tasks`), the model of each subagent from its
 task's profile, and the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of subagents.

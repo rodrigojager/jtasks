@@ -13,7 +13,7 @@ Dois termos que aparecem em quase todos:
 
 ## 1. Pelo CLI, a trava fica num processo separado (ticket 04) — resolvido pelo ticket 21
 
-**O que mudou:** o plano supunha que o `tasks` ficaria aberto segurando a trava e a devolveria pela entrada padrão
+**O que mudou:** o plano supunha que o `jtasks` ficaria aberto segurando a trava e a devolveria pela entrada padrão
 do `hold`. Cada comando do CLI termina na hora, então o `start` deixava o `hold` rodando sozinho em segundo plano, com
 código próprio para destacá-lo, e o `done` o encerrava com `jlock release`.
 
@@ -64,7 +64,7 @@ sem gravar nada. Só uma tentativa desperdiçada.
 **O que mudou:** o plano dizia que o `done` recusa se houver arquivo alterado fora da posse da tarefa. As tarefas
 paralelas usam a mesma pasta: quando T01 termina, os arquivos que T02 está editando também aparecem como alterados.
 O `done` separa as alterações em três grupos: as da tarefa entram no commit; as de outra tarefa em andamento (ou de
-outro dono no jlock) ficam no disco, fora do commit; as de ninguém fazem o `done` recusar, sugerindo `tasks claim`.
+outro dono no jlock) ficam no disco, fora do commit; as de ninguém fazem o `done` recusar, sugerindo `jtasks claim`.
 
 **Consequência:** dá para rodar tarefas em paralelo de verdade. Sem isso, nenhum `done` funcionaria enquanto outra
 tarefa estivesse aberta.
@@ -94,7 +94,7 @@ em vez de "um hook de permissão"). A diferença real: um plugin não pode criar
 agente usar (`opencode.agent`); sem perfis no plano, valem os padrão (`implement`, `implement-deep`, `review`). O
 plugin escolhe o agente certo para cada tarefa e aplica o modelo do perfil, mas não os cria.
 
-**O que fazer:** o pacote passa a trazer os três agentes prontos (ticket 20) e o `tasks doctor --fix` os instala em
+**O que fazer:** o pacote passa a trazer os três agentes prontos (ticket 20) e o `jtasks doctor --fix` os instala em
 `~/.config/opencode/agents/`, com registro no ledger e desfazer (ticket 28). Um perfil que aponta agente inexistente
 gera aviso no `plan --commit`.
 
@@ -118,7 +118,7 @@ contornos: renomear, apagar e criar pasta passam por comandos do sistema (`cmd /
 sozinho depois de uma compactação.
 
 **Consequência:** até o ticket 21, recarregar o mod no meio do trabalho encerrava os `hold`s e as tarefas em
-andamento apareciam como "posse perdida" (o `tasks resume` as devolvia à fila); com `--detach`, a trava sobrevive ao
+andamento apareciam como "posse perdida" (o `jtasks resume` as devolvia à fila); com `--detach`, a trava sobrevive ao
 recarregamento. Os testes do mod rodam numa máquina simulada (`claude/tests/machine.ts`), porque o
 `claude plugin test` não tem disco nem processos reais.
 
@@ -134,6 +134,6 @@ dupla do `⛔`, corrigida no mesmo ticket.
 nome `/jtasks` foi escolhido pelo usuário.
 
 **Consequência:** só o nome, e só no Claude Code: no OpenCode a seção fica na barra lateral e se dobra com um clique;
-a ferramenta do modelo e o CLI continuam se chamando `tasks`.
+a ferramenta do modelo e o CLI continuam se chamando `jtasks`.
 
 **O que fazer:** nada; está na seção 14 do plano.

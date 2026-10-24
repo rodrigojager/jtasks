@@ -1,4 +1,4 @@
-// `tasks plan`: from a validated plan to a run (run.json, tasks.json, tickets, branch, ledger) and `tasks runs`.
+// `jtasks plan`: from a validated plan to a run (run.json, tasks.json, tickets, branch, ledger) and `jtasks runs`.
 
 import { formatRunsList } from "./format.ts"
 import { addExcludeLine, branchExists, currentBranch, git, gitOk, hasExcludeLine, removeExcludeLine, requireRepo } from "./git.ts"

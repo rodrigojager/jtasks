@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { installMachine, installSession } from './machine.ts'
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__jtasks__tasks'
+const TOOL = 'mcp__jtasks__jtasks'
 const PLAN = {
   tasks: [
     { id: 'T01', title: 'Base', files: ['src/a.ts'] },
@@ -80,7 +80,7 @@ test('/jtasks opens and closes the pane; with no bound run it lists the runs', a
   // No run is bound: the pane lists the repository's runs (none yet).
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ key: 'toggle' }))?.text).toBe('▾ Tasks · sem execução ligada')
-  expect((await ui.find({ type: 'Text', text: /nenhuma execução/ }))?.text).toBe('nenhuma execução (tasks plan)')
+  expect((await ui.find({ type: 'Text', text: /nenhuma execução/ }))?.text).toBe('nenhuma execução (jtasks plan)')
   await ui.unmount()
   const closed = await $.command.run({ command: 'jtasks', args: '' } as never)
   expect((closed as { text: string }).text).toBe('Painel Tasks fechado.')
@@ -127,7 +127,7 @@ test('the same pane in English: JTASKS_LANG=en for the session', async ($, on) =
   expect((opened as { text: string }).text).toBe('Tasks pane open.')
   const empty = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await empty.find({ key: 'toggle' }))?.text).toBe('▾ Tasks · no bound run')
-  expect((await empty.find({ type: 'Text', text: /no run/ }))?.text).toBe('no run (tasks plan)')
+  expect((await empty.find({ type: 'Text', text: /no run/ }))?.text).toBe('no run (jtasks plan)')
   await empty.unmount()
   const run = await plan($)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })

@@ -38,7 +38,7 @@ export function cleanupTemp() {
 }
 
 export const REPO_ROOT = join(import.meta.dir, "..").replace(/\\/g, "/")
-export const CLI = join(REPO_ROOT, "cli", "tasks.ts").replace(/\\/g, "/")
+export const CLI = join(REPO_ROOT, "cli", "jtasks.ts").replace(/\\/g, "/")
 
 export function sh(cwd: string, ...argv: string[]): string {
   const p = Bun.spawnSync(argv, { cwd, env: process.env })
@@ -99,9 +99,9 @@ export function jlockListJson(...args: string[]): { key: string; holder: { owner
   return JSON.parse(p.stdout.toString()).locks
 }
 
-/** Like `tasks`, but fails the test with the tool's text when the result is not ok. */
+/** Like `jtasks`, but fails the test with the tool's text when the result is not ok. */
 export async function tasksOk(cwd: string, argv: string[], extra: Partial<ToolContext> = {}): Promise<ToolResult> {
   const r = await tasks(cwd, argv, extra)
-  if (!r.ok) throw new Error(`tasks ${argv.join(" ")} failed (${r.code}): ${r.text}`)
+  if (!r.ok) throw new Error(`jtasks ${argv.join(" ")} failed (${r.code}): ${r.text}`)
   return r
 }

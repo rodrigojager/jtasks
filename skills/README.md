@@ -3,10 +3,10 @@
 Two skills teach an AI coding agent to use jtasks:
 
 - **`to-tickets`** turns a plan, a spec or the conversation into tasks, each with the tasks that block it and the
-  files it owns, and hands them to the `tasks` tool in batches (the tool validates them and writes the run).
-- **`jtasks`** carries a run out: `tasks next`, one task per agent (in parallel when the host has subagents),
-  `tasks start`, work inside the ownership, `tasks claim` for one more file, `tasks done` with evidence, and
-  `tasks status` until nothing is left; what to do on a timeout, a deadlock or a lost lock; with or without `/goal`.
+  files it owns, and hands them to the `jtasks` tool in batches (the tool validates them and writes the run).
+- **`jtasks`** carries a run out: `jtasks next`, one task per agent (in parallel when the host has subagents),
+  `jtasks start`, work inside the ownership, `jtasks claim` for one more file, `jtasks done` with evidence, and
+  `jtasks status` until nothing is left; what to do on a timeout, a deadlock or a lost lock; with or without `/goal`.
 
 With the Claude Code mod or the OpenCode plugin installed, the execution protocol comes injected into the prompt and
 `jtasks` is a reference; without them (a terminal, Codex), it is the protocol. The three versions of each skill
@@ -23,8 +23,8 @@ first (see [`docs/USAGE.md`](../docs/USAGE.md)).
 
 ## Install with one command
 
-`tasks doctor --fix --yes` installs both skills for the three agents (and records each file in the ledger, so
-`tasks undo` removes them). By hand, Linux and macOS:
+`jtasks doctor --fix --yes` installs both skills for the three agents (and records each file in the ledger, so
+`jtasks undo` removes them). By hand, Linux and macOS:
 
 ```
 # Claude Code
@@ -54,7 +54,7 @@ Start a new session of the agent afterwards: skills are read when a session star
 
 ## Updating
 
-Run the same command again (or `tasks doctor --fix --yes`): it replaces the files with the current ones.
+Run the same command again (or `jtasks doctor --fix --yes`): it replaces the files with the current ones.
 
 ## Editing the skills
 

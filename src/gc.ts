@@ -1,4 +1,4 @@
-// `tasks gc --scan <root>`: a read-only report of what agent work left behind (worktrees, runs, archived runs).
+// `jtasks gc --scan <root>`: a read-only report of what agent work left behind (worktrees, runs, archived runs).
 // Removing takes the explicit path and --yes, and only a path the report itself would list.
 
 import { git } from "./git.ts"

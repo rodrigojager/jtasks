@@ -32,30 +32,30 @@ Besitz), und diese Dateien sind gesperrt, solange sie läuft.
 - **Nachweise statt Versprechen.** Eine Aufgabe wird mit `done` und ihrem Nachweis abgeschlossen; das Tool prüft,
   dass sich nur ihre Dateien geändert haben, und macht den Commit (`T04: Titel`). Ein Commit pro Aufgabe: Eine
   Aufgabe zurücknehmen heißt einen Commit zurücknehmen.
-- **Fortsetzen.** Wo der Lauf steht, ist der Zustand der Liste, nicht das Gedächtnis des Modells: `tasks resume`
+- **Fortsetzen.** Wo der Lauf steht, ist der Zustand der Liste, nicht das Gedächtnis des Modells: `jtasks resume`
   zeigt in jedem Fenster, was erledigt ist, was läuft und was wartet, und gibt die Aufgaben eines gestorbenen
   Agenten zurück.
 - **Rückgängig machen.** Branches, Commits, Ordner, Zeilen in `.git/info/exclude`: Jeder Effekt, den das Tool
-  hinterlässt, steht in einem Ledger, samt der Art, ihn rückgängig zu machen (`tasks ledger`, `tasks undo`).
+  hinterlässt, steht in einem Ledger, samt der Art, ihn rückgängig zu machen (`jtasks ledger`, `jtasks undo`).
 
 ## Wie es funktioniert
 
 ```mermaid
 flowchart LR
-  plan["Plan (JSON, in Batches)"] -->|tasks plan| list[("tasks.json\n+ Tickets")]
-  list -->|tasks next| ready["bereite Aufgaben"]
-  ready -->|je ein Subagent| work["tasks start\n(jlock hold)"]
+  plan["Plan (JSON, in Batches)"] -->|jtasks plan| list[("tasks.json\n+ Tickets")]
+  list -->|jtasks next| ready["bereite Aufgaben"]
+  ready -->|je ein Subagent| work["jtasks start\n(jlock hold)"]
   work -->|bearbeitet im Besitz\nclaim für weitere Dateien| work
-  work -->|tasks done --evidence| commit["ein Commit\npro Aufgabe"]
+  work -->|jtasks done --evidence| commit["ein Commit\npro Aufgabe"]
   commit --> ledger[("Ledger:\njeder Effekt, umkehrbar")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
-Das Tool gibt es in drei Formen mit denselben Befehlen: ein Mod für Claude Code (ein Tool `tasks`, ein Bereich mit
+Das Tool gibt es in drei Formen mit denselben Befehlen: ein Mod für Claude Code (ein Tool `jtasks`, ein Bereich mit
 der Checkliste und einem Fortschrittsbalken, `/jtasks`), ein Plugin für OpenCode (dasselbe Tool und ein Abschnitt
-in der Seitenleiste) und ein CLI, `tasks`, für ein Terminal oder jeden anderen Agenten. Solange ein Lauf an eine
-Sitzung gebunden ist, legen Mod und Plugin das Protokoll in den Prompt des Modells: `tasks next`, ein Subagent pro
-bereiter Aufgabe, `tasks status`, bis nichts mehr offen ist. Ein Wächter lehnt Änderungen außerhalb des Besitzes
+in der Seitenleiste) und ein CLI, `jtasks`, für ein Terminal oder jeden anderen Agenten. Solange ein Lauf an eine
+Sitzung gebunden ist, legen Mod und Plugin das Protokoll in den Prompt des Modells: `jtasks next`, ein Subagent pro
+bereiter Aufgabe, `jtasks status`, bis nichts mehr offen ist. Ein Wächter lehnt Änderungen außerhalb des Besitzes
 der Aufgabe und git-Befehle von Subagenten ab.
 
 ## Installation
@@ -64,13 +64,13 @@ Du brauchst [bun](https://bun.sh) und `git`. Aus einem Klon dieses Repositorys:
 
 ```
 bun install
-bun link            # ein Befehl `tasks` (oder führe bun cli/tasks.ts <aktion> aus)
-tasks doctor        # ist dieser Rechner bereit?
-tasks doctor --fix --yes   # installiert, was fehlt: jlock, die OpenCode-Agenten, die Skills
+bun link            # ein Befehl `jtasks` (oder führe bun cli/jtasks.ts <aktion> aus)
+jtasks doctor        # ist dieser Rechner bereit?
+jtasks doctor --fix --yes   # installiert, was fehlt: jlock, die OpenCode-Agenten, die Skills
 ```
 
-`tasks doctor --fix` ohne `--yes` listet nur auf, was es tun würde. Alles, was es installiert, kommt ins Ledger,
-sodass `tasks undo` es wieder entfernt. Danach, für deinen Agenten:
+`jtasks doctor --fix` ohne `--yes` listet nur auf, was es tun würde. Alles, was es installiert, kommt ins Ledger,
+sodass `jtasks undo` es wieder entfernt. Danach, für deinen Agenten:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude` (der Mod; siehe
   [`claude/README.md`](claude/README.md)).
@@ -95,12 +95,12 @@ Ein Plan mit drei Aufgaben: zwei, die zusammen laufen können, und eine, die sie
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 Lauf a-sum-its-docs-and-the-e-261024-covw erstellt: 3 Aufgabe(n), branch gt/a-sum-its-docs-and-the-e-261024-covw
 Tickets: 3 in ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets
-nächster Schritt: tasks next
+nächster Schritt: jtasks next
 
-$ tasks next
+$ jtasks next
 bereit (2) in a-sum-its-docs-and-the-e-261024-covw; sie können parallel laufen:
 T01 · Sum · Profil implement · Besitz: src/sum.ts
   Kriterien: sum.ts exports sum
@@ -109,24 +109,24 @@ T02 · Docs · Profil implement · Besitz: docs/sum.md
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/02-docs.md
 blockiert: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 in Arbeit (Versuch 1): Besitz in jlock gesperrt (1 Schlüssel, Besitzer gt:a-sum-its-docs-and-the-e-261024-covw/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
-weitere Datei: tasks claim T01 <datei>; am Ende: tasks done T01 --evidence "…" (oder tasks fail T01 --error "…")
+weitere Datei: jtasks claim T01 <datei>; am Ende: jtasks done T01 --evidence "…" (oder jtasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 T01 erledigt: commit 6d0f80e (T01: Sum); Besitz zurückgegeben
 erledigt 1/3 (33%) · 2 offen
 
-$ tasks status
+$ jtasks status
 erledigt 1/3 (33%) · 2 offen
 bereit: T02
 blockiert: T03 ⛔ T02
 aktive Sperren: keine
 ```
 
-`tasks next` hat T01 und T02 zusammen geliefert: Ihre Dateien überschneiden sich nicht, also können zwei Agenten
+`jtasks next` hat T01 und T02 zusammen geliefert: Ihre Dateien überschneiden sich nicht, also können zwei Agenten
 sie gleichzeitig nehmen. T03 wartet auf beide. `done` hat den Commit `T01: Sum` nur mit `src/sum.ts` gemacht.
 
 ## Mit Claude Code
@@ -136,24 +136,24 @@ zerlegt die Arbeit in Aufgaben, lässt dich sie freigeben und übergibt den Plan
 ein Goal:
 
 ```
-/goal jede Aufgabe von Lauf <run> ist erledigt oder übersprungen (tasks status meldet, dass nichts offen ist)
+/goal jede Aufgabe von Lauf <run> ist erledigt oder übersprungen (jtasks status meldet, dass nichts offen ist)
 ```
 
-Claude ruft `tasks next` auf, öffnet in derselben Antwort einen Subagenten pro bereiter Aufgabe (jeden mit dem
-Modell seines Profils) und ruft `tasks status` auf, bis nichts mehr offen ist. `/jtasks` öffnet oder schließt den
+Claude ruft `jtasks next` auf, öffnet in derselben Antwort einen Subagenten pro bereiter Aufgabe (jeden mit dem
+Modell seines Profils) und ruft `jtasks status` auf, bis nichts mehr offen ist. `/jtasks` öffnet oder schließt den
 Bereich.
 
 ## Mit OpenCode
 
 Mit dem Plugin genauso: `to-tickets` zum Planen, dann ein Goal. Der `subagent`-Aufruf jeder Aufgabe bekommt den
-Agenten ihres Profils (`implement`, `implement-deep`, `review`, installiert von `tasks doctor --fix --yes`, oder
+Agenten ihres Profils (`implement`, `implement-deep`, `review`, installiert von `jtasks doctor --fix --yes`, oder
 jeden Agenten, den du im Plan nennst). Die Seitenleiste zeigt die Checkliste und den Fortschrittsbalken.
 
 ## Aus einem Terminal oder Codex
 
-Ohne Mod oder Plugin ist die Skill `jtasks` das Protokoll: Der Agent führt `tasks next` aus, erledigt jede
-Aufgabe innerhalb ihres Besitzes (`tasks start`, `tasks claim`, `tasks done`) und wiederholt das, bis
-`tasks status` meldet, dass nichts mehr offen ist. Ein Mensch kann dasselbe von Hand tun.
+Ohne Mod oder Plugin ist die Skill `jtasks` das Protokoll: Der Agent führt `jtasks next` aus, erledigt jede
+Aufgabe innerhalb ihres Besitzes (`jtasks start`, `jtasks claim`, `jtasks done`) und wiederholt das, bis
+`jtasks status` meldet, dass nichts mehr offen ist. Ein Mensch kann dasselbe von Hand tun.
 
 ## Garantien und Grenzen
 

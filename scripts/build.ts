@@ -74,44 +74,44 @@ export async function buildAll(): Promise<Bundle[]> {
 export const HOSTS: Record<string, { calling: string; spawn: string; after: string; frontmatter: Record<string, string> }> = {
   "claude-code": {
     calling:
-      "In Claude Code with the jtasks mod, every `tasks …` command below goes through the `mcp__jtasks__tasks` " +
-      'tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", ' +
+      "In Claude Code with the jtasks mod, every `jtasks …` command below goes through the `mcp__jtasks__jtasks` " +
+      'tool: `command` is the command line without `jtasks`, and JSON goes in `json` (`{ "command": "plan --add", ' +
       '"json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write ' +
-      "first (`tasks plan --add @batch1.json`) or on standard input (`-`).",
+      "first (`jtasks plan --add @batch1.json`) or on standard input (`-`).",
     spawn:
       "open a subagent with the Agent tool, all of them in the same response so they run in parallel. Its prompt " +
       "starts with `--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and " +
       "asks it to follow step 3. With the mod, the task's profile sets the subagent's model. Without subagents, do the " +
       "tasks yourself, one at a time.",
     after:
-      "the protocol the mod injects into the prompt (`tasks next`, one subagent per ready task, `tasks status` until " +
+      "the protocol the mod injects into the prompt (`jtasks next`, one subagent per ready task, `jtasks status` until " +
       "nothing is left); without the mod, the `jtasks` skill.",
     frontmatter: { "to-tickets": "disable-model-invocation: true\n" },
   },
   opencode: {
     calling:
-      "In OpenCode with the jtasks plugin, every `tasks …` command below goes through the `tasks` tool: `command` " +
-      'is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). ' +
+      "In OpenCode with the jtasks plugin, every `jtasks …` command below goes through the `jtasks` tool: `command` " +
+      'is the command line without `jtasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). ' +
       "Without the plugin, run the same commands in the shell, with the JSON in a file you write first " +
-      "(`tasks plan --add @batch1.json`) or on standard input (`-`).",
+      "(`jtasks plan --add @batch1.json`) or on standard input (`-`).",
     spawn:
       "call the `subagent` tool, all of them in the same response so they run in parallel. Its prompt starts with " +
       "`--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to " +
       "follow step 3. With the plugin, the call gets the agent of the task's profile. Without subagents, do the tasks " +
       "yourself, one at a time.",
     after:
-      "the protocol the plugin injects into each request (`tasks next`, one subagent per ready task, `tasks status` " +
+      "the protocol the plugin injects into each request (`jtasks next`, one subagent per ready task, `jtasks status` " +
       "until nothing is left); without the plugin, the `jtasks` skill.",
     frontmatter: {},
   },
   codex: {
     calling:
-      "Run every `tasks …` command below in the shell (`tasks` is the jtasks CLI). JSON goes in a file you write " +
-      "first (`tasks plan --add @batch1.json`) or on standard input (`-`).",
+      "Run every `jtasks …` command below in the shell (`jtasks` is the jtasks CLI). JSON goes in a file you write " +
+      "first (`jtasks plan --add @batch1.json`) or on standard input (`-`).",
     spawn:
       "work on it yourself, one task at a time; if your setup runs several agents, give each one a task instead, with " +
       "a first message that starts with `--run <run> --task <id>` and asks it to follow step 3.",
-    after: "the `jtasks` skill (`tasks next`, the tasks, `tasks status` until nothing is left).",
+    after: "the `jtasks` skill (`jtasks next`, the tasks, `jtasks status` until nothing is left).",
     frontmatter: {},
   },
 }

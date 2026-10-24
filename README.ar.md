@@ -28,10 +28,10 @@
   أحدها تنتظر في الطابور (`claim`) أو تعمل شيئًا آخر؛ ويُرفض كل انتظار من شأنه أن يغلق دورة.
 - **أدلة لا وعود.** تُختم المهمة بـ `done` مع دليلها؛ فتتحقق الأداة من أن ملفاتها وحدها هي التي تغيّرت وتصنع
   الإيداع (`T04: العنوان`). إيداع واحد لكل مهمة: عكس مهمة يعني عكس إيداع واحد.
-- **الاستئناف.** موضع التشغيل تحدده حالة القائمة لا ذاكرة النموذج: يعرض `tasks resume` في أي نافذة ما أُنجز وما
+- **الاستئناف.** موضع التشغيل تحدده حالة القائمة لا ذاكرة النموذج: يعرض `jtasks resume` في أي نافذة ما أُنجز وما
   يعمل وما ينتظر، ويُرجع مهام الوكيل الذي مات.
 - **التراجع.** الفروع والإيداعات والمجلدات والأسطر في `.git/info/exclude`: كل أثر تتركه الأداة مسجّل في السجل مع
-  طريقة التراجع عنه (`tasks ledger`، `tasks undo`).
+  طريقة التراجع عنه (`jtasks ledger`، `jtasks undo`).
 
 ## كيف يعمل
 
@@ -39,21 +39,21 @@
 
 ```mermaid
 flowchart LR
-  plan["خطة (JSON، على دفعات)"] -->|tasks plan| list[("tasks.json\n+ تذاكر")]
-  list -->|tasks next| ready["المهام الجاهزة"]
-  ready -->|وكيل فرعي لكل مهمة| work["tasks start\n(jlock hold)"]
+  plan["خطة (JSON، على دفعات)"] -->|jtasks plan| list[("tasks.json\n+ تذاكر")]
+  list -->|jtasks next| ready["المهام الجاهزة"]
+  ready -->|وكيل فرعي لكل مهمة| work["jtasks start\n(jlock hold)"]
   work -->|تعديل داخل الملكية\nclaim لملفات أخرى| work
-  work -->|tasks done --evidence| commit["إيداع واحد\nلكل مهمة"]
+  work -->|jtasks done --evidence| commit["إيداع واحد\nلكل مهمة"]
   commit --> ledger[("السجل:\nكل أثر قابل للتراجع")]
-  commit -->|tasks status| list
+  commit -->|jtasks status| list
 ```
 
 </div>
 
-للأداة ثلاثة أشكال بالأوامر نفسها: تعديل (mod) لـ Claude Code (أداة `tasks`، ولوحة فيها قائمة التحقق وشريط التقدم،
-و`/jtasks`)، وإضافة (plugin) لـ OpenCode (الأداة نفسها وقسم في الشريط الجانبي)، وواجهة سطر أوامر (CLI) هي `tasks`
+للأداة ثلاثة أشكال بالأوامر نفسها: تعديل (mod) لـ Claude Code (أداة `jtasks`، ولوحة فيها قائمة التحقق وشريط التقدم،
+و`/jtasks`)، وإضافة (plugin) لـ OpenCode (الأداة نفسها وقسم في الشريط الجانبي)، وواجهة سطر أوامر (CLI) هي `jtasks`
 للطرفية أو لأي وكيل آخر. وما دام تشغيلٌ مرتبطًا بجلسة، يضع التعديل والإضافة البروتوكول في موجّه النموذج:
-`tasks next`، ووكيل فرعي لكل مهمة جاهزة، و`tasks status` حتى لا يبقى شيء. ويرفض حارسٌ أي تعديل خارج ملكية المهمة
+`jtasks next`، ووكيل فرعي لكل مهمة جاهزة، و`jtasks status` حتى لا يبقى شيء. ويرفض حارسٌ أي تعديل خارج ملكية المهمة
 وأوامر git من الوكلاء الفرعيين.
 
 ## التثبيت
@@ -64,14 +64,14 @@ flowchart LR
 
 ```
 bun install
-bun link            # a `tasks` command (or run bun cli/tasks.ts <action>)
-tasks doctor        # is this machine ready?
-tasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agents, the skills
+bun link            # a `jtasks` command (or run bun cli/jtasks.ts <action>)
+jtasks doctor        # is this machine ready?
+jtasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agents, the skills
 ```
 
 </div>
 
-الأمر `tasks doctor --fix` دون `--yes` يسرد فقط ما سيفعله. وكل ما يثبّته يدخل السجل، فيزيله `tasks undo`. ثم، بحسب
+الأمر `jtasks doctor --fix` دون `--yes` يسرد فقط ما سيفعله. وكل ما يثبّته يدخل السجل، فيزيله `jtasks undo`. ثم، بحسب
 وكيلك:
 
 - **Claude Code:** `claude --plugin-dir <jtasks>/claude` (التعديل؛ انظر
@@ -103,12 +103,12 @@ tasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agent
 
 <!-- jtasks-example -->
 ```text
-$ tasks plan @plan.json
+$ jtasks plan @plan.json
 أُنشئ التشغيل a-sum-its-docs-and-the-e-261024-ibmx، المهام: 3، branch gt/a-sum-its-docs-and-the-e-261024-ibmx
 التذاكر: 3 في ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets
-الخطوة التالية: tasks next
+الخطوة التالية: jtasks next
 
-$ tasks next
+$ jtasks next
 الجاهزة (2) في a-sum-its-docs-and-the-e-261024-ibmx؛ يمكن تشغيلها بالتوازي:
 T01 · Sum · الملف التعريفي implement · الملكية: src/sum.ts
   المعايير: sum.ts exports sum
@@ -117,17 +117,17 @@ T02 · Docs · الملف التعريفي implement · الملكية: docs/sum
   ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/02-docs.md
 محجوبة: T03 ⛔ T01, T02
 
-$ tasks start T01
+$ jtasks start T01
 T01 قيد التنفيذ (المحاولة 1): قُفلت الملكية في jlock (المفاتيح: 1، المالك gt:a-sum-its-docs-and-the-e-261024-ibmx/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/01-sum.md
-ملف آخر: tasks claim T01 <file>؛ في النهاية: tasks done T01 --evidence "…" (أو tasks fail T01 --error "…")
+ملف آخر: jtasks claim T01 <file>؛ في النهاية: jtasks done T01 --evidence "…" (أو jtasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
-$ tasks done T01 --evidence "sum.ts exports sum"
+$ jtasks done T01 --evidence "sum.ts exports sum"
 أُنجزت T01: commit 1a4d287 (T01: Sum)؛ أُرجعت الملكية
 المنجزة 1/3 (33%) · المتبقي: 2
 
-$ tasks status
+$ jtasks status
 المنجزة 1/3 (33%) · المتبقي: 2
 الجاهزة: T02
 محجوبة: T03 ⛔ T02
@@ -136,7 +136,7 @@ $ tasks status
 
 </div>
 
-أعاد `tasks next` المهمتين T01 و T02 معًا: ملفاتهما لا تتداخل، فيمكن لوكيلين أخذهما في الوقت نفسه. وتنتظر T03
+أعاد `jtasks next` المهمتين T01 و T02 معًا: ملفاتهما لا تتداخل، فيمكن لوكيلين أخذهما في الوقت نفسه. وتنتظر T03
 كلتيهما. وصنع `done` الإيداع `T01: Sum` بالملف `src/sum.ts` وحده.
 
 ## مع Claude Code
@@ -147,24 +147,24 @@ $ tasks status
 <div dir="ltr">
 
 ```
-/goal every task of run <run> is done or skipped (tasks status says nothing is left)
+/goal every task of run <run> is done or skipped (jtasks status says nothing is left)
 ```
 
 </div>
 
-يستدعي Claude الأمر `tasks next`، ويفتح وكيلًا فرعيًا لكل مهمة جاهزة في الرد نفسه (كلٌّ على نموذج ملفه التعريفي)،
-ويستدعي `tasks status` حتى لا يبقى شيء. ويفتح `/jtasks` اللوحة أو يغلقها.
+يستدعي Claude الأمر `jtasks next`، ويفتح وكيلًا فرعيًا لكل مهمة جاهزة في الرد نفسه (كلٌّ على نموذج ملفه التعريفي)،
+ويستدعي `jtasks status` حتى لا يبقى شيء. ويفتح `/jtasks` اللوحة أو يغلقها.
 
 ## مع OpenCode
 
 مع الإضافة، الأمر نفسه: `to-tickets` للتخطيط، ثم هدف. يحصل استدعاء `subagent` لكل مهمة على وكيل ملفها التعريفي
-(`implement`، `implement-deep`، `review`، التي يثبّتها `tasks doctor --fix --yes`، أو أي وكيل تسمّيه في الخطة).
+(`implement`، `implement-deep`، `review`، التي يثبّتها `jtasks doctor --fix --yes`، أو أي وكيل تسمّيه في الخطة).
 ويعرض الشريط الجانبي قائمة التحقق وشريط التقدم.
 
 ## من الطرفية أو Codex
 
-دون تعديل أو إضافة، تكون المهارة `jtasks` هي البروتوكول: يشغّل الوكيل `tasks next`، وينجز كل مهمة داخل ملكيتها
-(`tasks start`، `tasks claim`، `tasks done`)، ويكرّر حتى يقول `tasks status` إنه لم يبق شيء. ويمكن لشخص أن يفعل
+دون تعديل أو إضافة، تكون المهارة `jtasks` هي البروتوكول: يشغّل الوكيل `jtasks next`، وينجز كل مهمة داخل ملكيتها
+(`jtasks start`، `jtasks claim`، `jtasks done`)، ويكرّر حتى يقول `jtasks status` إنه لم يبق شيء. ويمكن لشخص أن يفعل
 الشيء نفسه يدويًا.
 
 ## الضمانات والحدود
