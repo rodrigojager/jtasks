@@ -28,8 +28,7 @@ starting Claude Code, for example `GOAL_TASKS_LANG=en claude --plugin-dir D:/goa
 
 ## Tasks pane
 
-The Tasks pane shows the bound run's progress in a claude-hud-style bar, then one row per task, on the same
-background as the rest of Claude Code. For example:
+The Tasks pane shows the bound run's progress in a claude-hud-style bar, then one row per task. For example:
 
 ```text
 ▾ Tasks · pane-redesign-261024-hjr6

@@ -28,11 +28,6 @@ export async function computeView(p: Port): Promise<PaneView> {
  */
 export const BAR_COLOR = 'blueBright'
 export const TRACK_COLOR = '#2e4678'
-/**
- * The pane's background: the terminal's default one (Windows Terminal's #0c0c0c), the color behind the rest of
- * Claude Code. A mod cannot ask for the terminal's default, so it is named here; left out, the pane is the surface's gray.
- */
-export const PANE_BACKGROUND = '#0c0c0c'
 
 /** Claude Code's spinner shapes; ✽ stands for ✳, which terminals may draw as a green emoji square. */
 export const SPINNER_FRAMES = ['✻', '✶', '✽', '✢', '·'] as const

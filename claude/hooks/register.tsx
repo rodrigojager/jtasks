@@ -9,7 +9,7 @@ import { parseArgs, runTool, select, splitCommand, systemLocale, tr, type Reside
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
-import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, PANE_BACKGROUND, ROW_MARK, ROW_MARK_COLOR, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
+import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, ROW_MARK, ROW_MARK_COLOR, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
 
@@ -160,7 +160,7 @@ export const register: Register = (on) => {
       await $.store.set('collapsed', folded)
     }
     return (
-      <Box flexDirection="column" minHeight={e.props.scroll?.bodyRows} backgroundColor={PANE_BACKGROUND}>
+      <Box flexDirection="column">
         <Button key="toggle" plain onPress={toggle}>
           {header}
         </Button>
