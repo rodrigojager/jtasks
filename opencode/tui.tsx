@@ -5,7 +5,7 @@
 
 import type { Plugin } from "@opencode/plugin/tui"
 import { createSignal, For, onCleanup, Show } from "solid-js"
-import { headerText, lineText, summaryText, type LineState, type View } from "./core/core.js"
+import { barCells, headerText, lineText, summaryTail, type LineState, type View } from "./core/core.js"
 import { TasksRpc } from "./src/rpc.ts"
 
 type Context = Plugin.Context
@@ -33,6 +33,10 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
         if (state === "blocked") return t.faint ?? t.muted
         return t.base
       }
+      // The bar as the opencode-hud's Meter paints it: the theme's interactive hue, and a raised background as the
+      // empty track. Read on every render, so a theme switch repaints it.
+      const primary = () => (context.theme as any).hue?.interactive?.[200] ?? color("header")
+      const track = () => (context.theme as any).background?.raised?.high ?? color("blocked")
 
       function TasksSection(props: { sessionID: string }) {
         const [view, setView] = createSignal<View | undefined>()
@@ -72,7 +76,12 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
                 {headerText(view()!, prefs.collapsed)}
               </text>
               <Show when={!prefs.collapsed && runView() !== undefined}>
-                <text fg={color("running")}>{summaryText(runView()!, 12)}</text>
+                <text>
+                  <span style={{ fg: primary() }}>{barCells(runView()!.percent).full}</span>
+                  <span style={{ fg: primary(), bg: track() }}>{barCells(runView()!.percent).partial}</span>
+                  <span style={{ fg: track() }}>{barCells(runView()!.percent).empty}</span>
+                  <span style={{ fg: color("header") }}>{` ${summaryTail(runView()!)}`}</span>
+                </text>
                 <For each={runView()?.lines ?? []}>{(l) => <text fg={color(l.state)}>{lineText(l, SECTION_WIDTH)}</text>}</For>
               </Show>
               <Show when={!prefs.collapsed && runView() === undefined}>

@@ -40,9 +40,22 @@ export declare function runsView(runs: {
     run: RunFile;
     tasks?: TasksFile;
 }[]): RunsView;
-/** `████████▌░░░░░░░`: the percent in `width` cells, in eighths. */
+/** The bar's width in the sidebar and the pane, as the opencode-hud draws its meters. */
+export declare const BAR_CELLS = 10;
+/**
+ * The bar in three runs to paint, as the opencode-hud's `Meter` draws it: the full cells (the theme's primary colour),
+ * one partial cell in eighths (primary on the track's background) and the empty cells (`█` in the track colour).
+ */
+export declare function barCells(percent: number, cells?: number): {
+    full: string;
+    partial: string;
+    empty: string;
+};
+/** `████████▌░░░░░░░`: the percent in `width` cells, in eighths; the text form, for where nothing is painted. */
 export declare function bar(percent: number, width: number): string;
 export declare function headerText(view: View, collapsed: boolean): string;
+/** What follows the bar: `58% · 7/12 · 1 pulada · 1 falha`. */
+export declare function summaryTail(view: RunView): string;
 export declare function summaryText(view: RunView, barWidth: number): string;
 /** One checklist line in `width` columns: `☑ T01 Título            9f1c2ab`. */
 export declare function lineText(line: ViewLine, width: number): string;

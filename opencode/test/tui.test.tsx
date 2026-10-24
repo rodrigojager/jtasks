@@ -23,6 +23,12 @@ afterAll(async () => {
   cleanupTemp()
 })
 
+/** The painted runs of the bar line: each span with a block character, as [text, "r,g,b" of its foreground]. */
+function barRuns(setup: { captureSpans(): { lines: { spans: { text: string; fg: { toInts(): number[] } }[] }[] } }) {
+  const line = setup.captureSpans().lines.find((l) => /[█▏▎▍▌▋▊▉]/.test(l.spans.map((s) => s.text).join("")))
+  return (line?.spans ?? []).filter((s) => /[█▏▎▍▌▋▊▉]/.test(s.text)).map((s) => [s.text, s.fg.toInts().slice(0, 3).join(",")])
+}
+
 /** Renders until the frame satisfies `predicate` (the section loads through git and jlock, so it takes a moment). */
 async function frame(setup: { renderOnce(): Promise<void>; captureCharFrame(): string }, predicate: (f: string) => boolean, ms = 15_000) {
   const end = Date.now() + ms
@@ -36,7 +42,11 @@ async function frame(setup: { renderOnce(): Promise<void>; captureCharFrame(): s
 }
 
 const hex = (v: string) => RGBA.fromHex(v)
-const theme = { text: { base: hex("#eeeeee"), muted: hex("#999999"), faint: hex("#666666"), feedback: { error: { base: hex("#ff4444") } } } }
+const theme = {
+  text: { base: hex("#eeeeee"), muted: hex("#999999"), faint: hex("#666666"), feedback: { error: { base: hex("#ff4444") } } },
+  hue: { interactive: { 200: hex("#3399ff") } },
+  background: { raised: { high: hex("#333333") } },
+}
 
 async function tui(server: Awaited<ReturnType<typeof fakeHost>>) {
   const slots: any[] = []
@@ -92,8 +102,10 @@ describe("TUI section", () => {
     const view = await t.mount("s1")
     const first = await frame(view, (f) => f.includes("Tasks"))
     expect(first).toContain(`▾ Tasks · ${run}`)
-    expect(first).toContain("0% · 0/2")
+    expect(first).toContain("██████████ 0% · 0/2")
     expect(first).toContain("☐ T01 Movimento")
+    // At 0% the whole bar is the track, painted in the theme's raised background colour.
+    expect(barRuns(view)).toEqual([["██████████", "51,51,51"]])
 
     server.addSession("c1", "s1")
     await server.call("c1", "start T01")
@@ -103,7 +115,12 @@ describe("TUI section", () => {
     await server.call("c1", 'done T01 --evidence "ok"')
     t.emit("session.tool.success")
     const after = await frame(view, (f) => f.includes("1/2"))
-    expect(after).toContain("50% · 1/2")
+    expect(after).toContain("██████████ 50% · 1/2")
+    // Half done: five cells in the interactive hue, five of track.
+    expect(barRuns(view)).toEqual([
+      ["█████", "51,153,255"],
+      ["█████", "51,51,51"],
+    ])
     expect(after).toMatch(/☑ T01 Movimento\s+[0-9a-f]{7}/)
 
     await view.mockMouse.click(2, 0)

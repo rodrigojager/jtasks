@@ -9,7 +9,7 @@ import { parseArgs, runTool, splitCommand, type Resident, type ToolContext, type
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
-import { computeView, isLive, PANE, PANE_TITLE, paneLines } from './pane.tsx'
+import { BAR_COLOR, computeView, isLive, PANE, PANE_TITLE, paneLines, TRACK_COLOR } from './pane.tsx'
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
 
@@ -141,7 +141,7 @@ export const register: Register = (on) => {
     const view = await read($, viewAtom)
     const collapsed = await read($, collapsedAtom)
     if (!view) return <Text dimColor>Tasks: carregando…</Text>
-    const { header, body } = paneLines(view, collapsed, e.props.bodyColumns ?? 60)
+    const { header, summary, body } = paneLines(view, collapsed, e.props.bodyColumns ?? 60)
     const toggle = async () => {
       const folded = !collapsed
       await update($, collapsedAtom, () => folded)
@@ -152,6 +152,16 @@ export const register: Register = (on) => {
         <Button key="toggle" plain onPress={toggle}>
           {header}
         </Button>
+        {summary ? (
+          <Text key="summary">
+            <Text color={BAR_COLOR}>{summary.full}</Text>
+            <Text color={BAR_COLOR} backgroundColor={TRACK_COLOR}>
+              {summary.partial}
+            </Text>
+            <Text color={TRACK_COLOR}>{summary.empty}</Text>
+            {` ${summary.tail}`}
+          </Text>
+        ) : null}
         {body.map((line) => (
           <Text>{line}</Text>
         ))}

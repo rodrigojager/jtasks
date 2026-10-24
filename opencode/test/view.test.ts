@@ -1,6 +1,6 @@
 // The display model (src/view.ts, shipped in core/core.js): the same lines the sidebar and the Claude pane draw.
 import { describe, expect, test } from "bun:test"
-import { bar, buildView, headerText, lineText, runsView, toTask, viewLines, DEFAULT_PROFILES } from "../core/core.js"
+import { bar, barCells, buildView, headerText, lineText, runsView, toTask, viewLines, DEFAULT_PROFILES } from "../core/core.js"
 import type { JlockLock, PlanTask, RunFile, RunState } from "../core/core.js"
 
 const ROOT = "D:/Proj"
@@ -63,6 +63,11 @@ describe("view", () => {
     expect(headerText(paused, true)).toBe("▸ Tasks · pausada")
     expect(headerText(paused, false)).toContain("pausada")
     expect(bar(58, 16)).toBe("█████████▎░░░░░░")
+    // The painted form, as the opencode-hud's Meter: full cells, one partial in eighths, the track as full blocks.
+    expect(barCells(0)).toEqual({ full: "", partial: "", empty: "██████████" })
+    expect(barCells(33)).toEqual({ full: "███", partial: "▎", empty: "██████" })
+    expect(barCells(50)).toEqual({ full: "█████", partial: "", empty: "█████" })
+    expect(barCells(100)).toEqual({ full: "██████████", partial: "", empty: "" })
     expect(bar(0, 4)).toBe("░░░░")
     expect(bar(100, 4)).toBe("████")
     const lines = viewLines(v, { collapsed: false, width: 44 })

@@ -1,7 +1,7 @@
 // The "Tasks" pane: the bound run's checklist and bar (the core's view model, the same the OpenCode sidebar draws),
 // folded to one line by its header button. The view is kept in $.state, so writing it redraws the pane.
 
-import { headerText, lineText, loadRunsView, loadView, repoRoot, summaryText, type View } from '../core/core.js'
+import { barCells, headerText, lineText, loadRunsView, loadView, repoRoot, summaryTail, type View } from '../core/core.js'
 import type { PaneView } from '../types'
 import { createModHost, type Port } from './mod-host.ts'
 
@@ -21,8 +21,23 @@ export async function computeView(p: Port): Promise<PaneView> {
   return (root ? await loadRunsView(host, root) : { kind: 'runs', runs: [] }) as PaneView
 }
 
-/** The pane's text lines for a width: header, bar and checklist (just the header when folded). */
-export function paneLines(view: PaneView, collapsed: boolean, columns: number): { header: string; body: string[] } {
+/** The bar's colours, as the opencode-hud's Meter: the interactive hue for what is done, a dim track for the rest. */
+export const BAR_COLOR = 'suggestion'
+export const TRACK_COLOR = 'subtle'
+
+export interface PaneSummary {
+  full: string
+  partial: string
+  empty: string
+  /** `58% · 7/12 · 1 pulada`. */
+  tail: string
+}
+
+/**
+ * The pane for a width: header, the bar in three runs to paint (absent when folded or without a run) and the
+ * checklist lines (just the header when folded).
+ */
+export function paneLines(view: PaneView, collapsed: boolean, columns: number): { header: string; summary?: PaneSummary; body: string[] } {
   const v = view as View
   const header = headerText(v, collapsed)
   if (collapsed) return { header, body: [] }
@@ -31,7 +46,7 @@ export function paneLines(view: PaneView, collapsed: boolean, columns: number): 
     return { header, body }
   }
   const width = Math.max(24, columns)
-  return { header, body: [summaryText(v, Math.max(8, Math.min(16, width - 24))), ...v.lines.map((l) => lineText(l, width))] }
+  return { header, summary: { ...barCells(v.percent), tail: summaryTail(v) }, body: v.lines.map((l) => lineText(l, width)) }
 }
 
 /** Whether the view has something that changes without the run's files changing (locks, waits). */

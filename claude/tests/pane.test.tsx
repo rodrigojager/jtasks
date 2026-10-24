@@ -38,7 +38,10 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect((await ui.find({ key: 'toggle' }))?.text).toBe(`▾ Tasks · ${run}`)
-    expect((await ui.find({ type: 'Text', text: /0% · 0\/2/ }))?.text).toContain('░')
+    expect((await ui.find({ type: 'Text', text: /0% · 0\/2/ }))?.text).toBe('██████████ 0% · 0/2')
+    // The bar as the opencode-hud paints it: the done part in the interactive hue, the rest a dim track.
+    const runs = (await ui.findAll({ type: 'Text' })).filter((t) => t.props.color !== undefined && /█/.test(t.text))
+    expect(runs.map((t) => [t.text, t.props.color])).toEqual([['██████████', 'subtle']])
     expect((await ui.find({ type: 'Text', text: /T01/ }))?.text).toMatch(/^☐ T01 Base/)
     expect((await ui.find({ type: 'Text', text: /T02/ }))?.text).toContain('⛔ T01')
     await ui.unmount()
@@ -52,7 +55,12 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   await clock.advance(2000)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect((await ui.find({ type: 'Text', text: /T01/ }))?.text).toMatch(/^☑ T01 Base\s+9f1c2ab$/)
-  expect((await ui.find({ type: 'Text', text: /50% · 1\/2/ }))).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /50% · 1\/2/ }))?.text).toBe('██████████ 50% · 1/2')
+  const half = (await ui.findAll({ type: 'Text' })).filter((t) => t.props.color !== undefined && /█/.test(t.text))
+  expect(half.map((t) => [t.text, t.props.color])).toEqual([
+    ['█████', 'suggestion'],
+    ['█████', 'subtle'],
+  ])
 
   // The header button folds the pane to one line, and the choice is stored.
   await ui.press({ key: 'toggle' })

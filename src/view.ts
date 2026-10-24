@@ -116,7 +116,21 @@ export function runsView(runs: { run: RunFile; tasks?: TasksFile }[]): RunsView 
 
 const EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
 
-/** `████████▌░░░░░░░`: the percent in `width` cells, in eighths. */
+/** The bar's width in the sidebar and the pane, as the opencode-hud draws its meters. */
+export const BAR_CELLS = 10
+
+/**
+ * The bar in three runs to paint, as the opencode-hud's `Meter` draws it: the full cells (the theme's primary colour),
+ * one partial cell in eighths (primary on the track's background) and the empty cells (`█` in the track colour).
+ */
+export function barCells(percent: number, cells = BAR_CELLS): { full: string; partial: string; empty: string } {
+  const eighths = Math.round((Math.min(100, Math.max(0, percent)) / 100) * cells * 8)
+  const full = Math.floor(eighths / 8)
+  const partial = EIGHTHS[eighths % 8]!
+  return { full: "█".repeat(full), partial, empty: "█".repeat(Math.max(0, cells - full - (partial ? 1 : 0))) }
+}
+
+/** `████████▌░░░░░░░`: the percent in `width` cells, in eighths; the text form, for where nothing is painted. */
 export function bar(percent: number, width: number): string {
   const w = Math.max(1, width)
   const units = Math.round((Math.max(0, Math.min(100, percent)) / 100) * w * 8)
@@ -136,11 +150,16 @@ export function headerText(view: View, collapsed: boolean): string {
   return `▾ Tasks · ${view.run}${view.paused ? " · pausada" : ""}`
 }
 
-export function summaryText(view: RunView, barWidth: number): string {
-  const parts = [`${bar(view.percent, barWidth)}  ${view.percent}% · ${view.done}/${view.total}`]
+/** What follows the bar: `58% · 7/12 · 1 pulada · 1 falha`. */
+export function summaryTail(view: RunView): string {
+  const parts = [`${view.percent}% · ${view.done}/${view.total}`]
   if (view.skipped) parts.push(plural(view.skipped, "pulada", "puladas"))
   if (view.failed) parts.push(plural(view.failed, "falha", "falhas"))
   return parts.join(" · ")
+}
+
+export function summaryText(view: RunView, barWidth: number): string {
+  return `${bar(view.percent, barWidth)}  ${summaryTail(view)}`
 }
 
 function fit(text: string, width: number): string {

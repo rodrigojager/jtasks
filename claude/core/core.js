@@ -3260,6 +3260,13 @@ function runsView(runs) {
   };
 }
 var EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"];
+var BAR_CELLS = 10;
+function barCells(percent, cells = BAR_CELLS) {
+  const eighths = Math.round(Math.min(100, Math.max(0, percent)) / 100 * cells * 8);
+  const full = Math.floor(eighths / 8);
+  const partial = EIGHTHS[eighths % 8];
+  return { full: "█".repeat(full), partial, empty: "█".repeat(Math.max(0, cells - full - (partial ? 1 : 0))) };
+}
 function bar(percent, width) {
   const w = Math.max(1, width);
   const units = Math.round(Math.max(0, Math.min(100, percent)) / 100 * w * 8);
@@ -3278,13 +3285,16 @@ function headerText(view, collapsed) {
     return view.paused ? "▸ Tasks · pausada" : `▸ Tasks ${view.done}/${view.total} · ${view.percent}%`;
   return `▾ Tasks · ${view.run}${view.paused ? " · pausada" : ""}`;
 }
-function summaryText(view, barWidth) {
-  const parts = [`${bar(view.percent, barWidth)}  ${view.percent}% · ${view.done}/${view.total}`];
+function summaryTail(view) {
+  const parts = [`${view.percent}% · ${view.done}/${view.total}`];
   if (view.skipped)
     parts.push(plural2(view.skipped, "pulada", "puladas"));
   if (view.failed)
     parts.push(plural2(view.failed, "falha", "falhas"));
   return parts.join(" · ");
+}
+function summaryText(view, barWidth) {
+  return `${bar(view.percent, barWidth)}  ${summaryTail(view)}`;
 }
 function fit(text, width) {
   const chars = [...text];
@@ -3353,6 +3363,7 @@ export {
   taskKeys,
   taskIdArg,
   summaryText,
+  summaryTail,
   stringify,
   statusOf,
   status,
@@ -3468,6 +3479,7 @@ export {
   branchExists,
   blockerText,
   basename,
+  barCells,
   bar,
   backToPending,
   atomicWrite,
@@ -3491,5 +3503,6 @@ export {
   DEFAULT_PROFILE,
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_HOLD_TTL,
+  BAR_CELLS,
   ALL
 };
