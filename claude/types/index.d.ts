@@ -11,6 +11,8 @@ export type BoundRun = {
 export type AgentTask = {
   run: string
   task: string
+  /** The effort of the task's profile, set on every model request of the subagent's loop. */
+  effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 }
 
 /** One checklist line of the pane (the core's ViewLine). */

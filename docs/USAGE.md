@@ -70,7 +70,9 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
 - Without `profiles`: `execute`, `execute-deep`, `review`. Their agents come with the packages: in OpenCode the
   agents of the same names (`opencode/agents/`, installed by `jtasks doctor --fix`); in Claude Code the mod's own
   `jtasks:execute`, `jtasks:execute-deep`, `jtasks:review` (`claude/agents/`, generated from the OpenCode ones). A
-  profile may name any agent you already have (`claude.agent`, `opencode.agent`). `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
+  profile may name any agent you already have (`claude.agent`, `opencode.agent`). In Claude Code, `claude.model`
+  is the subagent's model and `claude.effort` (`low` to `max`) the effort of every request it makes; in OpenCode,
+  `opencode.model` (`providerID`, `modelID`, and `variant` for the reasoning level), otherwise the session's. `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
   themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 

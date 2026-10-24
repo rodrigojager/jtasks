@@ -1,6 +1,6 @@
 // Subagents of a task (section 13): the spawn of a subagent whose prompt carries `--task <id>` becomes the agent and
-// gets the model of the task's profile, with the profile's role (`--role <id>`, the convention the roles mod reads) and effort in its
-// prompt; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
+// gets the model of the task's profile, with the profile's role in its prompt (`--role <id>`, the convention the roles mod
+// reads) and the profile's effort on every model request of its loop; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
 // Bash, run through `jlock run` (one at a time on the machine).
 
 import { readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr } from '../core/core.js'
@@ -16,8 +16,17 @@ export interface SpawnDecision {
   task?: string
   agent?: string
   model?: string
+  effort?: Effort
   prompt?: string
   error?: string
+}
+
+export type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+const EFFORTS: readonly string[] = ['low', 'medium', 'high', 'xhigh', 'max']
+
+/** A profile's effort as a level Claude Code takes, or nothing for any other text. */
+export function effortOf(text: string | undefined): Effort | undefined {
+  return text && EFFORTS.includes(text) ? (text as Effort) : undefined
 }
 
 /** What the spawn of a task's subagent must become, or why it is refused; `{}` for a spawn of no task. */
@@ -32,10 +41,11 @@ export async function spawnDecision(host: Host, bound: BoundRun, prompt: string)
   if (!profile) return { error: tr('spawn.unknown_profile', { profile: t.profile, profiles: Object.keys(tasks.profiles).join(', ') }) }
   const c = profile.claude ?? {}
   const role = c.role ? `--role ${c.role} ` : ''
-  const effort = c.effort ? `\n\n(Profile ${t.profile}: effort ${c.effort}.)` : ''
-  const out: SpawnDecision = { task, prompt: `${role}${prompt}${effort}` }
+  const out: SpawnDecision = { task, prompt: `${role}${prompt}` }
   if (c.agent) out.agent = c.agent
   if (c.model) out.model = c.model
+  const effort = effortOf(c.effort)
+  if (effort) out.effort = effort
   return out
 }
 

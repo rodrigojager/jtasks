@@ -60,7 +60,7 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
   const id = parsed.positionals[0]
   if (agentId && result.ok && id && (bound || result.bind)) {
     const agents = await p.getAgents()
-    if (parsed.action === 'start' || parsed.action === 'claim') await p.setAgents({ ...agents, [agentId]: { run: result.bind ?? bound!.run, task: id } })
+    if (parsed.action === 'start' || parsed.action === 'claim') await p.setAgents({ ...agents, [agentId]: { ...agents[agentId], run: result.bind ?? bound!.run, task: id } })
   }
   if (result.ok && result.bind) {
     const dir = (result.data as { dir?: string } | undefined)?.dir?.replace(/\\/g, '/')
@@ -192,7 +192,7 @@ export const register: Register = (on) => {
     return { result: result.text }
   }).catch(($, e, next) => (next.called ? next(e) : { result: tr('mod.tool_failed') }))
 
-  // A subagent of a task: the model, role and effort of the task's profile; an unknown profile refuses it.
+  // A subagent of a task: the agent, model, role and effort of the task's profile; an unknown profile refuses it.
   on('agent.spawn', async ($, e, next) => {
     const p = port
     const bound = p ? await p.getRun() : null
@@ -201,9 +201,18 @@ export const register: Register = (on) => {
     if (decision.error) return { deny: `jtasks: ${decision.error}` }
     if (!decision.task) return next(e)
     const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.agent ? { subagentType: decision.agent } : {}), ...(decision.model ? { model: decision.model } : {}) })
-    if (spawned.agentId) await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task } })
+    if (spawned.agentId)
+      await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task, ...(decision.effort ? { effort: decision.effort } : {}) } })
     return spawned
   }).catch(($, e, next) => (next.called ? next(e) : { deny: tr('mod.profile_failed') }))
+
+  // The effort of the task's profile on every model request of its subagent, where the model takes one.
+  on('turn.step', async function* ($, e, next) {
+    const p = port
+    const agents = p && e.agentId && e.effort !== undefined ? await p.getAgents().catch(() => undefined) : undefined
+    const effort = e.agentId ? agents?.[e.agentId]?.effort : undefined
+    return yield* next(effort ? { ...e, effort } : e)
+  })
 
   // The guard: edits outside the ownership, mutating git of a subagent, and direct edits of the run's files.
   const guard = async (call: GuardedCall, agentId: string | undefined): Promise<string | undefined> => {

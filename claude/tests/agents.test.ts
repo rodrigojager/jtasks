@@ -36,12 +36,12 @@ async function scene($: any, on: any) {
   return { machine, run, file, spawned, bash }
 }
 
-test("a task's subagent becomes its profile's agent, on its model, with the role and effort in its prompt", async ($, on) => {
+test("a task's subagent becomes its profile's agent, on its model, with the role in its prompt", async ($, on) => {
   const { run, spawned } = await scene($, on)
   const a = await $.agent.spawn({ prompt: `--run ${run} --task T01 Faça a base.`, description: 'T01', subagentType: 'general-purpose' } as never)
   expect(a.model).toBe('sonnet')
   expect(spawned[0]!.subagentType).toBe('jtasks:execute')
-  expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.\n\n(Profile execute: effort medium.)`)
+  expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.`)
   const b = await $.agent.spawn({ prompt: `--run ${run} --task T02 Funda.`, description: 'T02', subagentType: 'general-purpose' } as never)
   expect(b.model).toBe('opus')
   // A profile that names no agent keeps the type the call asked for.
@@ -51,6 +51,34 @@ test("a task's subagent becomes its profile's agent, on its model, with the role
   expect(c.model).toBe('haiku')
   expect(spawned[2]!.prompt).toBe('Explore the code.')
   expect(spawned[2]!.subagentType).toBe('Explore')
+})
+
+test("every model request of a task's subagent carries its profile's effort; others keep theirs", async ($, on) => {
+  const efforts: { agentId?: string; effort?: unknown }[] = []
+  on('turn.step', async function* (_$: unknown, e: { turnId: string; index: number; agentId?: string; effort?: unknown }) {
+    efforts.push({ agentId: e.agentId, effort: e.effort })
+    return { turnId: e.turnId, index: e.index, answer: '', toolUses: [] } as never
+  })
+  const { run } = await scene($, on)
+  await $.agent.spawn({ prompt: `--run ${run} --task T01 x`, description: 'T01', subagentType: 'general-purpose' } as never)
+  await $.agent.spawn({ prompt: `--run ${run} --task T02 y`, description: 'T02', subagentType: 'general-purpose' } as never)
+  const step = async (agentId: string | undefined, effort: string | undefined) => {
+    const stream = $.turn.step({ turnId: 't', index: 0, model: 'sonnet', messageCount: 1, ...(agentId ? { agentId } : {}), ...(effort ? { effort } : {}) } as never)
+    for await (const _ of stream as AsyncIterable<unknown>) void _
+  }
+  await step('agent-1', 'xhigh')
+  await step('agent-2', 'low')
+  await step(undefined, 'low')
+  await step('agent-3', 'low')
+  // A model without effort is sent none.
+  await step('agent-1', undefined)
+  expect(efforts).toEqual([
+    { agentId: 'agent-1', effort: 'medium' },
+    { agentId: 'agent-2', effort: 'high' },
+    { agentId: undefined, effort: 'low' },
+    { agentId: 'agent-3', effort: 'low' },
+    { agentId: 'agent-1', effort: undefined },
+  ])
 })
 
 test('an unknown profile or task refuses the spawn', async ($, on) => {
