@@ -63,3 +63,15 @@ houver outra tarefa em andamento.
 **No lugar:** o `done` separa as mudanças em três grupos: da posse da tarefa (vão para o commit), da posse de outra
 tarefa em andamento da execução ou de uma chave que outro dono segura no jlock sob o repositório (ficam no disco,
 fora do commit), e de ninguém (recusam o `done`, com a lista e a sugestão de `tasks claim`).
+
+## 6. `attempts` conta no `start`; `--keep-owners` não libera nenhuma (ticket 07)
+
+**O plano:** `release` e `resume` fazem `attempts+1`; `resume` mantém a tarefa que ainda tem travas, "salvo
+`--keep-owners` ao contrário".
+
+**Por quê:** contar no `start` dá o mesmo número (tentativas começadas) sem depender de quem libera: um `start`
+que não chegou ao `release` (janela morta, posse perdida) também conta. A frase sobre `--keep-owners` é ambígua.
+
+**No lugar:** `start` faz `attempts+1`; `release`, `resume` e posse perdida comparam com `maxAttempts` e viram
+`failed` quando chega; `retry` zera a contagem (o histórico fica no `log.jsonl`). `resume --keep-owners` não libera
+nenhuma tarefa, nem as sem travas.

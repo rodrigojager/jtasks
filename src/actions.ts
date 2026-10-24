@@ -8,6 +8,8 @@ import {
   describeKey,
   describeOwner,
   holdArgv,
+  JLOCK,
+  jlockBin,
   jlockList,
   jlockRelease,
   jlockReleaseKeys,
@@ -16,6 +18,7 @@ import {
   type Identity,
   type JlockLock,
 } from "./jlock.ts"
+import { slugify } from "./ids.ts"
 import { canonical, covers, normalizeKey } from "./keys.ts"
 import { recordEffect } from "./ledger.ts"
 import { caseInsensitive, join } from "./paths.ts"
@@ -80,20 +83,44 @@ function residentKey(run: string, task: string) {
   return `${run}/${task}`
 }
 
-function remember(ctx: ToolContext, run: string, task: string, resident: Resident) {
+function remember(ctx: ToolContext, state: RunState, task: string, resident: Resident) {
   if (!ctx.residents) return
+  const run = state.run.id
   const key = residentKey(run, task)
   ctx.residents.set(key, [...(ctx.residents.get(key) ?? []), resident])
-  const watch = ctx.onHoldExit
-  void resident.exited.then((code) => {
+  void resident.exited.then(async (code) => {
     const list = ctx.residents?.get(key)
+    // Released by us (the list no longer has it): an expected end.
     if (!list?.includes(resident)) return
     ctx.residents!.set(
       key,
       list.filter((r) => r !== resident),
     )
-    watch?.(run, task, code)
+    if (code === JLOCK.LOST) await markLost(ctx, state, task).catch(() => {})
+    ctx.onHoldExit?.(run, task, code)
   })
+}
+
+/**
+ * A hold ended with 14 (someone forced the lock, or it expired with the machine asleep): an involuntary release.
+ * The task goes back to pending (or failed at maxAttempts), the edits stay on disk, the log says `lost`.
+ */
+export async function markLost(ctx: ToolContext, first: RunState, id: string): Promise<boolean> {
+  const changed = await withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first)
+    const copy = structuredClone(state.tasks)
+    const task = copy.tasks.find((t) => t.id === id)
+    if (!task || task.status !== "in_progress") return false
+    const now = ctx.host.now().toISOString()
+    const to = backToPending(task, state.run.maxAttempts, "posse perdida", now)
+    task.lost = now
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+    await writeTicket(ctx.host, state.dir, tasks, id)
+    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to })
+    return true
+  })
+  if (changed) await releaseHolds(ctx, first.run.id, id).catch(() => {})
+  return changed
 }
 
 export function identity(ctx: ToolContext, state: RunState, task: Task): Identity {
@@ -232,6 +259,7 @@ defineAction(
       t.startedAt = now
       t.holds = hold ? [hold] : []
       delete t.finishedAt
+      delete t.lost
       try {
         const written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision)
         await writeTicket(ctx.host, state.dir, written, task.id)
@@ -239,7 +267,7 @@ defineAction(
         if (resident) await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys)
         throw error
       }
-      if (resident) remember(ctx, state.run.id, task.id, resident)
+      if (resident) remember(ctx, state, task.id, resident)
       await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys })
       const ticket = ticketPath(state.dir, changed.tasks, task.id)
       const own = keys.length ? `posse travada no jlock (${keys.length} chave(s), dono ${ownerOf(state.run.id, task.id)})` : "sem arquivos na posse"
@@ -284,6 +312,15 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
     lines.push(`bloqueadas: ${blocked.map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`).join(" | ")}`)
   const failed = state.tasks.tasks.filter((t) => t.status === "failed")
   if (failed.length) lines.push(`falhas: ${failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ")}`)
+  // Lost ownership: recorded by a long-lived host, or seen now (an in-progress task whose keys jlock no longer has).
+  const lost = state.tasks.tasks.filter((t) => t.status === "pending" && t.lost).map((t) => t.id)
+  for (const t of running) {
+    const owner = ownerOf(state.run.id, t.id)
+    const keys = taskKeys(state.root, t, platform)
+    const held = groupLocks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key)
+    if (keys.length && keys.some((k) => !held.includes(k))) lost.push(`${t.id} (sem travas no jlock: tasks resume ou tasks release ${t.id})`)
+  }
+  if (lost.length) lines.push(`posse perdida: ${lost.join(", ")}`)
   const locks = groupLocks.map((l) => ({
     key: describeKey(l.key, state.root, platform),
     holder: l.holder ? describeOwner(l.holder.owner, state.run.id) : null,
@@ -382,7 +419,8 @@ export async function missingKeys(ctx: ToolContext, state: RunState, task: Task)
   const keys = taskKeys(state.root, task, ctx.host.platform)
   if (!keys.length) return []
   const owner = ownerOf(state.run.id, task.id)
-  const held = new Set((await jlockList(ctx.host, { group: state.run.id })).filter((l) => l.holder?.owner === owner).map((l) => l.key))
+  const locks = await jlockList(ctx.host, { group: state.run.id })
+  const held = new Set(locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key))
   return keys.filter((k) => !held.has(k))
 }
 
@@ -542,7 +580,7 @@ defineAction(
         await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited) })
         return t
       })
-      remember(ctx, first.run.id, task.id, resident)
+      remember(ctx, first, task.id, resident)
       return ok(`${task.id} recebeu ${wanted.join(", ")} (esperou ${waited} s); posse: ${possession(done).join(", ")}`, {
         task: task.id,
         granted: wanted,
@@ -749,4 +787,136 @@ defineAction(
     return ok(`${t.task.id} reaberta: pendente\n${progressLine(t.tasks.tasks)}`, { run: t.state.run.id, task: t.task.id })
   },
   "retry <id> | --all-failed             pulada ou falha → pendente",
+)
+
+// ── pause / unpause / resume ──────────────────────────────────────────────────────────────────────────────────
+
+async function setPaused(ctx: ToolContext, args: ParsedArgs, paused: boolean) {
+  const first = await resolveRun(ctx, args)
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first)
+    const from = state.run.status
+    const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
+    if (from !== status) await writeRun(ctx.host, state.dir, { ...state.run, status })
+    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status })
+    return { ...state, run: { ...state.run, status } }
+  })
+}
+
+defineAction(
+  "pause",
+  async (ctx, args) => {
+    const state = await setPaused(ctx, args, true)
+    const running = state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id)
+    const tail = running.length ? `; as em andamento terminam: ${running.join(", ")}` : ""
+    return ok(`execução ${state.run.id} pausada: start recusado, não inicie tarefas${tail}`, { run: state.run.id, status: "paused" })
+  },
+  "pause / unpause                       pausada: start recusado; o protocolo manda parar",
+)
+
+defineAction("unpause", async (ctx, args) => {
+  const state = await setPaused(ctx, args, false)
+  return ok(`execução ${state.run.id} retomada (${state.run.status})\n${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.status })
+})
+
+defineAction(
+  "resume",
+  async (ctx, args) => {
+    const wanted = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
+    const first = await resolveRun(ctx, { ...args, options: { ...args.options, ...(wanted ? { run: wanted } : {}) } })
+    const keepOwners = !!args.options["keep-owners"]
+    const released: { id: string; to: string; uncommitted: string[] }[] = []
+    const kept: string[] = []
+    const state = await withLock(ctx.host, first.dir, async () => {
+      const state = await reload(ctx, first)
+      const now = ctx.host.now().toISOString()
+      const run = { ...state.run }
+      if (run.status === "paused") run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
+      if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
+        run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }]
+      const copy = structuredClone(state.tasks)
+      for (const task of copy.tasks) {
+        if (task.status !== "in_progress") continue
+        const keys = taskKeys(state.root, task, ctx.host.platform)
+        const missing = keys.length ? await missingKeys(ctx, state, task) : []
+        if (keepOwners || !keys.length || missing.length === 0) {
+          kept.push(task.id)
+          continue
+        }
+        const uncommitted = (await splitChanges(ctx, state, task, false)).inside
+        const to = backToPending(task, run.maxAttempts, "agente sem travas no jlock (janela encerrada)", now)
+        released.push({ id: task.id, to, uncommitted })
+      }
+      const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks
+      if (JSON.stringify(run) !== JSON.stringify(state.run)) await writeRun(ctx.host, state.dir, run)
+      for (const r of released) {
+        await writeTicket(ctx.host, state.dir, tasks, r.id)
+        await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted })
+      }
+      await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept })
+      return { ...state, run, tasks }
+    })
+    // Whatever is left of a released task's locks (a stale holder) goes back too.
+    for (const r of released) await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {})
+    const lines = [`execução ${state.run.id} retomada nesta sessão`]
+    for (const r of released)
+      lines.push(
+        `${r.id} liberada (sem travas no jlock) → ${r.to}${r.uncommitted.length ? `; edições no disco: ${r.uncommitted.join(", ")}` : ""}`,
+      )
+    if (kept.length) lines.push(`mantidas em andamento: ${kept.join(", ")}${keepOwners ? " (--keep-owners)" : " (travas vivas)"}`)
+    const s = await statusOf(ctx, state)
+    lines.push(s.text)
+    return ok(lines.join("\n"), { ...s.data, released, kept }, { bind: state.run.id })
+  },
+  "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
+)
+
+// ── exec (serialize) ──────────────────────────────────────────────────────────────────────────────────────────
+
+/** The `serialize` entry a command line falls under: the same command, or one with more arguments. */
+export function serializeEntry(serialize: string[], command: string): string | undefined {
+  const norm = command.trim().replace(/\s+/g, " ")
+  return serialize.find((e) => {
+    const entry = e.trim().replace(/\s+/g, " ")
+    return norm === entry || norm.startsWith(`${entry} `)
+  })
+}
+
+export function serializeKey(root: string, entry: string): string {
+  const repo = root.replace(/[\/]+$/, "").split(/[\/]/).pop() ?? "repo"
+  return `name:gt/${slugify(repo, 40)}/${slugify(entry, 60)}`
+}
+
+defineAction(
+  "exec",
+  async (ctx, args) => {
+    const argv = args.positionals
+    if (!argv.length) throw new ToolError("falta o comando: tasks exec -- <comando…>", 2)
+    const state = await resolveRun(ctx, args).catch(() => undefined)
+    const root = state?.root ?? (await requireRepo(ctx.host, ctx.cwd))
+    const command = argv.join(" ")
+    const entry = state ? serializeEntry(state.run.serialize, command) : undefined
+    const full = entry
+      ? [
+          jlockBin(ctx.host),
+          "run",
+          serializeKey(root, entry),
+          "--owner",
+          // One owner per exec: two with the same owner would both be granted at once.
+          `gt:${state!.run.id}/exec-${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 46656).toString(36)}`,
+          "--group",
+          state!.run.id,
+          "--intent",
+          command,
+          "--json",
+          "--",
+          ...argv,
+        ]
+      : [...argv]
+    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60_000 })
+    const how = entry ? `serializado por jlock run ${serializeKey(root, entry)}` : "direto (fora de serialize)"
+    const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "")
+    return { ok: r.code === 0, code: r.code, text: `${output}${output ? "\n" : ""}[${how}; saiu com ${r.code}]`, data: { code: r.code, serialized: !!entry } }
+  },
+  "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina",
 )

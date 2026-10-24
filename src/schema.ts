@@ -47,6 +47,8 @@ export interface Task {
   reason?: string
   error?: string
   holds?: Hold[]
+  /** When the task went back to pending because its lock was taken away (shown as "posse perdida"). */
+  lost?: string
 }
 
 export interface ClaudeProfile {
