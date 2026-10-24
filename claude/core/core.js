@@ -4380,11 +4380,12 @@ function tr(key, params = {}) {
   const text = lookup(catalog(current), key, params.n) ?? lookup(en_default, key, params.n) ?? key;
   return text.replace(/\{(\w+)\}/g, (marker, name) => (name in params) ? String(params[name]) : marker);
 }
+var WIDE_SYMBOLS = new Set([8986, 8987, 9193, 9194, 9195, 9196, 9200, 9203, 9889, 9940, 9989, 10060, 11088]);
 function width(text) {
   let w = 0;
   for (const ch of text) {
     const c = ch.codePointAt(0);
-    const wide = c >= 4352 && c <= 4447 || c >= 11904 && c <= 42191 || c >= 44032 && c <= 55203 || c >= 63744 && c <= 64255 || c >= 65072 && c <= 65103 || c >= 65280 && c <= 65376 || c >= 65504 && c <= 65510;
+    const wide = WIDE_SYMBOLS.has(c) || c >= 127744 && c <= 128591 || c >= 128640 && c <= 128767 || c >= 129280 && c <= 129535 || c >= 4352 && c <= 4447 || c >= 11904 && c <= 42191 || c >= 44032 && c <= 55203 || c >= 63744 && c <= 64255 || c >= 65072 && c <= 65103 || c >= 65280 && c <= 65376 || c >= 65504 && c <= 65510;
     w += wide ? 2 : 1;
   }
   return w;
@@ -7615,15 +7616,22 @@ function summaryText(view, barWidth) {
   return `${bar(view.percent, barWidth)}  ${summaryTail(view)}`;
 }
 function fit(text, width2) {
-  const chars = [...text];
-  return chars.length <= width2 ? text : `${chars.slice(0, Math.max(1, width2 - 1)).join("")}…`;
+  if (width(text) <= width2)
+    return text;
+  let out = "";
+  for (const ch of text) {
+    if (width(out + ch) > Math.max(1, width2 - 1))
+      break;
+    out += ch;
+  }
+  return `${out}…`;
 }
 function lineText(line, width2) {
   const head = `${line.mark} ${line.id} `;
   const detail = line.detail ? fit(line.detail, Math.max(8, Math.floor(width2 * 0.45))) : "";
-  const room = width2 - [...head].length - (detail ? [...detail].length + 1 : 0);
+  const room = width2 - width(head) - (detail ? width(detail) + 1 : 0);
   const title = fit(line.title, Math.max(4, room));
-  const gap = Math.max(1, width2 - [...head].length - [...title].length - [...detail].length);
+  const gap = Math.max(1, width2 - width(head) - width(title) - width(detail));
   return detail ? `${head}${title}${" ".repeat(gap)}${detail}` : `${head}${title}`;
 }
 function viewLines(view, options) {

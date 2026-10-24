@@ -1,6 +1,6 @@
 // The display model (src/view.ts, shipped in core/core.js): the same lines the sidebar and the Claude pane draw.
 import { describe, expect, test, beforeEach } from "bun:test"
-import { bar, barCells, buildView, headerText, lineText, runsView, toTask, viewLines, DEFAULT_PROFILES, select } from "../core/core.js"
+import { bar, barCells, buildView, headerText, lineText, runsView, toTask, viewLines, DEFAULT_PROFILES, select, width } from "../core/core.js"
 import type { JlockLock, PlanTask, RunFile, RunState } from "../core/core.js"
 
 const ROOT = "D:/Proj"
@@ -82,6 +82,18 @@ describe("view", () => {
   test("long titles and details fit the width", () => {
     const line = { mark: "☐", id: "T09", title: "Um título bem comprido que não cabe", detail: "🔒 outra-execucao/T03: src/a/b/c.ts", state: "blocked" as const }
     expect([...lineText(line, 40)].length).toBeLessThanOrEqual(40)
+  })
+
+  test("a line never takes more terminal columns than the width: ⛔ ⏳ 🔒 are two columns wide", () => {
+    // Seen in the real Claude Code pane (docs/evidence/mod-herdr-2026-10-24.md): "⛔ T01, T02" wrapped one column.
+    for (const detail of ["⛔ T01, T02", "⏳ T01: src/a.ts · posição 1", "🔒 T05: src/x.ts"]) {
+      const line = { mark: "☐", id: "T03", title: "Junta", detail, state: "blocked" as const }
+      for (const w of [30, 40, 70]) {
+        const text = lineText(line, w)
+        expect(width(text), `${w}: ${text}`).toBeLessThanOrEqual(w)
+        expect(text.endsWith(detail) || text.endsWith("…"), text).toBe(true)
+      }
+    }
   })
 
   test("without a bound run: the list of runs", () => {

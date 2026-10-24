@@ -122,8 +122,11 @@ andamento apareciam como "posse perdida" (o `tasks resume` as devolvia à fila);
 recarregamento. Os testes do mod rodam numa máquina simulada (`claude/tests/machine.ts`), porque o
 `claude plugin test` não tem disco nem processos reais.
 
-**O que fazer:** o fluxo real com git e jlock é coberto pelo núcleo e pelo plugin do OpenCode; o mod num Claude Code
-de verdade é o ticket 30 (dirigido pelo herdr, com haiku).
+**O que fazer:** feito no ticket 30. O mod rodou num Claude Code 2.1.310 de verdade, dirigido pelo herdr, com haiku:
+plano em lotes, `next`, `start` com a trava visível no jlock, `done` com commit, a guarda recusando um `Write` de
+subagente fora da posse, `/jtasks`, e `status` até "restam 0" (`docs/evidence/mod-herdr-2026-10-24.md`). Tudo se
+comportou como na máquina simulada; a única diferença real foi uma linha do painel que quebrava por causa da largura
+dupla do `⛔`, corrigida no mesmo ticket.
 
 ## 10. O comando é `/jtasks`, não `/tasks` (ticket 15) — absorvido no plano (rev. 5.2)
 

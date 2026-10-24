@@ -7,7 +7,7 @@ import type { Host } from "./host.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
 import { listRuns, readRun, readTasks, runDir } from "./store.ts"
 import type { RunFile, Task, TasksFile, ToolName } from "./schema.ts"
-import { tr } from "./i18n.ts"
+import { tr, width as columns } from "./i18n.ts"
 
 export type LineState = "done" | "running" | "waiting" | "ready" | "blocked" | "skipped" | "failed"
 
@@ -159,18 +159,24 @@ export function summaryText(view: RunView, barWidth: number): string {
   return `${bar(view.percent, barWidth)}  ${summaryTail(view)}`
 }
 
+/** The text cut to `width` terminal columns (wide characters count two), with … when cut. */
 function fit(text: string, width: number): string {
-  const chars = [...text]
-  return chars.length <= width ? text : `${chars.slice(0, Math.max(1, width - 1)).join("")}…`
+  if (columns(text) <= width) return text
+  let out = ""
+  for (const ch of text) {
+    if (columns(out + ch) > Math.max(1, width - 1)) break
+    out += ch
+  }
+  return `${out}…`
 }
 
 /** One checklist line in `width` columns: `☑ T01 Título            9f1c2ab`. */
 export function lineText(line: ViewLine, width: number): string {
   const head = `${line.mark} ${line.id} `
   const detail = line.detail ? fit(line.detail, Math.max(8, Math.floor(width * 0.45))) : ""
-  const room = width - [...head].length - (detail ? [...detail].length + 1 : 0)
+  const room = width - columns(head) - (detail ? columns(detail) + 1 : 0)
   const title = fit(line.title, Math.max(4, room))
-  const gap = Math.max(1, width - [...head].length - [...title].length - [...detail].length)
+  const gap = Math.max(1, width - columns(head) - columns(title) - columns(detail))
   return detail ? `${head}${title}${" ".repeat(gap)}${detail}` : `${head}${title}`
 }
 

@@ -176,7 +176,7 @@ when it needs another file, never git, and `tasks done` with evidence (or `tasks
 bun scripts/demo.ts            # the whole flow in a temporary repository, with its own jlock and ledger homes
 bun test                       # core and CLI (real git and jlock in temporary folders under D:\claude-cache)
 cd opencode && bun test        # the OpenCode plugin (a fake host, a scripted model)
-claude plugin test claude      # the Claude Code mod (a fake machine)
+claude plugin test claude      # the Claude Code mod (a fake machine; the real run is in docs/evidence/mod-herdr-2026-10-24.md)
 bun run typecheck              # core, CLI, tests and mod
 ```
 

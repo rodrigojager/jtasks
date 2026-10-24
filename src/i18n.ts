@@ -124,12 +124,19 @@ export function tr(key: string, params: Record<string, string | number> = {}): s
   return text.replace(/\{(\w+)\}/g, (marker, name: string) => (name in params ? String(params[name]) : marker))
 }
 
-/** Columns a text takes in a terminal: wide characters (CJK, fullwidth forms) count as two. */
+/** Emoji that terminals draw two columns wide (East Asian Width W), among those the panes and answers use. */
+const WIDE_SYMBOLS = new Set([0x231a, 0x231b, 0x23e9, 0x23ea, 0x23eb, 0x23ec, 0x23f0, 0x23f3, 0x26a1, 0x26d4, 0x2705, 0x274c, 0x2b50])
+
+/** Columns a text takes in a terminal: wide characters (CJK, fullwidth forms, emoji such as ⛔ ⏳ 🔒) count as two. */
 export function width(text: string): number {
   let w = 0
   for (const ch of text) {
     const c = ch.codePointAt(0)!
     const wide =
+      WIDE_SYMBOLS.has(c) ||
+      (c >= 0x1f300 && c <= 0x1f64f) ||
+      (c >= 0x1f680 && c <= 0x1f6ff) ||
+      (c >= 0x1f900 && c <= 0x1f9ff) ||
       (c >= 0x1100 && c <= 0x115f) ||
       (c >= 0x2e80 && c <= 0xa4cf) ||
       (c >= 0xac00 && c <= 0xd7a3) ||

@@ -32,6 +32,6 @@ export declare function select(inputs: LanguageInputs): LanguageChoice;
  * `key_one` / `key_other` forms are used when the catalog has them. A key no catalog has comes back as itself.
  */
 export declare function tr(key: string, params?: Record<string, string | number>): string;
-/** Columns a text takes in a terminal: wide characters (CJK, fullwidth forms) count as two. */
+/** Columns a text takes in a terminal: wide characters (CJK, fullwidth forms, emoji such as ⛔ ⏳ 🔒) count as two. */
 export declare function width(text: string): number;
 export {};
