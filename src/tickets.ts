@@ -3,7 +3,7 @@
 import { slugify, ticketNumber } from "./ids.ts"
 import type { Host } from "./host.ts"
 import { join } from "./paths.ts"
-import type { Task, TasksFile } from "./schema.ts"
+import type { PlanTask, Task, TasksFile } from "./schema.ts"
 
 export function ticketFileName(task: Task, index: number): string {
   return `${ticketNumber(task.id, index)}-${slugify(task.title, 40)}.md`
@@ -70,4 +70,109 @@ export async function writeTicket(host: Host, runDir: string, tasks: TasksFile, 
 export function ticketPath(runDir: string, tasks: Task[], id: string): string | undefined {
   const index = tasks.findIndex((t) => t.id === id)
   return index < 0 ? undefined : join(runDir, "tickets", ticketFileName(tasks[index]!, index))
+}
+
+// ── Reading tickets back (`tasks import`, `tasks validate <dir>`) ─────────────────────────────────────────────
+
+export interface ParsedTicket {
+  file: string
+  task: PlanTask
+  /** The status written in the ticket (informative: an import always starts pending). */
+  status?: string
+  /** What was missing or guessed. */
+  notes: string[]
+}
+
+const FIELD = /^\*\*([^*]+?):\*\*\s*(.*)$/
+
+/** Reads one ticket in the jlock / to-tickets format. */
+export function parseTicket(text: string, file: string, index: number): ParsedTicket {
+  const notes: string[] = []
+  const lines = text.replace(/\r\n/g, "\n").split("\n")
+  const fields = new Map<string, string>()
+  const acceptance: string[] = []
+  let heading: { num: string; title: string } | undefined
+  let current: string | undefined
+  for (const raw of lines) {
+    const line = raw.trimEnd()
+    const h = /^#\s+(\d+)\s*[:.\-–]\s*(.+)$/.exec(line)
+    if (h && !heading) {
+      heading = { num: h[1]!, title: h[2]!.trim() }
+      current = undefined
+      continue
+    }
+    const crit = /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line)
+    if (crit) {
+      acceptance.push(crit[2]!.trim())
+      current = undefined
+      continue
+    }
+    const f = FIELD.exec(line)
+    if (f) {
+      current = f[1]!.trim().toLowerCase()
+      fields.set(current, f[2]!.trim())
+      continue
+    }
+    if (!line.trim() || line.startsWith("#")) {
+      current = undefined
+      continue
+    }
+    if (current) fields.set(current, `${fields.get(current)} ${line.trim()}`.trim())
+  }
+  const fromName = /^(\d+)-(.+)\.md$/i.exec(file.split("/").pop() ?? file)
+  const num = heading?.num ?? fromName?.[1] ?? String(index + 1)
+  if (!heading) notes.push("sem o título '# NN: título' (usei o nome do arquivo)")
+  const id = `T${String(Number(num)).padStart(2, "0")}`
+  const title = heading?.title ?? fromName?.[2]?.replace(/-/g, " ") ?? id
+  const task: PlanTask = { id, title }
+
+  const what = fields.get("what to build")
+  if (what) task.what = what
+  else notes.push("sem What to build")
+
+  const blocked = fields.get("blocked by")
+  if (blocked === undefined) notes.push("sem Blocked by (sem dependências)")
+  else if (!/^(none|nenhum|nenhuma|-)\b/i.test(blocked)) {
+    const deps = [...blocked.matchAll(/\b(\d{1,3})\b/g)].map((m) => `T${String(Number(m[1])).padStart(2, "0")}`)
+    task.dependsOn = [...new Set(deps)]
+  }
+
+  const files = fields.get("files")
+  if (files === undefined) {
+    task.exclusive = true
+    notes.push("sem Files: vira exclusive (nunca em paralelo) até alguém declarar os arquivos")
+  } else if (/exclusive/i.test(files) && !files.includes("`")) task.exclusive = true
+  else task.files = [...files.matchAll(/`([^`]+)`/g)].map((m) => m[1]!)
+
+  const profile = fields.get("profile")
+  if (profile) task.profile = profile
+  if (acceptance.length) task.acceptance = acceptance
+  else notes.push("sem critérios - [ ]")
+  const boundary = fields.get("scope boundary")
+  if (boundary) task.boundary = boundary
+  const parsed: ParsedTicket = { file, task, notes }
+  const status = fields.get("status")
+  if (status) parsed.status = status
+  return parsed
+}
+
+/** Every `*.md` ticket of a folder, in name order. */
+export async function readTicketsDir(host: Host, dir: string): Promise<ParsedTicket[]> {
+  const names = (await host.list(dir)).filter((e) => e.kind === "file" && /\.md$/i.test(e.name)).map((e) => e.name)
+  names.sort()
+  const out: ParsedTicket[] = []
+  for (let i = 0; i < names.length; i++) {
+    const text = (await host.readText(join(dir, names[i]!))) ?? ""
+    out.push(parseTicket(text, names[i]!, i))
+  }
+  return out
+}
+
+export function ticketReadLine(t: ParsedTicket): string {
+  const k = t.task
+  const deps = k.dependsOn?.length ? k.dependsOn.join(", ") : "-"
+  const own = k.exclusive ? "exclusive" : k.files?.length ? k.files.join(", ") : "(nenhum)"
+  const crit = k.acceptance?.length ?? 0
+  const tail = t.notes.length ? `\n    faltou: ${t.notes.join("; ")}` : ""
+  return `${t.file} → ${k.id} · ${k.title} · depende de: ${deps} · posse: ${own} · ${crit} critério(s)${tail}`
 }

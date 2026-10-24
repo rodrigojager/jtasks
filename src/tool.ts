@@ -5,6 +5,7 @@
 import type { Host, Resident } from "./host.ts"
 import { isAbsolute, join } from "./paths.ts"
 import type { ToolName } from "./schema.ts"
+import { readTicketsDir } from "./tickets.ts"
 import { validatePlan } from "./validate.ts"
 
 export const VERSION = "0.1.0"
@@ -202,12 +203,15 @@ defineAction("help", async () =>
 defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }))
 
 defineAction("validate", async (ctx, args) => {
-  const raw = await readJsonArg(ctx, args.positionals[0])
+  const arg = args.positionals[0]
+  const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? (isAbsolute(arg) ? arg : join(ctx.cwd, arg)) : undefined
+  const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir"
+  const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir!)).map((t) => t.task) } : await readJsonArg(ctx, arg)
   const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
   return ok(`ok: ${plan.tasks.length} tarefa(s), nenhum erro`, { errors: [], tasks: plan.tasks.length })
-}, "validate <json|@arquivo>              valida um plano sem gravar")
+}, "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar")
 
 /** Runs one command of the tool. Never throws: errors come back as `{ ok: false }`. */
 export async function runTool(ctx: ToolContext, argv: readonly string[]): Promise<ToolResult> {

@@ -4,7 +4,7 @@ import { formatRunsList } from "./format.ts"
 import { addExcludeLine, branchExists, currentBranch, git, gitOk, hasExcludeLine, removeExcludeLine, requireRepo } from "./git.ts"
 import { runId } from "./ids.ts"
 import { recordEffect } from "./ledger.ts"
-import { join } from "./paths.ts"
+import { basename, isAbsolute, join } from "./paths.ts"
 import {
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_PROFILE,
@@ -17,7 +17,7 @@ import {
   type TasksFile,
 } from "./schema.ts"
 import { appendLog, atomicWrite, listRuns, readJson, runDir, runsDir, stringify, withLock } from "./store.ts"
-import { writeTickets } from "./tickets.ts"
+import { readTicketsDir, ticketReadLine, writeTickets } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
 
@@ -391,3 +391,31 @@ defineAction("runs", async (ctx) => {
   const runs = await listRuns(ctx.host, root)
   return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) })
 }, "runs                                  execuções do repositório, com status e progresso")
+
+// ── import of Markdown tickets ────────────────────────────────────────────────────────────────────────────────
+
+defineAction(
+  "import",
+  async (ctx, args) => {
+    const arg = args.positionals[0]
+    if (!arg) throw new ToolError("falta a pasta dos tickets: tasks import <pasta> [--check|--yes]", 2)
+    const dir = isAbsolute(arg) ? arg : join(ctx.cwd, arg)
+    if ((await ctx.host.stat(dir))?.kind !== "dir") throw new ToolError(`não é uma pasta: ${arg}`)
+    const tickets = await readTicketsDir(ctx.host, dir)
+    if (!tickets.length) throw new ToolError(`nenhum ticket .md em ${arg}`)
+    const raw = { tasks: tickets.map((t) => t.task) }
+    const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
+    const read = [`${tickets.length} ticket(s) lido(s) de ${arg}:`, ...tickets.map((t) => `  ${ticketReadLine(t)}`)]
+    if (!args.options.yes) {
+      const verdict = errors.length
+        ? `o plano lido tem ${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`
+        : "o plano lido é válido; crie a execução com --yes"
+      return ok(`${read.join("\n")}\n${verdict}\nnada foi gravado (--check)`, { tickets, errors })
+    }
+    if (errors.length) return { ok: false, code: 1, text: `${read.join("\n")}\nimportação recusada, nada foi gravado. ${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
+    const name = typeof args.options.name === "string" ? args.options.name : basename(dir.replace(/\/issues$/, ""))
+    const created = await createRun(ctx, plan, { name })
+    return ok(`${read.join("\n")}\n${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, { bind: created.run.id })
+  },
+  "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)",
+)

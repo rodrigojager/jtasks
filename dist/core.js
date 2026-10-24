@@ -380,6 +380,196 @@ function sharedPath(a, b, insensitive) {
       }
   return;
 }
+// src/ids.ts
+function slugify(text, max = 24) {
+  const s = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const cut = s.slice(0, max).replace(/-+$/, "");
+  return cut || "run";
+}
+function yymmdd(date) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(date.getFullYear() % 100)}${p(date.getMonth() + 1)}${p(date.getDate())}`;
+}
+var ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+function runId(slug, date, random) {
+  let tail = "";
+  for (let i = 0;i < 4; i++)
+    tail += ALPHABET[Math.floor(random() * ALPHABET.length)];
+  return `${slugify(slug)}-${yymmdd(date)}-${tail}`;
+}
+function ticketNumber(id, index) {
+  const m = /^[A-Za-z]*0*(\d+)$/.exec(id);
+  const n = m ? Number(m[1]) : index + 1;
+  return String(n).padStart(2, "0");
+}
+
+// src/tickets.ts
+function ticketFileName(task, index) {
+  return `${ticketNumber(task.id, index)}-${slugify(task.title, 40)}.md`;
+}
+function numbers(tasks) {
+  return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]));
+}
+function renderTicket(task, index, all) {
+  const nums = numbers(all);
+  const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
+  const files = task.exclusive ? "(exclusive: roda sozinha)" : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : "(nenhum)";
+  const claimed = task.claimed?.length ? `
+
+**Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : "";
+  const lines = [
+    `# ${ticketNumber(task.id, index)}: ${task.title}`,
+    "",
+    `**What to build:** ${task.what?.trim() || task.title}`,
+    "",
+    `**Blocked by:** ${blocked}`,
+    "",
+    `**Status:** ${task.status}`,
+    "",
+    `**Profile:** ${task.profile}`,
+    "",
+    `**Files:** ${files}${claimed}`,
+    ""
+  ];
+  for (const a of task.acceptance)
+    lines.push(`- [${a.done ? "x" : " "}] ${a.text}`);
+  if (task.acceptance.length)
+    lines.push("");
+  if (task.commit)
+    lines.push(`**Commit:** ${task.commit}`, "");
+  if (task.evidence)
+    lines.push(`**Evidence:** ${task.evidence}`, "");
+  if (task.reason)
+    lines.push(`**Reason:** ${task.reason}`, "");
+  if (task.error)
+    lines.push(`**Error:** ${task.error}`, "");
+  if (task.boundary)
+    lines.push(`**Scope boundary:** ${task.boundary}`, "");
+  return lines.join(`
+`);
+}
+async function writeTickets(host, runDir, tasks) {
+  const dir = join(runDir, "tickets");
+  const names = tasks.tasks.map((t, i) => ticketFileName(t, i));
+  await host.mkdir(dir);
+  for (let i = 0;i < tasks.tasks.length; i++)
+    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks));
+  for (const entry of await host.list(dir))
+    if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name))
+      await host.remove(join(dir, entry.name));
+  return names.map((n) => join(dir, n));
+}
+async function writeTicket(host, runDir, tasks, id) {
+  const index = tasks.tasks.findIndex((t) => t.id === id);
+  if (index < 0)
+    return;
+  const task = tasks.tasks[index];
+  await host.writeText(join(runDir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks));
+}
+function ticketPath(runDir, tasks, id) {
+  const index = tasks.findIndex((t) => t.id === id);
+  return index < 0 ? undefined : join(runDir, "tickets", ticketFileName(tasks[index], index));
+}
+var FIELD = /^\*\*([^*]+?):\*\*\s*(.*)$/;
+function parseTicket(text, file, index) {
+  const notes = [];
+  const lines = text.replace(/\r\n/g, `
+`).split(`
+`);
+  const fields = new Map;
+  const acceptance = [];
+  let heading;
+  let current;
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const h = /^#\s+(\d+)\s*[:.\-–]\s*(.+)$/.exec(line);
+    if (h && !heading) {
+      heading = { num: h[1], title: h[2].trim() };
+      current = undefined;
+      continue;
+    }
+    const crit = /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line);
+    if (crit) {
+      acceptance.push(crit[2].trim());
+      current = undefined;
+      continue;
+    }
+    const f = FIELD.exec(line);
+    if (f) {
+      current = f[1].trim().toLowerCase();
+      fields.set(current, f[2].trim());
+      continue;
+    }
+    if (!line.trim() || line.startsWith("#")) {
+      current = undefined;
+      continue;
+    }
+    if (current)
+      fields.set(current, `${fields.get(current)} ${line.trim()}`.trim());
+  }
+  const fromName = /^(\d+)-(.+)\.md$/i.exec(file.split("/").pop() ?? file);
+  const num = heading?.num ?? fromName?.[1] ?? String(index + 1);
+  if (!heading)
+    notes.push("sem o título '# NN: título' (usei o nome do arquivo)");
+  const id = `T${String(Number(num)).padStart(2, "0")}`;
+  const title = heading?.title ?? fromName?.[2]?.replace(/-/g, " ") ?? id;
+  const task = { id, title };
+  const what = fields.get("what to build");
+  if (what)
+    task.what = what;
+  else
+    notes.push("sem What to build");
+  const blocked = fields.get("blocked by");
+  if (blocked === undefined)
+    notes.push("sem Blocked by (sem dependências)");
+  else if (!/^(none|nenhum|nenhuma|-)\b/i.test(blocked)) {
+    const deps = [...blocked.matchAll(/\b(\d{1,3})\b/g)].map((m) => `T${String(Number(m[1])).padStart(2, "0")}`);
+    task.dependsOn = [...new Set(deps)];
+  }
+  const files = fields.get("files");
+  if (files === undefined) {
+    task.exclusive = true;
+    notes.push("sem Files: vira exclusive (nunca em paralelo) até alguém declarar os arquivos");
+  } else if (/exclusive/i.test(files) && !files.includes("`"))
+    task.exclusive = true;
+  else
+    task.files = [...files.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+  const profile = fields.get("profile");
+  if (profile)
+    task.profile = profile;
+  if (acceptance.length)
+    task.acceptance = acceptance;
+  else
+    notes.push("sem critérios - [ ]");
+  const boundary = fields.get("scope boundary");
+  if (boundary)
+    task.boundary = boundary;
+  const parsed = { file, task, notes };
+  const status = fields.get("status");
+  if (status)
+    parsed.status = status;
+  return parsed;
+}
+async function readTicketsDir(host, dir) {
+  const names = (await host.list(dir)).filter((e) => e.kind === "file" && /\.md$/i.test(e.name)).map((e) => e.name);
+  names.sort();
+  const out = [];
+  for (let i = 0;i < names.length; i++) {
+    const text = await host.readText(join(dir, names[i])) ?? "";
+    out.push(parseTicket(text, names[i], i));
+  }
+  return out;
+}
+function ticketReadLine(t) {
+  const k = t.task;
+  const deps = k.dependsOn?.length ? k.dependsOn.join(", ") : "-";
+  const own = k.exclusive ? "exclusive" : k.files?.length ? k.files.join(", ") : "(nenhum)";
+  const crit = k.acceptance?.length ?? 0;
+  const tail = t.notes.length ? `
+    faltou: ${t.notes.join("; ")}` : "";
+  return `${t.file} → ${k.id} · ${k.title} · depende de: ${deps} · posse: ${own} · ${crit} critério(s)${tail}`;
+}
+
 // src/tool.ts
 var VERSION = "0.1.0";
 
@@ -528,14 +718,17 @@ defineAction("help", async () => ok([
 `)));
 defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }));
 defineAction("validate", async (ctx, args) => {
-  const raw = await readJsonArg(ctx, args.positionals[0]);
+  const arg = args.positionals[0];
+  const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? isAbsolute(arg) ? arg : join(ctx.cwd, arg) : undefined;
+  const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir";
+  const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir)).map((t) => t.task) } : await readJsonArg(ctx, arg);
   const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${errors.length} erro(s):
 ${errors.map((e) => `- ${e}`).join(`
 `)}`, data: { errors } };
   return ok(`ok: ${plan.tasks.length} tarefa(s), nenhum erro`, { errors: [], tasks: plan.tasks.length });
-}, "validate <json|@arquivo>              valida um plano sem gravar");
+}, "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar");
 async function runTool(ctx, argv) {
   try {
     const args = parseArgs(argv);
@@ -551,28 +744,6 @@ async function runTool(ctx, argv) {
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, code: 1, text: `erro: ${message}`, data: { error: message } };
   }
-}
-// src/ids.ts
-function slugify(text, max = 24) {
-  const s = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const cut = s.slice(0, max).replace(/-+$/, "");
-  return cut || "run";
-}
-function yymmdd(date) {
-  const p = (n) => String(n).padStart(2, "0");
-  return `${p(date.getFullYear() % 100)}${p(date.getMonth() + 1)}${p(date.getDate())}`;
-}
-var ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
-function runId(slug, date, random) {
-  let tail = "";
-  for (let i = 0;i < 4; i++)
-    tail += ALPHABET[Math.floor(random() * ALPHABET.length)];
-  return `${slugify(slug)}-${yymmdd(date)}-${tail}`;
-}
-function ticketNumber(id, index) {
-  const m = /^[A-Za-z]*0*(\d+)$/.exec(id);
-  const n = m ? Number(m[1]) : index + 1;
-  return String(n).padStart(2, "0");
 }
 // src/store.ts
 var SCRATCH = ".scratch/goal-tasks";
@@ -896,73 +1067,6 @@ function effectLine(e) {
   const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` (revert de ${e.reverts})` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` (de ${e.from})` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
   const when = e.at.replace("T", " ").slice(0, 16);
   return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`;
-}
-// src/tickets.ts
-function ticketFileName(task, index) {
-  return `${ticketNumber(task.id, index)}-${slugify(task.title, 40)}.md`;
-}
-function numbers(tasks) {
-  return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]));
-}
-function renderTicket(task, index, all) {
-  const nums = numbers(all);
-  const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
-  const files = task.exclusive ? "(exclusive: roda sozinha)" : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : "(nenhum)";
-  const claimed = task.claimed?.length ? `
-
-**Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : "";
-  const lines = [
-    `# ${ticketNumber(task.id, index)}: ${task.title}`,
-    "",
-    `**What to build:** ${task.what?.trim() || task.title}`,
-    "",
-    `**Blocked by:** ${blocked}`,
-    "",
-    `**Status:** ${task.status}`,
-    "",
-    `**Profile:** ${task.profile}`,
-    "",
-    `**Files:** ${files}${claimed}`,
-    ""
-  ];
-  for (const a of task.acceptance)
-    lines.push(`- [${a.done ? "x" : " "}] ${a.text}`);
-  if (task.acceptance.length)
-    lines.push("");
-  if (task.commit)
-    lines.push(`**Commit:** ${task.commit}`, "");
-  if (task.evidence)
-    lines.push(`**Evidence:** ${task.evidence}`, "");
-  if (task.reason)
-    lines.push(`**Reason:** ${task.reason}`, "");
-  if (task.error)
-    lines.push(`**Error:** ${task.error}`, "");
-  if (task.boundary)
-    lines.push(`**Scope boundary:** ${task.boundary}`, "");
-  return lines.join(`
-`);
-}
-async function writeTickets(host, runDir2, tasks) {
-  const dir = join(runDir2, "tickets");
-  const names = tasks.tasks.map((t, i) => ticketFileName(t, i));
-  await host.mkdir(dir);
-  for (let i = 0;i < tasks.tasks.length; i++)
-    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks));
-  for (const entry of await host.list(dir))
-    if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name))
-      await host.remove(join(dir, entry.name));
-  return names.map((n) => join(dir, n));
-}
-async function writeTicket(host, runDir2, tasks, id) {
-  const index = tasks.tasks.findIndex((t) => t.id === id);
-  if (index < 0)
-    return;
-  const task = tasks.tasks[index];
-  await host.writeText(join(runDir2, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks));
-}
-function ticketPath(runDir2, tasks, id) {
-  const index = tasks.findIndex((t) => t.id === id);
-  return index < 0 ? undefined : join(runDir2, "tickets", ticketFileName(tasks[index], index));
 }
 // src/plan.ts
 function actorOf(ctx) {
@@ -1318,6 +1422,40 @@ defineAction("runs", async (ctx) => {
   const runs = await listRuns(ctx.host, root);
   return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) });
 }, "runs                                  execuções do repositório, com status e progresso");
+defineAction("import", async (ctx, args) => {
+  const arg = args.positionals[0];
+  if (!arg)
+    throw new ToolError("falta a pasta dos tickets: tasks import <pasta> [--check|--yes]", 2);
+  const dir = isAbsolute(arg) ? arg : join(ctx.cwd, arg);
+  if ((await ctx.host.stat(dir))?.kind !== "dir")
+    throw new ToolError(`não é uma pasta: ${arg}`);
+  const tickets = await readTicketsDir(ctx.host, dir);
+  if (!tickets.length)
+    throw new ToolError(`nenhum ticket .md em ${arg}`);
+  const raw = { tasks: tickets.map((t) => t.task) };
+  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
+  const read = [`${tickets.length} ticket(s) lido(s) de ${arg}:`, ...tickets.map((t) => `  ${ticketReadLine(t)}`)];
+  if (!args.options.yes) {
+    const verdict = errors.length ? `o plano lido tem ${errors.length} erro(s):
+${errors.map((e) => `- ${e}`).join(`
+`)}` : "o plano lido é válido; crie a execução com --yes";
+    return ok(`${read.join(`
+`)}
+${verdict}
+nada foi gravado (--check)`, { tickets, errors });
+  }
+  if (errors.length)
+    return { ok: false, code: 1, text: `${read.join(`
+`)}
+importação recusada, nada foi gravado. ${errors.length} erro(s):
+${errors.map((e) => `- ${e}`).join(`
+`)}`, data: { errors } };
+  const name = typeof args.options.name === "string" ? args.options.name : basename(dir.replace(/\/issues$/, ""));
+  const created = await createRun(ctx, plan, { name });
+  return ok(`${read.join(`
+`)}
+${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, { bind: created.run.id });
+}, "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)");
 // src/jlock.ts
 var JLOCK = {
   OK: 0,
@@ -2524,6 +2662,7 @@ export {
   validateGraph,
   validateBatch,
   toTask,
+  ticketReadLine,
   ticketPath,
   ticketNumber,
   ticketFileName,
@@ -2558,6 +2697,7 @@ export {
   relativeInside,
   relConflicts,
   recordEffect,
+  readTicketsDir,
   readTasks,
   readRun,
   readPlan,
@@ -2568,6 +2708,7 @@ export {
   progress,
   possession,
   planFromJson,
+  parseTicket,
   parseDuration,
   parseArgs,
   ownerOf,
