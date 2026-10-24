@@ -25,7 +25,7 @@ describe("edit guard", () => {
   })
 
   test("tasks.json, run.json and tickets are refused to everyone, the main agent included", () => {
-    for (const p of [".scratch/goal-tasks/runs/r/tasks.json", "D:/Proj/.scratch/goal-tasks/runs/r/tickets/01-a.md"]) {
+    for (const p of [".scratch/jtasks/runs/r/tasks.json", "D:/Proj/.scratch/jtasks/runs/r/tickets/01-a.md"]) {
       expect(checkEdit(main, p).allow).toBe(false)
       expect(checkEdit(base, p).allow).toBe(false)
     }
@@ -59,7 +59,7 @@ describe("shell guard", () => {
     expect(checkShell(base, "echo x > src/humanizer/move.ts").allow).toBe(true)
     expect(checkShell(base, "rm tests/humanizer/old.test.ts").allow).toBe(true)
     expect(checkShell(base, "bun test > /dev/null").allow).toBe(true)
-    expect(checkShell(main, "echo x > .scratch/goal-tasks/runs/r/tasks.json").allow).toBe(false)
+    expect(checkShell(main, "echo x > .scratch/jtasks/runs/r/tasks.json").allow).toBe(false)
   })
 
   test("segments", () => {

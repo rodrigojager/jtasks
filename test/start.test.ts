@@ -28,7 +28,7 @@ async function newRun(extra: object = {}) {
   const repo = makeRepo()
   const r = await tasksOk(repo, ["plan"], { json: { tasks: plan, ...extra } })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/goal-tasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
 }
 
 const readTasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile

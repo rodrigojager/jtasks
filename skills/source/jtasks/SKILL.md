@@ -1,9 +1,9 @@
 ---
-name: goal-tasks
-description: Carry out a goal-tasks run (a task list with dependencies and file ownership, held as jlock locks) with the `tasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
+name: jtasks
+description: Carry out a jtasks run (a task list with dependencies and file ownership, held as jlock locks) with the `tasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
 {{FRONTMATTER}}---
 
-# goal-tasks: carry out a run
+# jtasks: carry out a run
 
 A **run** is a list of tasks in `tasks.json`, written only by the `tasks` tool. Each task has dependencies, acceptance
 criteria and an **ownership**: the files and folders it may change, held as locks in jlock while it runs, so tasks run

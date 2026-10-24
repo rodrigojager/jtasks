@@ -3,12 +3,12 @@
 
 <div dir="rtl">
 
-# goal-tasks
+# jtasks
 
-**يحوّل goal-tasks الخطة إلى قائمة مهام ينفّذها وكلاء البرمجة بالذكاء الاصطناعي بالتوازي، في نفس الـ checkout، دون
+**يحوّل jtasks الخطة إلى قائمة مهام ينفّذها وكلاء البرمجة بالذكاء الاصطناعي بالتوازي، في نفس الـ checkout، دون
 أن يعرقل أحدهم الآخر، بإيداع (commit) واحد لكل مهمة، مع إمكانية التراجع عن كل شيء.**
 
-## لماذا وُجد goal-tasks
+## لماذا وُجد jtasks
 
 يستطيع وكلاء البرمجة بالذكاء الاصطناعي العمل بالتوازي، لكن الهدف الطويل ("ابنِ تسجيل الدخول"، "انقل المحلّل")
 يتعثّر بطرق مألوفة. يحتفظ النموذج بقائمة المهام في ذاكرته أو في ملف Markdown يعدّله يدويًا، فتنحرف القائمة عن
@@ -16,7 +16,7 @@
 يعملون في الوقت نفسه يعدّلون الملف نفسه فيكتب أحدهم فوق عمل الآخر. والإيداعات تخلط عمل عدة مهام، فلا يمكن عكس مهمة
 واحدة وحدها. وحين تموت جلسة، لا أحد يعرف أي مهمة كانت في منتصفها.
 
-ينقل goal-tasks كل ذلك من النموذج إلى أداة. تُتحقَّق الخطة مرة واحدة؛ وتعيش القائمة في ملف JSON لا تكتبه إلا
+ينقل jtasks كل ذلك من النموذج إلى أداة. تُتحقَّق الخطة مرة واحدة؛ وتعيش القائمة في ملف JSON لا تكتبه إلا
 الأداة؛ وتعلن كل مهمة الملفات التي تملكها، وتبقى تلك الملفات مقفلة ما دامت المهمة قيد التنفيذ.
 
 ## المشكلة بدقة
@@ -74,9 +74,9 @@ tasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agent
 الأمر `tasks doctor --fix` دون `--yes` يسرد فقط ما سيفعله. وكل ما يثبّته يدخل السجل، فيزيله `tasks undo`. ثم، بحسب
 وكيلك:
 
-- **Claude Code:** `claude --plugin-dir <goal-tasks>/claude` (التعديل؛ انظر
+- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (التعديل؛ انظر
   [`claude/README.md`](claude/README.md)).
-- **OpenCode:** أضف `<goal-tasks>/opencode` إلى `plugins` في `opencode.json` (انظر
+- **OpenCode:** أضف `<jtasks>/opencode` إلى `plugins` في `opencode.json` (انظر
   [`opencode/README.md`](opencode/README.md)).
 - **Codex أو الطرفية:** المهارات في [`skills/`](skills/README.md) تعلّم الوكيل الأوامر.
 
@@ -101,25 +101,25 @@ tasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agent
 
 <div dir="ltr">
 
-<!-- goal-tasks-example -->
+<!-- jtasks-example -->
 ```text
 $ tasks plan @plan.json
 أُنشئ التشغيل a-sum-its-docs-and-the-e-261024-ibmx، المهام: 3، branch gt/a-sum-its-docs-and-the-e-261024-ibmx
-التذاكر: 3 في ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets
+التذاكر: 3 في ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets
 الخطوة التالية: tasks next
 
 $ tasks next
 الجاهزة (2) في a-sum-its-docs-and-the-e-261024-ibmx؛ يمكن تشغيلها بالتوازي:
 T01 · Sum · الملف التعريفي implement · الملكية: src/sum.ts
   المعايير: sum.ts exports sum
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/01-sum.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/01-sum.md
 T02 · Docs · الملف التعريفي implement · الملكية: docs/sum.md
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/02-docs.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/02-docs.md
 محجوبة: T03 ⛔ T01, T02
 
 $ tasks start T01
 T01 قيد التنفيذ (المحاولة 1): قُفلت الملكية في jlock (المفاتيح: 1، المالك gt:a-sum-its-docs-and-the-e-261024-ibmx/T01)
-ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/01-sum.md
+ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-ibmx/tickets/01-sum.md
 ملف آخر: tasks claim T01 <file>؛ في النهاية: tasks done T01 --evidence "…" (أو tasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
@@ -163,13 +163,13 @@ $ tasks status
 
 ## من الطرفية أو Codex
 
-دون تعديل أو إضافة، تكون المهارة `goal-tasks` هي البروتوكول: يشغّل الوكيل `tasks next`، وينجز كل مهمة داخل ملكيتها
+دون تعديل أو إضافة، تكون المهارة `jtasks` هي البروتوكول: يشغّل الوكيل `tasks next`، وينجز كل مهمة داخل ملكيتها
 (`tasks start`، `tasks claim`، `tasks done`)، ويكرّر حتى يقول `tasks status` إنه لم يبق شيء. ويمكن لشخص أن يفعل
 الشيء نفسه يدويًا.
 
 ## الضمانات والحدود
 
-| يضمن goal-tasks | ما لا يفعله |
+| يضمن jtasks | ما لا يفعله |
 |---|---|
 | الأداة وحدها تكتب القائمة؛ وكل تغيير متحقَّق منه وذرّي | منع برنامج يتجاهل jlock من تعديل ملف |
 | ملفات المهمة مقفلة في jlock ما دامت قيد التنفيذ؛ والمهام المتوازية لا تتشارك ملفًا أبدًا | قفل أجزاء من ملف: الملكية بالملف والمجلد |
@@ -177,15 +177,15 @@ $ tasks status
 | كل أثر في السجل ويمكن التراجع عنه | التراجع عمّا لم ينشئه |
 | تعود أقفال الوكيل أو النافذة الميتة (فورًا مع OpenCode، وإلا عند انتهاء المهلة) | العمل عبر عدة أجهزة (jlock جهاز واحد) |
 
-Windows أولًا: جرى التحقق من jlock و goal-tasks على Windows؛ ويتبع Linux و macOS خطة jlock نفسها.
+Windows أولًا: جرى التحقق من jlock و jtasks على Windows؛ ويتبع Linux و macOS خطة jlock نفسها.
 
 ## الإعداد
 
 | المتغير | الافتراضي | الاستخدام |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `~/.goal-tasks` | السجل العام والتشغيلات المؤرشفة |
-| `GOAL_TASKS_LANG` | لغة النظام | لغة الإجابات (`--lang` في الأمر له الأولوية) |
-| `GOAL_TASKS_RUN` | غير مضبوط | التشغيل الذي تعمل عليه واجهة CLI، بدلًا من `--run` |
+| `JTASKS_HOME` | `~/.jtasks` | السجل العام والتشغيلات المؤرشفة |
+| `JTASKS_LANG` | لغة النظام | لغة الإجابات (`--lang` في الأمر له الأولوية) |
+| `JTASKS_RUN` | غير مضبوط | التشغيل الذي تعمل عليه واجهة CLI، بدلًا من `--run` |
 | `JLOCK_BIN` | `jlock` | الملف التنفيذي لـ jlock |
 
 إحدى عشرة لغة، هي نفسها لغات jlock: English، Português (Brasil)، Español، Français، Deutsch، Italiano، 简体中文، 日本語،

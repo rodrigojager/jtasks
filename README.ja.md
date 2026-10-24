@@ -1,15 +1,15 @@
 <!-- languages -->
 [English](README.md) · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Italiano](README.it.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [हिन्दी](README.hi.md)
 
-# goal-tasks
+# jtasks
 
-**goal-tasks は計画をタスクのリストに変え、AI コーディングエージェントが同じチェックアウトの中で、互いの作業を踏みつけることなく並列に実行できるようにします。コミットはタスクごとに 1 つで、すべて取り消せます。**
+**jtasks は計画をタスクのリストに変え、AI コーディングエージェントが同じチェックアウトの中で、互いの作業を踏みつけることなく並列に実行できるようにします。コミットはタスクごとに 1 つで、すべて取り消せます。**
 
-## goal-tasks がある理由
+## jtasks がある理由
 
 AI コーディングエージェントは並列に作業できますが、長い目標（「ログインを作る」「パーサーを移植する」）は、おなじみのパターンでうまくいかなくなります。モデルはタスクリストを頭の中か、手で編集する Markdown ファイルに持っていて、リストは少しずつずれていきます。終わっていないタスクが完了とされ、2 つのサブエージェントが同じタスクを取り、依存関係が忘れられます。同時に動くエージェントが同じファイルを編集し、一方が他方を上書きします。コミットに複数のタスクの作業が混ざるので、1 つだけを revert することができません。そしてセッションが落ちると、どのタスクが途中だったのか誰にもわかりません。
 
-goal-tasks はそのすべてをモデルから取り出し、ツールに移します。計画は一度だけ検証され、リストはツールだけが書き込む JSON ファイルに置かれます。各タスクは自分が所有するファイルを宣言し、それらのファイルはタスクの実行中ロックされます。
+jtasks はそのすべてをモデルから取り出し、ツールに移します。計画は一度だけ検証され、リストはツールだけが書き込む JSON ファイルに置かれます。各タスクは自分が所有するファイルを宣言し、それらのファイルはタスクの実行中ロックされます。
 
 ## 問題を正確に言うと
 
@@ -47,8 +47,8 @@ tasks doctor --fix --yes   # 足りないものをインストール: jlock、Op
 
 `--yes` なしの `tasks doctor --fix` は、何をするかを一覧にするだけです。インストールしたものはすべて ledger に入るので、`tasks undo` で削除できます。そのうえで、使うエージェントに合わせて:
 
-- **Claude Code:** `claude --plugin-dir <goal-tasks>/claude`（mod。[`claude/README.md`](claude/README.md) を参照）。
-- **OpenCode:** `opencode.json` の `plugins` に `<goal-tasks>/opencode` を追加（[`opencode/README.md`](opencode/README.md) を参照）。
+- **Claude Code:** `claude --plugin-dir <jtasks>/claude`（mod。[`claude/README.md`](claude/README.md) を参照）。
+- **OpenCode:** `opencode.json` の `plugins` に `<jtasks>/opencode` を追加（[`opencode/README.md`](opencode/README.md) を参照）。
 - **Codex またはターミナル:** [`skills/`](skills/README.md) のスキルがエージェントにコマンドを教えます。
 
 ## 5 分で試す
@@ -66,25 +66,25 @@ tasks doctor --fix --yes   # 足りないものをインストール: jlock、Op
 }
 ```
 
-<!-- goal-tasks-example -->
+<!-- jtasks-example -->
 ```text
 $ tasks plan @plan.json
 実行 a-sum-its-docs-and-the-e-261024-bvqd を作成: タスク 3 件、branch gt/a-sum-its-docs-and-the-e-261024-bvqd
-チケット: 3 件（~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets）
+チケット: 3 件（~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets）
 次の手順: tasks next
 
 $ tasks next
 a-sum-its-docs-and-the-e-261024-bvqd で準備完了（2）。並列に実行できる:
 T01 · Sum · プロファイル implement · 所有権: src/sum.ts
   受け入れ基準: sum.ts exports sum
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/01-sum.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/01-sum.md
 T02 · Docs · プロファイル implement · 所有権: docs/sum.md
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/02-docs.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/02-docs.md
 ブロック中: T03 ⛔ T01, T02
 
 $ tasks start T01
 T01 進行中（試行 1）: 所有権を jlock でロック（キー 1 個、所有者 gt:a-sum-its-docs-and-the-e-261024-bvqd/T01）
-ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/01-sum.md
+ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-bvqd/tickets/01-sum.md
 別のファイル: tasks claim T01 <ファイル>。終わったら: tasks done T01 --evidence "…"（または tasks fail T01 --error "…"）
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
@@ -117,11 +117,11 @@ Claude は `tasks next` を呼び、同じ応答の中で準備完了のタス�
 
 ## ターミナルまたは Codex から使う
 
-mod もプラグインもないときは、`goal-tasks` スキルがプロトコルになります。エージェントは `tasks next` を実行し、各タスクをその所有権の中で行い（`tasks start`、`tasks claim`、`tasks done`）、`tasks status` で残りがなくなるまで繰り返します。人が手で同じことをすることもできます。
+mod もプラグインもないときは、`jtasks` スキルがプロトコルになります。エージェントは `tasks next` を実行し、各タスクをその所有権の中で行い（`tasks start`、`tasks claim`、`tasks done`）、`tasks status` で残りがなくなるまで繰り返します。人が手で同じことをすることもできます。
 
 ## 保証と限界
 
-| goal-tasks が保証すること | しないこと |
+| jtasks が保証すること | しないこと |
 |---|---|
 | リストに書き込むのはツールだけ。すべての変更は検証され、アトミック | jlock を無視するプログラムがファイルを編集するのを止める |
 | タスクのファイルは実行中 jlock でロックされる。並列のタスクがファイルを共有することはない | ファイルの一部だけをロックする: 所有権はファイルとフォルダ単位 |
@@ -129,15 +129,15 @@ mod もプラグインもないときは、`goal-tasks` スキルがプロトコ
 | すべての副作用は ledger にあり、取り消せる | 自分が作っていないものを取り消す |
 | 落ちたエージェントやウィンドウのロックは戻ってくる（OpenCode ではすぐに、それ以外は時間制限で） | 複数のマシンにまたがって動く（jlock は 1 台のマシン用） |
 
-Windows を優先: jlock と goal-tasks は Windows で検証済みです。Linux と macOS は jlock 自身の計画に従います。
+Windows を優先: jlock と jtasks は Windows で検証済みです。Linux と macOS は jlock 自身の計画に従います。
 
 ## 設定
 
 | 変数 | 既定値 | 用途 |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `~/.goal-tasks` | グローバル ledger とアーカイブされた実行 |
-| `GOAL_TASKS_LANG` | システムの言語 | 応答の言語（コマンドの `--lang` が優先） |
-| `GOAL_TASKS_RUN` | 未設定 | `--run` の代わりに CLI が扱う実行 |
+| `JTASKS_HOME` | `~/.jtasks` | グローバル ledger とアーカイブされた実行 |
+| `JTASKS_LANG` | システムの言語 | 応答の言語（コマンドの `--lang` が優先） |
+| `JTASKS_RUN` | 未設定 | `--run` の代わりに CLI が扱う実行 |
 | `JLOCK_BIN` | `jlock` | jlock の実行ファイル |
 
 jlock と同じ 11 言語に対応しています: English、Português (Brasil)、Español、Français、Deutsch、Italiano、简体中文、日本語、Русский、العربية、हिन्दी。すべてのコマンドは [`docs/USAGE.md`](docs/USAGE.md) にあります。設計（ポルトガル語）は [`docs/PLAN.md`](docs/PLAN.md)、設計と違う結果になった点は [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) にあります。

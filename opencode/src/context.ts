@@ -5,7 +5,7 @@ import { progressLine, protocolText, readRun, readTasks, runDir, tr } from "../c
 import type { Host } from "../core/core.js"
 import type { RunBinding } from "./binding.ts"
 
-export const CONTEXT_SOURCE = "goal-tasks"
+export const CONTEXT_SOURCE = "jtasks"
 
 export async function contextText(host: Host, binding: RunBinding): Promise<string | undefined> {
   const dir = runDir(binding.root, binding.run)

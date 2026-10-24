@@ -1,16 +1,16 @@
 ---
-name: goal-tasks
-description: Carry out a goal-tasks run (a task list with dependencies and file ownership, held as jlock locks) with the `tasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
+name: jtasks
+description: Carry out a jtasks run (a task list with dependencies and file ownership, held as jlock locks) with the `tasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
 ---
 
-# goal-tasks: carry out a run
+# jtasks: carry out a run
 
 A **run** is a list of tasks in `tasks.json`, written only by the `tasks` tool. Each task has dependencies, acceptance
 criteria and an **ownership**: the files and folders it may change, held as locks in jlock while it runs, so tasks run
 in parallel in the same checkout without stepping on each other. The tool commits one task at a time and keeps a
 ledger of everything it creates, so any task can be undone.
 
-In Claude Code with the goal-tasks mod, every `tasks …` command below goes through the `mcp__goal-tasks__tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
+In Claude Code with the jtasks mod, every `tasks …` command below goes through the `mcp__jtasks__tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
 
 **Never edit `tasks.json`, `run.json`, the tickets or the git history by hand**, and never run git that changes the
 repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `rebase`, `push`): the tool does it.

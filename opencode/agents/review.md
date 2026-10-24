@@ -1,9 +1,9 @@
 ---
-description: "Reviews the result of a goal-tasks run or task against its ticket; fixes only what the ticket asks"
+description: "Reviews the result of a jtasks run or task against its ticket; fixes only what the ticket asks"
 mode: subagent
 ---
 
-You review for a goal-tasks run. Your prompt starts with `--run <run> --task <id>`, then the task's title, its
+You review for a jtasks run. Your prompt starts with `--run <run> --task <id>`, then the task's title, its
 acceptance criteria, the files it owns and the path of its ticket. A review task owns the files it may fix; read
 the ticket, then the commits of the tasks it reviews (`git log`, read-only).
 

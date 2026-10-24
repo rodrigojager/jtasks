@@ -1,16 +1,16 @@
 ---
-name: goal-tasks
-description: Carry out a goal-tasks run (a task list with dependencies and file ownership, held as jlock locks) with the `tasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
+name: jtasks
+description: Carry out a jtasks run (a task list with dependencies and file ownership, held as jlock locks) with the `tasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
 ---
 
-# goal-tasks: carry out a run
+# jtasks: carry out a run
 
 A **run** is a list of tasks in `tasks.json`, written only by the `tasks` tool. Each task has dependencies, acceptance
 criteria and an **ownership**: the files and folders it may change, held as locks in jlock while it runs, so tasks run
 in parallel in the same checkout without stepping on each other. The tool commits one task at a time and keeps a
 ledger of everything it creates, so any task can be undone.
 
-In OpenCode with the goal-tasks plugin, every `tasks …` command below goes through the `tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the plugin, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
+Run every `tasks …` command below in the shell (`tasks` is the jtasks CLI). JSON goes in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
 
 **Never edit `tasks.json`, `run.json`, the tickets or the git history by hand**, and never run git that changes the
 repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `rebase`, `push`): the tool does it.
@@ -27,7 +27,7 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
 
 1. `tasks next` lists the ready tasks: id, title, profile, criteria, ownership and the path of each ticket. Ready
    tasks can always run in parallel: their ownerships never overlap.
-2. For each ready task, call the `subagent` tool, all of them in the same response so they run in parallel. Its prompt starts with `--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to follow step 3. With the plugin, the call gets the agent of the task's profile. Without subagents, do the tasks yourself, one at a time.
+2. For each ready task, work on it yourself, one task at a time; if your setup runs several agents, give each one a task instead, with a first message that starts with `--run <run> --task <id>` and asks it to follow step 3.
 3. Whoever works on a task:
    - calls `tasks start <id>` first. The answer says the ownership is locked; if it says the task was not ready
      (a file is in use), pick another task;

@@ -1,4 +1,4 @@
-# goal-tasks — plano
+# jtasks — plano
 
 Lista de tarefas determinística, com dependências e paralelismo, acompanhada por uma barra de progresso e um
 checklist no Claude Code (mod) e no OpenCode (plugin), compatível com o `/goal` dos dois.
@@ -68,7 +68,7 @@ padrão do OpenCode (`implement`, `implement-deep`, `review`), e acrescenta: pos
 - **Cada execução tem um id, e a interface mostra só a execução ligada à sessão atual.** N janelas no mesmo projeto
   não se misturam; a ligação fica no estado da sessão, não num ponteiro global.
 - **Retomar, pausar e tentar de novo são ações da ferramenta.** "De onde parou" é a fronteira do grafo.
-- **Tudo de desenvolvimento fica sob `.scratch/goal-tasks/`**, excluído do git localmente, e some com um comando.
+- **Tudo de desenvolvimento fica sob `.scratch/jtasks/`**, excluído do git localmente, e some com um comando.
 - **Um núcleo compartilhado, em um repositório só; as interfaces só leem; o `/goal` continua sendo o motor.**
   Progresso = `floor(feitas / total × 100)`, com feitas/total, puladas e falhas ao lado.
 
@@ -78,7 +78,7 @@ padrão do OpenCode (`implement`, `implement-deep`, `review`), e acrescenta: pos
 
 ```
 projeto/
-├─ .scratch/goal-tasks/                 ← só desenvolvimento (excluído do git em .git/info/exclude)
+├─ .scratch/jtasks/                 ← só desenvolvimento (excluído do git em .git/info/exclude)
 │   └─ runs/
 │       ├─ cursory-261023-k7f2/          ← uma execução (run-id = slug-data-4 aleatórios)
 │       │   ├─ draft.json               ← [rev. 5.1] só enquanto o plano é montado em lotes; some no --commit
@@ -90,24 +90,24 @@ projeto/
 │       └─ auth-261024-p0q9/            ← outra execução, de outra janela
 └─ (código do projeto: edições só dentro da posse de cada tarefa)
 
-%USERPROFILE%\.goal-tasks\
+%USERPROFILE%\.jtasks\
 ├─ ledger.jsonl                         ← índice global: todo efeito de todos os projetos
 └─ archive\<repo>\<run>\                 ← execuções arquivadas
 
-%LOCALAPPDATA%\jlock\                    ← [rev. 5] o quadro de travas, do jlock, da máquina inteira; o goal-tasks
+%LOCALAPPDATA%\jlock\                    ← [rev. 5] o quadro de travas, do jlock, da máquina inteira; o jtasks
                                             só o usa pelo CLI (jlock acquire/hold/release/list), nunca lê a pasta
 
 D:\worktrees\<repo>\<run>\<task>\        ← só quando a execução pede worktree
 
-Claude Code: mod `goal-tasks` (ferramenta + painel + /jtasks)  ─┐  mesmo core.js
-OpenCode:    plugin `goal-tasks` (ferramenta + seção na sidebar) ─┤
+Claude Code: mod `jtasks` (ferramenta + painel + /jtasks)  ─┐  mesmo core.js
+OpenCode:    plugin `jtasks` (ferramenta + seção na sidebar) ─┤
 Terminal:    CLI `tasks` (bun)                                  ─┘
 ```
 
 Núcleo em TypeScript sem dependências, compilado para um `core.js` versionado: o módulo de hooks do Claude Code roda
 sem Node e sem `node_modules`, e a cópia final do OpenCode também.
 
-**[rev. 5.2]** O repositório do goal-tasks, por pasta:
+**[rev. 5.2]** O repositório do jtasks, por pasta:
 
 ```
 src/                 o núcleo (host.ts é o contrato com o mundo; node-host.ts, o host do Node)
@@ -115,7 +115,7 @@ locales/<tag>.json   os catálogos de texto (seção 21), embutidos no core.js p
 cli/tasks.ts         o CLI
 claude/              o mod (core/ é a cópia do núcleo; skills/ a cópia das skills do Claude Code)
 opencode/            o plugin (core/ a cópia do núcleo; agents/ os três agentes prontos, seção 13)
-skills/<agente>/<skill>/   to-tickets e goal-tasks para claude-code, opencode e codex (seção 23)
+skills/<agente>/<skill>/   to-tickets e jtasks para claude-code, opencode e codex (seção 23)
 docs/                PLAN.md, DEVIATIONS.md, USAGE.md, evidence/
 README.md, README.<tag>.md   onze idiomas (seção 23)
 ```
@@ -172,7 +172,7 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   adquire a chave `*`, que conflita com tudo.
 - **Posse viva [rev. 5]:** `start` e `claim` são o mesmo gesto: subir um `jlock hold` e ler a primeira linha. O
   `hold` adquire as chaves (com as mesmas opções do `acquire`), imprime o resultado em JSON e fica vivo renovando o
-  heartbeat; o goal-tasks guarda as chaves de cada `hold` na tarefa (`holds: [{ keys, startedAt }]`).
+  heartbeat; o jtasks guarda as chaves de cada `hold` na tarefa (`holds: [{ keys, startedAt }]`).
   **[rev. 5.2]** A forma do `hold` depende do host: o CLI e o mod sobem `jlock hold … --detach --ttl <prazo>`, que
   responde e volta na hora enquanto um segundo jlock segura a trava; o plugin do OpenCode sobe
   `jlock hold … --release-on-eof --ttl <prazo>` em primeiro plano, com a entrada padrão aberta. Em qualquer host,
@@ -378,14 +378,14 @@ a execução ligada à sessão.
 | worktrees | `worktrees` | registro da execução × `git worktree list` × disco (só se a política usar) |
 | | `gc --scan <raiz> [--yes]` | relatório: pastas, tamanho, idade, repositório dono, branch integrado?; só remove com caminho explícito e `--yes` |
 | limpeza | `clean [run\|--all] [--yes]` | remove a pasta da execução; antes, lista os efeitos ainda ativos no ledger e pede confirmação |
-| | `archive run` | move para `%USERPROFILE%\.goal-tasks\archive\<repo>\<run>`; `resume --from-archive` traz de volta |
+| | `archive run` | move para `%USERPROFILE%\.jtasks\archive\<repo>\<run>`; `resume --from-archive` traz de volta |
 
 ---
 
 ## 7. Livro-razão e desfazer
 
 Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio código da tarefa escreve um registro em
-`ledger.jsonl` da execução e no índice global `%USERPROFILE%\.goal-tasks\ledger.jsonl`:
+`ledger.jsonl` da execução e no índice global `%USERPROFILE%\.jtasks\ledger.jsonl`:
 
 ```json
 { "id": "e-0007", "at": "2026-10-23T23:02:10Z", "run": "cursory-261023-k7f2", "task": "T01",
@@ -468,9 +468,9 @@ worktree, é a ferramenta que cria, registra e remove.
 
 ## 11. Limpar e arquivar
 
-- Tudo em `.scratch/goal-tasks/`, excluído do git em `.git/info/exclude` (local). Tickets antigos ficam onde estão.
+- Tudo em `.scratch/jtasks/`, excluído do git em `.git/info/exclude` (local). Tickets antigos ficam onde estão.
 - `tasks clean <run>`: mostra os efeitos ainda ativos no ledger (branch, worktrees) e pergunta se desfaz junto;
-  apaga a pasta da execução. `--all` remove `.scratch/goal-tasks/`. Os commits ficam (são código).
+  apaga a pasta da execução. `--all` remove `.scratch/jtasks/`. Os commits ficam (são código).
 - `tasks archive <run>`: move para fora do projeto; `resume --from-archive` traz de volta.
 - Plano novo num projeto com N planos antigos: outra execução, ligada à sessão; os antigos só aparecem em
   `tasks runs`.
@@ -536,11 +536,11 @@ agente por `agent.transform`, só durante a sessão; não há efeito `agent-conf
 ## 14. Claude Code: o mod
 
 ```
-.claude-plugin/plugin.json   { name: "goal-tasks", version, description, types: "./types/index.d.ts" }
+.claude-plugin/plugin.json   { name: "jtasks", version, description, types: "./types/index.d.ts" }
 hooks/hooks.json             { "modules": ["./register.tsx"] }
 hooks/register.tsx           o módulo (importa ../core/core.js)
-types/index.d.ts             PluginState: { "goal-tasks": { run?: string, collapsed: boolean, view, agents } }
-skills/<skill>/SKILL.md      [rev. 5.2] to-tickets e goal-tasks, cópias de skills/claude-code/ feitas pelo build
+types/index.d.ts             PluginState: { "jtasks": { run?: string, collapsed: boolean, view, agents } }
+skills/<skill>/SKILL.md      [rev. 5.2] to-tickets e jtasks, cópias de skills/claude-code/ feitas pelo build
 core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 ```
 
@@ -551,7 +551,7 @@ core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 | painel | `$.ui.open({ id: "tasks" })` + `ui.render` em `{ component: "Pane" }` | checklist + barra; abre sozinho com execução ligada e largura suficiente |
 | toggle | `$.command.register({ name: "jtasks" })` + `command.run`; botão "▾/▸" via `ui.press` | **[rev. 5.2]** `/jtasks` abre/fecha (o Claude Code já tem `/tasks`); o botão recolhe para uma linha; `collapsed` em `$.store` |
 | atualização | `$.clock.every(2000)` + `$.fs.stat/read`; `atom/update` | acompanha escritas de outro processo |
-| contexto | **[rev. 5.2]** `prompt.compose`: a seção `goal-tasks:protocol` acrescentada a cada requisição enquanto há execução ligada | resumo sempre no prompt; volta sozinho depois da compactação (não existe `prompt.section`) |
+| contexto | **[rev. 5.2]** `prompt.compose`: a seção `jtasks:protocol` acrescentada a cada requisição enquanto há execução ligada | resumo sempre no prompt; volta sozinho depois da compactação (não existe `prompt.section`) |
 | perfil | `on("agent.spawn")` | modelo do subagente pelo perfil |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
 | agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
@@ -581,7 +581,7 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 | ligação | `ctx.storage` por sessão raiz (`binding/<raiz>`), achada subindo os `parentID` | execução da sessão; a sessão filha que fez `start`/`claim` fica ligada à tarefa (`task/<sessão>`) |
 | contexto | `ctx.session.hook("context")` e `("compaction")` | resumo em cada requisição |
 | seção | `context.ui.slot({ append: "sidebar.content" })` | "▾ Tasks · run", barra e checklist; clique dobra. **[rev. 5.2]** A barra é nossa (`src/view.ts`), no visual do `Meter` do `opencode-hud` (oitavos de célula, cor principal do tema, trilho apagado), sem depender do HUD instalado |
-| dados | RPC `goal-tasks.state` (`ctx.rpc.register`; o id do RPC é o do plugin) + releitura após `session.tool.success` e a cada 2 s com tarefa em andamento | a TUI nunca toca o arquivo |
+| dados | RPC `jtasks.state` (`ctx.rpc.register`; o id do RPC é o do plugin) + releitura após `session.tool.success` e a cada 2 s com tarefa em andamento | a TUI nunca toca o arquivo |
 | perfis | `agent.transform` (modelo do perfil) + `tool.hook("execute.before")` (agente da tarefa na chamada `subagent`) | agentes `implement`/`implement-deep`/`review` existentes (seção 13) |
 | guarda de posse | `ctx.permission.hook("evaluate")` (`edit` e `shell`) | mesmas regras do mod, pela regra do núcleo |
 | agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
@@ -629,7 +629,7 @@ motivo.
   guarda recusando `Edit` fora da posse e `Bash git commit`.
 - **[rev. 5.2] Idiomas, doctor, skills e READMEs:** os catálogos têm as mesmas chaves e marcadores; a mesma ação
   em dois idiomas dá textos diferentes e o mesmo `--json`; `help` cabe em 100 colunas em cada idioma; `doctor` num
-  ambiente sadio, com `GOAL_TASKS_HOME` inválido, sem jlock e sem agentes; `doctor --fix --yes` numa casa temporária
+  ambiente sadio, com `JTASKS_HOME` inválido, sem jlock e sem agentes; `doctor --fix --yes` numa casa temporária
   (o instalador do jlock substituído por um script falso); as seis skills com as mesmas seções; os onze READMEs com
   a mesma forma e os exemplos reexecutados.
 - **[rev. 5.2] O único teste que gasta tokens**, fora do `bun test`: o mod num Claude Code real, dirigido pelo
@@ -641,7 +641,7 @@ motivo.
 ## 18. Ordem de entrega
 
 1. **jlock** (plano e repositório próprios): o CLI de travas com fila, heartbeat, deadlock, lista e force unlock,
-   com seus testes de corrida. Pré-requisito de tudo que segue; o goal-tasks o chama como processo.
+   com seus testes de corrida. Pré-requisito de tudo que segue; o jtasks o chama como processo.
    **[rev. 5] Feito:** 0.1.0 em 24/10/2026, validado no Windows; a fase 2 (idiomas, help, doctor, instalador,
    update) está em andamento e não muda o protocolo.
 2. **Núcleo + CLI + ledger.** Formato com posse (adquirida no jlock instalado), `plan`/`validate`/`import`, tickets,
@@ -668,7 +668,7 @@ motivo.
     no mod, `--release-on-eof --ttl` no plugin, `holdTtl` no plano; fim de subagente no OpenCode devolve a tarefa.
 12. **Barra no estilo do HUD** (23).
 13. **Idiomas** (24, 25, 26): núcleo e CLI em `en`/`pt-BR`; mod e plugin; os outros nove catálogos.
-14. **Skills e doctor** (27, 28): `to-tickets` e `goal-tasks` para Claude Code, OpenCode e Codex; `tasks doctor` e
+14. **Skills e doctor** (27, 28): `to-tickets` e `jtasks` para Claude Code, OpenCode e Codex; `tasks doctor` e
     `--fix --yes` (jlock, agentes, skills, pelo ledger global).
 15. **READMEs em onze idiomas e o teste real do mod** (29, 30).
 
@@ -687,9 +687,9 @@ motivo.
 | O avaliador do `/goal` só vê a conversa | A saída de `tasks status` é texto na conversa. Alternativa sem avaliador: Stop hook clássico lendo o arquivo. |
 | Largura do painel do Claude Code | Abre sozinho só a partir de ~110–144 colunas; abaixo, `/jtasks` à mão. |
 | **[rev. 5.2]** Um Claude Code que cai deixa a trava até o `holdTtl` | O mod não sabe o PID do Claude Code e `$.process.spawn` fecha a entrada padrão na partida, então nem `--release-on-eof` nem `--parent` servem; o prazo (`2h` por padrão) é a rede. Se pesar, um `jlock hold --parent <pid>` no plano do jlock. |
-| **[rev. 5.2]** `doctor --fix` instala o jlock pelo instalador oficial | O instalador do jlock acrescenta a pasta ao `PATH` do usuário (comportamento dele, documentado); o goal-tasks não mexe no `PATH` por conta própria e registra o binário instalado no ledger global para o desfazer. |
-| **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o goal-tasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no goal-tasks depende de API do Windows. |
-| **[rev. 5]** Um processo `hold` por tarefa e por `claim` | Dezenas de processos de ~1 MB, dormindo; aceitável. Se pesar, o jlock pode ganhar depois um `hold` que renove várias chaves de donos diferentes; o goal-tasks não muda. |
+| **[rev. 5.2]** `doctor --fix` instala o jlock pelo instalador oficial | O instalador do jlock acrescenta a pasta ao `PATH` do usuário (comportamento dele, documentado); o jtasks não mexe no `PATH` por conta própria e registra o binário instalado no ledger global para o desfazer. |
+| **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o jtasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no jtasks depende de API do Windows. |
+| **[rev. 5]** Um processo `hold` por tarefa e por `claim` | Dezenas de processos de ~1 MB, dormindo; aceitável. Se pesar, o jlock pode ganhar depois um `hold` que renove várias chaves de donos diferentes; o jtasks não muda. |
 | **[rev. 5]** Posse perdida no meio (`hold` saiu com 14) | A tarefa volta a `pending` com `attempts+1`; as edições ficam no disco e são listadas; o painel mostra "posse perdida"; o log diz quem forçou (vem do `log.jsonl` do jlock, campo `by`). |
 
 Fontes consultadas em 23/10/2026: tipos dos mods do Claude Code (build 2.1.309) e as ferramentas
@@ -699,12 +699,12 @@ tickets do spybrowser; herdr worktree; artigos sobre worktrees para agentes para
 
 ---
 
-## 20. Como o goal-tasks fala com o jlock **[rev. 5]**
+## 20. Como o jtasks fala com o jlock **[rev. 5]**
 
-Tudo pelo CLI instalado (`jlock` no `PATH`), sempre com `--json`, sempre com caminhos absolutos. O goal-tasks nunca
+Tudo pelo CLI instalado (`jlock` no `PATH`), sempre com `--json`, sempre com caminhos absolutos. O jtasks nunca
 lê nem escreve em `%LOCALAPPDATA%\jlock`.
 
-| Ação do goal-tasks | Comando jlock | O que importa na resposta |
+| Ação do jtasks | Comando jlock | O que importa na resposta |
 |---|---|---|
 | `next` (posse livre?) | `jlock list --under <repo> --json` | `locks[].key`, `holder.owner`, `queue[]`; a regra de hierarquia decide o conflito localmente |
 | `start T04` | `jlock hold <chave…> --no-wait --ttl <holdTtl> --owner gt:<run>/T04 --group <run> --intent "<título>" --meta task=T04 --meta run=<run> --meta tool=<claude\|opencode\|cli> --json`, **[rev. 5.2]** com `--detach` (CLI, mod: responde e volta; o jlock segura) ou `--release-on-eof` (plugin: processo residente com a entrada padrão aberta) | primeira linha: `granted` ou `queued` + código 10 ("não estava pronta"); `exclusive` usa a chave `*` |
@@ -718,10 +718,10 @@ lê nem escreve em `%LOCALAPPDATA%\jlock`.
 | `serialize` | `jlock run name:gt/<repo-slug>/<comando-slug> -- <comando>` | código de saída do comando; 11 se `--timeout` for dado e vencer |
 | emergência (pessoa) | `jlock unlock --group <run> --force --by gt:<run> --reason "…"`; `jlock graph`; `jlock list --watch` | o `hold` afetado sai com 14 e a tarefa volta a `pending` |
 
-Códigos do jlock que o goal-tasks traduz: 0 ok; 10 ocupado; 11 prazo; 12 deadlock; 13 não é o dono; 14 posse
+Códigos do jlock que o jtasks traduz: 0 ok; 10 ocupado; 11 prazo; 12 deadlock; 13 não é o dono; 14 posse
 perdida; 20 erro de disco (vira erro da ferramenta, com a mensagem do jlock); 2 uso errado (bug nosso: registrar).
 
-Tempos: o goal-tasks não mexe em `JLOCK_HEARTBEAT_MS`/`JLOCK_STALE_MS` em produção (5 s / 30 s); só os testes usam
+Tempos: o jtasks não mexe em `JLOCK_HEARTBEAT_MS`/`JLOCK_STALE_MS` em produção (5 s / 30 s); só os testes usam
 valores curtos. **[rev. 5.2]** Todo processo `jlock` recebe `JLOCK_LANG` com o idioma escolhido (seção 21), para as
 mensagens dele que citamos saírem no mesmo idioma.
 
@@ -732,7 +732,7 @@ mensagens dele que citamos saírem no mesmo idioma.
 Os mesmos onze do jlock: `en` (referência e reserva para chave que falte), `pt-BR`, `es`, `fr`, `de`, `it`, `zh-CN`,
 `ja`, `ru`, `ar`, `hi`. Catálogos em `locales/<tag>.json`, embutidos no `core.js` pelo build (o mod e o plugin os
 carregam com o núcleo); `_glossary` no topo de cada um (tarefa, execução, posse, trava, fila, tentativa, ticket,
-efeito, desfazer), coerente com o glossário do jlock. Escolha: `--lang <tag>` > `GOAL_TASKS_LANG` > `JLOCK_LANG` >
+efeito, desfazer), coerente com o glossário do jlock. Escolha: `--lang <tag>` > `JTASKS_LANG` > `JLOCK_LANG` >
 idioma do sistema (`Intl`; o host informa o seu quando a API dá) > `en`, com os apelidos do jlock (`pt` → `pt-BR`,
 `zh` → `zh-CN`, `es-MX` → `es`). `{marcadores}` e plural por `_one`/`_other` com `{n}`.
 
@@ -747,8 +747,8 @@ pendente", como no jlock.
 
 ## 22. `tasks doctor` **[rev. 5.2]**
 
-`tasks doctor [--json]` diz se a máquina está pronta, no modelo do `jlock doctor`: (1) versão do goal-tasks e
-`bun`; (2) `git`; (3) `jlock` no `PATH`, versão mínima, e o `jlock doctor --json` resumido; (4) `GOAL_TASKS_HOME`
+`tasks doctor [--json]` diz se a máquina está pronta, no modelo do `jlock doctor`: (1) versão do jtasks e
+`bun`; (2) `git`; (3) `jlock` no `PATH`, versão mínima, e o `jlock doctor --json` resumido; (4) `JTASKS_HOME`
 e o ledger global; (5) OpenCode: pasta de configuração, os três agentes, o plugin citado (informativo); (6) Claude
 Code: `claude` e o mod (informativo); (7) as skills nas pastas dos três agentes; (8) o idioma e de onde veio. Cada
 `warn`/`fail` diz o que fazer; saída 0 sem `fail`, 20 com. Só lê.
@@ -764,16 +764,16 @@ Cada arquivo criado é um efeito `install` no ledger global, e `tasks undo --eff
 ## 23. Skills e READMEs **[rev. 5.2]**
 
 `skills/<agente>/<skill>/`, como no jlock, para `claude-code`, `opencode` e `codex`: `to-tickets` (planejar: a
-pergunta "quais arquivos", o JSON em lotes pela ferramenta) e `goal-tasks` (executar pelo CLI quando não há mod nem
+pergunta "quais arquivos", o JSON em lotes pela ferramenta) e `jtasks` (executar pelo CLI quando não há mod nem
 plugin: identidade `--run`/`--task`, o laço `next` → `start` → trabalho na posse → `claim` → `done`/`fail` →
 `status`, o que fazer em `timeout`/`deadlock`/posse perdida, ser o orquestrador com ou sem `/goal`). Cada versão usa
 o nome da ferramenta no seu host; `skills/README.md` traz a tabela de pastas e os comandos de uma linha; o build
 copia as do Claude Code para `claude/skills/`; o `doctor --fix` instala.
 
-Com o mod ou o plugin, o protocolo vem injetado e a skill `goal-tasks` não é necessária: `to-tickets` planeja,
+Com o mod ou o plugin, o protocolo vem injetado e a skill `jtasks` não é necessária: `to-tickets` planeja,
 `/goal` (ou `create_goal`) recebe "todas as tarefas da execução `<run>` estão done ou skipped", e a cada volta o
 modelo chama `next`, abre os subagentes e chama `status`. Sem mod nem plugin (um terminal, o Codex), a skill
-`goal-tasks` é o protocolo: o agente repete `next` até "restam 0" ele mesmo.
+`jtasks` é o protocolo: o agente repete `next` até "restam 0" ele mesmo.
 
 `README.md` didático, no modelo do jlock (por quê, o problema, como funciona com um diagrama Mermaid, instalar com
 `tasks doctor`, cinco minutos com saídas reais, com Claude Code, com OpenCode, de um terminal ou Codex, garantias e

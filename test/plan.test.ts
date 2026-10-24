@@ -32,7 +32,7 @@ describe("tasks plan", () => {
     const id = (r.data as { run: string }).run
     expect(id).toMatch(/^cursory-nativo-\d{6}-[a-z0-9]{4}$/)
     expect(r.bind).toBe(id)
-    const dir = join(repo, ".scratch/goal-tasks/runs", id)
+    const dir = join(repo, ".scratch/jtasks/runs", id)
 
     const run = json(join(dir, "run.json")) as RunFile
     expect(run).toMatchObject({
@@ -77,7 +77,7 @@ describe("tasks plan", () => {
       ["e-0003", "branch", "git-branch-delete", "active"],
     ])
     expect(effects[2]).toMatchObject({ ref: `gt/${id}`, from: "main", run: id })
-    const global = await readEffects(host, join(process.env.GOAL_TASKS_HOME!, "ledger.jsonl"))
+    const global = await readEffects(host, join(process.env.JTASKS_HOME!, "ledger.jsonl"))
     expect(global.filter((e) => e.run === id).map((e) => e.id)).toEqual(["e-0001", "e-0002", "e-0003"])
 
     const log = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l))
@@ -111,9 +111,9 @@ describe("tasks plan", () => {
     const r = await tasksOk(repo, ["plan"], { json: { ...plan, branch: "current" } })
     const id = (r.data as { run: string }).run
     expect(branches(repo)).toEqual(["main"])
-    const run = json(join(repo, ".scratch/goal-tasks/runs", id, "run.json")) as RunFile
+    const run = json(join(repo, ".scratch/jtasks/runs", id, "run.json")) as RunFile
     expect(run.repo.branch).toBe("main")
-    const effects = await readEffects(host, join(repo, ".scratch/goal-tasks/runs", id, "ledger.jsonl"))
+    const effects = await readEffects(host, join(repo, ".scratch/jtasks/runs", id, "ledger.jsonl"))
     expect(effects.map((e) => e.type)).toEqual(["dir", "exclude"])
   })
 
@@ -139,7 +139,7 @@ describe("atomic writes and revision", () => {
   test("a write based on a stale revision is refused; concurrent read-change-writes both land under the write lock", async () => {
     const repo = makeRepo()
     const r = await tasksOk(repo, ["plan"], { json: { ...plan, branch: "current" } })
-    const dir = join(repo, ".scratch/goal-tasks/runs", (r.data as { run: string }).run).replace(/\\/g, "/")
+    const dir = join(repo, ".scratch/jtasks/runs", (r.data as { run: string }).run).replace(/\\/g, "/")
     const first = (await readTasks(host, dir))!
     const second = structuredClone(first)
     second.tasks[0]!.title = "mudado"

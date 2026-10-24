@@ -5,7 +5,7 @@ import { installMachine, installSession } from './machine.ts'
 declare const setTimeout: (fn: () => void, ms: number) => unknown
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__goal-tasks__tasks'
+const TOOL = 'mcp__jtasks__tasks'
 
 const PLAN = {
   objective: 'Duas fatias',
@@ -46,12 +46,12 @@ test('plan binds the run to the session; status answers; another --run is refuse
   const run = /execução (\S+) criada/.exec(planned)![1]!
   expect(planned).toContain(`branch gt/${run}`)
   expect(m.branch()).toBe(`gt/${run}`)
-  const tasks = JSON.parse(m.read(`${ROOT}/.scratch/goal-tasks/runs/${run}/tasks.json`)!)
+  const tasks = JSON.parse(m.read(`${ROOT}/.scratch/jtasks/runs/${run}/tasks.json`)!)
   expect(tasks.tasks.map((t: { id: string }) => t.id)).toEqual(['T01', 'T02'])
   expect(m.read(`${ROOT}/.git/info/exclude`)).toBe('.scratch/\n')
-  expect(m.list(`${ROOT}/.scratch/goal-tasks/runs/${run}/tickets`)).toEqual(['01-base.md', '02-junta.md'])
+  expect(m.list(`${ROOT}/.scratch/jtasks/runs/${run}/tickets`)).toEqual(['01-base.md', '02-junta.md'])
 
-  expect(states).toEqual([expect.objectContaining({ plugin: 'goal-tasks', key: 'run', value: { run, root: ROOT } })])
+  expect(states).toEqual([expect.objectContaining({ plugin: 'jtasks', key: 'run', value: { run, root: ROOT } })])
 
   const status = await call($, 'status')
   expect(status.split('\n')[0]).toBe('feitas 0/2 (0%) · restam 2')
@@ -70,10 +70,10 @@ test('the protocol section is in the system prompt only while a run is bound', a
 
   const run = /execução (\S+) criada/.exec(await call($, 'plan', PLAN))![1]!
   const after = await $.prompt.compose(COMPOSE as never)
-  expect(after.sections.map((s) => s.id)).toEqual(['intro', 'goal-tasks:protocol'])
+  expect(after.sections.map((s) => s.id)).toEqual(['intro', 'jtasks:protocol'])
   const section = after.sections[1]!
   expect(section.scope).toBe('session')
-  expect(section.text).toContain(`goal-tasks: bound run ${run} · feitas 0/2 (0%) · restam 2`)
+  expect(section.text).toContain(`jtasks: bound run ${run} · feitas 0/2 (0%) · restam 2`)
   expect(section.text).toContain('1. Call tasks next.')
   expect(section.text).toContain('the Agent tool')
 })

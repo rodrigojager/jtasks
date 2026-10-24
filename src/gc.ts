@@ -115,7 +115,7 @@ export async function classify(host: Host, dir: string): Promise<Finding | undef
   const git = await host.stat(join(dir, ".git"))
   if (git?.kind === "file") return worktreeFinding(host, dir, (await host.readText(join(dir, ".git"))) ?? "")
   if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file") {
-    const inRepo = /\/\.scratch\/goal-tasks\/runs$/i.test(dirname(slash(dir)))
+    const inRepo = /\/\.scratch\/jtasks\/runs$/i.test(dirname(slash(dir)))
     return runFinding(host, dir, inRepo ? "run" : "archive")
   }
   return undefined

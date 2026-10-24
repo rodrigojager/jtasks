@@ -19,11 +19,11 @@ const plan = [{ id: "T01", title: "Base", files: ["src/a.ts"] }]
 async function newRun(repo = makeRepo(), name = "limpa") {
   const r = await tasksOk(repo, ["plan", "--name", name], { json: plan })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/goal-tasks/runs", r.bind!).replace(/\\/g, "/") }
+  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!).replace(/\\/g, "/") }
 }
 
 const globalEffects = async (run: string) =>
-  (await readEffects(host, join(process.env.GOAL_TASKS_HOME!, "ledger.jsonl"))).filter((e) => e.run === run)
+  (await readEffects(host, join(process.env.JTASKS_HOME!, "ledger.jsonl"))).filter((e) => e.run === run)
 
 describe("clean", () => {
   test("without --yes it only lists the folder and the active effects", async () => {
@@ -55,12 +55,12 @@ describe("clean", () => {
     expect((await tasksOk(repo, ["runs"])).text).toBe("nenhuma execução neste repositório (crie uma com tasks plan)")
   })
 
-  test("--all --yes removes .scratch/goal-tasks", async () => {
+  test("--all --yes removes .scratch/jtasks", async () => {
     const repo = makeRepo()
     await newRun(repo, "um")
     await tasksOk(repo, ["plan", "--name", "dois"], { json: { tasks: plan, branch: "current" } })
     await tasksOk(repo, ["clean", "--all", "--yes"])
-    expect(existsSync(join(repo, ".scratch/goal-tasks"))).toBe(false)
+    expect(existsSync(join(repo, ".scratch/jtasks"))).toBe(false)
   })
 })
 
@@ -68,7 +68,7 @@ describe("archive", () => {
   test("archive moves the run out of the project; resume --from-archive brings it back", async () => {
     const { repo, run, dir } = await newRun()
     const r = await tasksOk(repo, ["archive", run])
-    const to = join(process.env.GOAL_TASKS_HOME!, "archive", repo.split("/").pop()!, run).replace(/\\/g, "/")
+    const to = join(process.env.JTASKS_HOME!, "archive", repo.split("/").pop()!, run).replace(/\\/g, "/")
     expect(r.text).toBe(`execução ${run} arquivada em ${to}; volta com tasks resume ${run} --from-archive`)
     expect(existsSync(dir)).toBe(false)
     expect(existsSync(join(to, "tasks.json"))).toBe(true)

@@ -62,7 +62,7 @@ describe("gc --scan", () => {
     await tasksOk(repo, ["gc", "--remove", known, "--yes"])
     expect(existsSync(known)).toBe(false)
     expect(sh(repo, "git", "worktree", "list")).not.toContain("wt-known")
-    const global = await readEffects(host, join(process.env.GOAL_TASKS_HOME!, "ledger.jsonl"))
+    const global = await readEffects(host, join(process.env.JTASKS_HOME!, "ledger.jsonl"))
     expect(global.filter((e) => e.run === "gc").map((e) => [e.type, e.path, e.undo.kind])).toEqual([
       ["dir", orphan, "none"],
       ["dir", known, "none"],

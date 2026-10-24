@@ -1,12 +1,12 @@
 <!-- languages -->
 [English](README.md) · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Italiano](README.it.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [हिन्दी](README.hi.md)
 
-# goal-tasks
+# jtasks
 
-**goal-tasks turns a plan into a list of tasks that AI coding agents carry out in parallel, in the same checkout,
+**jtasks turns a plan into a list of tasks that AI coding agents carry out in parallel, in the same checkout,
 without stepping on each other, with one commit per task and everything undoable.**
 
-## Why goal-tasks exists
+## Why jtasks exists
 
 AI coding agents can work in parallel, but a long goal ("build the login", "port the parser") goes wrong in
 familiar ways. The model keeps the task list in its head or in a Markdown file it edits by hand, and the list drifts:
@@ -14,7 +14,7 @@ a task is marked done that is not, two subagents pick the same task, a dependenc
 the same time edit the same file and one overwrites the other. Commits mix the work of several tasks, so one cannot
 be reverted alone. And when a session dies, nobody knows which task was halfway.
 
-goal-tasks moves all of that out of the model and into a tool. The plan is validated once; the list lives in a JSON
+jtasks moves all of that out of the model and into a tool. The plan is validated once; the list lives in a JSON
 file only the tool writes; each task declares the files it owns, and those files are locked while it runs.
 
 ## The problem, precisely
@@ -64,8 +64,8 @@ tasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agent
 `tasks doctor --fix` without `--yes` only lists what it would do. Everything it installs goes to the ledger, so
 `tasks undo` removes it. Then, for your agent:
 
-- **Claude Code:** `claude --plugin-dir <goal-tasks>/claude` (the mod; see [`claude/README.md`](claude/README.md)).
-- **OpenCode:** add `<goal-tasks>/opencode` to `plugins` in `opencode.json` (see [`opencode/README.md`](opencode/README.md)).
+- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (the mod; see [`claude/README.md`](claude/README.md)).
+- **OpenCode:** add `<jtasks>/opencode` to `plugins` in `opencode.json` (see [`opencode/README.md`](opencode/README.md)).
 - **Codex or a terminal:** the skills in [`skills/`](skills/README.md) teach the agent the commands.
 
 ## Five minutes
@@ -83,25 +83,25 @@ A plan with three tasks: two that can run together and one that joins them.
 }
 ```
 
-<!-- goal-tasks-example -->
+<!-- jtasks-example -->
 ```text
 $ tasks plan @plan.json
 run a-sum-its-docs-and-the-e-261024-gvus created: 3 task(s), branch gt/a-sum-its-docs-and-the-e-261024-gvus
-tickets: 3 in ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets
+tickets: 3 in ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets
 next step: tasks next
 
 $ tasks next
 ready (2) in a-sum-its-docs-and-the-e-261024-gvus; they can run in parallel:
 T01 · Sum · profile implement · ownership: src/sum.ts
   criteria: sum.ts exports sum
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
 T02 · Docs · profile implement · ownership: docs/sum.md
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/02-docs.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/02-docs.md
 blocked: T03 ⛔ T01, T02
 
 $ tasks start T01
 T01 in progress (attempt 1): ownership locked in jlock (1 key(s), owner gt:a-sum-its-docs-and-the-e-261024-gvus/T01)
-ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
+ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
 another file: tasks claim T01 <file>; at the end: tasks done T01 --evidence "…" (or tasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
@@ -139,13 +139,13 @@ the plan). The sidebar shows the checklist and the progress bar.
 
 ## From a terminal or Codex
 
-Without a mod or a plugin, the `goal-tasks` skill is the protocol: the agent runs `tasks next`, does each task inside
+Without a mod or a plugin, the `jtasks` skill is the protocol: the agent runs `tasks next`, does each task inside
 its ownership (`tasks start`, `tasks claim`, `tasks done`), and repeats until `tasks status` says nothing is left. A
 person can do the same by hand.
 
 ## Guarantees and limits
 
-| goal-tasks guarantees | It does not |
+| jtasks guarantees | It does not |
 |---|---|
 | Only the tool writes the list; every change is validated and atomic | stop a program that ignores jlock from editing a file |
 | A task's files are locked in jlock while it runs; parallel tasks never share a file | lock parts of a file: ownership is by file and folder |
@@ -153,15 +153,15 @@ person can do the same by hand.
 | Every effect is in the ledger and can be undone | undo what it did not create |
 | A dead agent's or window's locks come back (at once with OpenCode, at the time limit otherwise) | work across machines (jlock is one machine) |
 
-Windows first: jlock and goal-tasks were validated on Windows; Linux and macOS follow jlock's own plan.
+Windows first: jlock and jtasks were validated on Windows; Linux and macOS follow jlock's own plan.
 
 ## Configuration
 
 | Variable | Default | Use |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `~/.goal-tasks` | the global ledger and archived runs |
-| `GOAL_TASKS_LANG` | the system's | the language of the answers (`--lang` on a command wins) |
-| `GOAL_TASKS_RUN` | unset | the run the CLI works on, instead of `--run` |
+| `JTASKS_HOME` | `~/.jtasks` | the global ledger and archived runs |
+| `JTASKS_LANG` | the system's | the language of the answers (`--lang` on a command wins) |
+| `JTASKS_RUN` | unset | the run the CLI works on, instead of `--run` |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
 
 Eleven languages, the same as jlock's: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文,

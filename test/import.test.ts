@@ -53,7 +53,7 @@ describe("reading tickets", () => {
   test("import --yes creates the run (all pending); generated tickets read back give the same tasks", async () => {
     const repo = makeRepo()
     const r = await tasksOk(repo, ["import", FIXTURES, "--yes", "--name", "jlock-fixtures"])
-    const dir = join(repo, ".scratch/goal-tasks/runs", r.bind!)
+    const dir = join(repo, ".scratch/jtasks/runs", r.bind!)
     const first = JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
     expect(first.tasks.map((t) => [t.id, t.status, !!t.exclusive])).toEqual([
       ["T01", "pending", false],
@@ -65,7 +65,7 @@ describe("reading tickets", () => {
     // Round trip: the run's own tickets, imported into another repository, give the same tasks.
     const other = makeRepo()
     const again = await tasksOk(other, ["import", join(dir, "tickets"), "--yes"])
-    const second = JSON.parse(readFileSync(join(other, ".scratch/goal-tasks/runs", again.bind!, "tasks.json"), "utf8")) as TasksFile
+    const second = JSON.parse(readFileSync(join(other, ".scratch/jtasks/runs", again.bind!, "tasks.json"), "utf8")) as TasksFile
     expect(second.tasks).toEqual(first.tasks)
   })
 

@@ -1,5 +1,5 @@
 // The end-to-end demonstration through the CLI, in a temporary repository with a private JLOCK_HOME and
-// GOAL_TASKS_HOME (removed at the end): plan in batches with a validation error fixed by --fix, next with parallel
+// JTASKS_HOME (removed at the end): plan in batches with a validation error fixed by --fix, next with parallel
 // tasks, start holding the locks (jlock list --group), a claim that waits in jlock's queue, done with one commit per
 // task, status down to "restam 0", the ledger, and undo of one task. Prints each command and its literal output.
 // Usage: bun scripts/demo.ts
@@ -11,20 +11,20 @@ import { join } from "node:path"
 const REPO = join(import.meta.dir, "..").replace(/\\/g, "/")
 const CLI = `${REPO}/cli/tasks.ts`
 const base = (process.platform === "win32" ? "D:/claude-cache" : tmpdir()).replace(/\\/g, "/")
-const ROOT = `${base}/goal-tasks-demo-${process.pid}-${Date.now().toString(36)}`
+const ROOT = `${base}/jtasks-demo-${process.pid}-${Date.now().toString(36)}`
 const WORK = `${ROOT}/repo`
 
 const env: Record<string, string> = {
   ...(process.env as Record<string, string>),
   JLOCK_HOME: `${ROOT}/jlock`,
-  GOAL_TASKS_HOME: `${ROOT}/goal-tasks-home`,
+  JTASKS_HOME: `${ROOT}/jtasks-home`,
   JLOCK_HEARTBEAT_MS: "300",
   JLOCK_STALE_MS: "3000",
   JLOCK_HINTS: "0",
   // The demonstration is shown in Portuguese, whatever the machine speaks.
-  GOAL_TASKS_LANG: "pt-BR",
+  JTASKS_LANG: "pt-BR",
 }
-delete env.GOAL_TASKS_RUN
+delete env.JTASKS_RUN
 delete env.JLOCK_LANG
 
 function print(text: string) {
@@ -65,7 +65,7 @@ async function main() {
   quiet("git", "add", "-A")
   quiet("git", "commit", "-q", "-m", "init")
   print(`# repositório temporário: ${WORK}`)
-  print(`# JLOCK_HOME=${env.JLOCK_HOME}  GOAL_TASKS_HOME=${env.GOAL_TASKS_HOME}\n`)
+  print(`# JLOCK_HOME=${env.JLOCK_HOME}  JTASKS_HOME=${env.JTASKS_HOME}\n`)
 
   // 1. The plan in batches; the second batch makes T03 share src/core.ts with T01 with no dependency.
   file("../batch1.json", JSON.stringify({ serialize: ["bun test"], tasks: [
@@ -74,7 +74,7 @@ async function main() {
   ] }, null, 2))
   file("../batch2.json", JSON.stringify([{ id: "T03", title: "Entrada", files: ["src/main.ts", "src/core.ts"] }], null, 2))
   file("../fix-t03.json", JSON.stringify({ title: "Entrada", dependsOn: ["T01", "T02"], files: ["src/main.ts"] }, null, 2))
-  tasks(["plan", "--draft", "--name", "demo", "--objective", "Demonstração do goal-tasks"])
+  tasks(["plan", "--draft", "--name", "demo", "--objective", "Demonstração do jtasks"])
   tasks(["plan", "--add", "@../batch1.json"])
   tasks(["plan", "--add", "@../batch2.json"])
   tasks(["plan", "--commit"], { allowFail: true })

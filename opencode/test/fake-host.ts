@@ -9,7 +9,7 @@ import { createServerPlugin } from "../server.ts"
 
 type Hook = (event: any) => Promise<void> | void
 
-export const TEST_ROOT = (process.platform === "win32" ? "D:/claude-cache/goal-tasks-tests" : "/tmp/goal-tasks-tests").replace(/\\/g, "/")
+export const TEST_ROOT = (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : "/tmp/jtasks-tests").replace(/\\/g, "/")
 const made: string[] = []
 
 export function tempDir(prefix: string): string {

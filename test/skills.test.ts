@@ -10,7 +10,7 @@ setDefaultTimeout(60_000)
 afterAll(cleanupTemp)
 
 const HOSTS = ["claude-code", "opencode", "codex"]
-const SKILLS = ["goal-tasks", "to-tickets"]
+const SKILLS = ["jtasks", "to-tickets"]
 const dir = (host: string, skill: string) => join(REPO_ROOT, "skills", host, skill)
 const read = (host: string, skill: string, name = "SKILL.md") => readFileSync(join(dir(host, skill), name), "utf8")
 const example = JSON.parse(read("claude-code", "to-tickets", "example-plan.json"))
@@ -61,15 +61,15 @@ describe("the skills of every agent", () => {
       expect(headings[2]).toEqual(headings[0]!)
       expect(headings[0]!.length).toBeGreaterThan(3)
     }
-    expect(read("claude-code", "goal-tasks")).toContain("mcp__goal-tasks__tasks")
-    expect(read("opencode", "goal-tasks")).toContain("`subagent` tool")
-    expect(read("codex", "goal-tasks")).toContain("in the shell")
-    expect(read("codex", "goal-tasks")).not.toContain("mcp__goal-tasks__tasks")
+    expect(read("claude-code", "jtasks")).toContain("mcp__jtasks__tasks")
+    expect(read("opencode", "jtasks")).toContain("`subagent` tool")
+    expect(read("codex", "jtasks")).toContain("in the shell")
+    expect(read("codex", "jtasks")).not.toContain("mcp__jtasks__tasks")
   })
 
-  test("goal-tasks covers doctor, the loop, ownership, timeout, deadlock, lost ownership, /goal and the exit codes", () => {
+  test("jtasks covers doctor, the loop, ownership, timeout, deadlock, lost ownership, /goal and the exit codes", () => {
     for (const host of HOSTS) {
-      const text = read(host, "goal-tasks")
+      const text = read(host, "jtasks")
       for (const needle of ["tasks doctor", "tasks next", "tasks start <id>", "tasks claim <id> <file>", "tasks done <id> --evidence", "tasks fail <id>", "tasks status", "Deadlock", "Ownership lost", "Without /goal", "With /goal", "## Exit codes"])
         expect(text, `${host}: ${needle}`).toContain(needle)
     }

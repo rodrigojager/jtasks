@@ -1,5 +1,5 @@
 // Test helpers: temporary folders under D:\claude-cache (removed at the end), temporary git repositories, and the
-// tool run like the CLI runs it. The private GOAL_TASKS_HOME / JLOCK_HOME come from test/setup.ts.
+// tool run like the CLI runs it. The private JTASKS_HOME / JLOCK_HOME come from test/setup.ts.
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -9,7 +9,7 @@ import { runTool, type ToolContext, type ToolResult } from "../src/tool.ts"
 import "../src/index.ts"
 
 export const TEST_ROOT = (
-  process.env.GOAL_TASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/goal-tasks-tests" : join(tmpdir(), "goal-tasks-tests"))
+  process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : join(tmpdir(), "jtasks-tests"))
 ).replace(/\\/g, "/")
 
 const made: string[] = []

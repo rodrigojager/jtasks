@@ -1,13 +1,13 @@
 <!-- languages -->
 [English](README.md) · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Italiano](README.it.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [हिन्दी](README.hi.md)
 
-# goal-tasks
+# jtasks
 
-**goal-tasks macht aus einem Plan eine Aufgabenliste, die KI-Programmieragenten parallel abarbeiten, im selben
+**jtasks macht aus einem Plan eine Aufgabenliste, die KI-Programmieragenten parallel abarbeiten, im selben
 Checkout, ohne sich gegenseitig in die Quere zu kommen, mit einem Commit pro Aufgabe und alles rückgängig
 machbar.**
 
-## Warum es goal-tasks gibt
+## Warum es jtasks gibt
 
 KI-Programmieragenten können parallel arbeiten, aber ein langes Ziel („bau den Login“, „portiere den Parser“) geht
 auf bekannte Weise schief. Das Modell hält die Aufgabenliste im Kopf oder in einer Markdown-Datei, die es von Hand
@@ -16,7 +16,7 @@ Subagenten nehmen dieselbe Aufgabe, eine Abhängigkeit wird vergessen. Gleichzei
 dieselbe Datei, und einer überschreibt den anderen. Commits vermischen die Arbeit mehrerer Aufgaben, sodass sich
 keine einzeln zurücknehmen lässt. Und wenn eine Sitzung stirbt, weiß niemand, welche Aufgabe halb fertig war.
 
-goal-tasks nimmt all das aus dem Modell heraus und gibt es einem Tool. Der Plan wird einmal geprüft; die Liste
+jtasks nimmt all das aus dem Modell heraus und gibt es einem Tool. Der Plan wird einmal geprüft; die Liste
 liegt in einer JSON-Datei, die nur das Tool schreibt; jede Aufgabe gibt die Dateien an, die ihr gehören (ihr
 Besitz), und diese Dateien sind gesperrt, solange sie läuft.
 
@@ -72,9 +72,9 @@ tasks doctor --fix --yes   # installiert, was fehlt: jlock, die OpenCode-Agenten
 `tasks doctor --fix` ohne `--yes` listet nur auf, was es tun würde. Alles, was es installiert, kommt ins Ledger,
 sodass `tasks undo` es wieder entfernt. Danach, für deinen Agenten:
 
-- **Claude Code:** `claude --plugin-dir <goal-tasks>/claude` (der Mod; siehe
+- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (der Mod; siehe
   [`claude/README.md`](claude/README.md)).
-- **OpenCode:** füge `<goal-tasks>/opencode` zu `plugins` in `opencode.json` hinzu (siehe
+- **OpenCode:** füge `<jtasks>/opencode` zu `plugins` in `opencode.json` hinzu (siehe
   [`opencode/README.md`](opencode/README.md)).
 - **Codex oder ein Terminal:** Die Skills in [`skills/`](skills/README.md) bringen dem Agenten die Befehle bei.
 
@@ -93,25 +93,25 @@ Ein Plan mit drei Aufgaben: zwei, die zusammen laufen können, und eine, die sie
 }
 ```
 
-<!-- goal-tasks-example -->
+<!-- jtasks-example -->
 ```text
 $ tasks plan @plan.json
 Lauf a-sum-its-docs-and-the-e-261024-covw erstellt: 3 Aufgabe(n), branch gt/a-sum-its-docs-and-the-e-261024-covw
-Tickets: 3 in ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets
+Tickets: 3 in ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets
 nächster Schritt: tasks next
 
 $ tasks next
 bereit (2) in a-sum-its-docs-and-the-e-261024-covw; sie können parallel laufen:
 T01 · Sum · Profil implement · Besitz: src/sum.ts
   Kriterien: sum.ts exports sum
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
 T02 · Docs · Profil implement · Besitz: docs/sum.md
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/02-docs.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/02-docs.md
 blockiert: T03 ⛔ T01, T02
 
 $ tasks start T01
 T01 in Arbeit (Versuch 1): Besitz in jlock gesperrt (1 Schlüssel, Besitzer gt:a-sum-its-docs-and-the-e-261024-covw/T01)
-ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
+ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
 weitere Datei: tasks claim T01 <datei>; am Ende: tasks done T01 --evidence "…" (oder tasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
@@ -151,13 +151,13 @@ jeden Agenten, den du im Plan nennst). Die Seitenleiste zeigt die Checkliste und
 
 ## Aus einem Terminal oder Codex
 
-Ohne Mod oder Plugin ist die Skill `goal-tasks` das Protokoll: Der Agent führt `tasks next` aus, erledigt jede
+Ohne Mod oder Plugin ist die Skill `jtasks` das Protokoll: Der Agent führt `tasks next` aus, erledigt jede
 Aufgabe innerhalb ihres Besitzes (`tasks start`, `tasks claim`, `tasks done`) und wiederholt das, bis
 `tasks status` meldet, dass nichts mehr offen ist. Ein Mensch kann dasselbe von Hand tun.
 
 ## Garantien und Grenzen
 
-| goal-tasks garantiert | Was es nicht tut |
+| jtasks garantiert | Was es nicht tut |
 |---|---|
 | Nur das Tool schreibt die Liste; jede Änderung wird geprüft und ist atomar | ein Programm, das jlock ignoriert, am Bearbeiten einer Datei hindern |
 | Die Dateien einer Aufgabe sind in jlock gesperrt, solange sie läuft; parallele Aufgaben teilen nie eine Datei | Teile einer Datei sperren: Besitz gilt pro Datei und Ordner |
@@ -165,15 +165,15 @@ Aufgabe innerhalb ihres Besitzes (`tasks start`, `tasks claim`, `tasks done`) un
 | Jeder Effekt steht im Ledger und lässt sich rückgängig machen | rückgängig machen, was es nicht erzeugt hat |
 | Die Sperren eines gestorbenen Agenten oder Fensters kommen zurück (sofort mit OpenCode, sonst nach Fristablauf) | über mehrere Rechner hinweg arbeiten (jlock gilt für einen Rechner) |
 
-Windows zuerst: jlock und goal-tasks wurden unter Windows geprüft; Linux und macOS folgen dem Plan von jlock.
+Windows zuerst: jlock und jtasks wurden unter Windows geprüft; Linux und macOS folgen dem Plan von jlock.
 
 ## Konfiguration
 
 | Variable | Standard | Zweck |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `~/.goal-tasks` | das globale Ledger und archivierte Läufe |
-| `GOAL_TASKS_LANG` | die des Systems | die Sprache der Antworten (`--lang` bei einem Befehl hat Vorrang) |
-| `GOAL_TASKS_RUN` | nicht gesetzt | der Lauf, an dem das CLI arbeitet, statt `--run` |
+| `JTASKS_HOME` | `~/.jtasks` | das globale Ledger und archivierte Läufe |
+| `JTASKS_LANG` | die des Systems | die Sprache der Antworten (`--lang` bei einem Befehl hat Vorrang) |
+| `JTASKS_RUN` | nicht gesetzt | der Lauf, an dem das CLI arbeitet, statt `--run` |
 | `JLOCK_BIN` | `jlock` | die ausführbare Datei von jlock |
 
 Elf Sprachen, dieselben wie bei jlock: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文,

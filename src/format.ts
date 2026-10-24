@@ -62,7 +62,7 @@ export function protocolText(run: string, summary: string, spawn: string): strin
   const finished = tr("progress.remaining", { n: 0 })
   const paused = tr("view.paused")
   return [
-    `goal-tasks: bound run ${run} · ${summary}`,
+    `jtasks: bound run ${run} · ${summary}`,
     "Protocol:",
     "1. Call tasks next.",
     `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` +

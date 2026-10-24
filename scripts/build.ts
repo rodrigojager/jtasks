@@ -74,7 +74,7 @@ export async function buildAll(): Promise<Bundle[]> {
 export const HOSTS: Record<string, { calling: string; spawn: string; after: string; frontmatter: Record<string, string> }> = {
   "claude-code": {
     calling:
-      "In Claude Code with the goal-tasks mod, every `tasks …` command below goes through the `mcp__goal-tasks__tasks` " +
+      "In Claude Code with the jtasks mod, every `tasks …` command below goes through the `mcp__jtasks__tasks` " +
       'tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", ' +
       '"json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write ' +
       "first (`tasks plan --add @batch1.json`) or on standard input (`-`).",
@@ -85,12 +85,12 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "tasks yourself, one at a time.",
     after:
       "the protocol the mod injects into the prompt (`tasks next`, one subagent per ready task, `tasks status` until " +
-      "nothing is left); without the mod, the `goal-tasks` skill.",
+      "nothing is left); without the mod, the `jtasks` skill.",
     frontmatter: { "to-tickets": "disable-model-invocation: true\n" },
   },
   opencode: {
     calling:
-      "In OpenCode with the goal-tasks plugin, every `tasks …` command below goes through the `tasks` tool: `command` " +
+      "In OpenCode with the jtasks plugin, every `tasks …` command below goes through the `tasks` tool: `command` " +
       'is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). ' +
       "Without the plugin, run the same commands in the shell, with the JSON in a file you write first " +
       "(`tasks plan --add @batch1.json`) or on standard input (`-`).",
@@ -101,17 +101,17 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "yourself, one at a time.",
     after:
       "the protocol the plugin injects into each request (`tasks next`, one subagent per ready task, `tasks status` " +
-      "until nothing is left); without the plugin, the `goal-tasks` skill.",
+      "until nothing is left); without the plugin, the `jtasks` skill.",
     frontmatter: {},
   },
   codex: {
     calling:
-      "Run every `tasks …` command below in the shell (`tasks` is the goal-tasks CLI). JSON goes in a file you write " +
+      "Run every `tasks …` command below in the shell (`tasks` is the jtasks CLI). JSON goes in a file you write " +
       "first (`tasks plan --add @batch1.json`) or on standard input (`-`).",
     spawn:
       "work on it yourself, one task at a time; if your setup runs several agents, give each one a task instead, with " +
       "a first message that starts with `--run <run> --task <id>` and asks it to follow step 3.",
-    after: "the `goal-tasks` skill (`tasks next`, the tasks, `tasks status` until nothing is left).",
+    after: "the `jtasks` skill (`tasks next`, the tasks, `tasks status` until nothing is left).",
     frontmatter: {},
   },
 }

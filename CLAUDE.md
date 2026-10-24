@@ -1,6 +1,6 @@
-# goal-tasks — regras para quem trabalha neste repositório
+# jtasks — regras para quem trabalha neste repositório
 
-Este repositório é o `goal-tasks`: lista de tarefas determinística com dependências e paralelismo por posse de
+Este repositório é o `jtasks`: lista de tarefas determinística com dependências e paralelismo por posse de
 arquivos, como ferramenta `tasks` (mod do Claude Code, plugin do OpenCode e CLI). O plano completo está em
 `docs/PLAN.md`; é a fonte de verdade. Em dúvida, o plano manda. `docs/reference/` guarda os HTML originais, só
 como histórico.
@@ -9,7 +9,7 @@ como histórico.
 
 Itens 2 a 6 da seção 18 do plano entregues (núcleo + CLI + ledger, plugin do OpenCode, mod do Claude Code, skill
 `to-tickets`, `gc --scan`); itens 7 (worktrees per-task) e 8 (Codex, pi, ralph) ficaram de fora. Os tickets ficam em
-`.scratch/goal-tasks/issues/NN-slug.md` (fora do git) e seguem o mesmo processo do jlock: fronteira (menor ticket
+`.scratch/jtasks/issues/NN-slug.md` (fora do git) e seguem o mesmo processo do jlock: fronteira (menor ticket
 cujos bloqueios estão `done`), `**Status:**` no arquivo, critérios `- [ ]`, um commit por ticket (`NN: <título>`).
 Uso em `docs/USAGE.md`; desvios em `docs/DEVIATIONS.md`. Segunda leva (plano rev. 5.2, seção 18 itens 9 a 15):
 tickets 19 a 30 (nomes completos dos perfis, posse pelo `hold --detach`/`--release-on-eof`, barra no estilo do HUD,
@@ -24,9 +24,9 @@ velhas), `opencode/` (plugin), `claude/` (mod; tipos em `vendor/claude-code.d.ts
 ## Relação com o jlock
 
 A posse de arquivos é imposta pelo `jlock`, um CLI de travas da máquina inteira, com repositório próprio em
-`D:\jlock` e instalado em `~\.cargo\bin\jlock.exe`. O goal-tasks o chama como processo (`--json` e códigos de saída);
+`D:\jlock` e instalado em `~\.cargo\bin\jlock.exe`. O jtasks o chama como processo (`--json` e códigos de saída);
 não existe segunda implementação do protocolo. Referência de uso: `D:\jlock\docs\USAGE.md`; projeto:
-`D:\jlock\docs\PLAN.md`. O que o goal-tasks precisar do jlock é feito lá, pelo processo do jlock: um ticket em
+`D:\jlock\docs\PLAN.md`. O que o jtasks precisar do jlock é feito lá, pelo processo do jlock: um ticket em
 `D:\jlock\.scratch\jlock\issues`, `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, help e
 READMEs dos onze idiomas atualizados, um commit por ticket, e `cargo install --path .` para o binário instalado
 acompanhar. Nunca editar `D:\jlock` à mão a partir daqui, fora desse processo.

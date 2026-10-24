@@ -3,7 +3,7 @@ import { type RunState } from "./frontier.js";
 import { type HoldMode, type HoldOutcome, type Identity } from "./jlock.js";
 import { type Task } from "./schema.js";
 import { type ParsedArgs, type ToolContext } from "./tool.js";
-/** `--run`, else the run bound to the session (or GOAL_TASKS_RUN), else the only active run of the repository. */
+/** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
 export declare function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState>;
 /** Re-reads run.json and tasks.json (inside the write lock, before deciding). */
 export declare function reload(ctx: ToolContext, state: RunState): Promise<RunState>;

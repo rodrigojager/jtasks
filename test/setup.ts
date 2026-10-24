@@ -1,4 +1,4 @@
-// Preloaded before every test file (bunfig.toml): a private GOAL_TASKS_HOME and JLOCK_HOME with short jlock timings
+// Preloaded before every test file (bunfig.toml): a private JTASKS_HOME and JLOCK_HOME with short jlock timings
 // for the whole test process, so no test touches the real ledger or the real lock registry; both are removed after
 // the last test, together with the test root when it is left empty.
 
@@ -8,21 +8,21 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 const root = (
-  process.env.GOAL_TASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/goal-tasks-tests" : join(tmpdir(), "goal-tasks-tests"))
+  process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : join(tmpdir(), "jtasks-tests"))
 ).replace(/\\/g, "/")
 const home = `${root}/process-${process.pid}-${Date.now().toString(36)}`
 
 mkdirSync(`${home}/jlock`, { recursive: true })
-process.env.GOAL_TASKS_HOME = `${home}/goal-tasks`
+process.env.JTASKS_HOME = `${home}/jtasks`
 process.env.JLOCK_HOME = `${home}/jlock`
 process.env.JLOCK_HEARTBEAT_MS = "200"
 process.env.JLOCK_STALE_MS = "1500"
 process.env.JLOCK_HINTS = "0"
 // Tests start real git and jlock processes; on a busy machine 5 s (the default) is not enough.
 setDefaultTimeout(60_000)
-delete process.env.GOAL_TASKS_RUN
+delete process.env.JTASKS_RUN
 // The answers the tests read are the Portuguese ones, whatever the machine speaks (test/i18n.test.ts tries others).
-process.env.GOAL_TASKS_LANG = "pt-BR"
+process.env.JTASKS_LANG = "pt-BR"
 delete process.env.JLOCK_LANG
 
 function remove(dir: string) {

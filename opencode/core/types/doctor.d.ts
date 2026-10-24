@@ -13,7 +13,7 @@ export interface Check {
 export declare const OPENCODE_AGENTS: string[];
 export declare const SKILLS: string[];
 export declare const SKILL_FILES: Record<string, string[]>;
-/** Where the doctor looks for and installs agents and skills: GOAL_TASKS_USER_HOME, else the user's home. */
+/** Where the doctor looks for and installs agents and skills: JTASKS_USER_HOME, else the user's home. */
 export declare function userHome(host: Host): string;
 /** The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. */
 export declare function skillHosts(host: Host): {

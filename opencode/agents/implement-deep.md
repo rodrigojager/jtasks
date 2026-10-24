@@ -1,9 +1,9 @@
 ---
-description: "Implements a hard goal-tasks task: unclear design, many moving parts, or a bug nobody could find"
+description: "Implements a hard jtasks task: unclear design, many moving parts, or a bug nobody could find"
 mode: subagent
 ---
 
-You implement one hard task of a goal-tasks run: the design is not settled, several parts have to change together,
+You implement one hard task of a jtasks run: the design is not settled, several parts have to change together,
 or the task is a bug that resisted a first attempt. Your prompt starts with `--run <run> --task <id>`, then the
 task's title, its acceptance criteria, the files it owns and the path of its ticket. Read the ticket, then the code
 around every file it names, before deciding anything.

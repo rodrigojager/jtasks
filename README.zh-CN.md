@@ -1,15 +1,15 @@
 <!-- languages -->
 [English](README.md) · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Italiano](README.it.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [हिन्दी](README.hi.md)
 
-# goal-tasks
+# jtasks
 
-**goal-tasks 把一份计划变成一个任务列表，由 AI 编程智能体在同一个检出目录中并行执行，互不干扰，每个任务一次提交，一切都可以撤销。**
+**jtasks 把一份计划变成一个任务列表，由 AI 编程智能体在同一个检出目录中并行执行，互不干扰，每个任务一次提交，一切都可以撤销。**
 
-## 为什么需要 goal-tasks
+## 为什么需要 jtasks
 
 AI 编程智能体可以并行工作，但一个长目标（"实现登录"、"移植解析器"）往往会以熟悉的方式出错。模型把任务列表记在脑子里，或者记在一个手动编辑的 Markdown 文件里，于是列表逐渐走样：没完成的任务被标记为完成，两个子智能体领了同一个任务，某个依赖被遗忘。同时运行的智能体编辑同一个文件，一个覆盖了另一个。提交混杂了多个任务的工作，于是无法单独还原其中一个。而当会话中断时，没人知道哪个任务做到了一半。
 
-goal-tasks 把这一切从模型中移出来，交给一个工具。计划只校验一次；列表保存在一个只有工具才会写入的 JSON 文件中；每个任务声明它拥有的文件，这些文件在任务运行期间被锁定。
+jtasks 把这一切从模型中移出来，交给一个工具。计划只校验一次；列表保存在一个只有工具才会写入的 JSON 文件中；每个任务声明它拥有的文件，这些文件在任务运行期间被锁定。
 
 ## 问题的准确描述
 
@@ -47,8 +47,8 @@ tasks doctor --fix --yes   # 安装缺少的部分：jlock、OpenCode 智能体�
 
 不带 `--yes` 的 `tasks doctor --fix` 只列出它将要做的事。它安装的一切都会记入 ledger，因此 `tasks undo` 可以把它们移除。然后，根据你的智能体：
 
-- **Claude Code：** `claude --plugin-dir <goal-tasks>/claude`（mod；见 [`claude/README.md`](claude/README.md)）。
-- **OpenCode：** 在 `opencode.json` 的 `plugins` 中加入 `<goal-tasks>/opencode`（见 [`opencode/README.md`](opencode/README.md)）。
+- **Claude Code：** `claude --plugin-dir <jtasks>/claude`（mod；见 [`claude/README.md`](claude/README.md)）。
+- **OpenCode：** 在 `opencode.json` 的 `plugins` 中加入 `<jtasks>/opencode`（见 [`opencode/README.md`](opencode/README.md)）。
 - **Codex 或终端：** [`skills/`](skills/README.md) 中的 skill 会教智能体使用这些命令。
 
 ## 五分钟上手
@@ -66,25 +66,25 @@ tasks doctor --fix --yes   # 安装缺少的部分：jlock、OpenCode 智能体�
 }
 ```
 
-<!-- goal-tasks-example -->
+<!-- jtasks-example -->
 ```text
 $ tasks plan @plan.json
 运行 a-sum-its-docs-and-the-e-261024-fls1 已创建：3 个任务，branch gt/a-sum-its-docs-and-the-e-261024-fls1
-工单：3 个，位于 ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets
+工单：3 个，位于 ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets
 下一步：tasks next
 
 $ tasks next
 a-sum-its-docs-and-the-e-261024-fls1 中就绪（2）；可以并行执行：
 T01 · Sum · 配置 implement · 所有权：src/sum.ts
   验收标准：sum.ts exports sum
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/01-sum.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/01-sum.md
 T02 · Docs · 配置 implement · 所有权：docs/sum.md
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/02-docs.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/02-docs.md
 被阻塞：T03 ⛔ T01, T02
 
 $ tasks start T01
 T01 进行中（第 1 次尝试）：所有权已在 jlock 中锁定（1 个键，所有者 gt:a-sum-its-docs-and-the-e-261024-fls1/T01）
-ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/01-sum.md
+ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/01-sum.md
 需要其他文件：tasks claim T01 <文件>；结束时：tasks done T01 --evidence "…"（或 tasks fail T01 --error "…"）
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
@@ -117,11 +117,11 @@ Claude 调用 `tasks next`，在同一个回复中为每个就绪任务打开一
 
 ## 在终端或 Codex 中
 
-没有 mod 或插件时，`goal-tasks` skill 就是协议：智能体运行 `tasks next`，在所有权内完成每个任务（`tasks start`、`tasks claim`、`tasks done`），并重复，直到 `tasks status` 显示没有剩余。人也可以手动做同样的事。
+没有 mod 或插件时，`jtasks` skill 就是协议：智能体运行 `tasks next`，在所有权内完成每个任务（`tasks start`、`tasks claim`、`tasks done`），并重复，直到 `tasks status` 显示没有剩余。人也可以手动做同样的事。
 
 ## 保证与限制
 
-| goal-tasks 保证 | 它不会 |
+| jtasks 保证 | 它不会 |
 |---|---|
 | 只有工具写入列表；每次修改都经过校验且是原子的 | 阻止一个无视 jlock 的程序编辑文件 |
 | 任务运行期间，它的文件在 jlock 中被锁定；并行的任务从不共享文件 | 锁定文件的一部分：所有权以文件和文件夹为单位 |
@@ -129,15 +129,15 @@ Claude 调用 `tasks next`，在同一个回复中为每个就绪任务打开一
 | 每个副作用都在 ledger 中，并且可以撤销 | 撤销不是它创建的东西 |
 | 已中断的智能体或窗口的锁会被收回（OpenCode 立即收回，其他情况在时限到达时） | 跨机器工作（jlock 只管一台机器） |
 
-Windows 优先：jlock 和 goal-tasks 已在 Windows 上验证；Linux 和 macOS 跟随 jlock 自身的计划。
+Windows 优先：jlock 和 jtasks 已在 Windows 上验证；Linux 和 macOS 跟随 jlock 自身的计划。
 
 ## 配置
 
 | 变量 | 默认值 | 用途 |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `~/.goal-tasks` | 全局 ledger 和已归档的运行 |
-| `GOAL_TASKS_LANG` | 系统语言 | 回答的语言（命令中的 `--lang` 优先） |
-| `GOAL_TASKS_RUN` | 未设置 | CLI 操作的运行，代替 `--run` |
+| `JTASKS_HOME` | `~/.jtasks` | 全局 ledger 和已归档的运行 |
+| `JTASKS_LANG` | 系统语言 | 回答的语言（命令中的 `--lang` 优先） |
+| `JTASKS_RUN` | 未设置 | CLI 操作的运行，代替 `--run` |
 | `JLOCK_BIN` | `jlock` | jlock 可执行文件 |
 
 十一种语言，与 jlock 相同：English、Português (Brasil)、Español、Français、Deutsch、Italiano、简体中文、日本語、Русский、العربية、हिन्दी。所有命令见 [`docs/USAGE.md`](docs/USAGE.md)；设计文档（葡萄牙语）是 [`docs/PLAN.md`](docs/PLAN.md)，与设计不同的地方见 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md)。

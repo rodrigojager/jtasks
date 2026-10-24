@@ -45,7 +45,7 @@ import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffe
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
 import { DEFAULT_HOLD_TTL, type Hold, type Task, type TasksFile } from "./schema.ts"
-import { appendLog, clone, goalTasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
+import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { normalizeFileEntry } from "./validate.ts"
@@ -53,7 +53,7 @@ import { tr } from "./i18n.ts"
 
 // ── The run of a command ──────────────────────────────────────────────────────────────────────────────────────
 
-/** `--run`, else the run bound to the session (or GOAL_TASKS_RUN), else the only active run of the repository. */
+/** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
 export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState> {
   const root = await requireRepo(ctx.host, ctx.cwd)
   const explicit = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
@@ -1082,7 +1082,7 @@ async function undoGlobal(ctx: ToolContext, id: string): Promise<ToolResult> {
   await host.remove(e.path)
   const parent = dirname(e.path)
   if (!(await host.list(parent)).length) await host.remove(parent, { recursive: true }).catch(() => {})
-  await setEffectState(host, goalTasksHome(host), e.run, e.id, "undone")
+  await setEffectState(host, jtasksHome(host), e.run, e.id, "undone")
   return ok(tr("undo.file_removed", { id: e.id, file: e.path }), { undone: [e.id] })
 }
 

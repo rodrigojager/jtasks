@@ -9,7 +9,7 @@ const ROOT = "D:/Proj"
 function state(tasks: PlanTask[], status: RunFile["status"] = "active"): RunState {
   return {
     root: ROOT,
-    dir: `${ROOT}/.scratch/goal-tasks/runs/r-261024-abcd`,
+    dir: `${ROOT}/.scratch/jtasks/runs/r-261024-abcd`,
     run: { id: "r-261024-abcd", status } as RunFile,
     tasks: { version: 1, run: "r-261024-abcd", revision: 1, profiles: DEFAULT_PROFILES, tasks: tasks.map((t) => toTask(t, DEFAULT_PROFILES)) },
   }

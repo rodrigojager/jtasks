@@ -34,7 +34,7 @@ async function finishedRun() {
     writeFiles(repo, { [file]: `${id}\n` })
     await tasksOk(repo, ["done", id, "--evidence", "ok"])
   }
-  return { repo, run, dir: join(repo, ".scratch/goal-tasks/runs", run) }
+  return { repo, run, dir: join(repo, ".scratch/jtasks/runs", run) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
@@ -72,7 +72,7 @@ describe("undo", () => {
     const effects = await readEffects(host, join(dir, "ledger.jsonl"))
     expect(effects.find((e) => e.id === "e-0005")!.state).toBe("undone")
     expect(effects.at(-1)).toMatchObject({ id: "e-0006", type: "commit", task: "T02", reverts: "e-0005", state: "active" })
-    const global = (await readEffects(host, join(process.env.GOAL_TASKS_HOME!, "ledger.jsonl"))).filter((e) => e.run === run)
+    const global = (await readEffects(host, join(process.env.JTASKS_HOME!, "ledger.jsonl"))).filter((e) => e.run === run)
     expect(global.find((e) => e.id === "e-0005")!.state).toBe("undone")
     const log = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l))
     expect(log.at(-1)).toMatchObject({ action: "undo", task: "T02", from: "done", to: "pending" })
@@ -98,7 +98,7 @@ describe("undo", () => {
     expect(sh(repo, "git", "branch", "--format=%(refname:short)").trim()).toBe("main")
     expect(readFileSync(join(repo, ".git/info/exclude"), "utf8")).not.toContain(".scratch/")
     expect(existsSync(dir)).toBe(false)
-    const global = (await readEffects(host, join(process.env.GOAL_TASKS_HOME!, "ledger.jsonl"))).filter((e) => e.run === run)
+    const global = (await readEffects(host, join(process.env.JTASKS_HOME!, "ledger.jsonl"))).filter((e) => e.run === run)
     expect(global.filter((e) => e.state === "active").map((e) => e.id)).toEqual(["e-0006", "e-0007"])
   })
 })

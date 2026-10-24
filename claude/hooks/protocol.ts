@@ -1,15 +1,15 @@
-// What the model reads about goal-tasks in Claude Code: the tool's description and the protocol section of the
+// What the model reads about jtasks in Claude Code: the tool's description and the protocol section of the
 // system prompt while a run is bound (the protocol text itself is the core's, shared with OpenCode).
 
 import { progressLine, protocolText, readRun, readTasks, runDir, tr, VERSION, type Host } from '../core/core.js'
 import type { BoundRun } from '../types'
 
 export const TOOL_NAME = 'tasks'
-export const SECTION_ID = 'goal-tasks:protocol'
+export const SECTION_ID = 'jtasks:protocol'
 
 // What the model reads is English in every language (plan section 21); the answers are in the person's language.
 export const TOOL_DESCRIPTION =
-  `goal-tasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
+  `jtasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
   '"command" is the tasks CLI command line without the "tasks" (e.g. "next", "start T04", "claim T04 src/x.ts", ' +
   '"done T04 --evidence \\"bun test: 12 passed\\"", "status", "plan --add"); "json" carries the plan, the batch or ' +
   'the task in JSON (plan, plan --add, plan --fix <id>). "help" lists the actions. Never edit tasks.json, the tickets ' +

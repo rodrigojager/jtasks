@@ -1,4 +1,4 @@
-# Contributing to goal-tasks
+# Contributing to jtasks
 
 Issues and pull requests are welcome. The design lives in [`docs/PLAN.md`](docs/PLAN.md) (Portuguese); what came
 out differently is in [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md). Before a pull request, run the checks the
@@ -38,7 +38,7 @@ issue with the sentence as it is and your suggestion.
 
 ### What stays in English inside a translation
 
-Action and option names (`tasks claim`, `--evidence`), environment variables (`GOAL_TASKS_*`, `JLOCK_*`), file
+Action and option names (`tasks claim`, `--evidence`), environment variables (`JTASKS_*`, `JLOCK_*`), file
 names (`tasks.json`, `run.json`), task and run ids, and result codes of the JSON when a sentence quotes them.
 
 ### Status of the languages

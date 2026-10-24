@@ -39,7 +39,7 @@ async function setup() {
 describe("OpenCode plugin", () => {
   test("registers the tasks tool and its hooks", async () => {
     const { h } = await setup()
-    expect(PLUGIN_ID).toBe("goal-tasks")
+    expect(PLUGIN_ID).toBe("jtasks")
     expect(h.tools.map((t) => t.name)).toEqual([TOOL_NAME])
     expect([...h.hooks.keys()].sort()).toEqual(["permission.evaluate", "session.compaction", "session.context", "tool.execute.before"])
   })
@@ -57,7 +57,7 @@ describe("OpenCode plugin", () => {
 
     const system = await h.request("s1")
     expect(system).toHaveLength(2)
-    expect(system[1]!.text).toContain(`goal-tasks: bound run ${run} · feitas 0/3 (0%) · restam 3`)
+    expect(system[1]!.text).toContain(`jtasks: bound run ${run} · feitas 0/3 (0%) · restam 3`)
     expect(system[1]!.text).toContain("1. Call tasks next.")
 
     const next = await h.call("s1", "next")
@@ -123,13 +123,13 @@ describe("OpenCode plugin", () => {
     expect(await h.permission("c1", "read", ["src/other.ts"])).toMatchObject({ effect: "allow" })
     // The main agent edits freely, but never the run's files.
     expect(await h.permission("s1", "edit", ["src/other.ts"])).toMatchObject({ effect: "allow" })
-    const tj = `.scratch/goal-tasks/runs/${run}/tasks.json`
+    const tj = `.scratch/jtasks/runs/${run}/tasks.json`
     expect((await h.permission("s1", "edit", [tj])).effect).toBe("deny")
     // After claim, the file is in the ownership.
     await h.call("c1", "claim T01 src/other.ts")
     expect(await h.permission("c1", "edit", ["src/other.ts"])).toMatchObject({ effect: "allow" })
     await h.call("c1", "release T01")
-    expect(JSON.parse(readFileSync(join(repo, ".scratch/goal-tasks/runs", run, "tasks.json"), "utf8")).tasks[0].status).toBe("pending")
+    expect(JSON.parse(readFileSync(join(repo, ".scratch/jtasks/runs", run, "tasks.json"), "utf8")).tasks[0].status).toBe("pending")
   })
 
   test("a subagent call of an unknown task is refused; another --run than the bound one is refused", async () => {
@@ -137,7 +137,7 @@ describe("OpenCode plugin", () => {
     const planned = await h.call("s1", "plan", plan)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
     await expect(h.subagent("s1", { agent: "build", description: "x", prompt: `--run ${run} --task T09 x` })).rejects.toThrow(
-      `goal-tasks: a execução ${run} não tem a tarefa T09`,
+      `jtasks: a execução ${run} não tem a tarefa T09`,
     )
     const plain = { agent: "explore", description: "x", prompt: "map the code" }
     expect(await h.subagent("s1", plain)).toBe(plain)
@@ -164,7 +164,7 @@ describe("OpenCode plugin", () => {
     const planned = await h.call("s2", "plan", ghost)
     expect(planned.ok).toBe(true)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const line = 'aviso: o perfil "implement" aponta o agente "ghost", que não existe: instale os agentes do goal-tasks com tasks doctor --fix, ou aponte um agente seu no plano'
+    const line = 'aviso: o perfil "implement" aponta o agente "ghost", que não existe: instale os agentes do jtasks com tasks doctor --fix, ou aponte um agente seu no plano'
     expect(planned.text.split("\n")).toContain(line)
     h.addSession("s3")
     const resumed = await h.call("s3", `resume ${run}`)
@@ -204,7 +204,7 @@ describe("OpenCode plugin", () => {
     const { repo, h } = await setup()
     const planned = await h.call("s1", "plan", plan)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const dir = join(repo, ".scratch/goal-tasks/runs", run)
+    const dir = join(repo, ".scratch/jtasks/runs", run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
     const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
     const until = async (check: () => boolean) => {

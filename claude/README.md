@@ -1,6 +1,6 @@
-# goal-tasks for Claude Code
+# jtasks for Claude Code
 
-The Claude Code mod of [goal-tasks](../README.md): the `tasks` tool (`mcp__goal-tasks__tasks`, the same contract as
+The Claude Code mod of [jtasks](../README.md): the `tasks` tool (`mcp__jtasks__tasks`, the same contract as
 the CLI), the run bound to the session (`$.state`, shared by subagents), the execution protocol in the system
 prompt while a run is bound, a "Tasks" pane with the checklist and `/jtasks` (Claude Code has its own `/tasks`), the model of each subagent from its
 task's profile, and the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of subagents.
@@ -13,18 +13,18 @@ the hooks module runs it with no Node and no `node_modules`. It needs `jlock` in
 For one session, from this folder's parent:
 
 ```
-claude --plugin-dir D:/goal-tasks/claude
+claude --plugin-dir D:/jtasks/claude
 ```
 
 Or add the repository as a marketplace and install it; nothing here changes your Claude Code configuration.
 
 ## Language
 
-The pane, `/jtasks` and the tool's answers speak the language picked when the session starts: `GOAL_TASKS_LANG`,
+The pane, `/jtasks` and the tool's answers speak the language picked when the session starts: `JTASKS_LANG`,
 then `JLOCK_LANG`, then the system's language, then English (`en` and `pt-BR` today). A single call can ask for
 another with `--lang <tag>` (`{ "command": "status --lang en" }`). The tool's description and the protocol in the
 system prompt are English, for the model; `--json` data is the same in every language. Set the variable before
-starting Claude Code, for example `GOAL_TASKS_LANG=en claude --plugin-dir D:/goal-tasks/claude`.
+starting Claude Code, for example `JTASKS_LANG=en claude --plugin-dir D:/jtasks/claude`.
 
 ## Tasks pane
 

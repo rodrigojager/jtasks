@@ -1,4 +1,4 @@
-// The goal-tasks mod's $.state contract.
+// The jtasks mod's $.state contract.
 
 /** The run bound to this session (subagents share it). */
 export type BoundRun = {
@@ -40,7 +40,7 @@ export type PaneView =
 
 declare module 'claude-code' {
   interface PluginState {
-    'goal-tasks': {
+    'jtasks': {
       run: BoundRun | null
       collapsed: boolean
       view: Shaped<PaneView | null>

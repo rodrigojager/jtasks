@@ -1,6 +1,6 @@
-# goal-tasks for OpenCode
+# jtasks for OpenCode
 
-The OpenCode v2 plugin of [goal-tasks](../README.md): the `tasks` tool with the same contract as the CLI, the run
+The OpenCode v2 plugin of [jtasks](../README.md): the `tasks` tool with the same contract as the CLI, the run
 bound to the root session, the execution protocol and the run's progress in every model request (and in
 compaction), the agent of each task's profile on its `subagent` call, and the ownership guard on `edit` and
 `shell` permissions.
@@ -15,12 +15,12 @@ Point a configuration file at this folder; nothing here touches your OpenCode co
 ```jsonc
 // opencode.jsonc (project or ~/.config/opencode)
 {
-  "plugins": ["D:/goal-tasks/opencode"]
+  "plugins": ["D:/jtasks/opencode"]
 }
 ```
 
 OpenCode loads the folder's `server.ts`; the package also exports `./tui` (`tui.tsx`, the sidebar section) and
-`./rpc` (`goal-tasks.state`, the data the section reads).
+`./rpc` (`jtasks.state`, the data the section reads).
 
 ## Agents
 
@@ -36,7 +36,7 @@ profile with `opencode.model` gives that agent the model for the session (see `d
 ## Language
 
 The sidebar section and the tool's answers speak the language picked when OpenCode starts (the server and the TUI
-each pick it the same way): `GOAL_TASKS_LANG`, then `JLOCK_LANG`, then the system's language, then English (`en`
+each pick it the same way): `JTASKS_LANG`, then `JLOCK_LANG`, then the system's language, then English (`en`
 and `pt-BR` today). A single call can ask for another with `--lang <tag>`. The tool's description and the protocol
 injected into each request are English, for the model; `--json` data is the same in every language.
 

@@ -17,7 +17,7 @@ const result = await runTool(
     holdMode: "detach",
     // Where `doctor --fix` copies the OpenCode agents and the skills from.
     packageRoot: join(import.meta.dir, "..").replace(/\\/g, "/"),
-    boundRun: process.env.GOAL_TASKS_RUN || undefined,
+    boundRun: process.env.JTASKS_RUN || undefined,
     stdin: async () => await new Response(Bun.stdin.stream()).text(),
   },
   argv,

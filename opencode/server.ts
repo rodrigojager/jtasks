@@ -1,4 +1,4 @@
-// goal-tasks for OpenCode v2 (server plugin): the `tasks` tool (the same contract as the CLI, through the core's
+// jtasks for OpenCode v2 (server plugin): the `tasks` tool (the same contract as the CLI, through the core's
 // runTool), the run bound to the root session, the protocol and progress in every request and in compaction, the
 // agent of each task's profile on its subagent call, and the ownership guard on edit and shell permissions.
 
@@ -14,11 +14,11 @@ import { agentFor, agentMissingLine, applyProfileModels, missingAgents, SUBAGENT
 import { TasksRpc } from "./src/rpc.ts"
 import { viewFor } from "./src/view.ts"
 
-export const PLUGIN_ID = "goal-tasks"
+export const PLUGIN_ID = "jtasks"
 export const TOOL_NAME = "tasks"
 
 // What the model reads is English in every language (plan section 21); the answers are in the person's language.
-export const TOOL_DESCRIPTION = `goal-tasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
+export const TOOL_DESCRIPTION = `jtasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
   `"command" is the tasks CLI command line without the "tasks" (e.g. "next", "start T04", "claim T04 src/x.ts", ` +
   `"done T04 --evidence \\"bun test: 12 passed\\"", "status", "plan --add"); "json" carries the plan or the batch in JSON ` +
   `(plan, plan --add, plan --fix <id>). "help" lists the actions. Never edit tasks.json, the tickets or git by hand.`
@@ -98,7 +98,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         if (result.ok && result.bind) {
           const data = result.data as { dir?: string; repo?: string } | undefined
           const dir = data?.dir?.replace(/\\/g, "/")
-          const root = dir ? dir.replace(/\/\.scratch\/goal-tasks\/runs\/[^/]+$/, "") : (run?.root ?? tctx.cwd)
+          const root = dir ? dir.replace(/\/\.scratch\/jtasks\/runs\/[^/]+$/, "") : (run?.root ?? tctx.cwd)
           await bindings.bind(sessionID, { run: result.bind, root })
           const tasks = await readTasks(host, runDir(root, result.bind)).catch(() => undefined)
           if (tasks) {
@@ -152,7 +152,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         if (!run) return
         const decision = await agentFor(host, run, input.prompt)
         // Throwing fails only this call, and the model reads the reason.
-        if (decision.error) throw new Error(`goal-tasks: ${decision.error}`)
+        if (decision.error) throw new Error(`jtasks: ${decision.error}`)
         if (decision.agent && decision.agent !== input.agent) event.input = { ...input, agent: decision.agent }
       })
 

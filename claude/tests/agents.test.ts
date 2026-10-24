@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { installMachine, installSession } from './machine.ts'
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__goal-tasks__tasks'
+const TOOL = 'mcp__jtasks__tasks'
 const PLAN = {
   serialize: ['bun test'],
   profiles: {
@@ -32,7 +32,7 @@ async function scene($: any, on: any) {
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
   const r = await $.tool.call({ tool: TOOL, command: 'plan', json: PLAN })
   const run = /execução (\S+) criada/.exec(String(r.result))![1]!
-  const file = `${ROOT}/.scratch/goal-tasks/runs/${run}/tasks.json`
+  const file = `${ROOT}/.scratch/jtasks/runs/${run}/tasks.json`
   return { machine, run, file, spawned, bash }
 }
 
@@ -55,9 +55,9 @@ test('an unknown profile or task refuses the spawn', async ($, on) => {
   tasks.tasks[1].profile = 'nope'
   machine.write(file, JSON.stringify(tasks))
   const bad = await $.agent.spawn({ prompt: `--run ${run} --task T02 x`, description: 'T02', subagentType: 'general-purpose' } as never)
-  expect(bad.deny).toBe('goal-tasks: perfil desconhecido "nope" (perfis: implement, implement-deep)')
+  expect(bad.deny).toBe('jtasks: perfil desconhecido "nope" (perfis: implement, implement-deep)')
   const none = await $.agent.spawn({ prompt: `--run ${run} --task T09 x`, description: 'T09', subagentType: 'general-purpose' } as never)
-  expect(none.deny).toBe(`goal-tasks: a execução ${run} não tem a tarefa T09`)
+  expect(none.deny).toBe(`jtasks: a execução ${run} não tem a tarefa T09`)
 })
 
 test("a subagent's serialized command goes through jlock run; others and the main agent's run as they are", async ($, on) => {
@@ -80,7 +80,7 @@ test("a subagent that ends with its task in progress gives it back to the queue 
   machine.write(file, JSON.stringify(tasks))
   await $.turn.complete({ answer: 'parei', durationMs: 10, isAborted: false, turnId: 't1', agentId: 'agent-1', reason: 'answer' } as never)
   expect(JSON.parse(machine.read(file)!).tasks[0]).toMatchObject({ status: 'pending', owner: null })
-  const log = machine.read(`${ROOT}/.scratch/goal-tasks/runs/${run}/log.jsonl`)!.trim().split('\n').map((l) => JSON.parse(l))
+  const log = machine.read(`${ROOT}/.scratch/jtasks/runs/${run}/log.jsonl`)!.trim().split('\n').map((l) => JSON.parse(l))
   expect(log.at(-1)).toMatchObject({ action: 'agent-ended', task: 'T01', from: 'in_progress', to: 'pending' })
   expect(machine.releases).toContain(`gt:${run}/T01`)
   // A second end of the same agent changes nothing.

@@ -223,8 +223,8 @@ describe("TUI section", () => {
     expect(await frame(view, (f) => f.includes("Tasks"))).toContain("▾ Tasks · sem execução ligada")
   })
 
-  test("the same section in English: GOAL_TASKS_LANG=en for the server and the TUI", async () => {
-    process.env.GOAL_TASKS_LANG = "en"
+  test("the same section in English: JTASKS_LANG=en for the server and the TUI", async () => {
+    process.env.JTASKS_LANG = "en"
     try {
       const repo = makeRepo()
       const server = await fakeHost(repo)
@@ -247,7 +247,7 @@ describe("TUI section", () => {
       await view.mockMouse.click(2, 0)
       expect(await frame(view, (f) => f.includes("▸ Tasks"))).toContain("▸ Tasks 0/2 · 0%")
     } finally {
-      process.env.GOAL_TASKS_LANG = "pt-BR"
+      process.env.JTASKS_LANG = "pt-BR"
     }
   })
 })

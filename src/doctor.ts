@@ -1,5 +1,5 @@
-// `tasks doctor` (plan section 22): is this machine ready for goal-tasks? Eight checks, in the model of
-// `jlock doctor`, each with what to do when it is not ok. It only reads (a temporary file in GOAL_TASKS_HOME, removed
+// `tasks doctor` (plan section 22): is this machine ready for jtasks? Eight checks, in the model of
+// `jlock doctor`, each with what to do when it is not ok. It only reads (a temporary file in JTASKS_HOME, removed
 // even on failure). `tasks doctor --fix` lists what it would install; `--fix --yes` installs it: jlock through its
 // official installer, the OpenCode agents and the skills of the three agents, each file recorded in the global
 // ledger so `tasks undo <g-id>` removes it. It never overwrites a file that differs, never touches PATH, and never
@@ -10,7 +10,7 @@ import type { Host } from "./host.ts"
 import { EOF_JLOCK, jlockBin, jlockEnv, MIN_JLOCK, versionAtLeast } from "./jlock.ts"
 import { globalLedger, readEffects, recordGlobalEffect } from "./ledger.ts"
 import { dirname, join } from "./paths.ts"
-import { goalTasksHome } from "./store.ts"
+import { jtasksHome } from "./store.ts"
 import { defineAction, ok, ToolError, VERSION, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 
 export type CheckStatus = "ok" | "warn" | "fail"
@@ -25,12 +25,12 @@ export interface Check {
 }
 
 export const OPENCODE_AGENTS = ["implement", "implement-deep", "review"]
-export const SKILLS = ["to-tickets", "goal-tasks"]
-export const SKILL_FILES: Record<string, string[]> = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], "goal-tasks": ["SKILL.md"] }
+export const SKILLS = ["to-tickets", "jtasks"]
+export const SKILL_FILES: Record<string, string[]> = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
 
-/** Where the doctor looks for and installs agents and skills: GOAL_TASKS_USER_HOME, else the user's home. */
+/** Where the doctor looks for and installs agents and skills: JTASKS_USER_HOME, else the user's home. */
 export function userHome(host: Host): string {
-  return (host.env("GOAL_TASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/")
+  return (host.env("JTASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/")
 }
 
 /** The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. */
@@ -48,7 +48,7 @@ const isFile = async (host: Host, path: string) => (await host.stat(path))?.kind
 
 async function checkVersion(host: Host): Promise<Check> {
   const runtime = host.runtime ? ` · ${host.runtime}` : ""
-  return { name: "version", status: "ok", detail: `goal-tasks ${VERSION}${runtime}` }
+  return { name: "version", status: "ok", detail: `jtasks ${VERSION}${runtime}` }
 }
 
 async function checkGit(host: Host): Promise<Check> {
@@ -93,7 +93,7 @@ export async function checkJlock(host: Host): Promise<Check> {
 }
 
 async function checkHome(host: Host): Promise<Check> {
-  const home = goalTasksHome(host)
+  const home = jtasksHome(host)
   const stat = await host.stat(home)
   if (!stat) return { name: "home", status: "ok", detail: tr("doctor.home_absent", { home }) }
   if (stat.kind !== "dir") return { name: "home", status: "fail", detail: tr("doctor.home_not_dir", { home }), fix: tr("doctor.home_fix") }
@@ -125,7 +125,7 @@ async function checkOpenCode(host: Host, cwd: string): Promise<Check> {
       new RegExp(`"${agent}"\\s*:`).test(configText)
     if (!found) missing.push(agent)
   }
-  const plugin = /goal-tasks/.test(configText) ? tr("doctor.opencode_plugin_listed") : tr("doctor.opencode_plugin_absent")
+  const plugin = /jtasks/.test(configText) ? tr("doctor.opencode_plugin_listed") : tr("doctor.opencode_plugin_absent")
   if (missing.length)
     return { name: "opencode", status: "warn", detail: tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "tasks doctor --fix --yes" }
   return { name: "opencode", status: "ok", detail: tr("doctor.opencode_ok", { plugin }) }
@@ -135,7 +135,7 @@ async function checkClaude(host: Host): Promise<Check> {
   const r = await host.run(["claude", "--version"], { timeoutMs: 20_000 })
   if (r.code !== 0) return { name: "claude", status: "ok", detail: tr("doctor.claude_absent") }
   const plugins = (await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json"))) ?? ""
-  const mod = /goal-tasks/.test(plugins) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent")
+  const mod = /jtasks/.test(plugins) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent")
   return { name: "claude", status: "ok", detail: `${r.stdout.trim().split("\n")[0]}; ${mod}` }
 }
 
@@ -229,10 +229,10 @@ async function fixSteps(ctx: ToolContext, checks: Check[]): Promise<FixStep[]> {
   return steps
 }
 
-/** jlock through its official installer (or GOAL_TASKS_JLOCK_INSTALLER, a script run with bun, for the tests). */
+/** jlock through its official installer (or JTASKS_JLOCK_INSTALLER, a script run with bun, for the tests). */
 async function installJlock(ctx: ToolContext): Promise<string> {
   const { host } = ctx
-  const own = host.env("GOAL_TASKS_JLOCK_INSTALLER")
+  const own = host.env("JTASKS_JLOCK_INSTALLER")
   const base = "https://raw.githubusercontent.com/rodrigojager/jlock/main"
   const argv = own
     ? ["bun", own]

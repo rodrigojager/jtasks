@@ -10,11 +10,11 @@ export interface ToolContext {
     tool: ToolName;
     /** The folder the tool was installed from (the CLI's repository): where `doctor --fix` copies agents and skills from. */
     packageRoot?: string;
-    /** The language the host asks for (its own setting); `--lang` and GOAL_TASKS_LANG win over it. */
+    /** The language the host asks for (its own setting); `--lang` and JTASKS_LANG win over it. */
     lang?: string;
     /** Session id of the mod or the plugin; absent in the CLI. */
     session?: string;
-    /** The run bound to the session (mod, plugin), or chosen by `--run`/`GOAL_TASKS_RUN`. */
+    /** The run bound to the session (mod, plugin), or chosen by `--run`/`JTASKS_RUN`. */
     boundRun?: string;
     /** A structured payload (the mod's and the plugin's `json` field); wins over a JSON argument. */
     json?: unknown;

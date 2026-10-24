@@ -22,7 +22,7 @@ const batch2 = [
 ]
 const batch3 = [{ id: "T05", title: "Final", dependsOn: ["T04"], files: ["src/c.ts"], acceptance: ["ok"] }]
 
-const runDir = (repo: string, id: string) => join(repo, ".scratch/goal-tasks/runs", id)
+const runDir = (repo: string, id: string) => join(repo, ".scratch/jtasks/runs", id)
 const tasksJson = (repo: string, id: string) => JSON.parse(readFileSync(join(runDir(repo, id), "tasks.json"), "utf8")) as TasksFile
 
 describe("plan in batches", () => {

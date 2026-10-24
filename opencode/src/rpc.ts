@@ -1,10 +1,10 @@
-// The RPC the TUI section reads (`goal-tasks.state`): the display model of the run bound to a session, computed on
+// The RPC the TUI section reads (`jtasks.state`): the display model of the run bound to a session, computed on
 // the server, so the TUI never touches the files.
 
 import { Rpc } from "@opencode/plugin/rpc"
 
 export const TasksRpc = Rpc.define({
-  id: "goal-tasks",
+  id: "jtasks",
   methods: {
     state: {
       input: {

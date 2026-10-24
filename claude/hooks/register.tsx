@@ -1,4 +1,4 @@
-// goal-tasks for Claude Code: the `tasks` tool (the core's runTool on a host made of $.fs and $.process), the run
+// jtasks for Claude Code: the `tasks` tool (the core's runTool on a host made of $.fs and $.process), the run
 // bound to the session in $.state (subagents share it), the protocol section in the system prompt while a run is
 // bound (prompt.compose runs at every request, so it is back after a compaction too), and the "Tasks" pane with
 // /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open.
@@ -13,12 +13,12 @@ import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
 
-const RUN = { plugin: 'goal-tasks', key: 'run' } as const
+const RUN = { plugin: 'jtasks', key: 'run' } as const
 // Change the tag when the view's fields change: it declines what an earlier version stored.
-const viewAtom = atom({ plugin: 'goal-tasks', key: 'view' } as const, null as PaneView | null, { shape: 'view-1' })
-const collapsedAtom = atom({ plugin: 'goal-tasks', key: 'collapsed' } as const, false)
-const AGENTS = { plugin: 'goal-tasks', key: 'agents' } as const
-const FULL_NAME = 'mcp__goal-tasks__tasks'
+const viewAtom = atom({ plugin: 'jtasks', key: 'view' } as const, null as PaneView | null, { shape: 'view-1' })
+const collapsedAtom = atom({ plugin: 'jtasks', key: 'collapsed' } as const, false)
+const AGENTS = { plugin: 'jtasks', key: 'agents' } as const
+const FULL_NAME = 'mcp__jtasks__tasks'
 
 /** Actions that may name another run than the bound one (they create, bind or only list). */
 const ANY_RUN = new Set(['plan', 'resume', 'import', 'runs', 'ledger', 'gc', 'help', 'version', 'validate', 'clean', 'archive', 'undo'])
@@ -64,7 +64,7 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
   }
   if (result.ok && result.bind) {
     const dir = (result.data as { dir?: string } | undefined)?.dir?.replace(/\\/g, '/')
-    const root = dir ? dir.replace(/\/\.scratch\/goal-tasks\/runs\/[^/]+$/, '') : (bound?.root ?? cwd)
+    const root = dir ? dir.replace(/\/\.scratch\/jtasks\/runs\/[^/]+$/, '') : (bound?.root ?? cwd)
     await p.setRun({ run: result.bind, root })
   }
   return result
@@ -88,11 +88,11 @@ export const register: Register = (on) => {
       sessionId: () => $.session.id(),
       cwd: () => $.session.cwd(),
       env: {
-        GOAL_TASKS_HOME: await $.env.get('GOAL_TASKS_HOME'),
+        JTASKS_HOME: await $.env.get('JTASKS_HOME'),
         USERPROFILE: await $.env.get('USERPROFILE'),
         HOME: await $.env.get('HOME'),
         JLOCK_BIN: await $.env.get('JLOCK_BIN'),
-        GOAL_TASKS_LANG: await $.env.get('GOAL_TASKS_LANG'),
+        JTASKS_LANG: await $.env.get('JTASKS_LANG'),
         JLOCK_LANG: await $.env.get('JLOCK_LANG'),
       },
     }
@@ -109,7 +109,7 @@ export const register: Register = (on) => {
       const p = port
       if (!p || !paneOpen) return
       const bound = await p.getRun()
-      const files = bound ? [`${bound.root}/.scratch/goal-tasks/runs/${bound.run}/tasks.json`, `${bound.root}/.scratch/goal-tasks/runs/${bound.run}/run.json`] : []
+      const files = bound ? [`${bound.root}/.scratch/jtasks/runs/${bound.run}/tasks.json`, `${bound.root}/.scratch/jtasks/runs/${bound.run}/run.json`] : []
       const stats = await Promise.all(files.map((f) => p.stat(f).then((x) => x.mtimeMs, () => 0)))
       const current = `${bound?.run ?? ''}:${stats.join(',')}`
       if (!force && current === signature && !isLive(await read($, viewAtom))) return
@@ -198,7 +198,7 @@ export const register: Register = (on) => {
     const bound = p ? await p.getRun() : null
     if (!p || !bound) return next(e)
     const decision = await spawnDecision(createModHost(p, await p.cwd()), bound, e.prompt)
-    if (decision.error) return { deny: `goal-tasks: ${decision.error}` }
+    if (decision.error) return { deny: `jtasks: ${decision.error}` }
     if (!decision.task) return next(e)
     const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.model ? { model: decision.model } : {}) })
     if (spawned.agentId) await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task } })
@@ -212,7 +212,7 @@ export const register: Register = (on) => {
     if (!p || !bound) return undefined
     const agent = agentId ? (await p.getAgents())[agentId] : undefined
     const verdict = await judgeCall(createModHost(p, await p.cwd()), await p.cwd(), bound, agent, call)
-    return verdict.allow ? undefined : `goal-tasks: ${verdict.reason}`
+    return verdict.allow ? undefined : `jtasks: ${verdict.reason}`
   }
   const refused = () => ({ deny: tr('mod.guard_failed') })
   on('tool.call', { tool: 'Edit' }, async ($, e, next) => {

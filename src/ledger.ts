@@ -1,9 +1,9 @@
 // The ledger (section 7): every effect the tool leaves outside the task's own code, with how to undo it. One
-// `ledger.jsonl` per run and a global index in `<GOAL_TASKS_HOME>/ledger.jsonl`.
+// `ledger.jsonl` per run and a global index in `<JTASKS_HOME>/ledger.jsonl`.
 
 import type { Host } from "./host.ts"
 import { join, slash } from "./paths.ts"
-import { atomicWrite, goalTasksHome } from "./store.ts"
+import { atomicWrite, jtasksHome } from "./store.ts"
 import { tr } from "./i18n.ts"
 
 export type EffectType = "exclude" | "branch" | "commit" | "worktree" | "junction" | "dir" | "archive" | "agent-config" | "install"
@@ -43,7 +43,7 @@ export interface Effect {
 export type NewEffect = Omit<Effect, "id" | "at" | "state">
 
 export function globalLedger(host: Host): string {
-  return join(goalTasksHome(host), "ledger.jsonl")
+  return join(jtasksHome(host), "ledger.jsonl")
 }
 
 export async function readEffects(host: Host, file: string): Promise<Effect[]> {

@@ -48,10 +48,10 @@ describe("catalogs", () => {
 })
 
 describe("choosing the language", () => {
-  test("--lang > GOAL_TASKS_LANG > JLOCK_LANG > the system > English; tags resolve like jlock's", () => {
+  test("--lang > JTASKS_LANG > JLOCK_LANG > the system > English; tags resolve like jlock's", () => {
     const env = (vars: Record<string, string>) => (name: string) => vars[name]
-    expect(choose({ lang: "en", env: env({ GOAL_TASKS_LANG: "pt-BR" }) })).toEqual({ tag: "en", source: "--lang" })
-    expect(choose({ env: env({ GOAL_TASKS_LANG: "pt", JLOCK_LANG: "en" }) })).toEqual({ tag: "pt-BR", source: "GOAL_TASKS_LANG" })
+    expect(choose({ lang: "en", env: env({ JTASKS_LANG: "pt-BR" }) })).toEqual({ tag: "en", source: "--lang" })
+    expect(choose({ env: env({ JTASKS_LANG: "pt", JLOCK_LANG: "en" }) })).toEqual({ tag: "pt-BR", source: "JTASKS_LANG" })
     expect(choose({ env: env({ JLOCK_LANG: "pt_BR.UTF-8" }) })).toEqual({ tag: "pt-BR", source: "JLOCK_LANG" })
     expect(choose({ env: env({}), system: "pt-PT" })).toEqual({ tag: "pt-BR", source: "system" })
     expect(choose({ env: env({}), system: "xx-YY" })).toEqual({ tag: "en", source: "default" })

@@ -14,7 +14,7 @@ export declare function resolve(input: string): string | undefined;
 export declare function systemLocale(): string | undefined;
 export interface LanguageChoice {
     tag: string;
-    source: "--lang" | "GOAL_TASKS_LANG" | "JLOCK_LANG" | "system" | "default";
+    source: "--lang" | "JTASKS_LANG" | "JLOCK_LANG" | "system" | "default";
     /** Set when `--lang` named a language without a catalog (in English: the reader may not read the other). */
     warning?: string;
 }

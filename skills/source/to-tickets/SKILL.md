@@ -1,12 +1,12 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the goal-tasks `tasks` tool in batches (it validates, writes tasks.json and generates the tickets).
+description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the jtasks `tasks` tool in batches (it validates, writes tasks.json and generates the tickets).
 {{FRONTMATTER}}---
 
 # To Tickets
 
 Break a plan, spec, or conversation into **tasks**: tracer-bullet vertical slices, each declaring the tasks that
-**block** it and the **files it owns**. The plan is delivered through the `tasks` tool (goal-tasks), never written
+**block** it and the **files it owns**. The plan is delivered through the `tasks` tool (jtasks), never written
 by hand: the tool validates it, writes `tasks.json` and generates the tickets from it.
 
 ## Process

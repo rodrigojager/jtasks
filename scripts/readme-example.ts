@@ -1,5 +1,5 @@
-// The READMEs never lie (ticket 29): every block marked `<!-- goal-tasks-example -->` is run for real, in a
-// temporary repository with its own GOAL_TASKS_HOME and JLOCK_HOME and in the README's language, with the plan of
+// The READMEs never lie (ticket 29): every block marked `<!-- jtasks-example -->` is run for real, in a
+// temporary repository with its own JTASKS_HOME and JLOCK_HOME and in the README's language, with the plan of
 // the README's first ```json block as plan.json. `test/readmes.test.ts` compares the README with the real output
 // (run ids, commit hashes and paths aside); `bun scripts/readme-example.ts` writes the real output into the eleven
 // READMEs. A block holds `$ tasks …` commands and `$ echo "<text>" > <file>` edits, each followed by its output.
@@ -10,7 +10,7 @@ import { splitCommand } from "../src/tool.ts"
 
 const ROOT = join(import.meta.dir, "..").replace(/\\/g, "/")
 const CLI = `${ROOT}/cli/tasks.ts`
-export const MARK = "<!-- goal-tasks-example -->"
+export const MARK = "<!-- jtasks-example -->"
 /** How the READMEs show the temporary repository's path. */
 export const SHOWN_REPO = "~/project"
 
@@ -82,19 +82,19 @@ export function normalize(text: string): string {
 
 /** Runs one block in a fresh temporary repository; returns each step's output as the README shows it. */
 export function runBlock(block: Block, plan: string, tag: string): string[] {
-  const temp = `${process.platform === "win32" ? "D:/claude-cache" : "/tmp"}/goal-tasks-readme-${tag}-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
+  const temp = `${process.platform === "win32" ? "D:/claude-cache" : "/tmp"}/jtasks-readme-${tag}-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
   const repo = `${temp}/repo`
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),
-    GOAL_TASKS_LANG: tag,
-    GOAL_TASKS_HOME: `${temp}/home`,
+    JTASKS_LANG: tag,
+    JTASKS_HOME: `${temp}/home`,
     JLOCK_HOME: `${temp}/jlock`,
     JLOCK_HINTS: "0",
     // Short jlock timings: the keeper of a released lock ends within a heartbeat, so the folder can be removed.
     JLOCK_HEARTBEAT_MS: "200",
     JLOCK_STALE_MS: "1500",
   }
-  delete env.GOAL_TASKS_RUN
+  delete env.JTASKS_RUN
   delete env.JLOCK_LANG
   const sh = (...argv: string[]) => {
     const p = Bun.spawnSync(argv, { cwd: repo, env })

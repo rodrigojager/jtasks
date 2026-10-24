@@ -6,7 +6,7 @@ import { join } from "./paths.ts"
 import type { RunFile, TasksFile } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
-export const SCRATCH = ".scratch/goal-tasks"
+export const SCRATCH = ".scratch/jtasks"
 
 export function runsDir(root: string): string {
   return join(root, SCRATCH, "runs")
@@ -16,12 +16,12 @@ export function runDir(root: string, run: string): string {
   return join(runsDir(root), run)
 }
 
-/** `%USERPROFILE%\.goal-tasks`, or `GOAL_TASKS_HOME`. */
-export function goalTasksHome(host: Host): string {
-  const own = host.env("GOAL_TASKS_HOME")
+/** `%USERPROFILE%\.jtasks`, or `JTASKS_HOME`. */
+export function jtasksHome(host: Host): string {
+  const own = host.env("JTASKS_HOME")
   if (own) return own.replace(/\\/g, "/")
   const home = host.env("USERPROFILE") ?? host.env("HOME") ?? "."
-  return join(home, ".goal-tasks")
+  return join(home, ".jtasks")
 }
 
 export class StaleRevisionError extends Error {

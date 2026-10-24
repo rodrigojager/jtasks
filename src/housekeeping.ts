@@ -5,12 +5,12 @@ import type { Host } from "./host.ts"
 import { slugify } from "./ids.ts"
 import { effectLine, effectsOf, recordEffect, setEffectState, type Effect } from "./ledger.ts"
 import { basename, caseInsensitive, join } from "./paths.ts"
-import { goalTasksHome, readTasks, runDir, runsDir, SCRATCH } from "./store.ts"
+import { jtasksHome, readTasks, runDir, runsDir, SCRATCH } from "./store.ts"
 import { defineAction, ok, ToolError, type ToolContext } from "./tool.ts"
 import { tr } from "./i18n.ts"
 
 export function archiveDir(host: Host, root: string, run: string): string {
-  return join(goalTasksHome(host), "archive", slugify(basename(root), 40), run)
+  return join(jtasksHome(host), "archive", slugify(basename(root), 40), run)
 }
 
 /** Copies a folder of text files (a run's files are all text). */

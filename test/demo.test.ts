@@ -21,6 +21,6 @@ describe("demonstration", () => {
     expect(out).toMatch(/e-0006 · commit · [0-9a-f]{7} · demo-\d{6}-[a-z0-9]{4}\/T03/)
     expect(out).toMatch(/e-0005: revert de [0-9a-f]{7} → commit [0-9a-f]{7}\nT02 → pending/)
     expect(out).toContain('Revert "T02: Tela"')
-    expect(out).toMatch(/# removido: .*goal-tasks-demo-/)
+    expect(out).toMatch(/# removido: .*jtasks-demo-/)
   })
 })

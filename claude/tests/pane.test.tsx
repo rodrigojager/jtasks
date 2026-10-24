@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { installMachine, installSession } from './machine.ts'
 
 const ROOT = 'D:/work/repo'
-const TOOL = 'mcp__goal-tasks__tasks'
+const TOOL = 'mcp__jtasks__tasks'
 const PLAN = {
   tasks: [
     { id: 'T01', title: 'Base', files: ['src/a.ts'] },
@@ -11,7 +11,7 @@ const PLAN = {
 }
 
 const PANE = {
-  plugin: 'goal-tasks',
+  plugin: 'jtasks',
   component: 'Pane',
   requestId: 'tasks',
   props: { title: 'Tasks', isFocused: false, bodyColumns: 50, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} },
@@ -48,7 +48,7 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   }
 
   // Another process finishes T01: the 2 s refresh sees tasks.json change.
-  const file = `${ROOT}/.scratch/goal-tasks/runs/${run}/tasks.json`
+  const file = `${ROOT}/.scratch/jtasks/runs/${run}/tasks.json`
   const tasks = JSON.parse(machine.read(file)!)
   Object.assign(tasks.tasks[0], { status: 'done', commit: '9f1c2ab' })
   machine.write(file, JSON.stringify(tasks))
@@ -119,7 +119,7 @@ test('a view an earlier version stored is declined', async ($, on) => {
   await ui.unmount()
 })
 
-test('the same pane in English: GOAL_TASKS_LANG=en for the session', async ($, on) => {
+test('the same pane in English: JTASKS_LANG=en for the session', async ($, on) => {
   const { panes } = engine(on, 'en')
   on('command.run', (_$: unknown, e: unknown) => e as never)
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })

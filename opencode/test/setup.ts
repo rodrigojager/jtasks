@@ -1,19 +1,19 @@
-// Preloaded before the plugin tests (bunfig.toml): a private GOAL_TASKS_HOME and JLOCK_HOME with short jlock
+// Preloaded before the plugin tests (bunfig.toml): a private JTASKS_HOME and JLOCK_HOME with short jlock
 // timings, removed after the last test.
 
 import { afterAll, setDefaultTimeout } from "bun:test"
 import { mkdirSync, readdirSync, rmSync } from "node:fs"
 
-const root = (process.platform === "win32" ? "D:/claude-cache/goal-tasks-tests" : "/tmp/goal-tasks-tests").replace(/\\/g, "/")
+const root = (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : "/tmp/jtasks-tests").replace(/\\/g, "/")
 const home = `${root}/oc-process-${process.pid}-${Date.now().toString(36)}`
 mkdirSync(`${home}/jlock`, { recursive: true })
-process.env.GOAL_TASKS_HOME = `${home}/goal-tasks`
+process.env.JTASKS_HOME = `${home}/jtasks`
 process.env.JLOCK_HOME = `${home}/jlock`
 process.env.JLOCK_HEARTBEAT_MS = "200"
 process.env.JLOCK_STALE_MS = "1500"
 process.env.JLOCK_HINTS = "0"
 // The answers the tests read are the Portuguese ones, whatever the machine speaks.
-process.env.GOAL_TASKS_LANG = "pt-BR"
+process.env.JTASKS_LANG = "pt-BR"
 delete process.env.JLOCK_LANG
 // Tests start real git and jlock processes; on a busy machine 5 s (the default) is not enough.
 setDefaultTimeout(60_000)

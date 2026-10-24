@@ -1,5 +1,5 @@
 // Text in the person's language (plan section 21): catalogs embedded from `locales/<tag>.json`, chosen by
-// `--lang` > GOAL_TASKS_LANG > JLOCK_LANG > the system's language > English. English is the reference and the
+// `--lang` > JTASKS_LANG > JLOCK_LANG > the system's language > English. English is the reference and the
 // fallback for any missing key. Only human text goes through here: `--json`, the files of a run, ids, action and
 // option names, and what the model reads (the protocol, the tool's description) stay the same in every language.
 
@@ -66,7 +66,7 @@ export function systemLocale(): string | undefined {
 
 export interface LanguageChoice {
   tag: string
-  source: "--lang" | "GOAL_TASKS_LANG" | "JLOCK_LANG" | "system" | "default"
+  source: "--lang" | "JTASKS_LANG" | "JLOCK_LANG" | "system" | "default"
   /** Set when `--lang` named a language without a catalog (in English: the reader may not read the other). */
   warning?: string
 }
@@ -85,7 +85,7 @@ export function choose(inputs: LanguageInputs): LanguageChoice {
     if (tag) return { tag, source: "--lang" }
     warning = `unknown language "${inputs.lang}" (available: ${tags().join(", ")}); using English`
   }
-  for (const name of ["GOAL_TASKS_LANG", "JLOCK_LANG"] as const) {
+  for (const name of ["JTASKS_LANG", "JLOCK_LANG"] as const) {
     const value = inputs.env?.(name)
     const tag = value ? resolve(value) : undefined
     if (tag && !warning) return { tag, source: name }

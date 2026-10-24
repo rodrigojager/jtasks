@@ -1,12 +1,12 @@
 <!-- languages -->
 [English](README.md) · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Italiano](README.it.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [हिन्दी](README.hi.md)
 
-# goal-tasks
+# jtasks
 
-**goal-tasks превращает план в список задач, которые ИИ-агенты для программирования выполняют параллельно, в одном
+**jtasks превращает план в список задач, которые ИИ-агенты для программирования выполняют параллельно, в одном
 checkout, не мешая друг другу, с одним коммитом на задачу и возможностью всё отменить.**
 
-## Зачем нужен goal-tasks
+## Зачем нужен jtasks
 
 ИИ-агенты для программирования умеют работать параллельно, но длинная цель («сделай вход в систему», «перенеси
 парсер») ломается знакомыми способами. Модель держит список задач в голове или в Markdown-файле, который правит
@@ -15,7 +15,7 @@ checkout, не мешая друг другу, с одним коммитом н
 другого. Коммиты смешивают работу нескольких задач, поэтому одну из них нельзя откатить отдельно. А когда сессия
 падает, никто не знает, какая задача была сделана наполовину.
 
-goal-tasks выносит всё это из модели в инструмент. План проверяется один раз; список хранится в JSON-файле, который
+jtasks выносит всё это из модели в инструмент. План проверяется один раз; список хранится в JSON-файле, который
 пишет только инструмент; каждая задача объявляет файлы, которыми владеет, и эти файлы заблокированы, пока она в
 работе.
 
@@ -69,8 +69,8 @@ tasks doctor --fix --yes   # устанавливает недостающее: 
 `tasks doctor --fix` без `--yes` только перечисляет, что он сделал бы. Всё, что он устанавливает, попадает в
 реестр, так что `tasks undo` это удаляет. Затем, для вашего агента:
 
-- **Claude Code:** `claude --plugin-dir <goal-tasks>/claude` (мод; см. [`claude/README.md`](claude/README.md)).
-- **OpenCode:** добавьте `<goal-tasks>/opencode` в `plugins` в `opencode.json` (см.
+- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (мод; см. [`claude/README.md`](claude/README.md)).
+- **OpenCode:** добавьте `<jtasks>/opencode` в `plugins` в `opencode.json` (см.
   [`opencode/README.md`](opencode/README.md)).
 - **Codex или терминал:** навыки в [`skills/`](skills/README.md) обучают агента командам.
 
@@ -89,25 +89,25 @@ tasks doctor --fix --yes   # устанавливает недостающее: 
 }
 ```
 
-<!-- goal-tasks-example -->
+<!-- jtasks-example -->
 ```text
 $ tasks plan @plan.json
 прогон a-sum-its-docs-and-the-e-261024-cryc создан, задач: 3, branch gt/a-sum-its-docs-and-the-e-261024-cryc
-тикеты: 3 в ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets
+тикеты: 3 в ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets
 следующий шаг: tasks next
 
 $ tasks next
 готовы (2) в a-sum-its-docs-and-the-e-261024-cryc; можно выполнять параллельно:
 T01 · Sum · профиль implement · владение: src/sum.ts
   критерии: sum.ts exports sum
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/01-sum.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/01-sum.md
 T02 · Docs · профиль implement · владение: docs/sum.md
-  ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/02-docs.md
+  ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/02-docs.md
 заблокированы: T03 ⛔ T01, T02
 
 $ tasks start T01
 T01 в работе (попытка 1): владение заблокировано в jlock (ключей: 1, владелец gt:a-sum-its-docs-and-the-e-261024-cryc/T01)
-ticket: ~/project/.scratch/goal-tasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/01-sum.md
+ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-cryc/tickets/01-sum.md
 другой файл: tasks claim T01 <файл>; в конце: tasks done T01 --evidence "…" (или tasks fail T01 --error "…")
 
 $ echo "export const sum = (a: number, b: number) => a + b" > src/sum.ts
@@ -146,13 +146,13 @@ Claude вызывает `tasks next`, открывает по субагенту
 
 ## Из терминала или Codex
 
-Без мода и плагина протоколом служит навык `goal-tasks`: агент выполняет `tasks next`, делает каждую задачу в
+Без мода и плагина протоколом служит навык `jtasks`: агент выполняет `tasks next`, делает каждую задачу в
 пределах её владения (`tasks start`, `tasks claim`, `tasks done`) и повторяет, пока `tasks status` не скажет, что
 ничего не осталось. Человек может делать то же самое вручную.
 
 ## Гарантии и ограничения
 
-| goal-tasks гарантирует | Чего он не делает |
+| jtasks гарантирует | Чего он не делает |
 |---|---|
 | Список пишет только инструмент; каждое изменение проверяется и атомарно | не мешает программе, игнорирующей jlock, править файл |
 | Файлы задачи заблокированы в jlock, пока она в работе; параллельные задачи никогда не делят файл | не блокирует части файла: владение — по файлам и папкам |
@@ -160,15 +160,15 @@ Claude вызывает `tasks next`, открывает по субагенту
 | Каждый эффект есть в реестре, и его можно отменить | не отменяет то, чего он не создавал |
 | Блокировки умершего агента или окна возвращаются (сразу с OpenCode, иначе по истечении срока) | не работает между машинами (jlock — это одна машина) |
 
-Сначала Windows: jlock и goal-tasks проверены на Windows; Linux и macOS следуют собственному плану jlock.
+Сначала Windows: jlock и jtasks проверены на Windows; Linux и macOS следуют собственному плану jlock.
 
 ## Настройка
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `~/.goal-tasks` | глобальный реестр и заархивированные прогоны |
-| `GOAL_TASKS_LANG` | язык системы | язык ответов (`--lang` у команды важнее) |
-| `GOAL_TASKS_RUN` | не задана | прогон, с которым работает CLI, вместо `--run` |
+| `JTASKS_HOME` | `~/.jtasks` | глобальный реестр и заархивированные прогоны |
+| `JTASKS_LANG` | язык системы | язык ответов (`--lang` у команды важнее) |
+| `JTASKS_RUN` | не задана | прогон, с которым работает CLI, вместо `--run` |
 | `JLOCK_BIN` | `jlock` | исполняемый файл jlock |
 
 Одиннадцать языков, те же, что у jlock: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文,

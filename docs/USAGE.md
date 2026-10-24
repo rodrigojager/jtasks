@@ -1,6 +1,6 @@
-# goal-tasks usage
+# jtasks usage
 
-The reference of every command. What goal-tasks is and why it exists: the [README](../README.md). The design is in
+The reference of every command. What jtasks is and why it exists: the [README](../README.md). The design is in
 [`PLAN.md`](PLAN.md) (Portuguese); departures from it are in [`DEVIATIONS.md`](DEVIATIONS.md); the skills for each
 agent are in [`skills/README.md`](../skills/README.md). The same commands work in the CLI, the Claude Code mod
 (`claude/`) and the OpenCode plugin (`opencode/`). Answers come in your language (see [Languages](#languages)).
@@ -10,7 +10,7 @@ Windows first: jlock was validated on Windows, and so was this.
 ## Install
 
 From a clone, with [bun](https://bun.sh) and `git`: `bun install`, `bun link` (a `tasks` command; or
-`bun D:/goal-tasks/cli/tasks.ts <action>`), then:
+`bun D:/jtasks/cli/tasks.ts <action>`), then:
 
 ```
 tasks doctor               # is this machine ready? eight checks, each with what to do
@@ -18,11 +18,11 @@ tasks doctor --fix         # what it would install (writes nothing)
 tasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skills
 ```
 
-`tasks doctor` checks, in this order: the version (goal-tasks and the runtime); `git`; `jlock` (in `PATH`, at least
-0.1.0, 0.1.1 for `--release-on-eof`, and its own `jlock doctor --json`); `GOAL_TASKS_HOME` (a writable folder, the
+`tasks doctor` checks, in this order: the version (jtasks and the runtime); `git`; `jlock` (in `PATH`, at least
+0.1.0, 0.1.1 for `--release-on-eof`, and its own `jlock doctor --json`); `JTASKS_HOME` (a writable folder, the
 global ledger); OpenCode (the agents `implement`, `implement-deep`, `review` in `~/.config/opencode/agents/`, the
 project's `.opencode/agents/` or `opencode.json`, and whether the plugin is configured); Claude Code (found, and
-whether the mod is installed; informative); the skills `to-tickets` and `goal-tasks` of every agent installed
+whether the mod is installed; informative); the skills `to-tickets` and `jtasks` of every agent installed
 (Claude Code, OpenCode, Codex); and the language with where it came from. Exit 0 with no failure (warnings do not
 change it), 20 with one; `--json` gives `{ result, checks: [{ name, status, detail, fix }], summary }`.
 
@@ -31,13 +31,13 @@ user's `PATH`, as it does when you run it by hand), and copies the three OpenCod
 repository. A file that already exists is never replaced (it is reported). Each file it creates is an effect in the
 global ledger (`tasks ledger --all-projects`, ids `g-…`), and `tasks undo <g-id>` removes it. It never installs the
 mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs `--fix`; in the mod and the plugin
-`doctor` only diagnoses. `GOAL_TASKS_USER_HOME` makes it look and install somewhere else than the user's home.
+`doctor` only diagnoses. `JTASKS_USER_HOME` makes it look and install somewhere else than the user's home.
 
 - **CLI:** the `tasks` command above (it needs `jlock` in `PATH`; `tasks doctor --fix --yes` installs it).
-- **Claude Code mod:** `claude --plugin-dir D:/goal-tasks/claude` for one session, or add the repository as a
-  marketplace and install `goal-tasks`. The tool is `mcp__goal-tasks__tasks`; the pane opens with `/jtasks`
+- **Claude Code mod:** `claude --plugin-dir D:/jtasks/claude` for one session, or add the repository as a
+  marketplace and install `jtasks`. The tool is `mcp__jtasks__tasks`; the pane opens with `/jtasks`
   (Claude Code has its own `/tasks`). See [`claude/README.md`](../claude/README.md).
-- **OpenCode plugin:** `"plugins": ["D:/goal-tasks/opencode"]` in an `opencode.jsonc`. See
+- **OpenCode plugin:** `"plugins": ["D:/jtasks/opencode"]` in an `opencode.jsonc`. See
   [`opencode/README.md`](../opencode/README.md).
 
 The mod and the plugin carry their own copy of the core (`core/core.js`, built from `src/` by
@@ -70,13 +70,13 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   `gt/<run>`, the default; `"current"`: on the current branch).
 
 The full schema is [`schema.json`](../skills/claude-code/to-tickets/schema.json), beside the `to-tickets` skill,
-which turns a conversation into this plan and delivers it. The skills (`to-tickets` to plan, `goal-tasks` to carry a
+which turns a conversation into this plan and delivers it. The skills (`to-tickets` to plan, `jtasks` to carry a
 run out) exist for Claude Code, OpenCode and Codex; where they go and how to install them: [`skills/README.md`](../skills/README.md)
 (the mod carries its own copy).
 
 ## Actions
 
-Without `--run`, an action uses the run bound to the session (mod, plugin), `GOAL_TASKS_RUN`, or the only active
+Without `--run`, an action uses the run bound to the session (mod, plugin), `JTASKS_RUN`, or the only active
 run of the repository. `--json` prints `{ ok, code, text, data }`.
 
 | Group | Action | What it does |
@@ -106,7 +106,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `effects --check` | compares the ledger with disk and git: what disappeared, what was left |
 | machine | `doctor [--json] [--fix [--yes]]` | is this machine ready? `--fix --yes` installs what is missing, in the global ledger |
 | cleanup | `clean <run>\|--all [--yes]` | lists the active effects; with `--yes` removes the run's folder |
-| | `archive <run>` | moves the run to `GOAL_TASKS_HOME/archive/<repo>/<run>` |
+| | `archive <run>` | moves the run to `JTASKS_HOME/archive/<repo>/<run>` |
 | | `gc --scan <root> [--depth 4]` | read-only report: worktrees (orphan or not), runs, archived runs |
 | | `gc --remove <path> --yes` | removes one path the report lists |
 
@@ -130,17 +130,17 @@ queue.
 
 | Variable | Default | Use |
 |---|---|---|
-| `GOAL_TASKS_HOME` | `%USERPROFILE%\.goal-tasks` | global ledger index and archived runs |
-| `GOAL_TASKS_USER_HOME` | the user's home | where `tasks doctor` looks for and installs agents and skills |
-| `GOAL_TASKS_RUN` | unset | the CLI's bound run |
-| `GOAL_TASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
+| `JTASKS_HOME` | `%USERPROFILE%\.jtasks` | global ledger index and archived runs |
+| `JTASKS_USER_HOME` | the user's home | where `tasks doctor` looks for and installs agents and skills |
+| `JTASKS_RUN` | unset | the CLI's bound run |
+| `JTASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
 | `JLOCK_HOME`, `JLOCK_HEARTBEAT_MS`, `JLOCK_STALE_MS` | jlock's | passed through to jlock (only tests change them) |
 
 ## Languages
 
 The answers, the help, the pane and the sidebar speak the language chosen by, in order: `--lang <tag>` on the
-command, `GOAL_TASKS_LANG`, `JLOCK_LANG` (so one variable sets both tools), the system's language, and English.
+command, `JTASKS_LANG`, `JLOCK_LANG` (so one variable sets both tools), the system's language, and English.
 Available, the same eleven as jlock: `en`, `pt-BR`, `es`, `fr`, `de`, `it`, `zh-CN`, `ja`, `ru`, `ar`, `hi`
 (their status is in [`CONTRIBUTING.md`](../CONTRIBUTING.md)). A tag resolves like jlock's: `pt` and
 `pt_PT.UTF-8` give `pt-BR`, `en-US` gives `en`; an unknown `--lang` answers in English with a warning on the first

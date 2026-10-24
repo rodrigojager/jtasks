@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
-// goal-tasks for the OpenCode TUI: the "Tasks" section in the session sidebar (header, progress row, one row per
-// task), folded with a click. The data comes from the server plugin's RPC (`goal-tasks.state`); the TUI never reads
+// jtasks for the OpenCode TUI: the "Tasks" section in the session sidebar (header, progress row, one row per
+// task), folded with a click. The data comes from the server plugin's RPC (`jtasks.state`); the TUI never reads
 // the files. It reloads after every successful tool call, on the RPC's `changed` event, and every 2 s while a task
 // runs.
 //
@@ -52,9 +52,9 @@ const active = (state: LineState) => state === "running" || state === "waiting"
 
 export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
   return {
-    id: "goal-tasks.tui",
+    id: "jtasks.tui",
     setup(context: Context) {
-      // The TUI is its own process: it picks the language as the server does (GOAL_TASKS_LANG, JLOCK_LANG, system).
+      // The TUI is its own process: it picks the language as the server does (JTASKS_LANG, JLOCK_LANG, system).
       select({ env: (name) => process.env[name], system: systemLocale() })
       const rpc = context.client.rpc(TasksRpc)
       const [prefs, setPrefs] = context.storage.store("prefs", { initial: { collapsed: false } })

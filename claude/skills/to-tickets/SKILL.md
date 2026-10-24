@@ -1,13 +1,13 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the goal-tasks `tasks` tool in batches (it validates, writes tasks.json and generates the tickets).
+description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the jtasks `tasks` tool in batches (it validates, writes tasks.json and generates the tickets).
 disable-model-invocation: true
 ---
 
 # To Tickets
 
 Break a plan, spec, or conversation into **tasks**: tracer-bullet vertical slices, each declaring the tasks that
-**block** it and the **files it owns**. The plan is delivered through the `tasks` tool (goal-tasks), never written
+**block** it and the **files it owns**. The plan is delivered through the `tasks` tool (jtasks), never written
 by hand: the tool validates it, writes `tasks.json` and generates the tickets from it.
 
 ## Process
@@ -76,7 +76,7 @@ Iterate until the user approves the breakdown.
 
 ### 5. Hand the plan to the `tasks` tool, in batches
 
-In Claude Code with the goal-tasks mod, every `tasks …` command below goes through the `mcp__goal-tasks__tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
+In Claude Code with the jtasks mod, every `tasks …` command below goes through the `mcp__jtasks__tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
 
 Turn the approved breakdown into JSON (schema in `schema.json` beside this file; a small example in
 `example-plan.json`) and deliver it through the tool, in batches of up to ~20 tasks, so no single answer has to hold
@@ -99,4 +99,4 @@ file, as the message says. Then `--commit` again.
 A small plan can also go in one call: `tasks plan` with the whole plan as `json`.
 
 **Never edit `tasks.json`, the tickets, `run.json` or the git history by hand**: every change goes through the tool.
-After the plan, the execution follows the protocol the mod injects into the prompt (`tasks next`, one subagent per ready task, `tasks status` until nothing is left); without the mod, the `goal-tasks` skill.
+After the plan, the execution follows the protocol the mod injects into the prompt (`tasks next`, one subagent per ready task, `tasks status` until nothing is left); without the mod, the `jtasks` skill.
