@@ -44,6 +44,8 @@ export interface Task {
     lost?: string;
 }
 export interface ClaudeProfile {
+    /** The subagent type the spawn becomes, e.g. `jtasks:execute`, one of the agents the mod ships. */
+    agent?: string;
     model?: string;
     effort?: string;
     role?: string;

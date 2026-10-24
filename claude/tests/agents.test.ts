@@ -6,7 +6,7 @@ const TOOL = 'mcp__jtasks__jtasks'
 const PLAN = {
   serialize: ['bun test'],
   profiles: {
-    execute: { claude: { model: 'sonnet', effort: 'medium', role: 'backend-developer' } },
+    execute: { claude: { agent: 'jtasks:execute', model: 'sonnet', effort: 'medium', role: 'backend-developer' } },
     'execute-deep': { claude: { model: 'opus', effort: 'high' } },
   },
   tasks: [
@@ -18,10 +18,10 @@ const PLAN = {
 async function scene($: any, on: any) {
   const machine = installMachine(on, ROOT)
   installSession(on, ROOT)
-  const spawned: { model?: string; prompt: string }[] = []
+  const spawned: { model?: string; prompt: string; subagentType?: string }[] = []
   const bash: string[] = []
-  on('agent.spawn', (_$: unknown, e: { model?: string; prompt: string }) => {
-    spawned.push({ model: e.model, prompt: e.prompt })
+  on('agent.spawn', (_$: unknown, e: { model?: string; prompt: string; subagentType?: string }) => {
+    spawned.push({ model: e.model, prompt: e.prompt, subagentType: e.subagentType })
     return { model: e.model ?? 'inherit', agentId: `agent-${spawned.length}` }
   })
   on('tool.call', (_$: unknown, e: { tool: string; command?: string }) => {
@@ -36,17 +36,21 @@ async function scene($: any, on: any) {
   return { machine, run, file, spawned, bash }
 }
 
-test("a task's subagent runs on its profile's model, with the role and effort in its prompt", async ($, on) => {
+test("a task's subagent becomes its profile's agent, on its model, with the role and effort in its prompt", async ($, on) => {
   const { run, spawned } = await scene($, on)
   const a = await $.agent.spawn({ prompt: `--run ${run} --task T01 Faça a base.`, description: 'T01', subagentType: 'general-purpose' } as never)
   expect(a.model).toBe('sonnet')
+  expect(spawned[0]!.subagentType).toBe('jtasks:execute')
   expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.\n\n(Profile execute: effort medium.)`)
   const b = await $.agent.spawn({ prompt: `--run ${run} --task T02 Funda.`, description: 'T02', subagentType: 'general-purpose' } as never)
   expect(b.model).toBe('opus')
+  // A profile that names no agent keeps the type the call asked for.
+  expect(spawned[1]!.subagentType).toBe('general-purpose')
   // A subagent of no task is left alone.
   const c = await $.agent.spawn({ prompt: 'Explore the code.', description: 'map', subagentType: 'Explore', model: 'haiku' } as never)
   expect(c.model).toBe('haiku')
   expect(spawned[2]!.prompt).toBe('Explore the code.')
+  expect(spawned[2]!.subagentType).toBe('Explore')
 })
 
 test('an unknown profile or task refuses the spawn', async ($, on) => {

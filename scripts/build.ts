@@ -4,7 +4,9 @@
 // - dist/types/*.d.ts with dist/core.d.ts and dist/node-host.d.ts: the declarations for the two bundles;
 // - the copies the packages ship: opencode/core/ and claude/core/ (core, node host, types);
 // - the skills of every agent, skills/<agent>/<skill>/, from one source each in skills/source/<skill>/ (the same
-//   text, the host's way of calling the tool), and the Claude Code ones again inside the mod (claude/skills/).
+//   text, the host's way of calling the tool), and the Claude Code ones again inside the mod (claude/skills/);
+// - the mod's agents, claude/agents/<name>.md, from the OpenCode ones (opencode/agents/): the same text, Claude Code's
+//   frontmatter (`name`, `description`), so the mod ships them as jtasks:<name>.
 // `bun scripts/build.ts --check` only reports which generated files differ from a fresh build.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -67,7 +69,7 @@ export async function buildAll(): Promise<Bundle[]> {
     ...types,
   ]
   const copies = (prefix: string) => dist.map((b) => ({ out: b.out.replace(/^dist\//, `${prefix}/`), text: b.text }))
-  return [...dist, ...copies("opencode/core"), ...copies("claude/core"), ...skills()]
+  return [...dist, ...copies("opencode/core"), ...copies("claude/core"), ...skills(), ...agents()]
 }
 
 /** How each agent calls the tool and opens subagents: what fills the `{{…}}` of the skills' sources (plan section 23). */
@@ -143,6 +145,21 @@ function skills(): Bundle[] {
   return out
 }
 
+/** claude/agents/<name>.md from opencode/agents/<name>.md: the body as it is, the frontmatter Claude Code's. */
+function agents(): Bundle[] {
+  const source = join(root, "opencode/agents")
+  return readdirSync(source)
+    .filter((name) => name.endsWith(".md"))
+    .sort()
+    .map((name) => {
+      const raw = readFileSync(join(source, name), "utf8").replace(/\r\n/g, "\n")
+      const [, front, body] = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(raw) ?? []
+      const description = /^description: (.*)$/m.exec(front ?? "")?.[1]
+      if (body === undefined || !description) throw new Error(`opencode/agents/${name}: no frontmatter with a description`)
+      return { out: `claude/agents/${name}`, text: `---\nname: ${name.replace(/\.md$/, "")}\ndescription: ${description}\n---\n${body}` }
+    })
+}
+
 /** The generated files that differ from disk. */
 export async function stale(): Promise<string[]> {
   const out: string[] = []
@@ -170,6 +187,6 @@ if (import.meta.main) {
       mkdirSync(dirname(join(root, b.out)), { recursive: true })
       writeFileSync(join(root, b.out), b.text)
     }
-    console.log(`wrote ${all.length} files (dist/, opencode/core/, claude/core/, skills/<agent>/, claude/skills/)`)
+    console.log(`wrote ${all.length} files (dist/, opencode/core/, claude/core/, skills/<agent>/, claude/skills/, claude/agents/)`)
   }
 }

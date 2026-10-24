@@ -55,7 +55,7 @@
       "properties": {
         "claude": {
           "type": "object",
-          "properties": { "model": { "type": "string" }, "effort": { "type": "string" }, "role": { "type": "string" } },
+          "properties": { "agent": { "type": "string" }, "model": { "type": "string" }, "effort": { "type": "string" }, "role": { "type": "string" } },
           "additionalProperties": false
         },
         "opencode": {

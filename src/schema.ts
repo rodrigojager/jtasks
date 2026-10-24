@@ -50,6 +50,8 @@ export interface Task {
 }
 
 export interface ClaudeProfile {
+  /** The subagent type the spawn becomes, e.g. `jtasks:execute`, one of the agents the mod ships. */
+  agent?: string
   model?: string
   effort?: string
   role?: string
@@ -121,9 +123,9 @@ export interface PlanInput {
 }
 
 export const DEFAULT_PROFILES: Record<string, Profile> = {
-  execute: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "execute" } },
-  "execute-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "execute-deep" } },
-  review: { claude: { model: "sonnet", effort: "high", role: "code-reviewer" }, opencode: { agent: "review" } },
+  execute: { claude: { agent: "jtasks:execute", model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "execute" } },
+  "execute-deep": { claude: { agent: "jtasks:execute-deep", model: "opus", effort: "high" }, opencode: { agent: "execute-deep" } },
+  review: { claude: { agent: "jtasks:review", model: "sonnet", effort: "high", role: "code-reviewer" }, opencode: { agent: "review" } },
 }
 
 export const DEFAULT_PROFILE = "execute"

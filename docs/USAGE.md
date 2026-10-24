@@ -51,7 +51,7 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   "feature": "login-por-email",
   "objective": "Login por link mágico",
   "serialize": ["bun test"],
-  "profiles": { "execute": { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
+  "profiles": { "execute": { "claude": { "agent": "jtasks:execute", "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
     { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"] },
@@ -64,8 +64,10 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
   the other). `exclusive: true` holds `*` and runs alone.
-- Without `profiles`: `execute`, `execute-deep`, `review` (the OpenCode agents of the same names come with
-  the plugin, `opencode/agents/`; a profile may name any agent you already have). `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
+- Without `profiles`: `execute`, `execute-deep`, `review`. Their agents come with the packages: in OpenCode the
+  agents of the same names (`opencode/agents/`, installed by `jtasks doctor --fix`); in Claude Code the mod's own
+  `jtasks:execute`, `jtasks:execute-deep`, `jtasks:review` (`claude/agents/`, generated from the OpenCode ones). A
+  profile may name any agent you already have (`claude.agent`, `opencode.agent`). `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
   themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 

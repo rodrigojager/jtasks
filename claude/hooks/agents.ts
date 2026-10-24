@@ -1,5 +1,5 @@
-// Subagents of a task (section 13): the spawn of a subagent whose prompt carries `--task <id>` gets the model of
-// the task's profile, with the profile's role (`--role <id>`, the convention the roles mod reads) and effort in its
+// Subagents of a task (section 13): the spawn of a subagent whose prompt carries `--task <id>` becomes the agent and
+// gets the model of the task's profile, with the profile's role (`--role <id>`, the convention the roles mod reads) and effort in its
 // prompt; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
 // Bash, run through `jlock run` (one at a time on the machine).
 
@@ -14,6 +14,7 @@ export function taskOfPrompt(prompt: string): { run?: string; task?: string } {
 
 export interface SpawnDecision {
   task?: string
+  agent?: string
   model?: string
   prompt?: string
   error?: string
@@ -33,6 +34,7 @@ export async function spawnDecision(host: Host, bound: BoundRun, prompt: string)
   const role = c.role ? `--role ${c.role} ` : ''
   const effort = c.effort ? `\n\n(Profile ${t.profile}: effort ${c.effort}.)` : ''
   const out: SpawnDecision = { task, prompt: `${role}${prompt}${effort}` }
+  if (c.agent) out.agent = c.agent
   if (c.model) out.model = c.model
   return out
 }

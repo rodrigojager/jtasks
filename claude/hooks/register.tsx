@@ -200,7 +200,7 @@ export const register: Register = (on) => {
     const decision = await spawnDecision(createModHost(p, await p.cwd()), bound, e.prompt)
     if (decision.error) return { deny: `jtasks: ${decision.error}` }
     if (!decision.task) return next(e)
-    const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.model ? { model: decision.model } : {}) })
+    const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.agent ? { subagentType: decision.agent } : {}), ...(decision.model ? { model: decision.model } : {}) })
     if (spawned.agentId) await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task } })
     return spawned
   }).catch(($, e, next) => (next.called ? next(e) : { deny: tr('mod.profile_failed') }))
