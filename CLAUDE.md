@@ -7,9 +7,17 @@ como histórico.
 
 ## Estado
 
-Fase de planejamento. Não há código nem tickets ainda. Quando houver, os tickets ficam em
-`.scratch/goal-tasks/issues/NN-slug.md` e seguem o mesmo processo do jlock: fronteira (menor ticket cujos bloqueios
-estão `done`), `**Status:**` no arquivo, critérios `- [ ]`, um commit por ticket (`NN: <título>`).
+Itens 2 a 6 da seção 18 do plano entregues (núcleo + CLI + ledger, plugin do OpenCode, mod do Claude Code, skill
+`to-tickets`, `gc --scan`); itens 7 (worktrees per-task) e 8 (Codex, pi, ralph) ficaram de fora. Os tickets ficam em
+`.scratch/goal-tasks/issues/NN-slug.md` (fora do git) e seguem o mesmo processo do jlock: fronteira (menor ticket
+cujos bloqueios estão `done`), `**Status:**` no arquivo, critérios `- [ ]`, um commit por ticket (`NN: <título>`).
+Uso em `docs/USAGE.md`; desvios em `docs/DEVIATIONS.md`.
+
+Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/tasks.ts`, `dist/` e as cópias em
+`opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem
+velhas), `opencode/` (plugin), `claude/` (mod; tipos em `vendor/claude-code.d.ts`, `tsconfig.claude.json`),
+`skills/to-tickets/` (cópia no mod pelo build). Verificação: `bun test`, `cd opencode && bun test`,
+`claude plugin validate claude`, `claude plugin test claude`, `bun run typecheck`, `bun scripts/demo.ts`.
 
 ## Relação com o jlock
 

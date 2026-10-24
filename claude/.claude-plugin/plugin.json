@@ -1,7 +1,7 @@
 {
   "name": "goal-tasks",
   "version": "0.1.0",
-  "description": "Deterministic task list with dependencies and file ownership (jlock): the tasks tool, a Tasks pane, /tasks, and the ownership guard for subagents.",
+  "description": "Deterministic task list with dependencies and file ownership (jlock): the tasks tool, a Tasks pane, /jtasks, and the ownership guard for subagents.",
   "author": {
     "name": "Rodrigo Jäger"
   },
