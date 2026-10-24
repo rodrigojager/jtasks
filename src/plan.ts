@@ -21,6 +21,7 @@ import { appendLog, atomicWrite, listRuns, readJson, runDir, runsDir, stringify,
 import { readTicketsDir, ticketReadLine, writeTickets } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
+import { tr } from "./i18n.ts"
 
 export function actorOf(ctx: ToolContext): string {
   const base = ctx.session ? `${ctx.tool}:${ctx.session}` : ctx.tool
@@ -65,10 +66,10 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
   const root = await requireRepo(host, ctx.cwd)
   const base = await currentBranch(host, root)
   const useRunBranch = plan.branch !== "current"
-  if (!base) throw new ToolError("HEAD está destacado: mude para um branch antes do plan (ou use \"branch\": \"current\")")
+  if (!base) throw new ToolError(tr("plan.detached"))
   const head = await git(host, root, ["rev-parse", "--verify", "-q", "HEAD"])
   if (useRunBranch && head.code !== 0)
-    throw new ToolError("o repositório ainda não tem commits: faça o primeiro commit antes do plan (o branch da execução parte dele)")
+    throw new ToolError(tr("plan.no_commits"))
 
   const now = host.now()
   let id = options.id
@@ -79,7 +80,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
   }
   const dir = runDir(root, id)
   const branch = useRunBranch ? `gt/${id}` : base
-  if (useRunBranch && (await branchExists(host, root, branch))) throw new ToolError(`o branch ${branch} já existe`)
+  if (useRunBranch && (await branchExists(host, root, branch))) throw new ToolError(tr("plan.branch_exists", { branch }))
 
   const profiles = plan.profiles ?? DEFAULT_PROFILES
   const run: RunFile = {
@@ -148,11 +149,11 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
 
 export function createdText(created: CreatedRun): string {
   const { run, tasks, tickets } = created
-  const branch = run.repo.branch === run.repo.baseBranch ? `branch atual (${run.repo.branch})` : `branch ${run.repo.branch}`
+  const branch = run.repo.branch === run.repo.baseBranch ? tr("plan.current_branch", { branch: run.repo.branch }) : `branch ${run.repo.branch}`
   return [
-    `execução ${run.id} criada: ${tasks.tasks.length} tarefa(s), ${branch}`,
-    `tickets: ${tickets.length} em ${join(created.dir, "tickets")}`,
-    `próximo passo: tasks next`,
+    tr("plan.created", { run: run.id, n: tasks.tasks.length, branch }),
+    tr("plan.tickets", { n: tickets.length, dir: join(created.dir, "tickets") }),
+    tr("plan.next_step"),
   ].join("\n")
 }
 
@@ -162,7 +163,7 @@ export async function planFromJson(ctx: ToolContext, raw: unknown, options: Crea
     return {
       ok: false,
       code: 1,
-      text: `plano recusado, nada foi gravado. ${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`,
+      text: `${tr("plan.refused")} ${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`,
       data: { errors },
     }
   const created = await createRun(ctx, plan, options)
@@ -206,17 +207,17 @@ async function resolveDraft(ctx: ToolContext, args: ParsedArgs): Promise<{ root:
   const drafts = await listDrafts(ctx, root)
   if (wanted) {
     const found = drafts.find((d) => d.id === wanted)
-    if (!found) throw new ToolError(`não há rascunho aberto com o id ${wanted}`)
+    if (!found) throw new ToolError(tr("draft.not_found", { id: wanted }))
     return { root, ...found }
   }
-  if (drafts.length === 0) throw new ToolError("não há rascunho aberto: comece com tasks plan --draft")
+  if (drafts.length === 0) throw new ToolError(tr("draft.none"))
   if (drafts.length > 1)
-    throw new ToolError(`há ${drafts.length} rascunhos abertos (${drafts.map((d) => d.id).join(", ")}): diga qual com --run <id>`)
+    throw new ToolError(tr("draft.many", { n: drafts.length, ids: drafts.map((d) => d.id).join(", ") }))
   return { root, ...drafts[0]! }
 }
 
 function refused(prefix: string, errors: string[]): ToolResult {
-  return { ok: false, code: 1, text: `${prefix} ${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
+  return { ok: false, code: 1, text: `${prefix} ${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
 }
 
 function draftPlan(draft: Draft): PlanInput {
@@ -236,13 +237,13 @@ async function saveDraft(ctx: ToolContext, dir: string, draft: Draft) {
 }
 
 export function draftSummary(draft: Draft): string {
-  if (draft.tasks.length === 0) return `rascunho ${draft.id}: nenhuma tarefa ainda (acrescente com tasks plan --add)`
+  if (draft.tasks.length === 0) return tr("draft.empty_summary", { id: draft.id })
   const lines = draft.tasks.map((t) => {
     const deps = t.dependsOn?.length ? t.dependsOn.join(", ") : "-"
     const own = t.exclusive ? "exclusive" : t.files?.length ? t.files.join(", ") : "-"
-    return `${t.id} · ${t.title} · depende de: ${deps} · posse: ${own}`
+    return tr("draft.line", { id: t.id, title: t.title, deps, own })
   })
-  return [`rascunho ${draft.id}: ${draft.tasks.length} tarefa(s)`, ...lines].join("\n")
+  return [tr("draft.summary", { id: draft.id, n: draft.tasks.length }), ...lines].join("\n")
 }
 
 async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
@@ -251,7 +252,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
   const open = await listDrafts(ctx, root)
   if (open.length > 0)
     throw new ToolError(
-      `já há um rascunho aberto: ${open.map((d) => d.id).join(", ")} (continue com tasks plan --add, ou feche com --commit)`,
+      tr("draft.already_open", { ids: open.map((d) => d.id).join(", ") }),
     )
   const name = typeof args.options.name === "string" ? args.options.name : undefined
   const objective = typeof args.options.objective === "string" ? args.options.objective : undefined
@@ -277,12 +278,12 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
       undo: { kind: "remove-line" },
     })
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" })
-  return ok(`rascunho ${id} aberto: acrescente lotes com tasks plan --add <json> (até ~20 tarefas por lote)`, { draft: id, dir })
+  return ok(tr("draft.opened", { id }), { draft: id, dir })
 }
 
 async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const { dir, draft } = await resolveDraft(ctx, args)
-  const raw = await readJsonArg(ctx, args.positionals[0], "o lote")
+  const raw = await readJsonArg(ctx, args.positionals[0], "json.batch")
   return withLock(ctx.host, dir, async () => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     const read = readPlan(raw)
@@ -296,16 +297,16 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const earlier = read.plan.profiles
       ? current.tasks
           .filter((t) => t.profile !== undefined && !(t.profile in profiles))
-          .map((t) => `${t.id}: perfil desconhecido "${t.profile}" (perfis: ${Object.keys(profiles).join(", ")})`)
+          .map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile!, profiles: Object.keys(profiles).join(", ") }))
       : []
     const errors = [...read.errors, ...batch.errors, ...earlier]
-    if (errors.length > 0) return refused("lote recusado, o rascunho não mudou.", errors)
+    if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
     for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
-    const added = batch.tasks.map((t) => t.id).join(", ") || "nenhuma"
-    return ok(`lote aceito: ${batch.tasks.length} tarefa(s) (${added}); rascunho com ${next.tasks.length}. Feche com tasks plan --commit`, {
+    const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")
+    return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
       draft: next.id,
       added: batch.tasks.map((t) => t.id),
       total: next.tasks.length,
@@ -315,33 +316,33 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
 
 async function draftFix(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const fixId = typeof args.options.fix === "string" ? args.options.fix : undefined
-  if (!fixId) throw new ToolError("--fix precisa do id da tarefa: tasks plan --fix T04 <json>", 2)
+  if (!fixId) throw new ToolError(tr("draft.fix_needs_id"), 2)
   const { dir, draft } = await resolveDraft(ctx, args)
-  let raw = await readJsonArg(ctx, args.positionals[0], "a tarefa")
+  let raw = await readJsonArg(ctx, args.positionals[0], "json.task")
   if (Array.isArray(raw)) {
-    if (raw.length !== 1) throw new ToolError("--fix troca uma tarefa só: mande um objeto")
+    if (raw.length !== 1) throw new ToolError(tr("draft.fix_one"))
     raw = raw[0]
   }
   if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as { id?: unknown }).id === undefined) raw = { ...raw, id: fixId }
   return withLock(ctx.host, dir, async () => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     const index = current.tasks.findIndex((t) => t.id === fixId)
-    if (index < 0) throw new ToolError(`o rascunho não tem a tarefa ${fixId} (veja tasks plan --show)`)
+    if (index < 0) throw new ToolError(tr("draft.no_task", { id: fixId }))
     const read = readPlan([raw])
     const errors = [...read.errors]
     const task = read.plan.tasks[0]
-    if (task && task.id !== fixId) errors.push(`--fix ${fixId} recebeu a tarefa ${task.id}: o id não muda numa correção`)
+    if (task && task.id !== fixId) errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }))
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
       profiles: current.profiles ?? DEFAULT_PROFILES,
       existingIds: current.tasks.filter((t) => t.id !== fixId).map((t) => t.id),
     })
     errors.push(...batch.errors)
-    if (errors.length > 0 || !batch.tasks[0]) return refused(`correção de ${fixId} recusada, o rascunho não mudou.`, errors)
+    if (errors.length > 0 || !batch.tasks[0]) return refused(tr("draft.fix_refused", { id: fixId }), errors)
     const tasks = [...current.tasks]
     tasks[index] = batch.tasks[0]
     await saveDraft(ctx, dir, { ...current, tasks })
-    return ok(`${fixId} corrigida; o rascunho tem ${tasks.length} tarefa(s)`, { draft: current.id, fixed: fixId })
+    return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current.id, fixed: fixId })
   })
 }
 
@@ -357,9 +358,9 @@ async function draftCommit(ctx: ToolContext, args: ParsedArgs): Promise<ToolResu
   const { dir, draft } = await resolveDraft(ctx, args)
   return withLock(ctx.host, dir, async () => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
-    if (current.tasks.length === 0) throw new ToolError("o rascunho está vazio: acrescente tarefas com tasks plan --add")
+    if (current.tasks.length === 0) throw new ToolError(tr("draft.empty"))
     const { plan, errors } = validatePlan(draftPlan(current), { platform: ctx.host.platform })
-    if (errors.length > 0) return refused("plano recusado, nada foi gravado; o rascunho continua aberto.", errors)
+    if (errors.length > 0) return refused(tr("draft.commit_refused"), errors)
     const created = await createRun(ctx, plan, { id: current.id })
     await ctx.host.remove(draftFile(dir))
     return ok(
@@ -380,21 +381,15 @@ defineAction("plan", async (ctx, args) => {
   const raw = await readJsonArg(ctx, args.positionals[0])
   const name = typeof o.name === "string" ? o.name : undefined
   return planFromJson(ctx, raw, { name })
-}, "plan <json|@arquivo> [--name slug]    cria a execução (tasks.json, tickets, branch gt/<run>)")
+}, "help.plan")
 
-addUsage([
-  "plan --draft [--name slug] [--objective texto]   abre um rascunho (plano em lotes)",
-  "  plan --add <json|@arquivo>            acrescenta um lote ao rascunho (valida o lote)",
-  "  plan --fix <id> <json|@arquivo>       troca uma tarefa do rascunho",
-  "  plan --show                           resumo do rascunho",
-  "  plan --commit                         validação completa; cria a execução e apaga o rascunho",
-].join("\n"))
+for (const key of ["help.plan.draft", "help.plan.add", "help.plan.fix", "help.plan.show", "help.plan.commit"]) addUsage(key)
 
 defineAction("runs", async (ctx) => {
   const root = await requireRepo(ctx.host, ctx.cwd)
   const runs = await listRuns(ctx.host, root)
   return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) })
-}, "runs                                  execuções do repositório, com status e progresso")
+}, "help.runs")
 
 // ── import of Markdown tickets ────────────────────────────────────────────────────────────────────────────────
 
@@ -402,24 +397,24 @@ defineAction(
   "import",
   async (ctx, args) => {
     const arg = args.positionals[0]
-    if (!arg) throw new ToolError("falta a pasta dos tickets: tasks import <pasta> [--check|--yes]", 2)
+    if (!arg) throw new ToolError(tr("import.no_folder"), 2)
     const dir = isAbsolute(arg) ? arg : join(ctx.cwd, arg)
-    if ((await ctx.host.stat(dir))?.kind !== "dir") throw new ToolError(`não é uma pasta: ${arg}`)
+    if ((await ctx.host.stat(dir))?.kind !== "dir") throw new ToolError(tr("path.not_a_folder", { path: arg }))
     const tickets = await readTicketsDir(ctx.host, dir)
-    if (!tickets.length) throw new ToolError(`nenhum ticket .md em ${arg}`)
+    if (!tickets.length) throw new ToolError(tr("import.no_tickets", { dir: arg }))
     const raw = { tasks: tickets.map((t) => t.task) }
     const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
-    const read = [`${tickets.length} ticket(s) lido(s) de ${arg}:`, ...tickets.map((t) => `  ${ticketReadLine(t)}`)]
+    const read = [tr("import.read", { n: tickets.length, dir: arg }), ...tickets.map((t) => `  ${ticketReadLine(t)}`)]
     if (!args.options.yes) {
       const verdict = errors.length
-        ? `o plano lido tem ${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`
-        : "o plano lido é válido; crie a execução com --yes"
-      return ok(`${read.join("\n")}\n${verdict}\nnada foi gravado (--check)`, { tickets, errors })
+        ? `${tr("import.has_errors", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`
+        : tr("import.valid")
+      return ok(`${read.join("\n")}\n${verdict}\n${tr("import.check_only")}`, { tickets, errors })
     }
-    if (errors.length) return { ok: false, code: 1, text: `${read.join("\n")}\nimportação recusada, nada foi gravado. ${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
+    if (errors.length) return { ok: false, code: 1, text: `${read.join("\n")}\n${tr("import.refused")} ${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
     const name = typeof args.options.name === "string" ? args.options.name : basename(dir.replace(/\/issues$/, ""))
     const created = await createRun(ctx, plan, { name })
     return ok(`${read.join("\n")}\n${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, { bind: created.run.id })
   },
-  "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)",
+  "help.import",
 )

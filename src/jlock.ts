@@ -4,6 +4,7 @@
 import type { Host, Resident } from "./host.ts"
 import { relativeInside, caseInsensitive } from "./paths.ts"
 import { ToolError } from "./tool.ts"
+import { lang, tr } from "./i18n.ts"
 
 export const JLOCK = {
   OK: 0,
@@ -62,6 +63,11 @@ export function jlockBin(host: Host): string {
   return host.env("JLOCK_BIN") || "jlock"
 }
 
+/** The environment of every jlock process: its messages in the language the tool speaks. */
+export function jlockEnv(): Record<string, string> {
+  return { JLOCK_LANG: lang() }
+}
+
 function parseAnswer(text: string): JlockAnswer | undefined {
   const line = text.split("\n").find((l) => l.trim().startsWith("{"))
   if (!line) return undefined
@@ -76,10 +82,10 @@ function parseAnswer(text: string): JlockAnswer | undefined {
 function failure(code: number, stdout: string, stderr: string, what: string): ToolError {
   const answer = parseAnswer(stdout)
   const message = answer?.message ?? answer?.error ?? (stderr.trim() || stdout.trim())
-  if (code === JLOCK.DISK) return new ToolError(`jlock (${what}): erro de disco: ${message}`)
-  if (code === JLOCK.USAGE) return new ToolError(`jlock (${what}) recusou o uso: ${message} — é um bug do goal-tasks, registre-o`)
-  if (code === 127) return new ToolError(`jlock não encontrado no PATH (${message}); instale o jlock ou defina JLOCK_BIN`)
-  return new ToolError(`jlock (${what}) saiu com ${code}: ${message}`)
+  if (code === JLOCK.DISK) return new ToolError(tr("jlock.disk", { what, message }))
+  if (code === JLOCK.USAGE) return new ToolError(tr("jlock.usage", { what, message }))
+  if (code === 127) return new ToolError(tr("jlock.missing", { message }))
+  return new ToolError(tr("jlock.exit", { what, code, message }))
 }
 
 export async function jlockList(host: Host, filter: { group?: string; under?: string; owner?: string } = {}): Promise<JlockLock[]> {
@@ -87,13 +93,13 @@ export async function jlockList(host: Host, filter: { group?: string; under?: st
   if (filter.group) argv.push("--group", filter.group)
   if (filter.under) argv.push("--under", filter.under)
   if (filter.owner) argv.push("--owner", filter.owner)
-  const r = await host.run(argv)
+  const r = await host.run(argv, { env: jlockEnv() })
   if (r.code !== 0) throw failure(r.code, r.stdout, r.stderr, "list")
   try {
     const parsed = JSON.parse(r.stdout) as { locks?: JlockLock[] }
     return parsed.locks ?? []
   } catch {
-    throw new ToolError(`jlock list devolveu algo que não é JSON: ${r.stdout.slice(0, 200)}`)
+    throw new ToolError(tr("jlock.list_not_json", { text: r.stdout.slice(0, 200) }))
   }
 }
 
@@ -104,14 +110,14 @@ export interface ReleaseOutcome {
 
 /** `jlock release --group <run> --owner <owner>`: tolerates "not the owner" (13), the lock was not ours any more. */
 export async function jlockRelease(host: Host, group: string, owner: string): Promise<ReleaseOutcome> {
-  const r = await host.run([jlockBin(host), "release", "--group", group, "--owner", owner, "--json"])
+  const r = await host.run([jlockBin(host), "release", "--group", group, "--owner", owner, "--json"], { env: jlockEnv() })
   if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER) throw failure(r.code, r.stdout, r.stderr, "release")
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] }
 }
 
 /** `jlock release <keys…> --owner <owner>`: gives back some keys only (a claim that could not be recorded). */
 export async function jlockReleaseKeys(host: Host, keys: string[], owner: string): Promise<ReleaseOutcome> {
-  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"])
+  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"], { env: jlockEnv() })
   if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER) throw failure(r.code, r.stdout, r.stderr, "release")
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] }
 }
@@ -142,11 +148,11 @@ export function jlockVersion(host: Host): Promise<string> {
   const bin = jlockBin(host)
   let pending = versions.get(bin)
   if (!pending) {
-    pending = host.run([bin, "--version"]).then((r) => {
+    pending = host.run([bin, "--version"], { env: jlockEnv() }).then((r) => {
       const m = /(\d+)\.(\d+)\.(\d+)/.exec(`${r.stdout}\n${r.stderr}`)
       if (r.code === 127 || !m) {
         versions.delete(bin)
-        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || "jlock --version não respondeu a versão", "--version")
+        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || tr("jlock.no_version"), "--version")
       }
       return `${m[1]}.${m[2]}.${m[3]}`
     })
@@ -198,11 +204,11 @@ export interface HoldOutcome {
  * `jlock release`, the ttl or `unlock --force`. `timeoutMs` bounds the call (a `claim` waits up to its timeout).
  */
 export async function detachedHold(host: Host, argv: string[], cwd: string, timeoutMs: number): Promise<HoldOutcome> {
-  const r = await host.run(argv, { cwd, timeoutMs })
+  const r = await host.run(argv, { cwd, timeoutMs, env: jlockEnv() })
   const answer = parseAnswer(r.stdout)
   if (!answer) {
     if (r.code === 127) throw failure(127, r.stdout, r.stderr, "hold")
-    throw new ToolError(`jlock hold respondeu algo que não é JSON (saída ${r.code}): ${(r.stdout || r.stderr).slice(0, 200)}`)
+    throw new ToolError(tr("jlock.hold_not_json_code", { code: r.code, text: (r.stdout || r.stderr).slice(0, 200) }))
   }
   if (answer.result === "error") throw failure(r.code, r.stdout, r.stderr, "hold")
   return { answer, code: r.code }
@@ -219,14 +225,14 @@ export async function startHold(host: Host, resident: Resident, firstLineTimeout
     const code = await Promise.race([resident.exited, host.sleep(2000).then(() => undefined)])
     if (code === undefined) {
       await resident.stop()
-      throw new ToolError(`jlock hold não respondeu em ${Math.round(firstLineTimeoutMs / 1000)} s`)
+      throw new ToolError(tr("jlock.hold_silent", { seconds: Math.round(firstLineTimeoutMs / 1000) }))
     }
     throw failure(code, resident.lines().join("\n"), "", "hold")
   }
   const answer = parseAnswer(line)
   if (!answer) {
     await resident.stop()
-    throw new ToolError(`jlock hold respondeu algo que não é JSON: ${line.slice(0, 200)}`)
+    throw new ToolError(tr("jlock.hold_not_json", { text: line.slice(0, 200) }))
   }
   if (answer.result === "granted") return { answer, resident }
   const code = await Promise.race([resident.exited, host.sleep(5000).then(() => undefined)])
@@ -236,7 +242,7 @@ export async function startHold(host: Host, resident: Resident, firstLineTimeout
 
 /** How the panel and the answers name a lock's owner (section 4): `T05`, `auth-261024-p0q9/T03`, or another program. */
 export function describeOwner(owner: string, run: string): string {
-  if (!owner.startsWith("gt:")) return `outro programa: ${owner}`
+  if (!owner.startsWith("gt:")) return tr("jlock.other_program", { owner })
   const rest = owner.slice(3)
   const slash = rest.lastIndexOf("/")
   if (slash < 0) return rest

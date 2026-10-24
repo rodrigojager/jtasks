@@ -10,7 +10,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*.ts", "cli/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]
 }

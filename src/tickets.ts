@@ -4,6 +4,7 @@ import { slugify, ticketNumber } from "./ids.ts"
 import type { Host } from "./host.ts"
 import { join } from "./paths.ts"
 import type { PlanTask, Task, TasksFile } from "./schema.ts"
+import { tr } from "./i18n.ts"
 
 export function ticketFileName(task: Task, index: number): string {
   return `${ticketNumber(task.id, index)}-${slugify(task.title, 40)}.md`
@@ -18,10 +19,10 @@ export function renderTicket(task: Task, index: number, all: Task[]): string {
   const nums = numbers(all)
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)"
   const files = task.exclusive
-    ? "(exclusive: roda sozinha)"
+    ? tr("ticket.exclusive")
     : task.files.length
       ? task.files.map((f) => `\`${f}\``).join(", ")
-      : "(nenhum)"
+      : tr("ticket.none")
   const claimed = task.claimed?.length ? `\n\n**Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : ""
   const lines = [
     `# ${ticketNumber(task.id, index)}: ${task.title}`,
@@ -121,17 +122,17 @@ export function parseTicket(text: string, file: string, index: number): ParsedTi
   }
   const fromName = /^(\d+)-(.+)\.md$/i.exec(file.split("/").pop() ?? file)
   const num = heading?.num ?? fromName?.[1] ?? String(index + 1)
-  if (!heading) notes.push("sem o título '# NN: título' (usei o nome do arquivo)")
+  if (!heading) notes.push(tr("import.no_heading"))
   const id = `T${String(Number(num)).padStart(2, "0")}`
   const title = heading?.title ?? fromName?.[2]?.replace(/-/g, " ") ?? id
   const task: PlanTask = { id, title }
 
   const what = fields.get("what to build")
   if (what) task.what = what
-  else notes.push("sem What to build")
+  else notes.push(tr("import.no_what"))
 
   const blocked = fields.get("blocked by")
-  if (blocked === undefined) notes.push("sem Blocked by (sem dependências)")
+  if (blocked === undefined) notes.push(tr("import.no_blocked"))
   else if (!/^(none|nenhum|nenhuma|-)\b/i.test(blocked)) {
     const deps = [...blocked.matchAll(/\b(\d{1,3})\b/g)].map((m) => `T${String(Number(m[1])).padStart(2, "0")}`)
     task.dependsOn = [...new Set(deps)]
@@ -140,14 +141,14 @@ export function parseTicket(text: string, file: string, index: number): ParsedTi
   const files = fields.get("files")
   if (files === undefined) {
     task.exclusive = true
-    notes.push("sem Files: vira exclusive (nunca em paralelo) até alguém declarar os arquivos")
+    notes.push(tr("import.no_files"))
   } else if (/exclusive/i.test(files) && !files.includes("`")) task.exclusive = true
   else task.files = [...files.matchAll(/`([^`]+)`/g)].map((m) => m[1]!)
 
   const profile = fields.get("profile")
   if (profile) task.profile = profile
   if (acceptance.length) task.acceptance = acceptance
-  else notes.push("sem critérios - [ ]")
+  else notes.push(tr("import.no_criteria"))
   const boundary = fields.get("scope boundary")
   if (boundary) task.boundary = boundary
   const parsed: ParsedTicket = { file, task, notes }
@@ -171,8 +172,8 @@ export async function readTicketsDir(host: Host, dir: string): Promise<ParsedTic
 export function ticketReadLine(t: ParsedTicket): string {
   const k = t.task
   const deps = k.dependsOn?.length ? k.dependsOn.join(", ") : "-"
-  const own = k.exclusive ? "exclusive" : k.files?.length ? k.files.join(", ") : "(nenhum)"
+  const own = k.exclusive ? "exclusive" : k.files?.length ? k.files.join(", ") : tr("ticket.none")
   const crit = k.acceptance?.length ?? 0
-  const tail = t.notes.length ? `\n    faltou: ${t.notes.join("; ")}` : ""
-  return `${t.file} → ${k.id} · ${k.title} · depende de: ${deps} · posse: ${own} · ${crit} critério(s)${tail}`
+  const tail = t.notes.length ? `\n    ${tr("import.missing", { notes: t.notes.join("; ") })}` : ""
+  return `${tr("import.line", { file: t.file, id: k.id, title: k.title, deps, own, n: crit })}${tail}`
 }

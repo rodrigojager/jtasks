@@ -21,6 +21,9 @@ process.env.JLOCK_HINTS = "0"
 // Tests start real git and jlock processes; on a busy machine 5 s (the default) is not enough.
 setDefaultTimeout(60_000)
 delete process.env.GOAL_TASKS_RUN
+// The answers the tests read are the Portuguese ones, whatever the machine speaks (test/i18n.test.ts tries others).
+process.env.GOAL_TASKS_LANG = "pt-BR"
+delete process.env.JLOCK_LANG
 
 function remove(dir: string) {
   for (let i = 0; i < 30; i++) {

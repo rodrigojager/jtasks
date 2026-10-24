@@ -8,6 +8,7 @@ import { isAbsolute, join } from "./paths.ts"
 import type { ToolName } from "./schema.ts"
 import { readTicketsDir } from "./tickets.ts"
 import { validatePlan } from "./validate.ts"
+import { select, systemLocale, tr } from "./i18n.ts"
 
 export const VERSION = "0.1.0"
 
@@ -16,6 +17,8 @@ export interface ToolContext {
   /** Where the command runs: the repository or a folder inside it. */
   cwd: string
   tool: ToolName
+  /** The language the host asks for (its own setting); `--lang` and GOAL_TASKS_LANG win over it. */
+  lang?: string
   /** Session id of the mod or the plugin; absent in the CLI. */
   session?: string
   /** The run bound to the session (mod, plugin), or chosen by `--run`/`GOAL_TASKS_RUN`. */
@@ -109,7 +112,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       else if (BOOLEAN_FLAGS.has(name)) options[name] = true
       else {
         const value = argv[i + 1]
-        if (value === undefined) throw new ToolError(`--${name} precisa de um valor`, 2)
+        if (value === undefined) throw new ToolError(tr("args.needs_value", { name }), 2)
         options[name] = value
         i++
       }
@@ -147,23 +150,24 @@ export function splitCommand(line: string): string[] {
       has = true
     }
   }
-  if (quote) throw new ToolError("aspas sem fechar no comando", 2)
+  if (quote) throw new ToolError(tr("args.open_quote"), 2)
   if (has || cur) out.push(cur)
   return out
 }
 
 /** The JSON payload of a command: the structured `json`, `@file`, `-` (standard input) or inline JSON. */
-export async function readJsonArg(ctx: ToolContext, arg: string | undefined, what = "o plano"): Promise<unknown> {
+/** `what` is the catalog key of what is read (`json.plan`, `json.batch`, `json.task`). */
+export async function readJsonArg(ctx: ToolContext, arg: string | undefined, what = "json.plan"): Promise<unknown> {
   if (ctx.json !== undefined) return typeof ctx.json === "string" ? parseJson(ctx.json, what) : ctx.json
-  if (arg === undefined) throw new ToolError(`falta ${what} em JSON (texto, @arquivo ou -)`, 2)
+  if (arg === undefined) throw new ToolError(tr("json.missing", { what: tr(what) }), 2)
   if (arg === "-") {
-    if (!ctx.stdin) throw new ToolError("entrada padrão indisponível aqui", 2)
+    if (!ctx.stdin) throw new ToolError(tr("json.no_stdin"), 2)
     return parseJson(await ctx.stdin(), what)
   }
   if (arg.startsWith("@")) {
     const file = isAbsolute(arg.slice(1)) ? arg.slice(1) : join(ctx.cwd, arg.slice(1))
     const text = await ctx.host.readText(file)
-    if (text === undefined) throw new ToolError(`arquivo não encontrado: ${arg.slice(1)}`)
+    if (text === undefined) throw new ToolError(tr("json.no_file", { file: arg.slice(1) }))
     return parseJson(text, what)
   }
   return parseJson(arg, what)
@@ -173,7 +177,7 @@ function parseJson(text: string, what: string): unknown {
   try {
     return JSON.parse(text.replace(/^﻿/, ""))
   } catch (error) {
-    throw new ToolError(`${what} não é JSON válido: ${(error as Error).message}`)
+    throw new ToolError(tr("json.invalid", { what: tr(what), message: (error as Error).message }))
   }
 }
 
@@ -182,12 +186,12 @@ type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>
 const actions = new Map<string, Action>()
 const usages: string[] = []
 
-/** A line in `tasks help` that belongs to no action of its own (variants of one). */
+/** A line in `tasks help` that belongs to no action of its own (variants of one): its catalog key. */
 export function addUsage(usage: string) {
   usages.push(usage)
 }
 
-/** Adds an action to the tool, with its line in `tasks help`. */
+/** Adds an action to the tool, with its line in `tasks help` (a catalog key, `help.<action>` or `help.<action>.…`). */
 export function defineAction(name: string, fn: Action, usage?: string) {
   actions.set(name, fn)
   if (usage) usages.push(usage)
@@ -197,17 +201,18 @@ export function ok(text: string, data?: unknown, extra: Partial<ToolResult> = {}
   return { ok: true, code: 0, text, data, ...extra }
 }
 
-defineAction("help", async () =>
-  ok(
-    [
-      `tasks ${VERSION}: lista de tarefas com dependências e posse de arquivos (jlock)`,
-      "",
-      ...usages.map((u) => `  ${u}`),
-      "",
-      "  --json em qualquer ação: a resposta em JSON; --run <id> escolhe a execução",
-    ].join("\n"),
-  ),
-)
+// `tasks help` lists every action; `tasks help <action>` (or `<action> --help`) only that action's lines.
+defineAction("help", async (_ctx, args) => {
+  const wanted = args.action === "help" ? args.positionals[0] : args.action
+  if (wanted) {
+    const keys = usages.filter((k) => k === `help.${wanted}` || k.startsWith(`help.${wanted}.`))
+    if (!keys.length) throw new ToolError(tr("help.unknown", { action: wanted }), 2)
+    return ok([tr("help.title", { version: VERSION }), "", ...keys.map((k) => `  ${tr(k)}`), "", `  ${tr("help.json")}`].join("\n"))
+  }
+  return ok(
+    [tr("help.title", { version: VERSION }), "", ...usages.map((k) => `  ${tr(k)}`), "", `  ${tr("help.json")}`, `  ${tr("help.lang")}`].join("\n"),
+  )
+})
 defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }))
 
 defineAction("validate", async (ctx, args) => {
@@ -217,21 +222,39 @@ defineAction("validate", async (ctx, args) => {
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir!)).map((t) => t.task) } : await readJsonArg(ctx, arg)
   const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
   if (errors.length > 0)
-    return { ok: false, code: 1, text: `${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
-  return ok(`ok: ${plan.tasks.length} tarefa(s), nenhum erro`, { errors: [], tasks: plan.tasks.length })
-}, "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar")
+    return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
+  return ok(tr("validate.ok", { n: plan.tasks.length }), { errors: [], tasks: plan.tasks.length })
+}, "help.validate")
 
 /** Runs one command of the tool. Never throws: errors come back as `{ ok: false }`. */
 export async function runTool(ctx: ToolContext, argv: readonly string[]): Promise<ToolResult> {
+  const choice = select({ lang: langArg(argv) ?? ctx.lang, env: (name) => ctx.host.env(name), system: systemLocale() })
+  const result = await dispatch(ctx, argv)
+  if (choice.warning) result.text = `${choice.warning}\n${result.text}`
+  return result
+}
+
+/** `--lang <tag>` or `--lang=<tag>` before any `--`. */
+function langArg(argv: readonly string[]): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!
+    if (a === "--") return undefined
+    if (a === "--lang") return argv[i + 1]
+    if (a.startsWith("--lang=")) return a.slice(7)
+  }
+  return undefined
+}
+
+async function dispatch(ctx: ToolContext, argv: readonly string[]): Promise<ToolResult> {
   try {
     const args = parseArgs(argv)
     if (args.options.help) return await actions.get("help")!(ctx, args)
     const fn = actions.get(args.action)
-    if (!fn) throw new ToolError(`ação desconhecida: ${args.action} (veja tasks help)`, 2)
+    if (!fn) throw new ToolError(tr("tool.unknown_action", { action: args.action }), 2)
     return await fn(ctx, args)
   } catch (error) {
     if (error instanceof ToolError) return { ok: false, code: error.code, text: error.message, data: error.data ?? { error: error.message } }
     const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, code: 1, text: `erro: ${message}`, data: { error: message } }
+    return { ok: false, code: 1, text: tr("tool.error", { message }), data: { error: message } }
   }
 }

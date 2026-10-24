@@ -49,6 +49,8 @@ export interface JlockAnswer {
     error?: string;
 }
 export declare function jlockBin(host: Host): string;
+/** The environment of every jlock process: its messages in the language the tool speaks. */
+export declare function jlockEnv(): Record<string, string>;
 export declare function jlockList(host: Host, filter?: {
     group?: string;
     under?: string;

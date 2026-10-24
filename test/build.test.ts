@@ -18,13 +18,13 @@ describe("versioned bundles", () => {
     expect(core).not.toContain("require(")
   })
 
-  test("the core sources import nothing from node: or packages", () => {
+  test("the core sources import nothing from node: or packages (only each other and the catalogs in locales/)", () => {
     const dir = join(REPO_ROOT, "src")
     for (const name of readdirSync(dir)) {
       if (!name.endsWith(".ts") || name === "node-host.ts") continue
       const text = readFileSync(join(dir, name), "utf8")
       const imports = [...text.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]!)
-      for (const spec of imports) expect(`${name}: ${spec}`).toMatch(/: \.\//)
+      for (const spec of imports) expect(`${name}: ${spec}`).toMatch(/: (\.\/|\.\.\/locales\/[\w-]+\.json$)/)
     }
   })
 })

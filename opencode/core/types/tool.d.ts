@@ -8,6 +8,8 @@ export interface ToolContext {
     /** Where the command runs: the repository or a folder inside it. */
     cwd: string;
     tool: ToolName;
+    /** The language the host asks for (its own setting); `--lang` and GOAL_TASKS_LANG win over it. */
+    lang?: string;
     /** Session id of the mod or the plugin; absent in the CLI. */
     session?: string;
     /** The run bound to the session (mod, plugin), or chosen by `--run`/`GOAL_TASKS_RUN`. */
@@ -56,11 +58,12 @@ export declare function parseArgs(argv: readonly string[]): ParsedArgs;
 /** Splits a command line the way a shell would for simple quoting: spaces, '…' and "…" (with \" inside). */
 export declare function splitCommand(line: string): string[];
 /** The JSON payload of a command: the structured `json`, `@file`, `-` (standard input) or inline JSON. */
+/** `what` is the catalog key of what is read (`json.plan`, `json.batch`, `json.task`). */
 export declare function readJsonArg(ctx: ToolContext, arg: string | undefined, what?: string): Promise<unknown>;
 type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>;
-/** A line in `tasks help` that belongs to no action of its own (variants of one). */
+/** A line in `tasks help` that belongs to no action of its own (variants of one): its catalog key. */
 export declare function addUsage(usage: string): void;
-/** Adds an action to the tool, with its line in `tasks help`. */
+/** Adds an action to the tool, with its line in `tasks help` (a catalog key, `help.<action>` or `help.<action>.…`). */
 export declare function defineAction(name: string, fn: Action, usage?: string): void;
 export declare function ok(text: string, data?: unknown, extra?: Partial<ToolResult>): ToolResult;
 /** Runs one command of the tool. Never throws: errors come back as `{ ok: false }`. */

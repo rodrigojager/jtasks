@@ -8,6 +8,7 @@ import { caseInsensitive, dirname, isAbsolute, join, normalize, slash } from "./
 import { readJson } from "./store.ts"
 import type { RunFile } from "./schema.ts"
 import { defineAction, ok, ToolError, type ToolContext } from "./tool.ts"
+import { tr } from "./i18n.ts"
 
 export type FindingType = "worktree" | "run" | "archive"
 
@@ -149,18 +150,18 @@ function size(bytes: number, capped: boolean): string {
 }
 
 function age(newest: number, now: number): string {
-  if (!newest) return "vazia"
+  if (!newest) return tr("gc.empty")
   const min = Math.max(0, Math.round((now - newest) / 60_000))
   if (min < 60) return `${min} min`
   if (min < 60 * 48) return `${Math.round(min / 60)} h`
-  return `${Math.round(min / 1440)} dias`
+  return tr("gc.days", { n: Math.round(min / 1440) })
 }
 
 export function findingLine(f: Finding, now: number): string {
   const parts = [f.type, f.path, size(f.bytes, f.bytesCapped), age(f.newest, now)]
-  if (f.owner) parts.push(`dono ${f.owner}${f.type === "worktree" ? (f.known ? " (registrada)" : " (o repositório não a conhece: órfã)") : ""}`)
+  if (f.owner) parts.push(f.type !== "worktree" ? tr("gc.owner", { owner: f.owner }) : tr(f.known ? "gc.owner_known" : "gc.owner_orphan", { owner: f.owner }))
   if (f.branch) parts.push(`branch ${f.branch}`)
-  if (f.merged !== undefined) parts.push(`integrado em ${f.base}: ${f.merged ? "sim" : "não"}`)
+  if (f.merged !== undefined) parts.push(tr(f.merged ? "gc.merged_yes" : "gc.merged_no", { base: f.base ?? "" }))
   return parts.join(" · ")
 }
 
@@ -172,31 +173,31 @@ defineAction(
     const resolve = (p: string) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p))
     if (typeof args.options.remove === "string") return removeFound(ctx, resolve(args.options.remove), !!args.options.yes)
     const raw = typeof args.options.scan === "string" ? args.options.scan : args.positionals[0]
-    if (!raw) throw new ToolError("use tasks gc --scan <raiz> (relatório) ou tasks gc --remove <caminho> --yes", 2)
+    if (!raw) throw new ToolError(tr("gc.usage"), 2)
     const root = resolve(raw)
-    if ((await host.stat(root))?.kind !== "dir") throw new ToolError(`não é uma pasta: ${raw}`)
+    if ((await host.stat(root))?.kind !== "dir") throw new ToolError(tr("path.not_a_folder", { path: raw }))
     const depth = typeof args.options.depth === "string" ? Number(args.options.depth) : 4
-    if (!(depth >= 0)) throw new ToolError(`--depth inválido: ${args.options.depth}`, 2)
+    if (!(depth >= 0)) throw new ToolError(tr("gc.bad_depth", { depth: String(args.options.depth) }), 2)
     const found = await scan(host, root, depth)
-    const lines = [`gc --scan ${root} (profundidade ${depth}, só leitura): ${found.length} achado(s)`]
+    const lines = [tr("gc.header", { root, depth, n: found.length })]
     for (const f of found) lines.push(`  ${findingLine(f, now)}`)
-    lines.push(found.length ? "nada foi tocado; remover: tasks gc --remove <caminho> --yes" : "nada a relatar")
+    lines.push(tr(found.length ? "gc.untouched" : "gc.nothing"))
     return ok(lines.join("\n"), { root, depth, findings: found })
   },
-  "gc --scan <raiz> [--depth 4]          relatório só leitura: worktrees órfãs, execuções, arquivos",
+  "help.gc",
 )
 
 async function removeFound(ctx: ToolContext, path: string, yes: boolean) {
   const { host } = ctx
   const found = await classify(host, path)
-  if (!found) throw new ToolError(`${path} não é algo que o relatório do gc lista (worktree, execução ou arquivo de execução); nada foi removido`)
-  if (!yes) throw new ToolError(`nada foi removido: confirme com tasks gc --remove ${path} --yes`)
-  let how = "pasta removida"
+  if (!found) throw new ToolError(tr("gc.not_listed", { path }))
+  if (!yes) throw new ToolError(tr("gc.confirm", { path }))
+  let how = tr("gc.folder_removed")
   if (found.type === "worktree" && found.known && found.owner) {
     const r = await git(host, found.owner, ["worktree", "remove", path])
-    if (r.code !== 0) throw new ToolError(`git worktree remove recusou: ${(r.stderr || r.stdout).trim()} (mudanças não salvas?); nada foi removido`)
-    how = `git worktree remove em ${found.owner}`
+    if (r.code !== 0) throw new ToolError(tr("gc.worktree_refused", { message: (r.stderr || r.stdout).trim() }))
+    how = tr("gc.worktree_removed", { owner: found.owner })
   } else await host.remove(path, { recursive: true })
   await recordGlobalEffect(host, { run: "gc", type: "dir", repo: found.owner ?? dirname(path), path, undo: { kind: "none" } })
-  return ok(`${found.type} removida: ${path} (${how}); registrado no ledger global`, { removed: path, type: found.type })
+  return ok(tr("gc.removed", { type: found.type, path, how }), { removed: path, type: found.type })
 }

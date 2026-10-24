@@ -208,7 +208,7 @@ export function installSession(on: On, cwd: string, sessionId = 'session-1') {
   on('session.start', (_$, e) => ({ cwd: e.cwd }) as never)
   on('session.cwd', () => ({ value: cwd }))
   on('session.id', () => ({ value: sessionId }))
-  on('env.get', (_$, e) => ({ value: e.name === 'GOAL_TASKS_HOME' ? `${cwd}/../gt-home` : undefined }))
+  on('env.get', (_$, e) => ({ value: e.name === 'GOAL_TASKS_HOME' ? `${cwd}/../gt-home` : e.name === 'GOAL_TASKS_LANG' ? 'pt-BR' : undefined }))
   on('tool.register', (_$, e) => {
     tools.push(e.name)
     return { value: { tool: `mcp__goal-tasks__${e.name}` } }

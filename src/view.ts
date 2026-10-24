@@ -7,6 +7,7 @@ import type { Host } from "./host.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
 import { listRuns, readRun, readTasks, runDir } from "./store.ts"
 import type { RunFile, Task, TasksFile, ToolName } from "./schema.ts"
+import { tr } from "./i18n.ts"
 
 export type LineState = "done" | "running" | "waiting" | "ready" | "blocked" | "skipped" | "failed"
 
@@ -85,7 +86,7 @@ export function buildView(state: RunState, locks: JlockLock[], platform: string,
         const a = pending.get(t.id)
         st = a && a.blockers.length ? "blocked" : "ready"
         detail = a?.blockers.map((b) => blockerText(b, state, platform)).join(" · ") ?? ""
-        if (t.lost) detail = `posse perdida${detail ? ` · ${detail}` : ""}`
+        if (t.lost) detail = `${tr("view.lost")}${detail ? ` · ${detail}` : ""}`
       }
     }
     return { mark: MARKS[st], id: t.id, title: t.title, detail, state: st }
@@ -140,21 +141,17 @@ export function bar(percent: number, width: number): string {
   return "█".repeat(full) + part + "░".repeat(Math.max(0, w - used))
 }
 
-function plural(n: number, one: string, many: string) {
-  return `${n} ${n === 1 ? one : many}`
-}
-
 export function headerText(view: View, collapsed: boolean): string {
-  if (view.kind === "runs") return `${collapsed ? "▸" : "▾"} Tasks · sem execução ligada`
-  if (collapsed) return view.paused ? "▸ Tasks · pausada" : `▸ Tasks ${view.done}/${view.total} · ${view.percent}%`
-  return `▾ Tasks · ${view.run}${view.paused ? " · pausada" : ""}`
+  if (view.kind === "runs") return `${collapsed ? "▸" : "▾"} Tasks · ${tr("view.no_run")}`
+  if (collapsed) return view.paused ? `▸ Tasks · ${tr("view.paused")}` : `▸ Tasks ${view.done}/${view.total} · ${view.percent}%`
+  return `▾ Tasks · ${view.run}${view.paused ? ` · ${tr("view.paused")}` : ""}`
 }
 
 /** What follows the bar: `58% · 7/12 · 1 pulada · 1 falha`. */
 export function summaryTail(view: RunView): string {
   const parts = [`${view.percent}% · ${view.done}/${view.total}`]
-  if (view.skipped) parts.push(plural(view.skipped, "pulada", "puladas"))
-  if (view.failed) parts.push(plural(view.failed, "falha", "falhas"))
+  if (view.skipped) parts.push(tr("progress.skipped", { n: view.skipped }))
+  if (view.failed) parts.push(tr("progress.failed", { n: view.failed }))
   return parts.join(" · ")
 }
 
@@ -182,7 +179,7 @@ export function viewLines(view: View, options: { collapsed: boolean; width: numb
   const out = [headerText(view, options.collapsed)]
   if (options.collapsed) return out
   if (view.kind === "runs") {
-    if (!view.runs.length) out.push("nenhuma execução (tasks plan)")
+    if (!view.runs.length) out.push(tr("view.no_runs"))
     for (const r of view.runs) out.push(fit(`${r.id} · ${r.status} · ${r.done}/${r.total} (${r.percent}%)`, options.width))
     return out
   }

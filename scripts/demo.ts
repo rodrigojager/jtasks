@@ -21,8 +21,11 @@ const env: Record<string, string> = {
   JLOCK_HEARTBEAT_MS: "300",
   JLOCK_STALE_MS: "3000",
   JLOCK_HINTS: "0",
+  // The demonstration is shown in Portuguese, whatever the machine speaks.
+  GOAL_TASKS_LANG: "pt-BR",
 }
 delete env.GOAL_TASKS_RUN
+delete env.JLOCK_LANG
 
 function print(text: string) {
   process.stdout.write(`${text}\n`)

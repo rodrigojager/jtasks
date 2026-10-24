@@ -6,6 +6,7 @@ import { covers } from "./keys.ts"
 import { caseInsensitive, isAbsolute, join, normalize, relativeInside, slash } from "./paths.ts"
 import type { Task } from "./schema.ts"
 import { SCRATCH } from "./store.ts"
+import { tr } from "./i18n.ts"
 
 export type Verdict = { allow: true } | { allow: false; reason: string }
 
@@ -46,9 +47,9 @@ export function checkEdit(ctx: GuardContext, path: string): Verdict {
   if (rel === undefined) return ALLOW
   const lower = caseInsensitive(ctx.platform) ? rel.toLowerCase() : rel
   if (lower.startsWith(TOOL_FILES) || lower === SCRATCH)
-    return { allow: false, reason: `${rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão` }
+    return { allow: false, reason: tr("guard.run_files", { rel }) }
   if (!ctx.task || owned(ctx, rel)) return ALLOW
-  return { allow: false, reason: `fora da posse de ${ctx.task.id}: ${rel}; use tasks claim ${ctx.task.id} ${rel}` }
+  return { allow: false, reason: tr("guard.outside", { id: ctx.task.id, rel }) }
 }
 
 const GIT_MUTATORS = new Set([
@@ -146,7 +147,7 @@ export function checkShell(ctx: GuardContext, command: string): Verdict {
     if (exe === "git") {
       const sub = gitSubcommand(words)
       if (sub && GIT_MUTATORS.has(sub) && ctx.task)
-        return { allow: false, reason: `subagente não roda git ${sub}: o commit é feito por tasks done ${ctx.task.id}` }
+        return { allow: false, reason: tr("guard.git", { sub, id: ctx.task.id }) }
       continue
     }
     for (const p of writtenPaths(words)) {

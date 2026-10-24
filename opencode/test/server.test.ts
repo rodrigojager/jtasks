@@ -57,8 +57,8 @@ describe("OpenCode plugin", () => {
 
     const system = await h.request("s1")
     expect(system).toHaveLength(2)
-    expect(system[1]!.text).toContain(`goal-tasks: execução ligada ${run} · feitas 0/3 (0%) · restam 3`)
-    expect(system[1]!.text).toContain("1. Chame tasks next.")
+    expect(system[1]!.text).toContain(`goal-tasks: bound run ${run} · feitas 0/3 (0%) · restam 3`)
+    expect(system[1]!.text).toContain("1. Call tasks next.")
 
     const next = await h.call("s1", "next")
     expect(next.text).toContain("prontas (2)")
@@ -152,7 +152,7 @@ describe("OpenCode plugin", () => {
     h.addSession("s2")
     expect(await h.request("s2")).toEqual([{ type: "text", text: "base" }])
     await h.call("s2", `resume ${run}`)
-    expect((await h.request("s2"))[1]!.text).toContain(`execução ligada ${run}`)
+    expect((await h.request("s2"))[1]!.text).toContain(`bound run ${run}`)
   })
 
   test("a profile naming an agent that does not exist is warned about after plan and resume; existing agents are not", async () => {

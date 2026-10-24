@@ -1,6 +1,7 @@
 // Compact text for the model and for people: one line of progress, the frontier, the runs.
 
 import type { RunFile, Task, TasksFile } from "./schema.ts"
+import { tr } from "./i18n.ts"
 
 export interface Counts {
   total: number
@@ -31,44 +32,45 @@ export function progress(done: number, total: number): number {
   return total === 0 ? 0 : Math.floor((done / total) * 100)
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
-
 export function progressLine(tasks: Task[]): string {
   const c = counts(tasks)
-  const parts = [`feitas ${c.done}/${c.total} (${c.percent}%)`]
-  if (c.skipped) parts.push(plural(c.skipped, "pulada", "puladas"))
-  if (c.failed) parts.push(plural(c.failed, "falha", "falhas"))
-  if (c.inProgress) parts.push(`${c.inProgress} em andamento`)
-  parts.push(`restam ${c.remaining}`)
+  const parts = [tr("progress.done", { done: c.done, total: c.total, percent: c.percent })]
+  if (c.skipped) parts.push(tr("progress.skipped", { n: c.skipped }))
+  if (c.failed) parts.push(tr("progress.failed", { n: c.failed }))
+  if (c.inProgress) parts.push(tr("progress.running", { n: c.inProgress }))
+  parts.push(tr("progress.remaining", { n: c.remaining }))
   return parts.join(" · ")
 }
 
 export function runLine(run: RunFile, tasks: TasksFile | undefined): string {
   const c = tasks ? counts(tasks.tasks) : undefined
-  const prog = c ? `${c.done}/${c.total} (${c.percent}%)` : "sem tasks.json"
+  const prog = c ? `${c.done}/${c.total} (${c.percent}%)` : tr("runs.no_tasks_file")
   return `${run.id} · ${run.status} · ${prog} · ${run.objective || run.feature}`
 }
 
 export function formatRunsList(runs: { run: RunFile; tasks?: TasksFile }[]): string {
-  if (runs.length === 0) return "nenhuma execução neste repositório (crie uma com tasks plan)"
+  if (runs.length === 0) return tr("runs.none")
   return runs.map((r) => runLine(r.run, r.tasks)).join("\n")
 }
 
 /**
- * The execution protocol (section 12), injected into the system prompt while a run is bound to the session.
- * `spawn` names how the host opens a subagent.
+ * The execution protocol (section 12), injected into the system prompt while a run is bound to the session. It
+ * is for the model, so it is English in every language; it quotes the tool's own answers ("restam 0") in the
+ * language the tool speaks. `spawn` names how the host opens a subagent.
  */
 export function protocolText(run: string, summary: string, spawn: string): string {
+  const finished = tr("progress.remaining", { n: 0 })
+  const paused = tr("view.paused")
   return [
-    `goal-tasks: execução ligada ${run} · ${summary}`,
-    "Protocolo:",
-    "1. Chame tasks next.",
-    `2. Para cada tarefa devolvida, abra um subagente (${spawn}) com o perfil indicado, todos na mesma resposta (paralelo). ` +
-      `O prompt leva só: --run ${run} --task <id>, título, critérios, posse (os arquivos que pode tocar), caminho do ticket, e ` +
-      '"chame tasks start <id> no começo; se precisar de outro arquivo, tasks claim <id> <arquivo>; não rode git; ' +
-      'no fim, tasks done <id> --evidence com a evidência, ou tasks fail <id> --error".',
-    '3. Quando terminarem, chame tasks status. "restam 0" → objetivo cumprido, com essa saída como evidência. "pausada" → pare. Senão volte ao passo 1.',
-    "4. Nunca edite tasks.json, tickets ou o git à mão; só pela ferramenta tasks.",
+    `goal-tasks: bound run ${run} · ${summary}`,
+    "Protocol:",
+    "1. Call tasks next.",
+    `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` +
+      `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` +
+      '"call tasks start <id> first; if you need another file, tasks claim <id> <file>; do not run git; ' +
+      'at the end, tasks done <id> --evidence with the evidence, or tasks fail <id> --error".',
+    `3. When they finish, call tasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
+    "4. Never edit tasks.json, the tickets or git by hand; only through the tasks tool.",
   ].join("\n")
 }
 

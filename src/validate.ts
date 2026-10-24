@@ -4,6 +4,7 @@
 import { relConflicts } from "./keys.ts"
 import { caseInsensitive, isAbsolute, normalize, slash } from "./paths.ts"
 import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION } from "./schema.ts"
+import { tr } from "./i18n.ts"
 
 const TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"])
 const PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"])
@@ -21,21 +22,19 @@ export interface FileEntry {
 /** One ownership entry: relative, `/`, no `./` and no trailing `/`; `dir/**` becomes `dir`; patterns refused. */
 export function normalizeFileEntry(raw: string): FileEntry {
   let p = slash(raw.trim())
-  if (p === "") return { error: `caminho vazio em "files"` }
-  if (isAbsolute(p)) return { error: `${raw}: use caminhos relativos ao repositório` }
+  if (p === "") return { error: tr("plan.empty_path") }
+  if (isAbsolute(p)) return { error: tr("plan.absolute_path", { path: raw }) }
   while (p.startsWith("./")) p = p.slice(2)
   if (p.endsWith("/**")) p = p.slice(0, -3) || "."
   if (GLOB.test(p)) {
     const segments = p.split("/")
     const firstGlob = segments.findIndex((s) => GLOB.test(s))
     const folder = segments.slice(0, firstGlob).join("/")
-    const hint = folder
-      ? `liste os arquivos ou use a pasta ${folder}`
-      : `liste os arquivos, use uma pasta ou marque a tarefa como exclusive`
-    return { error: `${raw}: o jlock trava arquivos e pastas, não padrões; ${hint}` }
+    const hint = folder ? tr("plan.pattern_hint_folder", { folder }) : tr("plan.pattern_hint")
+    return { error: tr("plan.pattern", { path: raw, hint }) }
   }
   const n = normalize(p).replace(/\/+$/, "")
-  if (n === ".." || n.startsWith("../")) return { error: `${raw}: sai do repositório` }
+  if (n === ".." || n.startsWith("../")) return { error: tr("plan.outside_repo", { path: raw }) }
   return { path: n || "." }
 }
 
@@ -59,74 +58,74 @@ export function readPlan(raw: unknown): ReadPlanResult {
   let obj: Record<string, unknown>
   if (Array.isArray(raw)) obj = { tasks: raw }
   else if (raw && typeof raw === "object") obj = raw as Record<string, unknown>
-  else return { plan: { tasks: [] }, errors: ["o plano deve ser uma lista de tarefas ou um objeto com \"tasks\""] }
+  else return { plan: { tasks: [] }, errors: [tr("plan.shape")] }
 
-  for (const key of Object.keys(obj)) if (!PLAN_FIELDS.has(key)) errors.push(`campo desconhecido no plano: "${key}"`)
+  for (const key of Object.keys(obj)) if (!PLAN_FIELDS.has(key)) errors.push(tr("plan.unknown_field", { field: key }))
   const plan: PlanInput = { tasks: [] }
   if (obj.feature !== undefined) {
     if (typeof obj.feature === "string") plan.feature = obj.feature
-    else errors.push(`"feature" deve ser texto`)
+    else errors.push(tr("plan.must_be_text", { field: "feature" }))
   }
   if (obj.objective !== undefined) {
     if (typeof obj.objective === "string") plan.objective = obj.objective
-    else errors.push(`"objective" deve ser texto`)
+    else errors.push(tr("plan.must_be_text", { field: "objective" }))
   }
   if (obj.profiles !== undefined) {
     if (obj.profiles && typeof obj.profiles === "object" && !Array.isArray(obj.profiles)) {
       const profiles: Record<string, Profile> = {}
       for (const [name, value] of Object.entries(obj.profiles as Record<string, unknown>)) {
         if (value && typeof value === "object" && !Array.isArray(value)) profiles[name] = value as Profile
-        else errors.push(`perfil "${name}" deve ser um objeto ({ claude, opencode })`)
+        else errors.push(tr("plan.profile_object", { name }))
       }
       plan.profiles = profiles
-    } else errors.push(`"profiles" deve ser um objeto`)
+    } else errors.push(tr("plan.profiles_object"))
   }
   if (obj.serialize !== undefined) {
     if (isStringList(obj.serialize)) plan.serialize = obj.serialize
-    else errors.push(`"serialize" deve ser uma lista de comandos`)
+    else errors.push(tr("plan.serialize_list"))
   }
   if (obj.maxAttempts !== undefined) {
     if (typeof obj.maxAttempts === "number" && Number.isInteger(obj.maxAttempts) && obj.maxAttempts >= 1)
       plan.maxAttempts = obj.maxAttempts
-    else errors.push(`"maxAttempts" deve ser um inteiro maior que zero`)
+    else errors.push(tr("plan.max_attempts"))
   }
   if (obj.holdTtl !== undefined) {
     if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl)) plan.holdTtl = obj.holdTtl
-    else errors.push(`"holdTtl" deve ser uma duração como 30m, 2h ou 1d`)
+    else errors.push(tr("plan.hold_ttl"))
   }
   if (obj.branch !== undefined) {
     if (obj.branch === "run" || obj.branch === "current") plan.branch = obj.branch
-    else errors.push(`"branch" deve ser "run" ou "current"`)
+    else errors.push(tr("plan.branch"))
   }
   if (!Array.isArray(obj.tasks)) {
-    errors.push(`falta "tasks": a lista de tarefas`)
+    errors.push(tr("plan.no_tasks"))
     return { plan, errors }
   }
 
   obj.tasks.forEach((raw, index) => {
     const name = label(raw, index)
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-      errors.push(`${name}: cada tarefa deve ser um objeto`)
+      errors.push(tr("plan.task_object", { name }))
       return
     }
     const t = raw as Record<string, unknown>
     const before = errors.length
-    for (const key of Object.keys(t)) if (!TASK_FIELDS.has(key)) errors.push(`${name}: campo desconhecido "${key}"`)
-    if (typeof t.id !== "string" || !t.id.trim()) errors.push(`${name}: falta "id"`)
-    if (typeof t.title !== "string" || !t.title.trim()) errors.push(`${name}: falta "title"`)
-    if (t.what !== undefined && typeof t.what !== "string") errors.push(`${name}: "what" deve ser texto`)
-    if (t.dependsOn !== undefined && !isStringList(t.dependsOn)) errors.push(`${name}: "dependsOn" deve ser uma lista de ids`)
-    if (t.files !== undefined && !isStringList(t.files)) errors.push(`${name}: "files" deve ser uma lista de caminhos`)
-    if (t.profile !== undefined && typeof t.profile !== "string") errors.push(`${name}: "profile" deve ser texto`)
-    if (t.boundary !== undefined && typeof t.boundary !== "string") errors.push(`${name}: "boundary" deve ser texto`)
-    if (t.exclusive !== undefined && typeof t.exclusive !== "boolean") errors.push(`${name}: "exclusive" deve ser true ou false`)
+    for (const key of Object.keys(t)) if (!TASK_FIELDS.has(key)) errors.push(tr("plan.task_unknown_field", { name, field: key }))
+    if (typeof t.id !== "string" || !t.id.trim()) errors.push(tr("plan.task_missing", { name, field: "id" }))
+    if (typeof t.title !== "string" || !t.title.trim()) errors.push(tr("plan.task_missing", { name, field: "title" }))
+    if (t.what !== undefined && typeof t.what !== "string") errors.push(tr("plan.task_text", { name, field: "what" }))
+    if (t.dependsOn !== undefined && !isStringList(t.dependsOn)) errors.push(tr("plan.task_depends_list", { name }))
+    if (t.files !== undefined && !isStringList(t.files)) errors.push(tr("plan.task_files_list", { name }))
+    if (t.profile !== undefined && typeof t.profile !== "string") errors.push(tr("plan.task_text", { name, field: "profile" }))
+    if (t.boundary !== undefined && typeof t.boundary !== "string") errors.push(tr("plan.task_text", { name, field: "boundary" }))
+    if (t.exclusive !== undefined && typeof t.exclusive !== "boolean") errors.push(tr("plan.task_exclusive", { name }))
     if (t.acceptance !== undefined) {
       const ok =
         Array.isArray(t.acceptance) &&
         t.acceptance.every(
           (a) => typeof a === "string" || (a && typeof a === "object" && typeof (a as { text?: unknown }).text === "string"),
         )
-      if (!ok) errors.push(`${name}: "acceptance" deve ser uma lista de critérios (texto)`)
+      if (!ok) errors.push(tr("plan.task_acceptance", { name }))
     }
     if (errors.length === before) plan.tasks.push(t as unknown as PlanTask)
   })
@@ -147,17 +146,17 @@ export function validateBatch(tasks: PlanTask[], ctx: BatchContext = {}): { task
   const seen = new Set(ctx.existingIds ?? [])
   const out: PlanTask[] = []
   for (const task of tasks) {
-    if (seen.has(task.id)) errors.push(`id repetido: ${task.id}`)
+    if (seen.has(task.id)) errors.push(tr("plan.duplicate_id", { id: task.id }))
     seen.add(task.id)
     if (task.profile !== undefined && !(task.profile in profiles))
-      errors.push(`${task.id}: perfil desconhecido "${task.profile}" (perfis: ${Object.keys(profiles).join(", ")})`)
+      errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }))
     const files: string[] = []
     for (const raw of task.files ?? []) {
       const entry = normalizeFileEntry(raw)
       if (entry.error) errors.push(`${task.id}: ${entry.error}`)
       else if (entry.path && !files.includes(entry.path)) files.push(entry.path)
     }
-    if (task.dependsOn?.includes(task.id)) errors.push(`${task.id} depende de si mesma`)
+    if (task.dependsOn?.includes(task.id)) errors.push(tr("plan.self_dependency", { id: task.id }))
     out.push({ ...task, files })
   }
   return { tasks: out, errors }
@@ -237,8 +236,8 @@ export function validateGraph(tasks: PlanTask[], options: ValidateOptions = {}):
   const ids = new Set(tasks.map((t) => t.id))
   for (const t of tasks)
     for (const dep of t.dependsOn ?? [])
-      if (!ids.has(dep)) errors.push(`${t.id} depende de ${dep}, que não existe`)
-  for (const cycle of findCycles(tasks)) errors.push(`ciclo: ${cycle.join(" → ")}`)
+      if (!ids.has(dep)) errors.push(tr("plan.missing_dependency", { id: t.id, dep }))
+  for (const cycle of findCycles(tasks)) errors.push(tr("plan.cycle", { cycle: cycle.join(" → ") }))
 
   const insensitive = caseInsensitive(options.platform ?? "win32")
   const anc = ancestors(tasks)
@@ -251,10 +250,8 @@ export function validateGraph(tasks: PlanTask[], options: ValidateOptions = {}):
       if (b.exclusive || a.id === b.id || related(a.id, b.id)) continue
       const hit = sharedPath(a.files ?? [], b.files ?? [], insensitive)
       if (hit) {
-        const cover = hit.outer !== hit.inner ? ` (${hit.outer} cobre ${hit.inner})` : ""
-        errors.push(
-          `${a.id} e ${b.id} tocam ${hit.inner}${cover} e podem rodar juntas: adicione uma dependência ou separe o arquivo`,
-        )
+        const cover = hit.outer !== hit.inner ? ` ${tr("plan.covers", { outer: hit.outer, inner: hit.inner })}` : ""
+        errors.push(tr("plan.shared", { a: a.id, b: b.id, path: hit.inner, cover }))
       }
     }
   }

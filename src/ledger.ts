@@ -4,6 +4,7 @@
 import type { Host } from "./host.ts"
 import { join, slash } from "./paths.ts"
 import { atomicWrite, goalTasksHome } from "./store.ts"
+import { tr } from "./i18n.ts"
 
 export type EffectType = "exclude" | "branch" | "commit" | "worktree" | "junction" | "dir" | "archive" | "agent-config"
 export type UndoKind =
@@ -110,9 +111,9 @@ export async function effectsOf(host: Host, scope: { repo?: string; run?: string
 export function effectLine(e: Effect): string {
   const what =
     e.type === "commit"
-      ? `${e.ref}${e.reverts ? ` (revert de ${e.reverts})` : ""}`
+      ? `${e.ref}${e.reverts ? ` ${tr("ledger.reverts", { id: e.reverts })}` : ""}`
       : e.type === "branch"
-        ? `${e.ref}${e.from ? ` (de ${e.from})` : ""}`
+        ? `${e.ref}${e.from ? ` ${tr("ledger.from", { from: e.from })}` : ""}`
         : e.type === "exclude"
           ? `${e.path}: ${e.line}`
           : e.type === "archive"

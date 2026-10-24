@@ -4,6 +4,7 @@
 import type { Host } from "./host.ts"
 import { join } from "./paths.ts"
 import type { RunFile, TasksFile } from "./schema.ts"
+import { tr } from "./i18n.ts"
 
 export const SCRATCH = ".scratch/goal-tasks"
 
@@ -28,7 +29,7 @@ export class StaleRevisionError extends Error {
     readonly expected: number,
     readonly found: number,
   ) {
-    super(`tasks.json mudou enquanto esta ação rodava (revisão ${expected} → ${found}); leia de novo e repita`)
+    super(tr("store.stale", { expected, found }))
   }
 }
 
@@ -49,7 +50,7 @@ export async function readJson<T>(host: Host, file: string): Promise<T | undefin
   try {
     return JSON.parse(text) as T
   } catch (error) {
-    throw new Error(`${file} não é JSON válido: ${(error as Error).message}`)
+    throw new Error(tr("store.invalid_json", { file, message: (error as Error).message }))
   }
 }
 
@@ -109,7 +110,7 @@ export async function withLock<R>(host: Host, dir: string, fn: () => Promise<R>)
       await host.remove(lock, { recursive: true }).catch(() => {})
       continue
     }
-    if (host.now().getTime() > deadline) throw new Error(`a execução está travada para escrita há mais de ${LOCK_WAIT_MS / 1000} s: ${lock}`)
+    if (host.now().getTime() > deadline) throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }))
     await host.sleep(15 + Math.floor(host.random() * 35))
   }
   try {
@@ -126,7 +127,7 @@ export async function withLock<R>(host: Host, dir: string, fn: () => Promise<R>)
 export async function mutateTasks<R>(host: Host, dir: string, change: (tasks: TasksFile) => Promise<R> | R): Promise<Mutation<R>> {
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir)
-    if (!tasks) throw new Error(`execução sem tasks.json: ${dir}`)
+    if (!tasks) throw new Error(tr("store.no_tasks", { dir }))
     const copy = clone(tasks)
     const result = await change(copy)
     return { tasks: await writeTasks(host, dir, copy, tasks.revision), result }

@@ -4,6 +4,7 @@
 import { canonical, conflicts, covers, normalizeKey, ALL } from "./keys.ts"
 import { describeKey, describeOwner, type JlockLock } from "./jlock.ts"
 import type { RunFile, Task, TasksFile, WaitingFor } from "./schema.ts"
+import { tr } from "./i18n.ts"
 
 export interface RunState {
   root: string
@@ -110,19 +111,19 @@ export function waitingOf(state: RunState, locks: JlockLock[]): Map<string, Wait
 export function waitingText(w: WaitingFor, state: RunState, platform: string): string {
   const asked = describeKey(w.key, state.root, platform)
   const via = describeKey(w.via, state.root, platform)
-  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : `${via} (dentro de ${asked})`
-  return `⏳ ${describeOwner(w.holder, state.run.id)}: ${shown} · posição ${w.position}`
+  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked })
+  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown, position: w.position })
 }
 
 /** ⛔ T04 · 🔒 T02: src/types.ts (via src) · pausada */
 export function blockerText(b: Blocker, state: RunState, platform: string): string {
   switch (b.kind) {
     case "failed":
-      return `⛔ ${b.ids.join(", ")} (falha)`
+      return tr("frontier.failed_dependency", { ids: b.ids.join(", ") })
     case "dependency":
       return `⛔ ${b.ids.join(", ")}`
     case "paused":
-      return "pausada"
+      return tr("view.paused")
     case "ownership": {
       const key = describeKey(b.key, state.root, platform)
       const via = b.via !== b.key ? ` (via ${describeKey(b.via, state.root, platform)})` : ""

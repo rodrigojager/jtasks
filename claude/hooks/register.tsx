@@ -5,7 +5,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { parseArgs, runTool, splitCommand, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { parseArgs, runTool, select, splitCommand, systemLocale, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
@@ -91,8 +91,13 @@ export const register: Register = (on) => {
         USERPROFILE: await $.env.get('USERPROFILE'),
         HOME: await $.env.get('HOME'),
         JLOCK_BIN: await $.env.get('JLOCK_BIN'),
+        GOAL_TASKS_LANG: await $.env.get('GOAL_TASKS_LANG'),
+        JLOCK_LANG: await $.env.get('JLOCK_LANG'),
       },
     }
+    // The session's language (plan section 21): what the pane and the tool's answers speak until a --lang.
+    const env = port.env
+    select({ env: (name) => env[name as keyof typeof env] ?? undefined, system: systemLocale() })
     await $.tool.register({ name: TOOL_NAME, description: TOOL_DESCRIPTION, inputSchema: TOOL_SCHEMA, isDeferred: false })
     await $.command.register({ name: 'jtasks', description: 'Abre ou fecha o painel Tasks (goal-tasks)' })
 

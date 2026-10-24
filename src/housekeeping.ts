@@ -7,6 +7,7 @@ import { effectLine, effectsOf, recordEffect, setEffectState, type Effect } from
 import { basename, caseInsensitive, join } from "./paths.ts"
 import { goalTasksHome, readTasks, runDir, runsDir, SCRATCH } from "./store.ts"
 import { defineAction, ok, ToolError, type ToolContext } from "./tool.ts"
+import { tr } from "./i18n.ts"
 
 export function archiveDir(host: Host, root: string, run: string): string {
   return join(goalTasksHome(host), "archive", slugify(basename(root), 40), run)
@@ -49,9 +50,9 @@ defineAction(
     const root = await requireRepo(host, ctx.cwd)
     const all = !!args.options.all
     const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
-    if (!all && !id) throw new ToolError("diga qual: tasks clean <run> [--yes] (ou --all)", 2)
+    if (!all && !id) throw new ToolError(tr("clean.which"), 2)
     const ids = all ? (await host.list(runsDir(root))).filter((e) => e.kind === "dir").map((e) => e.name) : [id!]
-    for (const r of ids) if (!(await host.stat(runDir(root, r)))) throw new ToolError(`não há a execução ${r} em ${runsDir(root)}`)
+    for (const r of ids) if (!(await host.stat(runDir(root, r)))) throw new ToolError(tr("run.not_in", { run: r, dir: runsDir(root) }))
     const lines: string[] = []
     const busy: string[] = []
     const left: Effect[] = []
@@ -61,14 +62,14 @@ defineAction(
       left.push(...(await survivors(ctx, root, r)))
     }
     const target = all ? join(root, SCRATCH) : runDir(root, id!)
-    lines.push(`${all ? `apagar ${target} (${ids.length} execução(ões))` : `apagar ${target}`}; os commits ficam (são código)`)
+    lines.push(all ? tr("clean.delete_all", { target, n: ids.length }) : tr("clean.delete", { target }))
     if (left.length) {
-      lines.push("efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):")
+      lines.push(tr("clean.effects"))
       for (const e of left) lines.push(`  ${effectLine(e)}  →  tasks undo ${e.id} --run ${e.run}`)
     }
-    if (busy.length) throw new ToolError(`${lines.join("\n")}\nrecusado: há tarefas em andamento: ${busy.join(", ")}; libere-as antes`)
+    if (busy.length) throw new ToolError(`${lines.join("\n")}\n${tr("clean.busy", { tasks: busy.join(", ") })}`)
     if (!args.options.yes) {
-      lines.push(`nada foi apagado; confirme com tasks clean ${all ? "--all" : id} --yes`)
+      lines.push(tr("clean.confirm", { which: all ? "--all" : id! }))
       return ok(lines.join("\n"), { target, effects: left, removed: false })
     }
     const dirs = []
@@ -78,10 +79,10 @@ defineAction(
     }
     await host.remove(target, { recursive: true })
     for (const e of dirs) await setEffectState(host, runDir(root, e.run), e.run, e.id, "undone")
-    lines.push(`apagado: ${target}`)
+    lines.push(tr("clean.deleted", { target }))
     return ok(lines.join("\n"), { target, effects: left, removed: true })
   },
-  "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",
+  "help.clean",
 )
 
 defineAction(
@@ -90,13 +91,13 @@ defineAction(
     const { host } = ctx
     const root = await requireRepo(host, ctx.cwd)
     const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
-    if (!id) throw new ToolError("diga qual: tasks archive <run>", 2)
+    if (!id) throw new ToolError(tr("archive.which"), 2)
     const dir = runDir(root, id)
-    if (!(await host.stat(dir))) throw new ToolError(`não há a execução ${id} em ${runsDir(root)}`)
+    if (!(await host.stat(dir))) throw new ToolError(tr("run.not_in", { run: id, dir: runsDir(root) }))
     const running = await runningTasks(host, dir)
-    if (running.length) throw new ToolError(`${id} tem tarefas em andamento (${running.join(", ")}); libere-as antes de arquivar`)
+    if (running.length) throw new ToolError(tr("archive.busy", { run: id, tasks: running.join(", ") }))
     const to = archiveDir(host, root, id)
-    if (await host.stat(to)) throw new ToolError(`já existe um arquivo de ${id} em ${to}`)
+    if (await host.stat(to)) throw new ToolError(tr("archive.exists", { run: id, to }))
     // Recorded first, so the archived run's own ledger carries it.
     const effect = await recordEffect(host, dir, { run: id, type: "archive", repo: root, path: dir, to, undo: { kind: "unarchive" } })
     try {
@@ -105,9 +106,9 @@ defineAction(
       await setEffectState(host, dir, id, effect.id, "undone")
       throw error
     }
-    return ok(`execução ${id} arquivada em ${to}; volta com tasks resume ${id} --from-archive`, { run: id, to })
+    return ok(tr("archive.done", { run: id, to }), { run: id, to })
   },
-  "archive <run>                         move a execução para GOAL_TASKS_HOME/archive; resume --from-archive a traz",
+  "help.archive",
 )
 
 /** Brings an archived run back into the repository (`resume <run> --from-archive`). */
@@ -115,13 +116,13 @@ export async function unarchive(ctx: ToolContext, run: string): Promise<string> 
   const { host } = ctx
   const root = await requireRepo(host, ctx.cwd)
   const from = archiveDir(host, root, run)
-  if (!(await host.stat(from))) throw new ToolError(`não há arquivo da execução ${run} em ${from}`)
+  if (!(await host.stat(from))) throw new ToolError(tr("archive.none", { run, from }))
   const dir = runDir(root, run)
-  if (await host.stat(dir)) throw new ToolError(`a execução ${run} já está em ${dir}`)
+  if (await host.stat(dir)) throw new ToolError(tr("archive.already", { run, dir }))
   await moveDir(host, from, dir)
   const archived = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter(
     (e) => e.type === "archive" && e.state === "active",
   )
   for (const e of archived) await setEffectState(host, dir, run, e.id, "undone")
-  return `execução ${run} trazida de volta de ${from}`
+  return tr("archive.back", { run, from })
 }

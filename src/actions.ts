@@ -29,6 +29,7 @@ import {
   type HoldOutcome,
   JLOCK,
   jlockBin,
+  jlockEnv,
   jlockList,
   jlockRelease,
   jlockReleaseKeys,
@@ -48,6 +49,7 @@ import { appendLog, clone, listRuns, readRun, readTasks, runDir, runsDir, SCRATC
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext } from "./tool.ts"
 import { normalizeFileEntry } from "./validate.ts"
+import { tr } from "./i18n.ts"
 
 // ── The run of a command ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -57,16 +59,16 @@ export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<Ru
   const explicit = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
   const runs = await listRuns(ctx.host, root)
   let entry = explicit ? runs.find((r) => r.run.id === explicit) : undefined
-  if (explicit && !entry) throw new ToolError(`execução não encontrada neste repositório: ${explicit} (veja tasks runs)`)
+  if (explicit && !entry) throw new ToolError(tr("run.not_found", { run: explicit }))
   if (!entry) {
     const active = runs.filter((r) => r.run.status !== "done")
     if (active.length > 1)
-      throw new ToolError(`há ${active.length} execuções ativas (${active.map((r) => r.run.id).join(", ")}): diga qual com --run <id>`)
+      throw new ToolError(tr("run.many", { n: active.length, ids: active.map((r) => r.run.id).join(", ") }))
     // With every run finished, the most recent one (so `status` still answers "restam 0").
     entry = active[0] ?? runs[runs.length - 1]
-    if (!entry) throw new ToolError("nenhuma execução neste repositório (crie com tasks plan; veja tasks runs)")
+    if (!entry) throw new ToolError(tr("run.none"))
   }
-  if (!entry.tasks) throw new ToolError(`a execução ${entry.run.id} não tem tasks.json`)
+  if (!entry.tasks) throw new ToolError(tr("run.no_tasks", { run: entry.run.id }))
   return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks }
 }
 
@@ -74,14 +76,14 @@ export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<Ru
 export async function reload(ctx: ToolContext, state: RunState): Promise<RunState> {
   const run = await readRun(ctx.host, state.dir)
   const tasks = await readTasks(ctx.host, state.dir)
-  if (!run || !tasks) throw new ToolError(`a execução ${state.run.id} sumiu de ${state.dir}`)
+  if (!run || !tasks) throw new ToolError(tr("run.gone", { run: state.run.id, dir: state.dir }))
   return { ...state, run, tasks }
 }
 
 export function findTask(state: RunState, id: string | undefined): Task {
-  if (!id) throw new ToolError("falta o id da tarefa", 2)
+  if (!id) throw new ToolError(tr("task.no_id"), 2)
   const task = state.tasks.tasks.find((t) => t.id === id)
-  if (!task) throw new ToolError(`a execução ${state.run.id} não tem a tarefa ${id}`)
+  if (!task) throw new ToolError(tr("task.not_found", { run: state.run.id, id }))
   return task
 }
 
@@ -132,7 +134,7 @@ export async function markLost(ctx: ToolContext, first: RunState, id: string): P
     const task = copy.tasks.find((t) => t.id === id)
     if (!task || task.status !== "in_progress") return false
     const now = ctx.host.now().toISOString()
-    const to = backToPending(task, state.run.maxAttempts, "posse perdida", now)
+    const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now)
     task.lost = now
     const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
     await writeTicket(ctx.host, state.dir, tasks, id)
@@ -168,11 +170,11 @@ export async function acquireHold(
   timeoutMs: number,
 ): Promise<HoldOutcome> {
   const version = await jlockVersion(ctx.host)
-  if (!versionAtLeast(version, MIN_JLOCK)) throw new ToolError(`jlock ${version} é antigo demais (mínimo ${MIN_JLOCK}): atualize com jlock update`)
+  if (!versionAtLeast(version, MIN_JLOCK)) throw new ToolError(tr("jlock.too_old", { version, minimum: MIN_JLOCK }))
   const mode = holdModeOf(ctx)
   const argv = holdArgv(ctx.host, keys, identity(ctx, state, task), wait, { mode, ttl: state.run.holdTtl ?? DEFAULT_HOLD_TTL })
   if (mode === "detach") return detachedHold(ctx.host, argv, state.root, timeoutMs)
-  const resident = await ctx.host.spawn(argv, { cwd: state.root })
+  const resident = await ctx.host.spawn(argv, { cwd: state.root, env: jlockEnv() })
   return startHold(ctx.host, resident, timeoutMs)
 }
 
@@ -200,7 +202,7 @@ defineAction(
     const platform = ctx.host.platform
     const raw = args.positionals[0] ?? (typeof args.options.limit === "string" ? args.options.limit : undefined)
     const limit = raw === undefined ? Infinity : Number(raw)
-    if (!(limit > 0)) throw new ToolError(`limite inválido: ${raw}`, 2)
+    if (!(limit > 0)) throw new ToolError(tr("next.bad_limit", { limit: String(raw) }), 2)
     const locks = await frontierLocks(ctx, state)
     const assessments = assess(state, locks, platform)
     const ready = selectReady(state, assessments, platform, limit)
@@ -218,25 +220,25 @@ defineAction(
     }))
     const lines: string[] = []
     if (ready.length) {
-      lines.push(`prontas (${ready.length}) em ${state.run.id}; podem rodar em paralelo:`)
+      lines.push(tr("next.ready", { n: ready.length, run: state.run.id }))
       for (const t of items) {
-        const own = t.exclusive ? "exclusive (roda sozinha)" : t.files.join(", ") || "(nenhum arquivo)"
-        lines.push(`${t.id} · ${t.title} · perfil ${t.profile} · posse: ${own}`)
-        if (t.acceptance.length) lines.push(`  critérios: ${t.acceptance.join("; ")}`)
+        const own = t.exclusive ? tr("next.exclusive") : t.files.join(", ") || tr("next.no_files")
+        lines.push(tr("next.line", { id: t.id, title: t.title, profile: t.profile, own }))
+        if (t.acceptance.length) lines.push(`  ${tr("next.criteria", { criteria: t.acceptance.join("; ") })}`)
         lines.push(`  ticket: ${t.ticket}`)
       }
-    } else if (c.remaining === 0) lines.push(`nada a fazer: ${progressLine(state.tasks.tasks)}`)
-    else if (state.run.status === "paused") lines.push("execução pausada: não inicie tarefas")
+    } else if (c.remaining === 0) lines.push(tr("next.nothing", { progress: progressLine(state.tasks.tasks) }))
+    else if (state.run.status === "paused") lines.push(tr("next.paused"))
     else {
       const running = state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id)
-      lines.push(`nenhuma pronta agora${running.length ? `; em andamento: ${running.join(", ")}` : ""}`)
+      lines.push(running.length ? tr("next.none_running", { tasks: running.join(", ") }) : tr("next.none"))
     }
     const why = blocked
       .filter((a) => a.blockers.length)
       .map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`)
-    if (why.length) lines.push(`bloqueadas: ${why.join(" | ")}`)
+    if (why.length) lines.push(tr("frontier.blocked", { list: why.join(" | ") }))
     const waiting = waitingOf(state, locks)
-    if (waiting.size) lines.push(`aguardando: ${[...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ")}`)
+    if (waiting.size) lines.push(tr("frontier.waiting_list", { list: [...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ") }))
     return ok(lines.join("\n"), {
       run: state.run.id,
       ready: items,
@@ -244,7 +246,7 @@ defineAction(
       remaining: c.remaining,
     })
   },
-  "next [limite]                         as prontas: perfil, critérios, posse e ticket",
+  "help.next",
 )
 
 // ── start ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -257,14 +259,14 @@ defineAction(
     return withLock(ctx.host, first.dir, async () => {
       const state = await reload(ctx, first)
       const task = findTask(state, id)
-      if (state.run.status === "paused") throw new ToolError(`a execução ${state.run.id} está pausada: não inicie tarefas`)
+      if (state.run.status === "paused") throw new ToolError(tr("start.paused", { run: state.run.id }))
       if (task.status !== "pending") {
-        const who = task.owner ? ` (dono: ${task.owner})` : ""
-        throw new ToolError(`${task.id} não está pendente: está ${task.status}${who}`)
+        const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : ""
+        throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`)
       }
       const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]))
       const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""))
-      if (open.length) throw new ToolError(`${task.id} não está pronta: depende de ${open.join(", ")}`)
+      if (open.length) throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }))
 
       const keys = taskKeys(state.root, task, ctx.host.platform)
       const now = ctx.host.now().toISOString()
@@ -274,11 +276,11 @@ defineAction(
         const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15_000)
         if (outcome.answer.result !== "granted") {
           const a = outcome.answer
-          const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : "outro dono"
+          const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : tr("start.other_owner")
           const key = a.failed ?? a.key ?? keys[0]!
           const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : ""
           throw new ToolError(
-            `${task.id} não estava pronta: ${describeKey(key, state.root, ctx.host.platform)} em uso por ${holder}${via}; nada foi gravado`,
+            tr("start.busy", { id: task.id, key: describeKey(key, state.root, ctx.host.platform), holder, via }),
             1,
             { result: a.result, key, holder: a.holder, position: a.position, via: a.via },
           )
@@ -306,18 +308,18 @@ defineAction(
       if (resident) remember(ctx, state, task.id, resident)
       await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys })
       const ticket = ticketPath(state.dir, changed.tasks, task.id)
-      const own = keys.length ? `posse travada no jlock (${keys.length} chave(s), dono ${ownerOf(state.run.id, task.id)})` : "sem arquivos na posse"
+      const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, task.id) }) : tr("start.no_files")
       return ok(
         [
-          `${task.id} em andamento (tentativa ${t.attempts}): ${own}`,
+          tr("start.started", { id: task.id, attempt: t.attempts, own }),
           `ticket: ${ticket}`,
-          `outro arquivo: tasks claim ${task.id} <arquivo>; no fim: tasks done ${task.id} --evidence "…" (ou tasks fail ${task.id} --error "…")`,
+          tr("start.hint", { id: task.id }),
         ].join("\n"),
         { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket },
       )
     })
   },
-  "start <id>                            em andamento; trava a posse (jlock hold --no-wait)",
+  "help.start",
 )
 
 /** Gives back one hold only (its own keys): a start or claim that could not be recorded. */
@@ -336,28 +338,28 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   const assessments = assess(state, repoLocks, platform)
   const ready = selectReady(state, assessments, platform)
   const lines = [progressLine(state.tasks.tasks)]
-  if (state.run.status === "paused") lines.push("pausada: não inicie tarefas")
+  if (state.run.status === "paused") lines.push(tr("status.paused"))
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress")
   const byKey = new Map([...repoLocks, ...groupLocks].map((l) => [l.key, l]))
   const waiting = waitingOf(state, [...byKey.values()])
-  if (running.length) lines.push(`em andamento: ${running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ")}`)
+  if (running.length) lines.push(tr("status.running", { list: running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ") }))
   if (waiting.size)
-    lines.push(`aguardando: ${[...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ")}`)
-  if (ready.length) lines.push(`prontas: ${ready.map((t) => t.id).join(", ")}`)
+    lines.push(tr("frontier.waiting_list", { list: [...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ") }))
+  if (ready.length) lines.push(tr("status.ready", { list: ready.map((t) => t.id).join(", ") }))
   const blocked = assessments.filter((a) => a.blockers.length)
   if (blocked.length)
-    lines.push(`bloqueadas: ${blocked.map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`).join(" | ")}`)
+    lines.push(tr("frontier.blocked", { list: blocked.map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`).join(" | ") }))
   const failed = state.tasks.tasks.filter((t) => t.status === "failed")
-  if (failed.length) lines.push(`falhas: ${failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ")}`)
+  if (failed.length) lines.push(tr("status.failed", { list: failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ") }))
   // Lost ownership: recorded by a long-lived host, or seen now (an in-progress task whose keys jlock no longer has).
   const lost = state.tasks.tasks.filter((t) => t.status === "pending" && t.lost).map((t) => t.id)
   for (const t of running) {
     const owner = ownerOf(state.run.id, t.id)
     const keys = taskKeys(state.root, t, platform)
     const held = groupLocks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key)
-    if (keys.length && keys.some((k) => !held.includes(k))) lost.push(`${t.id} (sem travas no jlock: tasks resume ou tasks release ${t.id})`)
+    if (keys.length && keys.some((k) => !held.includes(k))) lost.push(tr("status.lost_task", { id: t.id }))
   }
-  if (lost.length) lines.push(`posse perdida: ${lost.join(", ")}`)
+  if (lost.length) lines.push(tr("status.lost", { list: lost.join(", ") }))
   const locks = groupLocks.map((l) => ({
     key: describeKey(l.key, state.root, platform),
     holder: l.holder ? describeOwner(l.holder.owner, state.run.id) : null,
@@ -365,11 +367,14 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   }))
   if (locks.length)
     lines.push(
-      `travas ativas (jlock --group ${state.run.id}): ${locks
-        .map((l) => `${l.key} → ${l.holder ?? "livre"}${l.queue.length ? ` (${l.queue.length} na fila: ${l.queue.map((q) => q.owner).join(", ")})` : ""}`)
-        .join(" · ")}`,
+      tr("status.locks", {
+        run: state.run.id,
+        list: locks
+          .map((l) => `${l.key} → ${l.holder ?? tr("status.free")}${l.queue.length ? ` ${tr("status.queue", { n: l.queue.length, owners: l.queue.map((q) => q.owner).join(", ") })}` : ""}`)
+          .join(" · "),
+      }),
     )
-  else lines.push("travas ativas: nenhuma")
+  else lines.push(tr("status.no_locks"))
   return {
     text: lines.join("\n"),
     data: {
@@ -391,10 +396,10 @@ defineAction(
     const s = await statusOf(ctx, state)
     return ok(s.text, s.data)
   },
-  "status                                feitas F/T (P%) · … · restam N, fronteira e travas",
+  "help.status",
 )
 
-addUsage("  (sem --run: a execução ligada à sessão, GOAL_TASKS_RUN, ou a única ativa do repositório)")
+addUsage("help.status.run")
 
 // ── Ownership and the working tree ────────────────────────────────────────────────────────────────────────────
 
@@ -516,15 +521,15 @@ function closeTask(task: Task, status: Task["status"], now: string) {
 }
 
 function changesNote(changes: string[]): string {
-  return changes.length ? `; edições não commitadas ficaram no disco: ${changes.join(", ")}` : ""
+  return changes.length ? `; ${tr("changes.left", { list: changes.join(", ") })}` : ""
 }
 
 async function giveBack(ctx: ToolContext, run: string, task: string): Promise<string> {
   try {
     await releaseHolds(ctx, run, task)
-    return "posse devolvida"
+    return tr("release.given_back")
   } catch (error) {
-    return `a posse não foi devolvida (${(error as Error).message}); use jlock release --group ${run} --owner ${ownerOf(run, task)}`
+    return tr("release.failed", { message: (error as Error).message, run, owner: ownerOf(run, task) })
   }
 }
 
@@ -533,7 +538,7 @@ async function giveBack(ctx: ToolContext, run: string, task: string): Promise<st
 /** `60s`, `2m`, `500ms`, `90` (seconds). */
 export function parseDuration(raw: string): number {
   const m = /^(\d+(?:\.\d+)?)(ms|s|m|h)?$/.exec(raw.trim())
-  if (!m) throw new ToolError(`duração inválida: ${raw} (use 30s, 2m, 500ms)`, 2)
+  if (!m) throw new ToolError(tr("duration.bad", { value: raw }), 2)
   const n = Number(m[1])
   const unit = m[2] ?? "s"
   return Math.round(unit === "ms" ? n : unit === "s" ? n * 1000 : unit === "m" ? n * 60_000 : n * 3_600_000)
@@ -550,8 +555,8 @@ defineAction(
     const first = await resolveRun(ctx, args)
     const task = findTask(first, taskIdArg(args))
     const raw = args.positionals.slice(1)
-    if (!raw.length) throw new ToolError(`falta o arquivo: tasks claim ${task.id} <arquivo…>`, 2)
-    if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status}): claim só durante a tarefa`)
+    if (!raw.length) throw new ToolError(tr("claim.no_file", { id: task.id }), 2)
+    if (task.status !== "in_progress") throw new ToolError(tr("claim.not_running", { id: task.id, status: task.status }))
     const platform = ctx.host.platform
     const files: string[] = []
     const errors: string[] = []
@@ -560,13 +565,13 @@ defineAction(
       if (entry.error) errors.push(entry.error)
       else if (entry.path && !files.includes(entry.path)) files.push(entry.path)
     }
-    if (errors.length) throw new ToolError(`claim recusado: ${errors.join("; ")}`)
+    if (errors.length) throw new ToolError(tr("claim.refused", { errors: errors.join("; ") }))
     const current = taskKeys(first.root, task, platform)
     const wanted = files.filter((f) => {
       const key = normalizeKey(f, first.root, platform)
       return !current.some((k) => covers(k, key))
     })
-    if (!wanted.length) return ok(`${task.id} já tem ${files.join(", ")} na posse: nada a fazer`, { task: task.id, granted: [] })
+    if (!wanted.length) return ok(tr("claim.already", { id: task.id, files: files.join(", ") }), { task: task.id, granted: [] })
     const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)))
     const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s")
     const began = ctx.host.now().getTime()
@@ -580,9 +585,15 @@ defineAction(
       const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, first.root, platform)})` : ""
       await log(ctx, first, { action: "claim-timeout", task: task.id, keys, waitedSec: Number(waited) })
       throw new ToolError(
-        `${task.id} esperou ${waited} s por ${describeKey(key, first.root, platform)}: continua em uso por ${holderOf(a.holder)}${via}, ` +
-          `posição ${a.position ?? "?"} na fila. Opções: pedir de novo (tasks claim ${task.id} ${wanted.join(" ")} --timeout 5m), ` +
-          `fazer a parte que não depende desse arquivo, ou tasks fail ${task.id} --error "…"`,
+        tr("claim.timeout", {
+          id: task.id,
+          waited,
+          key: describeKey(key, first.root, platform),
+          holder: holderOf(a.holder),
+          via,
+          position: a.position ?? "?",
+          files: wanted.join(" "),
+        }),
         1,
         { result: "timeout", key, holder: holderOf(a.holder), position: a.position, via: a.via },
       )
@@ -590,13 +601,12 @@ defineAction(
     if (a.result === "deadlock") {
       await log(ctx, first, { action: "claim-deadlock", task: task.id, keys, chain: a.chain })
       throw new ToolError(
-        `claim recusado: fecharia um ciclo de espera (deadlock): ${chainText(a.chain ?? "", first.run.id)}. ` +
-          `Quem pediu por último cede: ${task.id} — faça outra parte, ou libere com tasks release ${task.id}`,
+        tr("claim.deadlock", { chain: chainText(a.chain ?? "", first.run.id), id: task.id }),
         1,
         { result: "deadlock", chain: a.chain, yield: task.id },
       )
     }
-    if (a.result !== "granted") throw new ToolError(`jlock respondeu ${a.result} ao claim de ${task.id}`)
+    if (a.result !== "granted") throw new ToolError(tr("claim.odd", { result: a.result, id: task.id }))
 
     const resident = outcome.resident
     try {
@@ -604,7 +614,7 @@ defineAction(
         const state = await reload(ctx, first)
         const copy = clone(state.tasks)
         const t = copy.tasks.find((x) => x.id === task.id)!
-        if (t.status !== "in_progress") throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`)
+        if (t.status !== "in_progress") throw new ToolError(tr("claim.left", { id: task.id, status: t.status }))
         t.claimed = [...(t.claimed ?? []), ...wanted.filter((f) => !(t.claimed ?? []).includes(f))]
         const hold: Hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" }
         if (resident?.pid !== undefined) hold.pid = resident.pid
@@ -615,7 +625,7 @@ defineAction(
         return t
       })
       if (resident) remember(ctx, first, task.id, resident)
-      return ok(`${task.id} recebeu ${wanted.join(", ")} (esperou ${waited} s); posse: ${possession(done).join(", ")}`, {
+      return ok(tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done).join(", ") }), {
         task: task.id,
         granted: wanted,
         keys,
@@ -626,7 +636,7 @@ defineAction(
       throw error
     }
   },
-  "claim <id> <arquivo…> [--timeout 60s]  pede mais um arquivo; espera na fila do jlock",
+  "help.claim",
 )
 
 // ── done ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -638,24 +648,22 @@ defineAction(
     let commit: string | null = null
     let claimed: string[] = []
     const t = await transition(ctx, args, "done", async (task, state) => {
-      if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
-      if (!evidence) throw new ToolError(`done sem evidência é recusado: tasks done ${task.id} --evidence "o que prova que está feita"`, 2)
+      if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+      if (!evidence) throw new ToolError(tr("done.no_evidence", { id: task.id }), 2)
       const branch = await currentBranch(ctx.host, state.root)
       if (branch !== state.run.repo.branch)
-        throw new ToolError(`o checkout está em ${branch ?? "HEAD destacado"}, mas a execução commita em ${state.run.repo.branch}`)
+        throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }))
       const split = await splitChanges(ctx, state, task)
       if (split.outside.length)
         throw new ToolError(
-          `${task.id} não pode ser concluída: arquivos modificados fora da posse: ${split.outside.join(", ")}. ` +
-            `Peça-os com tasks claim ${task.id} <arquivo>, ou desfaça essas mudanças`,
+          tr("done.outside", { id: task.id, files: split.outside.join(", ") }),
           1,
           { outside: split.outside },
         )
       const missing = await missingKeys(ctx, state, task)
       if (missing.length)
         throw new ToolError(
-          `posse perdida: ${missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", ")} já não está com ${task.id} no jlock; ` +
-            `o done foi recusado (use tasks release ${task.id} e comece de novo)`,
+          tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }),
           1,
           { missing },
         )
@@ -681,12 +689,12 @@ defineAction(
       return { evidence, commit }
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
-    const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : "nenhuma mudança na posse, sem commit"
-    const lines = [`${t.task.id} feita: ${what}; ${released}`, progressLine(t.tasks.tasks)]
-    if (claimed.length) lines.push(`reclamados durante a tarefa: ${claimed.join(", ")}; atualize o plano se outras tarefas também os tocam`)
+    const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit")
+    const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)]
+    if (claimed.length) lines.push(tr("done.claimed", { files: claimed.join(", ") }))
     return ok(lines.join("\n"), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed })
   },
-  'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
+  "help.done",
 )
 
 // ── skip / fail / release / retry ─────────────────────────────────────────────────────────────────────────────
@@ -698,8 +706,8 @@ defineAction(
     let wasRunning = false
     let left: string[] = []
     const t = await transition(ctx, args, "skip", async (task, state) => {
-      if (!["pending", "in_progress", "failed"].includes(task.status)) throw new ToolError(`${task.id} está ${task.status}: não dá para pular`)
-      if (!reason) throw new ToolError(`skip sem motivo é recusado: tasks skip ${task.id} --reason "por quê"`, 2)
+      if (!["pending", "in_progress", "failed"].includes(task.status)) throw new ToolError(tr("skip.cannot", { id: task.id, status: task.status }))
+      if (!reason) throw new ToolError(tr("skip.no_reason", { id: task.id }), 2)
       wasRunning = task.status === "in_progress"
       if (wasRunning) left = (await splitChanges(ctx, state, task)).inside
       closeTask(task, "skipped", ctx.host.now().toISOString())
@@ -707,13 +715,13 @@ defineAction(
       return { reason }
     })
     const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : ""
-    return ok(`${t.task.id} pulada: ${reason}${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+    return ok(`${tr("skip.done", { id: t.task.id, reason: reason! })}${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
       run: t.state.run.id,
       task: t.task.id,
       uncommitted: left,
     })
   },
-  'skip <id> --reason "…"                pulada (libera as dependentes)',
+  "help.skip",
 )
 
 defineAction(
@@ -722,21 +730,21 @@ defineAction(
     const error = textArg(args, "error")
     let left: string[] = []
     const t = await transition(ctx, args, "fail", async (task, state) => {
-      if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
-      if (!error) throw new ToolError(`fail sem erro é recusado: tasks fail ${task.id} --error "o que deu errado"`, 2)
+      if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+      if (!error) throw new ToolError(tr("fail.no_error", { id: task.id }), 2)
       left = (await splitChanges(ctx, state, task)).inside
       closeTask(task, "failed", ctx.host.now().toISOString())
       task.error = error
       return { error }
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
-    return ok(`${t.task.id} falhou: ${error}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+    return ok(`${tr("fail.done", { id: t.task.id, error: error! })}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
       run: t.state.run.id,
       task: t.task.id,
       uncommitted: left,
     })
   },
-  'fail <id> --error "…"                 falha (bloqueia as dependentes)',
+  "help.fail",
 )
 
 /** In progress → pending (or failed at maxAttempts), keeping the edits on disk. Used by release, resume, lost. */
@@ -745,7 +753,7 @@ export function backToPending(task: Task, maxAttempts: number, why: string, now:
   delete task.holds
   if (task.attempts >= maxAttempts) {
     task.status = "failed"
-    task.error = `${why}; tentativas esgotadas (${task.attempts}/${maxAttempts})`
+    task.error = tr("attempts.exhausted", { why, attempts: task.attempts, max: maxAttempts })
     task.finishedAt = now
     return "failed"
   }
@@ -762,13 +770,13 @@ defineAction(
     // --agent-ended: the host saw the subagent's loop end with its task still in progress (logged as such).
     const ended = !!args.options["agent-ended"]
     const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
-      if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
+      if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
       left = (await splitChanges(ctx, state, task)).inside
-      to = backToPending(task, state.run.maxAttempts, ended ? "o subagente terminou sem concluir" : "liberada", ctx.host.now().toISOString())
+      to = backToPending(task, state.run.maxAttempts, tr(ended ? "release.agent_ended" : "release.released"), ctx.host.now().toISOString())
       return { uncommitted: left }
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
-    const where = to === "failed" ? `falhou: ${t.task.error}` : `voltou a pendente (tentativa ${t.task.attempts}/${t.state.run.maxAttempts})`
+    const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts })
     return ok(`${t.task.id} ${where}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
       run: t.state.run.id,
       task: t.task.id,
@@ -776,11 +784,11 @@ defineAction(
       uncommitted: left,
     })
   },
-  "release <id>                          em andamento → pendente (no maxAttempts, falha)",
+  "help.release",
 )
 
 function reopen(task: Task) {
-  if (task.status !== "skipped" && task.status !== "failed") throw new ToolError(`${task.id} está ${task.status}: retry só reabre pulada ou falha`)
+  if (task.status !== "skipped" && task.status !== "failed") throw new ToolError(tr("retry.cannot", { id: task.id, status: task.status }))
   task.status = "pending"
   delete task.reason
   delete task.error
@@ -813,16 +821,16 @@ defineAction(
         await syncRunStatus(ctx, state, tasks.tasks)
         return { ids, tasks }
       })
-      const text = reopened.ids.length ? `reabertas: ${reopened.ids.join(", ")}` : "nenhuma falha para reabrir"
+      const text = reopened.ids.length ? tr("retry.reopened", { list: reopened.ids.join(", ") }) : tr("retry.none")
       return ok(`${text}\n${progressLine(reopened.tasks.tasks)}`, { reopened: reopened.ids })
     }
     const t = await transition(ctx, args, "retry", (task) => {
       reopen(task)
       task.attempts = 0
     })
-    return ok(`${t.task.id} reaberta: pendente\n${progressLine(t.tasks.tasks)}`, { run: t.state.run.id, task: t.task.id })
+    return ok(`${tr("retry.done", { id: t.task.id })}\n${progressLine(t.tasks.tasks)}`, { run: t.state.run.id, task: t.task.id })
   },
-  "retry <id> | --all-failed             pulada ou falha → pendente",
+  "help.retry",
 )
 
 // ── pause / unpause / resume ──────────────────────────────────────────────────────────────────────────────────
@@ -844,15 +852,15 @@ defineAction(
   async (ctx, args) => {
     const state = await setPaused(ctx, args, true)
     const running = state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id)
-    const tail = running.length ? `; as em andamento terminam: ${running.join(", ")}` : ""
-    return ok(`execução ${state.run.id} pausada: start recusado, não inicie tarefas${tail}`, { run: state.run.id, status: "paused" })
+    const tail = running.length ? `; ${tr("pause.running", { list: running.join(", ") })}` : ""
+    return ok(`${tr("pause.done", { run: state.run.id })}${tail}`, { run: state.run.id, status: "paused" })
   },
-  "pause / unpause                       pausada: start recusado; o protocolo manda parar",
+  "help.pause",
 )
 
 defineAction("unpause", async (ctx, args) => {
   const state = await setPaused(ctx, args, false)
-  return ok(`execução ${state.run.id} retomada (${state.run.status})\n${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.status })
+  return ok(`${tr("unpause.done", { run: state.run.id, status: state.run.status })}\n${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.status })
 })
 
 defineAction(
@@ -861,7 +869,7 @@ defineAction(
     const wanted = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
     let back: string | undefined
     if (args.options["from-archive"]) {
-      if (!wanted) throw new ToolError("diga qual: tasks resume <run> --from-archive", 2)
+      if (!wanted) throw new ToolError(tr("resume.which"), 2)
       back = await unarchive(ctx, wanted)
     }
     const first = await resolveRun(ctx, { ...args, options: { ...args.options, ...(wanted ? { run: wanted } : {}) } })
@@ -885,7 +893,7 @@ defineAction(
           continue
         }
         const uncommitted = (await splitChanges(ctx, state, task, false)).inside
-        const to = backToPending(task, run.maxAttempts, "agente sem travas no jlock (janela encerrada)", now)
+        const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now)
         released.push({ id: task.id, to, uncommitted })
       }
       const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks
@@ -899,17 +907,17 @@ defineAction(
     })
     // Whatever is left of a released task's locks (a stale holder) goes back too.
     for (const r of released) await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {})
-    const lines = [...(back ? [back] : []), `execução ${state.run.id} retomada nesta sessão`]
+    const lines = [...(back ? [back] : []), tr("resume.bound", { run: state.run.id })]
     for (const r of released)
       lines.push(
-        `${r.id} liberada (sem travas no jlock) → ${r.to}${r.uncommitted.length ? `; edições no disco: ${r.uncommitted.join(", ")}` : ""}`,
+        `${tr("resume.released", { id: r.id, to: r.to })}${r.uncommitted.length ? `; ${tr("resume.edits", { list: r.uncommitted.join(", ") })}` : ""}`,
       )
-    if (kept.length) lines.push(`mantidas em andamento: ${kept.join(", ")}${keepOwners ? " (--keep-owners)" : " (travas vivas)"}`)
+    if (kept.length) lines.push(tr(keepOwners ? "resume.kept_flag" : "resume.kept_live", { list: kept.join(", ") }))
     const s = await statusOf(ctx, state)
     lines.push(s.text)
     return ok(lines.join("\n"), { ...s.data, released, kept }, { bind: state.run.id })
   },
-  "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
+  "help.resume",
 )
 
 // ── exec (serialize) ──────────────────────────────────────────────────────────────────────────────────────────
@@ -932,7 +940,7 @@ defineAction(
   "exec",
   async (ctx, args) => {
     const argv = args.positionals
-    if (!argv.length) throw new ToolError("falta o comando: tasks exec -- <comando…>", 2)
+    if (!argv.length) throw new ToolError(tr("exec.no_command"), 2)
     const state = await resolveRun(ctx, args).catch(() => undefined)
     const root = state?.root ?? (await requireRepo(ctx.host, ctx.cwd))
     const command = argv.join(" ")
@@ -954,12 +962,12 @@ defineAction(
           ...argv,
         ]
       : [...argv]
-    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60_000 })
-    const how = entry ? `serializado por jlock run ${serializeKey(root, entry)}` : "direto (fora de serialize)"
+    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60_000, env: jlockEnv() })
+    const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct")
     const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "")
-    return { ok: r.code === 0, code: r.code, text: `${output}${output ? "\n" : ""}[${how}; saiu com ${r.code}]`, data: { code: r.code, serialized: !!entry } }
+    return { ok: r.code === 0, code: r.code, text: `${output}${output ? "\n" : ""}[${tr("exec.exit", { how, code: r.code })}]`, data: { code: r.code, serialized: !!entry } }
   },
-  "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina",
+  "help.exec",
 )
 
 // ── ledger / undo / effects ───────────────────────────────────────────────────────────────────────────────────
@@ -971,7 +979,7 @@ defineAction(
     if (args.options["all-projects"]) {
       const all = await readEffects(ctx.host, globalLedger(ctx.host))
       const active = all.filter((e) => e.state === "active").length
-      const lines = [`ledger global (${globalLedger(ctx.host)}): ${all.length} efeito(s), ${active} ativo(s)`]
+      const lines = [tr("ledger.global", { file: globalLedger(ctx.host), n: all.length, active })]
       for (const repo of [...new Set(all.map((e) => e.repo))]) {
         lines.push(`${repo}:`)
         for (const e of all.filter((x) => x.repo === repo)) lines.push(`  ${effectLine(e)}`)
@@ -982,11 +990,11 @@ defineAction(
     const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
     const effects = await effectsOf(ctx.host, { repo: root, run }, insensitive)
     const active = effects.filter((e) => e.state === "active").length
-    const scope = run ? `da execução ${run}` : `do repositório ${root}`
-    const lines = [`ledger ${scope}: ${effects.length} efeito(s), ${active} ativo(s)`, ...effects.map(effectLine)]
+    const scope = run ? tr("ledger.of_run", { run }) : tr("ledger.of_repo", { root })
+    const lines = [tr("ledger.header", { scope, n: effects.length, active }), ...effects.map(effectLine)]
     return ok(lines.join("\n"), { effects })
   },
-  "ledger [--all-projects]               tudo o que a ferramenta criou: tipo, ref, execução, tarefa, estado",
+  "help.ledger",
 )
 
 function dirtyFiles(entries: { path: string }[]): string[] {
@@ -1001,51 +1009,51 @@ async function undoEffect(ctx: ToolContext, root: string, e: Effect, force: bool
     case "git-revert": {
       const ref = e.undo.ref ?? e.ref!
       const dirty = dirtyFiles(await gitStatus(host, root))
-      if (dirty.length) throw new ToolError(`${e.id}: a árvore tem mudanças não salvas (${dirty.join(", ")}); commite ou descarte antes do undo`)
-      if (!(await commitExists(host, root, ref))) throw new ToolError(`${e.id}: o commit ${ref} não existe mais (veja tasks effects --check)`)
+      if (dirty.length) throw new ToolError(tr("undo.dirty", { id: e.id, files: dirty.join(", ") }))
+      if (!(await commitExists(host, root, ref))) throw new ToolError(tr("undo.no_commit", { id: e.id, ref }))
       const r = await git(host, root, ["revert", "--no-edit", ref])
       if (r.code !== 0) {
         await git(host, root, ["revert", "--abort"])
-        throw new ToolError(`${e.id}: git revert ${ref} não aplicou limpo: ${(r.stderr || r.stdout).trim()}`)
+        throw new ToolError(tr("undo.revert_failed", { id: e.id, ref, message: (r.stderr || r.stdout).trim() }))
       }
       const head = await shortHead(host, root)
       const branch = (await currentBranch(host, root)) ?? "HEAD"
       const effect: NewEffect = { run: e.run, type: "commit", repo: root, ref: head, branch, undo: { kind: "git-revert", ref: head }, reverts: e.id }
       if (e.task) effect.task = e.task
       await recordEffect(host, dir, effect)
-      return `${e.id}: revert de ${ref} → commit ${head}`
+      return tr("undo.reverted", { id: e.id, ref, head })
     }
     case "git-branch-delete": {
       const branch = e.ref!
-      if (!(await branchExists(host, root, branch))) return `${e.id}: o branch ${branch} já não existia`
+      if (!(await branchExists(host, root, branch))) return tr("undo.no_branch", { id: e.id, branch })
       const base = e.from ?? "main"
       if (!force && !(await isMerged(host, root, branch, base)))
-        throw new ToolError(`${e.id}: o branch ${branch} tem commits que não estão em ${base}; integre-os (git merge) ou use --force`)
+        throw new ToolError(tr("undo.unmerged", { id: e.id, branch, base }))
       if ((await currentBranch(host, root)) === branch) {
         const dirty = dirtyFiles(await gitStatus(host, root))
-        if (dirty.length) throw new ToolError(`${e.id}: ${branch} está em uso com mudanças não salvas (${dirty.join(", ")})`)
+        if (dirty.length) throw new ToolError(tr("undo.branch_dirty", { id: e.id, branch, files: dirty.join(", ") }))
         await gitOk(host, root, ["switch", "-q", base])
       }
       await gitOk(host, root, ["branch", "-D", branch])
-      return `${e.id}: branch ${branch} removido (checkout em ${base})`
+      return tr("undo.branch_removed", { id: e.id, branch, base })
     }
     case "remove-line": {
       const others = (await host.list(runsDir(root))).filter((d) => d.kind === "dir" && d.name !== e.run)
       if (others.length && !force)
-        throw new ToolError(`${e.id}: outras execuções ainda usam a linha ${e.line} do exclude (${others.map((d) => d.name).join(", ")}); use --force para tirar mesmo assim`)
+        throw new ToolError(tr("undo.exclude_shared", { id: e.id, line: e.line ?? "", runs: others.map((d) => d.name).join(", ") }))
       const removed = await removeExcludeLine(host, root, e.line ?? ".scratch/")
-      return `${e.id}: ${removed ? "linha removida" : "a linha já não estava"} em ${e.path}`
+      return tr(removed ? "undo.line_removed" : "undo.line_absent", { id: e.id, path: e.path ?? "" })
     }
     case "rmdir": {
       const target = e.path ?? dir
       const tasks = await readTasks(host, target).catch(() => undefined)
       const running = tasks?.tasks.filter((t) => t.status === "in_progress").map((t) => t.id) ?? []
-      if (running.length) throw new ToolError(`${e.id}: a execução tem tarefas em andamento (${running.join(", ")}); libere-as antes`)
+      if (running.length) throw new ToolError(tr("undo.run_busy", { id: e.id, tasks: running.join(", ") }))
       await host.remove(target, { recursive: true })
-      return `${e.id}: pasta ${target} removida`
+      return tr("undo.dir_removed", { id: e.id, dir: target })
     }
     default:
-      throw new ToolError(`${e.id}: não há desfazer automático para ${e.type} (${e.undo.kind})`)
+      throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }))
   }
 }
 
@@ -1057,7 +1065,7 @@ async function undoMany(ctx: ToolContext, root: string, effects: Effect[], force
       done.push(await undoEffect(ctx, root, e, force))
     } catch (error) {
       if (error instanceof ToolError && done.length)
-        throw new ToolError(`${done.join("\n")}\nparou em: ${error.message}`, error.code, { undone: done })
+        throw new ToolError(`${done.join("\n")}\n${tr("undo.stopped", { message: error.message })}`, error.code, { undone: done })
       throw error
     }
     await setEffectState(ctx.host, runDir(root, e.run), e.run, e.id, "undone")
@@ -1074,25 +1082,25 @@ defineAction(
     const insensitive = caseInsensitive(ctx.host.platform)
     if (!id && !taskId) {
       const runId = typeof args.options.run === "string" ? args.options.run : undefined
-      if (!runId) throw new ToolError("diga o que desfazer: tasks undo <e-id> | --task <id> | --run <run>", 2)
+      if (!runId) throw new ToolError(tr("undo.which"), 2)
       const root = await requireRepo(ctx.host, ctx.cwd)
       const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active")
-      if (!effects.length) return ok(`a execução ${runId} não tem efeitos ativos`, { undone: [] })
+      if (!effects.length) return ok(tr("undo.run_clean", { run: runId }), { undone: [] })
       const done = await undoMany(ctx, root, effects, force)
-      return ok(`execução ${runId} desfeita:\n${done.join("\n")}`, { undone: done })
+      return ok(`${tr("undo.run_done", { run: runId })}\n${done.join("\n")}`, { undone: done })
     }
     const state = await resolveRun(ctx, args)
     const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active")
     if (id) {
       const e = all.find((x) => x.id === id)
-      if (!e) throw new ToolError(`não há efeito ativo ${id} na execução ${state.run.id} (veja tasks ledger)`)
+      if (!e) throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }))
       const done = await undoMany(ctx, state.root, [e], force)
       return ok(done.join("\n"), { undone: done })
     }
     const task = findTask(state, taskId)
-    if (task.status === "in_progress") throw new ToolError(`${task.id} está em andamento: libere-a (tasks release ${task.id}) antes do undo`)
+    if (task.status === "in_progress") throw new ToolError(tr("undo.task_running", { id: task.id }))
     const effects = all.filter((e) => e.task === task.id && !e.reverts)
-    if (!effects.length) throw new ToolError(`${task.id} não tem efeitos ativos para desfazer`)
+    if (!effects.length) throw new ToolError(tr("undo.task_clean", { id: task.id }))
     const done = await undoMany(ctx, state.root, effects, force)
     const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
       if (x.status === "done") {
@@ -1107,13 +1115,13 @@ defineAction(
     })
     return ok(`${done.join("\n")}\n${task.id} → ${t.task.status}\n${progressLine(t.tasks.tasks)}`, { undone: done, task: task.id, status: t.task.status })
   },
-  "undo <e-id> | --task <id> | --run <run> [--force]   desfaz na ordem inversa (revert, branch, exclude, pasta)",
+  "help.undo",
 )
 
 defineAction(
   "effects",
   async (ctx, args) => {
-    if (!args.options.check) throw new ToolError("use tasks effects --check", 2)
+    if (!args.options.check) throw new ToolError(tr("effects.usage"), 2)
     const { host } = ctx
     const root = await requireRepo(host, ctx.cwd)
     const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
@@ -1132,10 +1140,10 @@ defineAction(
         gone.push(effectLine({ ...e, state: "gone" }))
       } else if (e.type !== "dir" && e.type !== "archive" && !(await host.stat(runDir(root, e.run)))) leftovers.push(effectLine(e))
     }
-    const lines = [`${effects.length} efeito(s) ativo(s) conferido(s) com o disco e o git`]
-    lines.push(gone.length ? `sumiram por fora (marcados gone):\n${gone.map((l) => `  ${l}`).join("\n")}` : "nada sumiu por fora")
-    if (leftovers.length) lines.push(`ficaram de execuções já removidas:\n${leftovers.map((l) => `  ${l}`).join("\n")}`)
+    const lines = [tr("effects.checked", { n: effects.length })]
+    lines.push(gone.length ? `${tr("effects.gone")}\n${gone.map((l) => `  ${l}`).join("\n")}` : tr("effects.none_gone"))
+    if (leftovers.length) lines.push(`${tr("effects.leftovers")}\n${leftovers.map((l) => `  ${l}`).join("\n")}`)
     return ok(lines.join("\n"), { checked: effects.length, gone, leftovers })
   },
-  "effects --check                       compara o ledger com o disco e o git (o que sumiu, o que ficou)",
+  "help.effects",
 )

@@ -5,7 +5,7 @@ owns, agents run in parallel on the same checkout, and the tool (not the model) 
 [jlock](https://github.com/rodrigojager/jlock), records every transition, commits one task at a time and keeps a
 ledger of everything it creates. The same tool has three forms: the CLI, the Claude Code mod (`claude/`) and the
 OpenCode plugin (`opencode/`). The design is in [`PLAN.md`](PLAN.md) (Portuguese); departures from it are in
-[`DEVIATIONS.md`](DEVIATIONS.md). Answers are in Portuguese, like the plan.
+[`DEVIATIONS.md`](DEVIATIONS.md). Answers come in your language (see [Languages](#languages)).
 
 Windows first: jlock was validated on Windows, and so was this.
 
@@ -108,8 +108,27 @@ queue.
 |---|---|---|
 | `GOAL_TASKS_HOME` | `%USERPROFILE%\.goal-tasks` | global ledger index and archived runs |
 | `GOAL_TASKS_RUN` | unset | the CLI's bound run |
+| `GOAL_TASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
 | `JLOCK_HOME`, `JLOCK_HEARTBEAT_MS`, `JLOCK_STALE_MS` | jlock's | passed through to jlock (only tests change them) |
+
+## Languages
+
+The answers, the help, the pane and the sidebar speak the language chosen by, in order: `--lang <tag>` on the
+command, `GOAL_TASKS_LANG`, `JLOCK_LANG` (so one variable sets both tools), the system's language, and English.
+Available: `en`, `pt-BR` (more in [`CONTRIBUTING.md`](../CONTRIBUTING.md)). A tag resolves like jlock's: `pt` and
+`pt_PT.UTF-8` give `pt-BR`, `en-US` gives `en`; an unknown `--lang` answers in English with a warning on the first
+line. Every `jlock` the tool starts gets `JLOCK_LANG` with the same tag, so the jlock messages it quotes match.
+
+What does not change with the language: action and option names, `--json` (the data is the same in every
+language), ids, `tasks.json`, `run.json`, `log.jsonl`, the ledger, the section headings of the generated tickets
+(`What to build`, `Blocked by`, `Status`, `Files`, `Scope boundary`), and what the model reads: the protocol
+injected into its prompt is English and quotes the tool's answers (`restam 0`, `0 left`) in the tool's language.
+
+```
+tasks next --lang en
+tasks help claim --lang pt-BR
+```
 
 ## With `/goal`
 

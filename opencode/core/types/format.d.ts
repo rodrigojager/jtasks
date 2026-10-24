@@ -21,8 +21,9 @@ export declare function formatRunsList(runs: {
     tasks?: TasksFile;
 }[]): string;
 /**
- * The execution protocol (section 12), injected into the system prompt while a run is bound to the session.
- * `spawn` names how the host opens a subagent.
+ * The execution protocol (section 12), injected into the system prompt while a run is bound to the session. It
+ * is for the model, so it is English in every language; it quotes the tool's own answers ("restam 0") in the
+ * language the tool speaks. `spawn` names how the host opens a subagent.
  */
 export declare function protocolText(run: string, summary: string, spawn: string): string;
 export declare function bullet(lines: string[]): string;

@@ -3,6 +3,7 @@
 import type { Host, RunResult } from "./host.ts"
 import { isAbsolute, join, slash } from "./paths.ts"
 import { ToolError } from "./tool.ts"
+import { tr } from "./i18n.ts"
 
 export async function git(host: Host, cwd: string, args: string[], stdin?: string): Promise<RunResult> {
   return host.run(["git", ...args], { cwd, stdin, env: { GIT_TERMINAL_PROMPT: "0", GIT_EDITOR: "true" } })
@@ -24,7 +25,7 @@ export async function repoRoot(host: Host, cwd: string): Promise<string | undefi
 
 export async function requireRepo(host: Host, cwd: string): Promise<string> {
   const root = await repoRoot(host, cwd)
-  if (!root) throw new ToolError(`não é um repositório git: ${cwd} (o goal-tasks faz um commit por tarefa)`)
+  if (!root) throw new ToolError(tr("git.not_a_repo", { cwd }))
   return root
 }
 

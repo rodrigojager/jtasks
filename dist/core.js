@@ -123,6 +123,732 @@ var DEFAULT_PROFILE = "implement";
 var DEFAULT_MAX_ATTEMPTS = 2;
 var DEFAULT_HOLD_TTL = "2h";
 var DURATION = /^\d+(ms|s|m|h|d)$/;
+// locales/en.json
+var en_default = {
+  _glossary: {
+    task: "task",
+    run: "run",
+    ownership: "ownership",
+    lock: "lock",
+    queue: "queue",
+    attempt: "attempt",
+    ticket: "ticket",
+    effect: "effect",
+    undo: "undo"
+  },
+  "archive.already": "run {run} is already at {dir}",
+  "archive.back": "run {run} brought back from {from}",
+  "archive.busy": "{run} has tasks in progress ({tasks}); release them before archiving",
+  "archive.done": "run {run} archived at {to}; it comes back with tasks resume {run} --from-archive",
+  "archive.exists": "there is already an archive of {run} at {to}",
+  "archive.none": "there is no archive of run {run} at {from}",
+  "archive.which": "say which: tasks archive <run>",
+  "args.needs_value": "--{name} needs a value",
+  "args.open_quote": "unclosed quote in the command",
+  "attempts.exhausted": "{why}; attempts used up ({attempts}/{max})",
+  "changes.left": "uncommitted edits stayed on disk: {list}",
+  "claim.already": "{id} already has {files} in its ownership: nothing to do",
+  "claim.deadlock": "claim refused: it would close a waiting cycle (deadlock): {chain}. Whoever asked last yields: {id}; do another part, or release with tasks release {id}",
+  "claim.granted": "{id} got {files} (waited {waited} s); ownership: {own}",
+  "claim.left": "{id} stopped being in progress while it waited (it is {status})",
+  "claim.no_file": "missing the file: tasks claim {id} <file…>",
+  "claim.not_running": "{id} is not in progress (it is {status}): claim only during the task",
+  "claim.odd": "jlock answered {result} to the claim of {id}",
+  "claim.refused": "claim refused: {errors}",
+  "claim.timeout": '{id} waited {waited} s for {key}: still in use by {holder}{via}, position {position} in the queue. Options: ask again (tasks claim {id} {files} --timeout 5m), do the part that does not depend on that file, or tasks fail {id} --error "…"',
+  "clean.busy": "refused: tasks in progress: {tasks}; release them first",
+  "clean.confirm": "nothing was deleted; confirm with tasks clean {which} --yes",
+  "clean.delete": "delete {target}; the commits stay (they are code)",
+  "clean.delete_all": "delete {target} ({n} run(s)); the commits stay (they are code)",
+  "clean.deleted": "deleted: {target}",
+  "clean.effects": "effects still active (they stay; undo each with the command beside it, if you want):",
+  "clean.which": "say which: tasks clean <run> [--yes] (or --all)",
+  "done.claimed": "claimed during the task: {files}; update the plan if other tasks touch them too",
+  "done.detached": "a detached HEAD",
+  "done.done": "{id} done: {what}; {released}",
+  "done.lost": "ownership lost: {keys} is no longer held by {id} in jlock; done was refused (use tasks release {id} and start again)",
+  "done.no_commit": "no change in its ownership, no commit",
+  "done.no_evidence": 'done without evidence is refused: tasks done {id} --evidence "what proves it is done"',
+  "done.outside": "{id} cannot be done: files changed outside its ownership: {files}. Ask for them with tasks claim {id} <file>, or undo those changes",
+  "done.wrong_branch": "the checkout is on {branch}, but the run commits on {run_branch}",
+  "draft.already_open": "a draft is already open: {ids} (go on with tasks plan --add, or close it with --commit)",
+  "draft.batch_accepted": "batch accepted: {n} task(s) ({ids}); the draft has {total}. Close it with tasks plan --commit",
+  "draft.batch_refused": "batch refused, the draft did not change.",
+  "draft.commit_refused": "plan refused, nothing was written; the draft stays open.",
+  "draft.empty": "the draft is empty: add tasks with tasks plan --add",
+  "draft.empty_summary": "draft {id}: no task yet (add some with tasks plan --add)",
+  "draft.fix_id_changed": "--fix {id} got the task {other}: the id does not change in a fix",
+  "draft.fix_needs_id": "--fix needs the task's id: tasks plan --fix T04 <json>",
+  "draft.fix_one": "--fix replaces one task only: send an object",
+  "draft.fix_refused": "fix of {id} refused, the draft did not change.",
+  "draft.fixed": "{id} fixed; the draft has {n} task(s)",
+  "draft.line": "{id} · {title} · depends on: {deps} · ownership: {own}",
+  "draft.many": "{n} drafts are open ({ids}): say which with --run <id>",
+  "draft.no_task": "the draft has no task {id} (see tasks plan --show)",
+  "draft.no_tasks": "none",
+  "draft.none": "no open draft: start one with tasks plan --draft",
+  "draft.not_found": "no open draft with the id {id}",
+  "draft.opened": "draft {id} open: add batches with tasks plan --add <json> (up to ~20 tasks per batch)",
+  "draft.summary": "draft {id}: {n} task(s)",
+  "duration.bad": "invalid duration: {value} (use 30s, 2m, 500ms)",
+  "effects.checked": "{n} active effect(s) checked against the disk and git",
+  "effects.gone": "gone from outside (marked gone):",
+  "effects.leftovers": "left from runs already removed:",
+  "effects.none_gone": "nothing went missing from outside",
+  "effects.usage": "use tasks effects --check",
+  "errors.count": "{n} error(s):",
+  "exec.direct": "direct (not in serialize)",
+  "exec.exit": "{how}; exited with {code}",
+  "exec.no_command": "missing the command: tasks exec -- <command…>",
+  "exec.serialized": "serialized by jlock run {key}",
+  "fail.done": "{id} failed: {error}",
+  "fail.no_error": 'fail without an error is refused: tasks fail {id} --error "what went wrong"',
+  "frontier.blocked": "blocked: {list}",
+  "frontier.failed_dependency": "⛔ {ids} (failed)",
+  "frontier.inside": "{via} (inside {asked})",
+  "frontier.waiting": "⏳ {owner}: {shown} · position {position}",
+  "frontier.waiting_list": "waiting: {list}",
+  "gc.bad_depth": "invalid --depth: {depth}",
+  "gc.confirm": "nothing was removed: confirm with tasks gc --remove {path} --yes",
+  "gc.days": "{n} days",
+  "gc.empty": "empty",
+  "gc.folder_removed": "folder removed",
+  "gc.header": "gc --scan {root} (depth {depth}, read-only): {n} finding(s)",
+  "gc.merged_no": "merged into {base}: no",
+  "gc.merged_yes": "merged into {base}: yes",
+  "gc.not_listed": "{path} is not something the gc report lists (a worktree, a run or a run's archive); nothing was removed",
+  "gc.nothing": "nothing to report",
+  "gc.owner": "owner {owner}",
+  "gc.owner_known": "owner {owner} (registered)",
+  "gc.owner_orphan": "owner {owner} (its repository does not know it: orphan)",
+  "gc.removed": "{type} removed: {path} ({how}); recorded in the global ledger",
+  "gc.untouched": "nothing was touched; to remove: tasks gc --remove <path> --yes",
+  "gc.usage": "use tasks gc --scan <root> (a report) or tasks gc --remove <path> --yes",
+  "gc.worktree_refused": "git worktree remove refused: {message} (unsaved changes?); nothing was removed",
+  "gc.worktree_removed": "git worktree remove in {owner}",
+  "git.not_a_repo": "not a git repository: {cwd} (goal-tasks makes one commit per task)",
+  "guard.git": "a subagent does not run git {sub}: the commit is made by tasks done {id}",
+  "guard.outside": "outside the ownership of {id}: {rel}; use tasks claim {id} {rel}",
+  "guard.run_files": "{rel}: tasks.json, run.json and the tickets change only through the tasks tool; never by hand",
+  "help.archive": "archive <run>                         moves the run to GOAL_TASKS_HOME/archive (resume brings it)",
+  "help.claim": "claim <id> <file…> [--timeout 60s]    asks for one more file; waits in jlock's queue",
+  "help.clean": "clean <run>|--all [--yes]             deletes the run's folder (listing the active effects first)",
+  "help.done": 'done <id> --evidence "…"              checks git and ownership; commits the ownership; done',
+  "help.effects": "effects --check                       compares the ledger with the disk and git",
+  "help.exec": "exec -- <command…>                    runs it; serialize commands one at a time on the machine",
+  "help.fail": 'fail <id> --error "…"                 failed (blocks the tasks that depend on it)',
+  "help.gc": "gc --scan <root> [--depth 4]          read-only report: orphan worktrees, runs, archives",
+  "help.import": "import <folder> [--check|--yes]       Markdown tickets → a run (no Files → exclusive)",
+  "help.json": "--json on any action: the answer in JSON; --run <id> picks the run",
+  "help.lang": "--lang <tag>: the language of the answers (en, pt-BR, ...); also GOAL_TASKS_LANG, then JLOCK_LANG",
+  "help.ledger": "ledger [--all-projects]               everything the tool created: type, ref, run, task, state",
+  "help.next": "next [limit]                          the ready tasks: profile, criteria, ownership and ticket",
+  "help.pause": "pause / unpause                       paused: start refused; the protocol says stop",
+  "help.plan": "plan <json|@file> [--name slug]       creates the run (tasks.json, tickets, branch gt/<run>)",
+  "help.plan.add": "  plan --add <json|@file>               adds a batch to the draft (validates the batch)",
+  "help.plan.commit": "  plan --commit                         complete validation; creates the run and deletes the draft",
+  "help.plan.draft": "plan --draft [--name slug] [--objective text]   opens a draft (a plan in batches)",
+  "help.plan.fix": "  plan --fix <id> <json|@file>          replaces one task of the draft",
+  "help.plan.show": "  plan --show                           a summary of the draft",
+  "help.release": "release <id>                          in progress → pending (at maxAttempts, failed)",
+  "help.resume": "resume <run> [--keep-owners]          binds the session, unpauses, releases tasks without locks",
+  "help.retry": "retry <id> | --all-failed             skipped or failed → pending",
+  "help.runs": "runs                                  the repository's runs, with status and progress",
+  "help.skip": 'skip <id> --reason "…"                skipped (frees the tasks that depend on it)',
+  "help.start": "start <id>                            in progress; locks the ownership (jlock hold --no-wait)",
+  "help.status": "status                                done D/T (P%) · … · N left, the frontier and the locks",
+  "help.status.run": "  (without --run: the session's run, GOAL_TASKS_RUN, or the repository's only active one)",
+  "help.title": "tasks {version}: a task list with dependencies and file ownership (jlock)",
+  "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
+                                        undoes newest first (revert, branch, exclude, folder)`,
+  "help.unknown": "no action {action} (see tasks help)",
+  "help.validate": "validate <json|@file|folder>          validates a plan (or a folder of tickets) without writing",
+  "import.check_only": "nothing was written (--check)",
+  "import.has_errors": "the plan read has {n} error(s):",
+  "import.line": "{file} → {id} · {title} · depends on: {deps} · ownership: {own} · {n} criteria",
+  "import.missing": "missing: {notes}",
+  "import.no_blocked": "no Blocked by (no dependencies)",
+  "import.no_criteria": "no - [ ] criteria",
+  "import.no_files": "no Files: it becomes exclusive (never in parallel) until someone declares the files",
+  "import.no_folder": "missing the tickets' folder: tasks import <folder> [--check|--yes]",
+  "import.no_heading": "no '# NN: title' heading (used the file name)",
+  "import.no_tickets": "no .md ticket in {dir}",
+  "import.no_what": "no What to build",
+  "import.read": "{n} ticket(s) read from {dir}:",
+  "import.refused": "import refused, nothing was written.",
+  "import.valid": "the plan read is valid; create the run with --yes",
+  "jlock.disk": "jlock ({what}): disk error: {message}",
+  "jlock.exit": "jlock ({what}) exited with {code}: {message}",
+  "jlock.hold_not_json": "jlock hold answered something that is not JSON: {text}",
+  "jlock.hold_not_json_code": "jlock hold answered something that is not JSON (exit {code}): {text}",
+  "jlock.hold_silent": "jlock hold did not answer in {seconds} s",
+  "jlock.list_not_json": "jlock list answered something that is not JSON: {text}",
+  "jlock.missing": "jlock not found in PATH ({message}); install jlock or set JLOCK_BIN",
+  "jlock.no_version": "jlock --version did not answer a version",
+  "jlock.other_program": "another program: {owner}",
+  "jlock.too_old": "jlock {version} is too old (at least {minimum}): update it with jlock update",
+  "jlock.usage": "jlock ({what}) refused the usage: {message}; a goal-tasks bug, please report it",
+  "json.batch": "the batch",
+  "json.invalid": "{what} is not valid JSON: {message}",
+  "json.missing": "missing {what} in JSON (text, @file or -)",
+  "json.no_file": "file not found: {file}",
+  "json.no_stdin": "standard input is not available here",
+  "json.plan": "the plan",
+  "json.task": "the task",
+  "ledger.from": "(from {from})",
+  "ledger.global": "global ledger ({file}): {n} effect(s), {active} active",
+  "ledger.header": "ledger {scope}: {n} effect(s), {active} active",
+  "ledger.of_repo": "of the repository {root}",
+  "ledger.of_run": "of run {run}",
+  "ledger.reverts": "(reverts {id})",
+  "next.bad_limit": "invalid limit: {limit}",
+  "next.criteria": "criteria: {criteria}",
+  "next.exclusive": "exclusive (runs alone)",
+  "next.line": "{id} · {title} · profile {profile} · ownership: {own}",
+  "next.no_files": "(no file)",
+  "next.none": "none ready now",
+  "next.none_running": "none ready now; in progress: {tasks}",
+  "next.nothing": "nothing to do: {progress}",
+  "next.paused": "the run is paused: do not start tasks",
+  "next.ready": "ready ({n}) in {run}; they can run in parallel:",
+  "path.not_a_folder": "not a folder: {path}",
+  "pause.done": "run {run} paused: start refused, do not start tasks",
+  "pause.running": "the ones in progress finish: {list}",
+  "plan.absolute_path": "{path}: use paths relative to the repository",
+  "plan.branch": '"branch" must be "run" or "current"',
+  "plan.branch_exists": "the branch {branch} already exists",
+  "plan.covers": "({outer} covers {inner})",
+  "plan.created": "run {run} created: {n} task(s), {branch}",
+  "plan.current_branch": "the current branch ({branch})",
+  "plan.cycle": "cycle: {cycle}",
+  "plan.detached": 'HEAD is detached: switch to a branch before the plan (or use "branch": "current")',
+  "plan.duplicate_id": "duplicate id: {id}",
+  "plan.empty_path": 'empty path in "files"',
+  "plan.hold_ttl": '"holdTtl" must be a duration such as 30m, 2h or 1d',
+  "plan.max_attempts": '"maxAttempts" must be an integer above zero',
+  "plan.missing_dependency": "{id} depends on {dep}, which does not exist",
+  "plan.must_be_text": '"{field}" must be text',
+  "plan.next_step": "next step: tasks next",
+  "plan.no_commits": "the repository has no commits yet: make the first commit before the plan (the run's branch starts from it)",
+  "plan.no_tasks": 'missing "tasks": the list of tasks',
+  "plan.outside_repo": "{path}: goes outside the repository",
+  "plan.pattern": "{path}: jlock locks files and folders, not patterns; {hint}",
+  "plan.pattern_hint": "list the files, use a folder or mark the task exclusive",
+  "plan.pattern_hint_folder": "list the files or use the folder {folder}",
+  "plan.profile_object": 'profile "{name}" must be an object ({ claude, opencode })',
+  "plan.profiles_object": '"profiles" must be an object',
+  "plan.refused": "plan refused, nothing was written.",
+  "plan.self_dependency": "{id} depends on itself",
+  "plan.serialize_list": '"serialize" must be a list of commands',
+  "plan.shape": 'the plan must be a list of tasks or an object with "tasks"',
+  "plan.shared": "{a} and {b} touch {path}{cover} and may run together: add a dependency or split the file",
+  "plan.task_acceptance": '{name}: "acceptance" must be a list of criteria (text)',
+  "plan.task_depends_list": '{name}: "dependsOn" must be a list of ids',
+  "plan.task_exclusive": '{name}: "exclusive" must be true or false',
+  "plan.task_files_list": '{name}: "files" must be a list of paths',
+  "plan.task_missing": '{name}: missing "{field}"',
+  "plan.task_object": "{name}: each task must be an object",
+  "plan.task_text": '{name}: "{field}" must be text',
+  "plan.task_unknown_field": '{name}: unknown field "{field}"',
+  "plan.tickets": "tickets: {n} in {dir}",
+  "plan.unknown_field": 'unknown field in the plan: "{field}"',
+  "plan.unknown_profile": '{id}: unknown profile "{profile}" (profiles: {profiles})',
+  "progress.done": "done {done}/{total} ({percent}%)",
+  "progress.failed_one": "{n} failed",
+  "progress.failed_other": "{n} failed",
+  "progress.remaining": "{n} left",
+  "progress.running": "{n} in progress",
+  "progress.skipped_one": "{n} skipped",
+  "progress.skipped_other": "{n} skipped",
+  "release.agent_ended": "the subagent ended without finishing",
+  "release.failed": "the ownership was not given back ({message}); use jlock release --group {run} --owner {owner}",
+  "release.failed_now": "failed: {error}",
+  "release.given_back": "ownership given back",
+  "release.pending": "went back to pending (attempt {attempts}/{max})",
+  "release.released": "released",
+  "resume.bound": "run {run} resumed in this session",
+  "resume.edits": "edits on disk: {list}",
+  "resume.kept_flag": "kept in progress: {list} (--keep-owners)",
+  "resume.kept_live": "kept in progress: {list} (live locks)",
+  "resume.no_locks_reason": "agent without locks in jlock (window closed)",
+  "resume.released": "{id} released (no locks in jlock) → {to}",
+  "resume.which": "say which: tasks resume <run> --from-archive",
+  "retry.cannot": "{id} is {status}: retry only reopens a skipped or failed task",
+  "retry.done": "{id} reopened: pending",
+  "retry.none": "no failed task to reopen",
+  "retry.reopened": "reopened: {list}",
+  "run.gone": "run {run} is gone from {dir}",
+  "run.many": "{n} runs are active ({ids}): say which with --run <id>",
+  "run.no_tasks": "run {run} has no tasks.json",
+  "run.none": "no run in this repository (create one with tasks plan; see tasks runs)",
+  "run.not_found": "run not found in this repository: {run} (see tasks runs)",
+  "run.not_in": "there is no run {run} in {dir}",
+  "runs.no_tasks_file": "no tasks.json",
+  "runs.none": "no run in this repository (create one with tasks plan)",
+  "skip.cannot": "{id} is {status}: it cannot be skipped",
+  "skip.done": "{id} skipped: {reason}",
+  "skip.no_reason": 'skip without a reason is refused: tasks skip {id} --reason "why"',
+  "start.busy": "{id} was not ready: {key} in use by {holder}{via}; nothing was written",
+  "start.depends": "{id} is not ready: it depends on {deps}",
+  "start.hint": 'another file: tasks claim {id} <file>; at the end: tasks done {id} --evidence "…" (or tasks fail {id} --error "…")',
+  "start.locked": "ownership locked in jlock ({n} key(s), owner {owner})",
+  "start.no_files": "no files in its ownership",
+  "start.not_pending": "{id} is not pending: it is {status}",
+  "start.other_owner": "another owner",
+  "start.owner": "(owner: {owner})",
+  "start.paused": "run {run} is paused: do not start tasks",
+  "start.started": "{id} in progress (attempt {attempt}): {own}",
+  "status.failed": "failed: {list}",
+  "status.free": "free",
+  "status.locks": "active locks (jlock --group {run}): {list}",
+  "status.lost": "ownership lost: {list}",
+  "status.lost_task": "{id} (no locks in jlock: tasks resume or tasks release {id})",
+  "status.no_locks": "active locks: none",
+  "status.paused": "paused: do not start tasks",
+  "status.queue": "({n} in the queue: {owners})",
+  "status.ready": "ready: {list}",
+  "status.running": "in progress: {list}",
+  "store.invalid_json": "{file} is not valid JSON: {message}",
+  "store.locked": "the run has been locked for writing for more than {seconds} s: {lock}",
+  "store.no_tasks": "run without tasks.json: {dir}",
+  "store.stale": "tasks.json changed while this action ran (revision {expected} → {found}); read it again and retry",
+  "task.no_id": "missing the task's id",
+  "task.not_found": "run {run} has no task {id}",
+  "task.not_running": "{id} is not in progress (it is {status})",
+  "ticket.exclusive": "(exclusive: runs alone)",
+  "ticket.none": "(none)",
+  "tool.error": "error: {message}",
+  "tool.unknown_action": "unknown action: {action} (see tasks help)",
+  "undo.branch_dirty": "{id}: {branch} is checked out with unsaved changes ({files})",
+  "undo.branch_removed": "{id}: branch {branch} removed (checkout on {base})",
+  "undo.dir_removed": "{id}: folder {dir} removed",
+  "undo.dirty": "{id}: the tree has unsaved changes ({files}); commit or discard them before the undo",
+  "undo.exclude_shared": "{id}: other runs still use the line {line} of the exclude ({runs}); use --force to take it out anyway",
+  "undo.line_absent": "{id}: the line was no longer in {path}",
+  "undo.line_removed": "{id}: line removed in {path}",
+  "undo.no_branch": "{id}: the branch {branch} no longer existed",
+  "undo.no_commit": "{id}: the commit {ref} no longer exists (see tasks effects --check)",
+  "undo.no_effect": "no active effect {id} in run {run} (see tasks ledger)",
+  "undo.none": "{id}: there is no automatic undo for {type} ({kind})",
+  "undo.revert_failed": "{id}: git revert {ref} did not apply cleanly: {message}",
+  "undo.reverted": "{id}: revert of {ref} → commit {head}",
+  "undo.run_busy": "{id}: the run has tasks in progress ({tasks}); release them first",
+  "undo.run_clean": "run {run} has no active effects",
+  "undo.run_done": "run {run} undone:",
+  "undo.stopped": "stopped at: {message}",
+  "undo.task_clean": "{id} has no active effects to undo",
+  "undo.task_running": "{id} is in progress: release it (tasks release {id}) before the undo",
+  "undo.unmerged": "{id}: the branch {branch} has commits that are not in {base}; merge them (git merge) or use --force",
+  "undo.which": "say what to undo: tasks undo <e-id> | --task <id> | --run <run>",
+  "unpause.done": "run {run} resumed ({status})",
+  "validate.ok": "ok: {n} task(s), no errors",
+  "view.lost": "ownership lost",
+  "view.no_run": "no bound run",
+  "view.no_runs": "no run (tasks plan)",
+  "view.paused": "paused"
+};
+// locales/pt-BR.json
+var pt_BR_default = {
+  _glossary: {
+    task: "tarefa",
+    run: "execução",
+    ownership: "posse",
+    lock: "trava",
+    queue: "fila",
+    attempt: "tentativa",
+    ticket: "ticket",
+    effect: "efeito",
+    undo: "desfazer"
+  },
+  "archive.already": "a execução {run} já está em {dir}",
+  "archive.back": "execução {run} trazida de volta de {from}",
+  "archive.busy": "{run} tem tarefas em andamento ({tasks}); libere-as antes de arquivar",
+  "archive.done": "execução {run} arquivada em {to}; volta com tasks resume {run} --from-archive",
+  "archive.exists": "já existe um arquivo de {run} em {to}",
+  "archive.none": "não há arquivo da execução {run} em {from}",
+  "archive.which": "diga qual: tasks archive <run>",
+  "args.needs_value": "--{name} precisa de um valor",
+  "args.open_quote": "aspas sem fechar no comando",
+  "attempts.exhausted": "{why}; tentativas esgotadas ({attempts}/{max})",
+  "changes.left": "edições não commitadas ficaram no disco: {list}",
+  "claim.already": "{id} já tem {files} na posse: nada a fazer",
+  "claim.deadlock": "claim recusado: fecharia um ciclo de espera (deadlock): {chain}. Quem pediu por último cede: {id} — faça outra parte, ou libere com tasks release {id}",
+  "claim.granted": "{id} recebeu {files} (esperou {waited} s); posse: {own}",
+  "claim.left": "{id} deixou de estar em andamento enquanto esperava (está {status})",
+  "claim.no_file": "falta o arquivo: tasks claim {id} <arquivo…>",
+  "claim.not_running": "{id} não está em andamento (está {status}): claim só durante a tarefa",
+  "claim.odd": "jlock respondeu {result} ao claim de {id}",
+  "claim.refused": "claim recusado: {errors}",
+  "claim.timeout": '{id} esperou {waited} s por {key}: continua em uso por {holder}{via}, posição {position} na fila. Opções: pedir de novo (tasks claim {id} {files} --timeout 5m), fazer a parte que não depende desse arquivo, ou tasks fail {id} --error "…"',
+  "clean.busy": "recusado: há tarefas em andamento: {tasks}; libere-as antes",
+  "clean.confirm": "nada foi apagado; confirme com tasks clean {which} --yes",
+  "clean.delete": "apagar {target}; os commits ficam (são código)",
+  "clean.delete_all": "apagar {target} ({n} execução(ões)); os commits ficam (são código)",
+  "clean.deleted": "apagado: {target}",
+  "clean.effects": "efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):",
+  "clean.which": "diga qual: tasks clean <run> [--yes] (ou --all)",
+  "done.claimed": "reclamados durante a tarefa: {files}; atualize o plano se outras tarefas também os tocam",
+  "done.detached": "HEAD destacado",
+  "done.done": "{id} feita: {what}; {released}",
+  "done.lost": "posse perdida: {keys} já não está com {id} no jlock; o done foi recusado (use tasks release {id} e comece de novo)",
+  "done.no_commit": "nenhuma mudança na posse, sem commit",
+  "done.no_evidence": 'done sem evidência é recusado: tasks done {id} --evidence "o que prova que está feita"',
+  "done.outside": "{id} não pode ser concluída: arquivos modificados fora da posse: {files}. Peça-os com tasks claim {id} <arquivo>, ou desfaça essas mudanças",
+  "done.wrong_branch": "o checkout está em {branch}, mas a execução commita em {run_branch}",
+  "draft.already_open": "já há um rascunho aberto: {ids} (continue com tasks plan --add, ou feche com --commit)",
+  "draft.batch_accepted": "lote aceito: {n} tarefa(s) ({ids}); rascunho com {total}. Feche com tasks plan --commit",
+  "draft.batch_refused": "lote recusado, o rascunho não mudou.",
+  "draft.commit_refused": "plano recusado, nada foi gravado; o rascunho continua aberto.",
+  "draft.empty": "o rascunho está vazio: acrescente tarefas com tasks plan --add",
+  "draft.empty_summary": "rascunho {id}: nenhuma tarefa ainda (acrescente com tasks plan --add)",
+  "draft.fix_id_changed": "--fix {id} recebeu a tarefa {other}: o id não muda numa correção",
+  "draft.fix_needs_id": "--fix precisa do id da tarefa: tasks plan --fix T04 <json>",
+  "draft.fix_one": "--fix troca uma tarefa só: mande um objeto",
+  "draft.fix_refused": "correção de {id} recusada, o rascunho não mudou.",
+  "draft.fixed": "{id} corrigida; o rascunho tem {n} tarefa(s)",
+  "draft.line": "{id} · {title} · depende de: {deps} · posse: {own}",
+  "draft.many": "há {n} rascunhos abertos ({ids}): diga qual com --run <id>",
+  "draft.no_task": "o rascunho não tem a tarefa {id} (veja tasks plan --show)",
+  "draft.no_tasks": "nenhuma",
+  "draft.none": "não há rascunho aberto: comece com tasks plan --draft",
+  "draft.not_found": "não há rascunho aberto com o id {id}",
+  "draft.opened": "rascunho {id} aberto: acrescente lotes com tasks plan --add <json> (até ~20 tarefas por lote)",
+  "draft.summary": "rascunho {id}: {n} tarefa(s)",
+  "duration.bad": "duração inválida: {value} (use 30s, 2m, 500ms)",
+  "effects.checked": "{n} efeito(s) ativo(s) conferido(s) com o disco e o git",
+  "effects.gone": "sumiram por fora (marcados gone):",
+  "effects.leftovers": "ficaram de execuções já removidas:",
+  "effects.none_gone": "nada sumiu por fora",
+  "effects.usage": "use tasks effects --check",
+  "errors.count": "{n} erro(s):",
+  "exec.direct": "direto (fora de serialize)",
+  "exec.exit": "{how}; saiu com {code}",
+  "exec.no_command": "falta o comando: tasks exec -- <comando…>",
+  "exec.serialized": "serializado por jlock run {key}",
+  "fail.done": "{id} falhou: {error}",
+  "fail.no_error": 'fail sem erro é recusado: tasks fail {id} --error "o que deu errado"',
+  "frontier.blocked": "bloqueadas: {list}",
+  "frontier.failed_dependency": "⛔ {ids} (falha)",
+  "frontier.inside": "{via} (dentro de {asked})",
+  "frontier.waiting": "⏳ {owner}: {shown} · posição {position}",
+  "frontier.waiting_list": "aguardando: {list}",
+  "gc.bad_depth": "--depth inválido: {depth}",
+  "gc.confirm": "nada foi removido: confirme com tasks gc --remove {path} --yes",
+  "gc.days": "{n} dias",
+  "gc.empty": "vazia",
+  "gc.folder_removed": "pasta removida",
+  "gc.header": "gc --scan {root} (profundidade {depth}, só leitura): {n} achado(s)",
+  "gc.merged_no": "integrado em {base}: não",
+  "gc.merged_yes": "integrado em {base}: sim",
+  "gc.not_listed": "{path} não é algo que o relatório do gc lista (worktree, execução ou arquivo de execução); nada foi removido",
+  "gc.nothing": "nada a relatar",
+  "gc.owner": "dono {owner}",
+  "gc.owner_known": "dono {owner} (registrada)",
+  "gc.owner_orphan": "dono {owner} (o repositório não a conhece: órfã)",
+  "gc.removed": "{type} removida: {path} ({how}); registrado no ledger global",
+  "gc.untouched": "nada foi tocado; remover: tasks gc --remove <caminho> --yes",
+  "gc.usage": "use tasks gc --scan <raiz> (relatório) ou tasks gc --remove <caminho> --yes",
+  "gc.worktree_refused": "git worktree remove recusou: {message} (mudanças não salvas?); nada foi removido",
+  "gc.worktree_removed": "git worktree remove em {owner}",
+  "git.not_a_repo": "não é um repositório git: {cwd} (o goal-tasks faz um commit por tarefa)",
+  "guard.git": "subagente não roda git {sub}: o commit é feito por tasks done {id}",
+  "guard.outside": "fora da posse de {id}: {rel}; use tasks claim {id} {rel}",
+  "guard.run_files": "{rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão",
+  "help.archive": "archive <run>                         move a execução para GOAL_TASKS_HOME/archive (resume a traz)",
+  "help.claim": "claim <id> <arquivo…> [--timeout 60s]  pede mais um arquivo; espera na fila do jlock",
+  "help.clean": "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",
+  "help.done": 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
+  "help.effects": "effects --check                       compara o ledger com o disco e o git",
+  "help.exec": "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina",
+  "help.fail": 'fail <id> --error "…"                 falha (bloqueia as dependentes)',
+  "help.gc": "gc --scan <raiz> [--depth 4]          relatório só leitura: worktrees órfãs, execuções, arquivos",
+  "help.import": "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)",
+  "help.json": "--json em qualquer ação: a resposta em JSON; --run <id> escolhe a execução",
+  "help.lang": "--lang <idioma>: o idioma das respostas (en, pt-BR, ...); ou GOAL_TASKS_LANG, JLOCK_LANG",
+  "help.ledger": "ledger [--all-projects]               o que a ferramenta criou: tipo, ref, execução, tarefa",
+  "help.next": "next [limite]                         as prontas: perfil, critérios, posse e ticket",
+  "help.pause": "pause / unpause                       pausada: start recusado; o protocolo manda parar",
+  "help.plan": "plan <json|@arquivo> [--name slug]    cria a execução (tasks.json, tickets, branch gt/<run>)",
+  "help.plan.add": "  plan --add <json|@arquivo>            acrescenta um lote ao rascunho (valida o lote)",
+  "help.plan.commit": "  plan --commit                         validação completa; cria a execução e apaga o rascunho",
+  "help.plan.draft": "plan --draft [--name slug] [--objective texto]   abre um rascunho (plano em lotes)",
+  "help.plan.fix": "  plan --fix <id> <json|@arquivo>       troca uma tarefa do rascunho",
+  "help.plan.show": "  plan --show                           resumo do rascunho",
+  "help.release": "release <id>                          em andamento → pendente (no maxAttempts, falha)",
+  "help.resume": "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
+  "help.retry": "retry <id> | --all-failed             pulada ou falha → pendente",
+  "help.runs": "runs                                  execuções do repositório, com status e progresso",
+  "help.skip": 'skip <id> --reason "…"                pulada (libera as dependentes)',
+  "help.start": "start <id>                            em andamento; trava a posse (jlock hold --no-wait)",
+  "help.status": "status                                feitas F/T (P%) · … · restam N, fronteira e travas",
+  "help.status.run": "  (sem --run: a execução ligada à sessão, GOAL_TASKS_RUN, ou a única ativa do repositório)",
+  "help.title": "tasks {version}: lista de tarefas com dependências e posse de arquivos (jlock)",
+  "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
+                                        desfaz na ordem inversa (revert, branch, exclude, pasta)`,
+  "help.unknown": "não há a ação {action} (veja tasks help)",
+  "help.validate": "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar",
+  "import.check_only": "nada foi gravado (--check)",
+  "import.has_errors": "o plano lido tem {n} erro(s):",
+  "import.line": "{file} → {id} · {title} · depende de: {deps} · posse: {own} · {n} critério(s)",
+  "import.missing": "faltou: {notes}",
+  "import.no_blocked": "sem Blocked by (sem dependências)",
+  "import.no_criteria": "sem critérios - [ ]",
+  "import.no_files": "sem Files: vira exclusive (nunca em paralelo) até alguém declarar os arquivos",
+  "import.no_folder": "falta a pasta dos tickets: tasks import <pasta> [--check|--yes]",
+  "import.no_heading": "sem o título '# NN: título' (usei o nome do arquivo)",
+  "import.no_tickets": "nenhum ticket .md em {dir}",
+  "import.no_what": "sem What to build",
+  "import.read": "{n} ticket(s) lido(s) de {dir}:",
+  "import.refused": "importação recusada, nada foi gravado.",
+  "import.valid": "o plano lido é válido; crie a execução com --yes",
+  "jlock.disk": "jlock ({what}): erro de disco: {message}",
+  "jlock.exit": "jlock ({what}) saiu com {code}: {message}",
+  "jlock.hold_not_json": "jlock hold respondeu algo que não é JSON: {text}",
+  "jlock.hold_not_json_code": "jlock hold respondeu algo que não é JSON (saída {code}): {text}",
+  "jlock.hold_silent": "jlock hold não respondeu em {seconds} s",
+  "jlock.list_not_json": "jlock list devolveu algo que não é JSON: {text}",
+  "jlock.missing": "jlock não encontrado no PATH ({message}); instale o jlock ou defina JLOCK_BIN",
+  "jlock.no_version": "jlock --version não respondeu a versão",
+  "jlock.other_program": "outro programa: {owner}",
+  "jlock.too_old": "jlock {version} é antigo demais (mínimo {minimum}): atualize com jlock update",
+  "jlock.usage": "jlock ({what}) recusou o uso: {message} — é um bug do goal-tasks, registre-o",
+  "json.batch": "o lote",
+  "json.invalid": "{what} não é JSON válido: {message}",
+  "json.missing": "falta {what} em JSON (texto, @arquivo ou -)",
+  "json.no_file": "arquivo não encontrado: {file}",
+  "json.no_stdin": "entrada padrão indisponível aqui",
+  "json.plan": "o plano",
+  "json.task": "a tarefa",
+  "ledger.from": "(de {from})",
+  "ledger.global": "ledger global ({file}): {n} efeito(s), {active} ativo(s)",
+  "ledger.header": "ledger {scope}: {n} efeito(s), {active} ativo(s)",
+  "ledger.of_repo": "do repositório {root}",
+  "ledger.of_run": "da execução {run}",
+  "ledger.reverts": "(revert de {id})",
+  "next.bad_limit": "limite inválido: {limit}",
+  "next.criteria": "critérios: {criteria}",
+  "next.exclusive": "exclusive (roda sozinha)",
+  "next.line": "{id} · {title} · perfil {profile} · posse: {own}",
+  "next.no_files": "(nenhum arquivo)",
+  "next.none": "nenhuma pronta agora",
+  "next.none_running": "nenhuma pronta agora; em andamento: {tasks}",
+  "next.nothing": "nada a fazer: {progress}",
+  "next.paused": "execução pausada: não inicie tarefas",
+  "next.ready": "prontas ({n}) em {run}; podem rodar em paralelo:",
+  "path.not_a_folder": "não é uma pasta: {path}",
+  "pause.done": "execução {run} pausada: start recusado, não inicie tarefas",
+  "pause.running": "as em andamento terminam: {list}",
+  "plan.absolute_path": "{path}: use caminhos relativos ao repositório",
+  "plan.branch": '"branch" deve ser "run" ou "current"',
+  "plan.branch_exists": "o branch {branch} já existe",
+  "plan.covers": "({outer} cobre {inner})",
+  "plan.created": "execução {run} criada: {n} tarefa(s), {branch}",
+  "plan.current_branch": "branch atual ({branch})",
+  "plan.cycle": "ciclo: {cycle}",
+  "plan.detached": 'HEAD está destacado: mude para um branch antes do plan (ou use "branch": "current")',
+  "plan.duplicate_id": "id repetido: {id}",
+  "plan.empty_path": 'caminho vazio em "files"',
+  "plan.hold_ttl": '"holdTtl" deve ser uma duração como 30m, 2h ou 1d',
+  "plan.max_attempts": '"maxAttempts" deve ser um inteiro maior que zero',
+  "plan.missing_dependency": "{id} depende de {dep}, que não existe",
+  "plan.must_be_text": '"{field}" deve ser texto',
+  "plan.next_step": "próximo passo: tasks next",
+  "plan.no_commits": "o repositório ainda não tem commits: faça o primeiro commit antes do plan (o branch da execução parte dele)",
+  "plan.no_tasks": 'falta "tasks": a lista de tarefas',
+  "plan.outside_repo": "{path}: sai do repositório",
+  "plan.pattern": "{path}: o jlock trava arquivos e pastas, não padrões; {hint}",
+  "plan.pattern_hint": "liste os arquivos, use uma pasta ou marque a tarefa como exclusive",
+  "plan.pattern_hint_folder": "liste os arquivos ou use a pasta {folder}",
+  "plan.profile_object": 'perfil "{name}" deve ser um objeto ({ claude, opencode })',
+  "plan.profiles_object": '"profiles" deve ser um objeto',
+  "plan.refused": "plano recusado, nada foi gravado.",
+  "plan.self_dependency": "{id} depende de si mesma",
+  "plan.serialize_list": '"serialize" deve ser uma lista de comandos',
+  "plan.shape": 'o plano deve ser uma lista de tarefas ou um objeto com "tasks"',
+  "plan.shared": "{a} e {b} tocam {path}{cover} e podem rodar juntas: adicione uma dependência ou separe o arquivo",
+  "plan.task_acceptance": '{name}: "acceptance" deve ser uma lista de critérios (texto)',
+  "plan.task_depends_list": '{name}: "dependsOn" deve ser uma lista de ids',
+  "plan.task_exclusive": '{name}: "exclusive" deve ser true ou false',
+  "plan.task_files_list": '{name}: "files" deve ser uma lista de caminhos',
+  "plan.task_missing": '{name}: falta "{field}"',
+  "plan.task_object": "{name}: cada tarefa deve ser um objeto",
+  "plan.task_text": '{name}: "{field}" deve ser texto',
+  "plan.task_unknown_field": '{name}: campo desconhecido "{field}"',
+  "plan.tickets": "tickets: {n} em {dir}",
+  "plan.unknown_field": 'campo desconhecido no plano: "{field}"',
+  "plan.unknown_profile": '{id}: perfil desconhecido "{profile}" (perfis: {profiles})',
+  "progress.done": "feitas {done}/{total} ({percent}%)",
+  "progress.failed_one": "{n} falha",
+  "progress.failed_other": "{n} falhas",
+  "progress.remaining": "restam {n}",
+  "progress.running": "{n} em andamento",
+  "progress.skipped_one": "{n} pulada",
+  "progress.skipped_other": "{n} puladas",
+  "release.agent_ended": "o subagente terminou sem concluir",
+  "release.failed": "a posse não foi devolvida ({message}); use jlock release --group {run} --owner {owner}",
+  "release.failed_now": "falhou: {error}",
+  "release.given_back": "posse devolvida",
+  "release.pending": "voltou a pendente (tentativa {attempts}/{max})",
+  "release.released": "liberada",
+  "resume.bound": "execução {run} retomada nesta sessão",
+  "resume.edits": "edições no disco: {list}",
+  "resume.kept_flag": "mantidas em andamento: {list} (--keep-owners)",
+  "resume.kept_live": "mantidas em andamento: {list} (travas vivas)",
+  "resume.no_locks_reason": "agente sem travas no jlock (janela encerrada)",
+  "resume.released": "{id} liberada (sem travas no jlock) → {to}",
+  "resume.which": "diga qual: tasks resume <run> --from-archive",
+  "retry.cannot": "{id} está {status}: retry só reabre pulada ou falha",
+  "retry.done": "{id} reaberta: pendente",
+  "retry.none": "nenhuma falha para reabrir",
+  "retry.reopened": "reabertas: {list}",
+  "run.gone": "a execução {run} sumiu de {dir}",
+  "run.many": "há {n} execuções ativas ({ids}): diga qual com --run <id>",
+  "run.no_tasks": "a execução {run} não tem tasks.json",
+  "run.none": "nenhuma execução neste repositório (crie com tasks plan; veja tasks runs)",
+  "run.not_found": "execução não encontrada neste repositório: {run} (veja tasks runs)",
+  "run.not_in": "não há a execução {run} em {dir}",
+  "runs.no_tasks_file": "sem tasks.json",
+  "runs.none": "nenhuma execução neste repositório (crie uma com tasks plan)",
+  "skip.cannot": "{id} está {status}: não dá para pular",
+  "skip.done": "{id} pulada: {reason}",
+  "skip.no_reason": 'skip sem motivo é recusado: tasks skip {id} --reason "por quê"',
+  "start.busy": "{id} não estava pronta: {key} em uso por {holder}{via}; nada foi gravado",
+  "start.depends": "{id} não está pronta: depende de {deps}",
+  "start.hint": 'outro arquivo: tasks claim {id} <arquivo>; no fim: tasks done {id} --evidence "…" (ou tasks fail {id} --error "…")',
+  "start.locked": "posse travada no jlock ({n} chave(s), dono {owner})",
+  "start.no_files": "sem arquivos na posse",
+  "start.not_pending": "{id} não está pendente: está {status}",
+  "start.other_owner": "outro dono",
+  "start.owner": "(dono: {owner})",
+  "start.paused": "a execução {run} está pausada: não inicie tarefas",
+  "start.started": "{id} em andamento (tentativa {attempt}): {own}",
+  "status.failed": "falhas: {list}",
+  "status.free": "livre",
+  "status.locks": "travas ativas (jlock --group {run}): {list}",
+  "status.lost": "posse perdida: {list}",
+  "status.lost_task": "{id} (sem travas no jlock: tasks resume ou tasks release {id})",
+  "status.no_locks": "travas ativas: nenhuma",
+  "status.paused": "pausada: não inicie tarefas",
+  "status.queue": "({n} na fila: {owners})",
+  "status.ready": "prontas: {list}",
+  "status.running": "em andamento: {list}",
+  "store.invalid_json": "{file} não é JSON válido: {message}",
+  "store.locked": "a execução está travada para escrita há mais de {seconds} s: {lock}",
+  "store.no_tasks": "execução sem tasks.json: {dir}",
+  "store.stale": "tasks.json mudou enquanto esta ação rodava (revisão {expected} → {found}); leia de novo e repita",
+  "task.no_id": "falta o id da tarefa",
+  "task.not_found": "a execução {run} não tem a tarefa {id}",
+  "task.not_running": "{id} não está em andamento (está {status})",
+  "ticket.exclusive": "(exclusive: roda sozinha)",
+  "ticket.none": "(nenhum)",
+  "tool.error": "erro: {message}",
+  "tool.unknown_action": "ação desconhecida: {action} (veja tasks help)",
+  "undo.branch_dirty": "{id}: {branch} está em uso com mudanças não salvas ({files})",
+  "undo.branch_removed": "{id}: branch {branch} removido (checkout em {base})",
+  "undo.dir_removed": "{id}: pasta {dir} removida",
+  "undo.dirty": "{id}: a árvore tem mudanças não salvas ({files}); commite ou descarte antes do undo",
+  "undo.exclude_shared": "{id}: outras execuções ainda usam a linha {line} do exclude ({runs}); use --force para tirar mesmo assim",
+  "undo.line_absent": "{id}: a linha já não estava em {path}",
+  "undo.line_removed": "{id}: linha removida em {path}",
+  "undo.no_branch": "{id}: o branch {branch} já não existia",
+  "undo.no_commit": "{id}: o commit {ref} não existe mais (veja tasks effects --check)",
+  "undo.no_effect": "não há efeito ativo {id} na execução {run} (veja tasks ledger)",
+  "undo.none": "{id}: não há desfazer automático para {type} ({kind})",
+  "undo.revert_failed": "{id}: git revert {ref} não aplicou limpo: {message}",
+  "undo.reverted": "{id}: revert de {ref} → commit {head}",
+  "undo.run_busy": "{id}: a execução tem tarefas em andamento ({tasks}); libere-as antes",
+  "undo.run_clean": "a execução {run} não tem efeitos ativos",
+  "undo.run_done": "execução {run} desfeita:",
+  "undo.stopped": "parou em: {message}",
+  "undo.task_clean": "{id} não tem efeitos ativos para desfazer",
+  "undo.task_running": "{id} está em andamento: libere-a (tasks release {id}) antes do undo",
+  "undo.unmerged": "{id}: o branch {branch} tem commits que não estão em {base}; integre-os (git merge) ou use --force",
+  "undo.which": "diga o que desfazer: tasks undo <e-id> | --task <id> | --run <run>",
+  "unpause.done": "execução {run} retomada ({status})",
+  "validate.ok": "ok: {n} tarefa(s), nenhum erro",
+  "view.lost": "posse perdida",
+  "view.no_run": "sem execução ligada",
+  "view.no_runs": "nenhuma execução (tasks plan)",
+  "view.paused": "pausada"
+};
+
+// src/i18n.ts
+var CATALOGS = [
+  ["en", en_default],
+  ["pt-BR", pt_BR_default]
+];
+var current = "en";
+function lang() {
+  return current;
+}
+function tags() {
+  return CATALOGS.map(([tag]) => tag);
+}
+function resolve(input) {
+  const tag = (input.split(/[.@]/)[0] ?? "").trim().replace(/_/g, "-");
+  if (!tag)
+    return;
+  const primary = (t) => (t.split("-")[0] ?? "").toLowerCase();
+  const exact = CATALOGS.find(([t]) => t.toLowerCase() === tag.toLowerCase());
+  return (exact ?? CATALOGS.find(([t]) => primary(t) === primary(tag)))?.[0];
+}
+function systemLocale() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().locale;
+  } catch {
+    return;
+  }
+}
+function choose(inputs) {
+  let warning;
+  if (inputs.lang) {
+    const tag2 = resolve(inputs.lang);
+    if (tag2)
+      return { tag: tag2, source: "--lang" };
+    warning = `unknown language "${inputs.lang}" (available: ${tags().join(", ")}); using English`;
+  }
+  for (const name of ["GOAL_TASKS_LANG", "JLOCK_LANG"]) {
+    const value = inputs.env?.(name);
+    const tag2 = value ? resolve(value) : undefined;
+    if (tag2 && !warning)
+      return { tag: tag2, source: name };
+  }
+  const tag = !warning && inputs.system ? resolve(inputs.system) : undefined;
+  if (tag)
+    return { tag, source: "system" };
+  return warning ? { tag: "en", source: "default", warning } : { tag: "en", source: "default" };
+}
+function select(inputs) {
+  const choice = choose(inputs);
+  current = choice.tag;
+  return choice;
+}
+function catalog(tag) {
+  return CATALOGS.find(([t]) => t === tag)?.[1] ?? en_default;
+}
+function lookup(cat, key, n) {
+  if (typeof n === "number") {
+    const plural = cat[`${key}_${n === 1 ? "one" : "other"}`];
+    if (typeof plural === "string")
+      return plural;
+  }
+  const text = cat[key];
+  return typeof text === "string" ? text : undefined;
+}
+function tr(key, params = {}) {
+  const text = lookup(catalog(current), key, params.n) ?? lookup(en_default, key, params.n) ?? key;
+  return text.replace(/\{(\w+)\}/g, (marker, name) => (name in params) ? String(params[name]) : marker);
+}
+function width(text) {
+  let w = 0;
+  for (const ch of text) {
+    const c = ch.codePointAt(0);
+    const wide = c >= 4352 && c <= 4447 || c >= 11904 && c <= 42191 || c >= 44032 && c <= 55203 || c >= 63744 && c <= 64255 || c >= 65072 && c <= 65103 || c >= 65280 && c <= 65376 || c >= 65504 && c <= 65510;
+    w += wide ? 2 : 1;
+  }
+  return w;
+}
+
 // src/validate.ts
 var TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);
 var PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"]);
@@ -130,9 +856,9 @@ var GLOB = /[*?[\]{}]/;
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
   if (p === "")
-    return { error: `caminho vazio em "files"` };
+    return { error: tr("plan.empty_path") };
   if (isAbsolute(p))
-    return { error: `${raw}: use caminhos relativos ao repositório` };
+    return { error: tr("plan.absolute_path", { path: raw }) };
   while (p.startsWith("./"))
     p = p.slice(2);
   if (p.endsWith("/**"))
@@ -141,12 +867,12 @@ function normalizeFileEntry(raw) {
     const segments = p.split("/");
     const firstGlob = segments.findIndex((s) => GLOB.test(s));
     const folder = segments.slice(0, firstGlob).join("/");
-    const hint = folder ? `liste os arquivos ou use a pasta ${folder}` : `liste os arquivos, use uma pasta ou marque a tarefa como exclusive`;
-    return { error: `${raw}: o jlock trava arquivos e pastas, não padrões; ${hint}` };
+    const hint = folder ? tr("plan.pattern_hint_folder", { folder }) : tr("plan.pattern_hint");
+    return { error: tr("plan.pattern", { path: raw, hint }) };
   }
   const n = normalize(p).replace(/\/+$/, "");
   if (n === ".." || n.startsWith("../"))
-    return { error: `${raw}: sai do repositório` };
+    return { error: tr("plan.outside_repo", { path: raw }) };
   return { path: n || "." };
 }
 function isStringList(value) {
@@ -164,22 +890,22 @@ function readPlan(raw) {
   else if (raw && typeof raw === "object")
     obj = raw;
   else
-    return { plan: { tasks: [] }, errors: ['o plano deve ser uma lista de tarefas ou um objeto com "tasks"'] };
+    return { plan: { tasks: [] }, errors: [tr("plan.shape")] };
   for (const key of Object.keys(obj))
     if (!PLAN_FIELDS.has(key))
-      errors.push(`campo desconhecido no plano: "${key}"`);
+      errors.push(tr("plan.unknown_field", { field: key }));
   const plan = { tasks: [] };
   if (obj.feature !== undefined) {
     if (typeof obj.feature === "string")
       plan.feature = obj.feature;
     else
-      errors.push(`"feature" deve ser texto`);
+      errors.push(tr("plan.must_be_text", { field: "feature" }));
   }
   if (obj.objective !== undefined) {
     if (typeof obj.objective === "string")
       plan.objective = obj.objective;
     else
-      errors.push(`"objective" deve ser texto`);
+      errors.push(tr("plan.must_be_text", { field: "objective" }));
   }
   if (obj.profiles !== undefined) {
     if (obj.profiles && typeof obj.profiles === "object" && !Array.isArray(obj.profiles)) {
@@ -188,71 +914,71 @@ function readPlan(raw) {
         if (value && typeof value === "object" && !Array.isArray(value))
           profiles[name] = value;
         else
-          errors.push(`perfil "${name}" deve ser um objeto ({ claude, opencode })`);
+          errors.push(tr("plan.profile_object", { name }));
       }
       plan.profiles = profiles;
     } else
-      errors.push(`"profiles" deve ser um objeto`);
+      errors.push(tr("plan.profiles_object"));
   }
   if (obj.serialize !== undefined) {
     if (isStringList(obj.serialize))
       plan.serialize = obj.serialize;
     else
-      errors.push(`"serialize" deve ser uma lista de comandos`);
+      errors.push(tr("plan.serialize_list"));
   }
   if (obj.maxAttempts !== undefined) {
     if (typeof obj.maxAttempts === "number" && Number.isInteger(obj.maxAttempts) && obj.maxAttempts >= 1)
       plan.maxAttempts = obj.maxAttempts;
     else
-      errors.push(`"maxAttempts" deve ser um inteiro maior que zero`);
+      errors.push(tr("plan.max_attempts"));
   }
   if (obj.holdTtl !== undefined) {
     if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl))
       plan.holdTtl = obj.holdTtl;
     else
-      errors.push(`"holdTtl" deve ser uma duração como 30m, 2h ou 1d`);
+      errors.push(tr("plan.hold_ttl"));
   }
   if (obj.branch !== undefined) {
     if (obj.branch === "run" || obj.branch === "current")
       plan.branch = obj.branch;
     else
-      errors.push(`"branch" deve ser "run" ou "current"`);
+      errors.push(tr("plan.branch"));
   }
   if (!Array.isArray(obj.tasks)) {
-    errors.push(`falta "tasks": a lista de tarefas`);
+    errors.push(tr("plan.no_tasks"));
     return { plan, errors };
   }
   obj.tasks.forEach((raw2, index) => {
     const name = label(raw2, index);
     if (!raw2 || typeof raw2 !== "object" || Array.isArray(raw2)) {
-      errors.push(`${name}: cada tarefa deve ser um objeto`);
+      errors.push(tr("plan.task_object", { name }));
       return;
     }
     const t = raw2;
     const before = errors.length;
     for (const key of Object.keys(t))
       if (!TASK_FIELDS.has(key))
-        errors.push(`${name}: campo desconhecido "${key}"`);
+        errors.push(tr("plan.task_unknown_field", { name, field: key }));
     if (typeof t.id !== "string" || !t.id.trim())
-      errors.push(`${name}: falta "id"`);
+      errors.push(tr("plan.task_missing", { name, field: "id" }));
     if (typeof t.title !== "string" || !t.title.trim())
-      errors.push(`${name}: falta "title"`);
+      errors.push(tr("plan.task_missing", { name, field: "title" }));
     if (t.what !== undefined && typeof t.what !== "string")
-      errors.push(`${name}: "what" deve ser texto`);
+      errors.push(tr("plan.task_text", { name, field: "what" }));
     if (t.dependsOn !== undefined && !isStringList(t.dependsOn))
-      errors.push(`${name}: "dependsOn" deve ser uma lista de ids`);
+      errors.push(tr("plan.task_depends_list", { name }));
     if (t.files !== undefined && !isStringList(t.files))
-      errors.push(`${name}: "files" deve ser uma lista de caminhos`);
+      errors.push(tr("plan.task_files_list", { name }));
     if (t.profile !== undefined && typeof t.profile !== "string")
-      errors.push(`${name}: "profile" deve ser texto`);
+      errors.push(tr("plan.task_text", { name, field: "profile" }));
     if (t.boundary !== undefined && typeof t.boundary !== "string")
-      errors.push(`${name}: "boundary" deve ser texto`);
+      errors.push(tr("plan.task_text", { name, field: "boundary" }));
     if (t.exclusive !== undefined && typeof t.exclusive !== "boolean")
-      errors.push(`${name}: "exclusive" deve ser true ou false`);
+      errors.push(tr("plan.task_exclusive", { name }));
     if (t.acceptance !== undefined) {
       const ok = Array.isArray(t.acceptance) && t.acceptance.every((a) => typeof a === "string" || a && typeof a === "object" && typeof a.text === "string");
       if (!ok)
-        errors.push(`${name}: "acceptance" deve ser uma lista de critérios (texto)`);
+        errors.push(tr("plan.task_acceptance", { name }));
     }
     if (errors.length === before)
       plan.tasks.push(t);
@@ -266,10 +992,10 @@ function validateBatch(tasks, ctx = {}) {
   const out = [];
   for (const task of tasks) {
     if (seen.has(task.id))
-      errors.push(`id repetido: ${task.id}`);
+      errors.push(tr("plan.duplicate_id", { id: task.id }));
     seen.add(task.id);
     if (task.profile !== undefined && !(task.profile in profiles))
-      errors.push(`${task.id}: perfil desconhecido "${task.profile}" (perfis: ${Object.keys(profiles).join(", ")})`);
+      errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }));
     const files = [];
     for (const raw of task.files ?? []) {
       const entry = normalizeFileEntry(raw);
@@ -279,7 +1005,7 @@ function validateBatch(tasks, ctx = {}) {
         files.push(entry.path);
     }
     if (task.dependsOn?.includes(task.id))
-      errors.push(`${task.id} depende de si mesma`);
+      errors.push(tr("plan.self_dependency", { id: task.id }));
     out.push({ ...task, files });
   }
   return { tasks: out, errors };
@@ -356,9 +1082,9 @@ function validateGraph(tasks, options = {}) {
   for (const t of tasks)
     for (const dep of t.dependsOn ?? [])
       if (!ids.has(dep))
-        errors.push(`${t.id} depende de ${dep}, que não existe`);
+        errors.push(tr("plan.missing_dependency", { id: t.id, dep }));
   for (const cycle of findCycles(tasks))
-    errors.push(`ciclo: ${cycle.join(" → ")}`);
+    errors.push(tr("plan.cycle", { cycle: cycle.join(" → ") }));
   const insensitive = caseInsensitive(options.platform ?? "win32");
   const anc = ancestors(tasks);
   const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
@@ -372,8 +1098,8 @@ function validateGraph(tasks, options = {}) {
         continue;
       const hit = sharedPath(a.files ?? [], b.files ?? [], insensitive);
       if (hit) {
-        const cover = hit.outer !== hit.inner ? ` (${hit.outer} cobre ${hit.inner})` : "";
-        errors.push(`${a.id} e ${b.id} tocam ${hit.inner}${cover} e podem rodar juntas: adicione uma dependência ou separe o arquivo`);
+        const cover = hit.outer !== hit.inner ? ` ${tr("plan.covers", { outer: hit.outer, inner: hit.inner })}` : "";
+        errors.push(tr("plan.shared", { a: a.id, b: b.id, path: hit.inner, cover }));
       }
     }
   }
@@ -421,7 +1147,7 @@ function numbers(tasks) {
 function renderTicket(task, index, all) {
   const nums = numbers(all);
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
-  const files = task.exclusive ? "(exclusive: roda sozinha)" : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : "(nenhum)";
+  const files = task.exclusive ? tr("ticket.exclusive") : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : tr("ticket.none");
   const claimed = task.claimed?.length ? `
 
 **Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : "";
@@ -487,38 +1213,38 @@ function parseTicket(text, file, index) {
   const fields = new Map;
   const acceptance = [];
   let heading;
-  let current;
+  let current2;
   for (const raw of lines) {
     const line = raw.trimEnd();
     const h = /^#\s+(\d+)\s*[:.\-–]\s*(.+)$/.exec(line);
     if (h && !heading) {
       heading = { num: h[1], title: h[2].trim() };
-      current = undefined;
+      current2 = undefined;
       continue;
     }
     const crit = /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line);
     if (crit) {
       acceptance.push(crit[2].trim());
-      current = undefined;
+      current2 = undefined;
       continue;
     }
     const f = FIELD.exec(line);
     if (f) {
-      current = f[1].trim().toLowerCase();
-      fields.set(current, f[2].trim());
+      current2 = f[1].trim().toLowerCase();
+      fields.set(current2, f[2].trim());
       continue;
     }
     if (!line.trim() || line.startsWith("#")) {
-      current = undefined;
+      current2 = undefined;
       continue;
     }
-    if (current)
-      fields.set(current, `${fields.get(current)} ${line.trim()}`.trim());
+    if (current2)
+      fields.set(current2, `${fields.get(current2)} ${line.trim()}`.trim());
   }
   const fromName = /^(\d+)-(.+)\.md$/i.exec(file.split("/").pop() ?? file);
   const num = heading?.num ?? fromName?.[1] ?? String(index + 1);
   if (!heading)
-    notes.push("sem o título '# NN: título' (usei o nome do arquivo)");
+    notes.push(tr("import.no_heading"));
   const id = `T${String(Number(num)).padStart(2, "0")}`;
   const title = heading?.title ?? fromName?.[2]?.replace(/-/g, " ") ?? id;
   const task = { id, title };
@@ -526,10 +1252,10 @@ function parseTicket(text, file, index) {
   if (what)
     task.what = what;
   else
-    notes.push("sem What to build");
+    notes.push(tr("import.no_what"));
   const blocked = fields.get("blocked by");
   if (blocked === undefined)
-    notes.push("sem Blocked by (sem dependências)");
+    notes.push(tr("import.no_blocked"));
   else if (!/^(none|nenhum|nenhuma|-)\b/i.test(blocked)) {
     const deps = [...blocked.matchAll(/\b(\d{1,3})\b/g)].map((m) => `T${String(Number(m[1])).padStart(2, "0")}`);
     task.dependsOn = [...new Set(deps)];
@@ -537,7 +1263,7 @@ function parseTicket(text, file, index) {
   const files = fields.get("files");
   if (files === undefined) {
     task.exclusive = true;
-    notes.push("sem Files: vira exclusive (nunca em paralelo) até alguém declarar os arquivos");
+    notes.push(tr("import.no_files"));
   } else if (/exclusive/i.test(files) && !files.includes("`"))
     task.exclusive = true;
   else
@@ -548,7 +1274,7 @@ function parseTicket(text, file, index) {
   if (acceptance.length)
     task.acceptance = acceptance;
   else
-    notes.push("sem critérios - [ ]");
+    notes.push(tr("import.no_criteria"));
   const boundary = fields.get("scope boundary");
   if (boundary)
     task.boundary = boundary;
@@ -571,11 +1297,11 @@ async function readTicketsDir(host, dir) {
 function ticketReadLine(t) {
   const k = t.task;
   const deps = k.dependsOn?.length ? k.dependsOn.join(", ") : "-";
-  const own = k.exclusive ? "exclusive" : k.files?.length ? k.files.join(", ") : "(nenhum)";
+  const own = k.exclusive ? "exclusive" : k.files?.length ? k.files.join(", ") : tr("ticket.none");
   const crit = k.acceptance?.length ?? 0;
   const tail = t.notes.length ? `
-    faltou: ${t.notes.join("; ")}` : "";
-  return `${t.file} → ${k.id} · ${k.title} · depende de: ${deps} · posse: ${own} · ${crit} critério(s)${tail}`;
+    ${tr("import.missing", { notes: t.notes.join("; ") })}` : "";
+  return `${tr("import.line", { file: t.file, id: k.id, title: k.title, deps, own, n: crit })}${tail}`;
 }
 
 // src/tool.ts
@@ -632,7 +1358,7 @@ function parseArgs(argv) {
       else {
         const value = argv[i + 1];
         if (value === undefined)
-          throw new ToolError(`--${name} precisa de um valor`, 2);
+          throw new ToolError(tr("args.needs_value", { name }), 2);
         options[name] = value;
         i++;
       }
@@ -673,26 +1399,26 @@ function splitCommand(line) {
     }
   }
   if (quote)
-    throw new ToolError("aspas sem fechar no comando", 2);
+    throw new ToolError(tr("args.open_quote"), 2);
   if (has || cur)
     out.push(cur);
   return out;
 }
-async function readJsonArg(ctx, arg, what = "o plano") {
+async function readJsonArg(ctx, arg, what = "json.plan") {
   if (ctx.json !== undefined)
     return typeof ctx.json === "string" ? parseJson(ctx.json, what) : ctx.json;
   if (arg === undefined)
-    throw new ToolError(`falta ${what} em JSON (texto, @arquivo ou -)`, 2);
+    throw new ToolError(tr("json.missing", { what: tr(what) }), 2);
   if (arg === "-") {
     if (!ctx.stdin)
-      throw new ToolError("entrada padrão indisponível aqui", 2);
+      throw new ToolError(tr("json.no_stdin"), 2);
     return parseJson(await ctx.stdin(), what);
   }
   if (arg.startsWith("@")) {
     const file = isAbsolute(arg.slice(1)) ? arg.slice(1) : join(ctx.cwd, arg.slice(1));
     const text = await ctx.host.readText(file);
     if (text === undefined)
-      throw new ToolError(`arquivo não encontrado: ${arg.slice(1)}`);
+      throw new ToolError(tr("json.no_file", { file: arg.slice(1) }));
     return parseJson(text, what);
   }
   return parseJson(arg, what);
@@ -701,7 +1427,7 @@ function parseJson(text, what) {
   try {
     return JSON.parse(text.replace(/^﻿/, ""));
   } catch (error) {
-    throw new ToolError(`${what} não é JSON válido: ${error.message}`);
+    throw new ToolError(tr("json.invalid", { what: tr(what), message: error.message }));
   }
 }
 var actions = new Map;
@@ -717,14 +1443,18 @@ function defineAction(name, fn, usage) {
 function ok(text, data, extra = {}) {
   return { ok: true, code: 0, text, data, ...extra };
 }
-defineAction("help", async () => ok([
-  `tasks ${VERSION}: lista de tarefas com dependências e posse de arquivos (jlock)`,
-  "",
-  ...usages.map((u) => `  ${u}`),
-  "",
-  "  --json em qualquer ação: a resposta em JSON; --run <id> escolhe a execução"
-].join(`
-`)));
+defineAction("help", async (_ctx, args) => {
+  const wanted = args.action === "help" ? args.positionals[0] : args.action;
+  if (wanted) {
+    const keys = usages.filter((k) => k === `help.${wanted}` || k.startsWith(`help.${wanted}.`));
+    if (!keys.length)
+      throw new ToolError(tr("help.unknown", { action: wanted }), 2);
+    return ok([tr("help.title", { version: VERSION }), "", ...keys.map((k) => `  ${tr(k)}`), "", `  ${tr("help.json")}`].join(`
+`));
+  }
+  return ok([tr("help.title", { version: VERSION }), "", ...usages.map((k) => `  ${tr(k)}`), "", `  ${tr("help.json")}`, `  ${tr("help.lang")}`].join(`
+`));
+});
 defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }));
 defineAction("validate", async (ctx, args) => {
   const arg = args.positionals[0];
@@ -733,25 +1463,45 @@ defineAction("validate", async (ctx, args) => {
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir)).map((t) => t.task) } : await readJsonArg(ctx, arg);
   const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
   if (errors.length > 0)
-    return { ok: false, code: 1, text: `${errors.length} erro(s):
+    return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
 `)}`, data: { errors } };
-  return ok(`ok: ${plan.tasks.length} tarefa(s), nenhum erro`, { errors: [], tasks: plan.tasks.length });
-}, "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar");
+  return ok(tr("validate.ok", { n: plan.tasks.length }), { errors: [], tasks: plan.tasks.length });
+}, "help.validate");
 async function runTool(ctx, argv) {
+  const choice = select({ lang: langArg(argv) ?? ctx.lang, env: (name) => ctx.host.env(name), system: systemLocale() });
+  const result = await dispatch(ctx, argv);
+  if (choice.warning)
+    result.text = `${choice.warning}
+${result.text}`;
+  return result;
+}
+function langArg(argv) {
+  for (let i = 0;i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--")
+      return;
+    if (a === "--lang")
+      return argv[i + 1];
+    if (a.startsWith("--lang="))
+      return a.slice(7);
+  }
+  return;
+}
+async function dispatch(ctx, argv) {
   try {
     const args = parseArgs(argv);
     if (args.options.help)
       return await actions.get("help")(ctx, args);
     const fn = actions.get(args.action);
     if (!fn)
-      throw new ToolError(`ação desconhecida: ${args.action} (veja tasks help)`, 2);
+      throw new ToolError(tr("tool.unknown_action", { action: args.action }), 2);
     return await fn(ctx, args);
   } catch (error) {
     if (error instanceof ToolError)
       return { ok: false, code: error.code, text: error.message, data: error.data ?? { error: error.message } };
     const message = error instanceof Error ? error.message : String(error);
-    return { ok: false, code: 1, text: `erro: ${message}`, data: { error: message } };
+    return { ok: false, code: 1, text: tr("tool.error", { message }), data: { error: message } };
   }
 }
 // src/store.ts
@@ -774,7 +1524,7 @@ class StaleRevisionError extends Error {
   expected;
   found;
   constructor(expected, found) {
-    super(`tasks.json mudou enquanto esta ação rodava (revisão ${expected} → ${found}); leia de novo e repita`);
+    super(tr("store.stale", { expected, found }));
     this.expected = expected;
     this.found = found;
   }
@@ -796,7 +1546,7 @@ async function readJson(host, file) {
   try {
     return JSON.parse(text);
   } catch (error) {
-    throw new Error(`${file} não é JSON válido: ${error.message}`);
+    throw new Error(tr("store.invalid_json", { file, message: error.message }));
   }
 }
 function clone(value) {
@@ -816,8 +1566,8 @@ async function writeRun(host, dir, run) {
   await atomicWrite(host, join(dir, "run.json"), stringify(run));
 }
 async function writeTasks(host, dir, tasks, expected) {
-  const current = await readTasks(host, dir);
-  const found = current?.revision ?? 0;
+  const current2 = await readTasks(host, dir);
+  const found = current2?.revision ?? 0;
   if (found !== expected)
     throw new StaleRevisionError(expected, found);
   const next = { ...tasks, revision: expected + 1 };
@@ -838,7 +1588,7 @@ async function withLock(host, dir, fn) {
       continue;
     }
     if (host.now().getTime() > deadline)
-      throw new Error(`a execução está travada para escrita há mais de ${LOCK_WAIT_MS / 1000} s: ${lock}`);
+      throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }));
     await host.sleep(15 + Math.floor(host.random() * 35));
   }
   try {
@@ -851,7 +1601,7 @@ async function mutateTasks(host, dir, change) {
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir);
     if (!tasks)
-      throw new Error(`execução sem tasks.json: ${dir}`);
+      throw new Error(tr("store.no_tasks", { dir }));
     const copy = clone(tasks);
     const result = await change(copy);
     return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
@@ -898,38 +1648,39 @@ function counts(tasks) {
 function progress(done, total) {
   return total === 0 ? 0 : Math.floor(done / total * 100);
 }
-var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 function progressLine(tasks) {
   const c = counts(tasks);
-  const parts = [`feitas ${c.done}/${c.total} (${c.percent}%)`];
+  const parts = [tr("progress.done", { done: c.done, total: c.total, percent: c.percent })];
   if (c.skipped)
-    parts.push(plural(c.skipped, "pulada", "puladas"));
+    parts.push(tr("progress.skipped", { n: c.skipped }));
   if (c.failed)
-    parts.push(plural(c.failed, "falha", "falhas"));
+    parts.push(tr("progress.failed", { n: c.failed }));
   if (c.inProgress)
-    parts.push(`${c.inProgress} em andamento`);
-  parts.push(`restam ${c.remaining}`);
+    parts.push(tr("progress.running", { n: c.inProgress }));
+  parts.push(tr("progress.remaining", { n: c.remaining }));
   return parts.join(" · ");
 }
 function runLine(run, tasks) {
   const c = tasks ? counts(tasks.tasks) : undefined;
-  const prog = c ? `${c.done}/${c.total} (${c.percent}%)` : "sem tasks.json";
+  const prog = c ? `${c.done}/${c.total} (${c.percent}%)` : tr("runs.no_tasks_file");
   return `${run.id} · ${run.status} · ${prog} · ${run.objective || run.feature}`;
 }
 function formatRunsList(runs) {
   if (runs.length === 0)
-    return "nenhuma execução neste repositório (crie uma com tasks plan)";
+    return tr("runs.none");
   return runs.map((r) => runLine(r.run, r.tasks)).join(`
 `);
 }
 function protocolText(run, summary, spawn) {
+  const finished = tr("progress.remaining", { n: 0 });
+  const paused = tr("view.paused");
   return [
-    `goal-tasks: execução ligada ${run} · ${summary}`,
-    "Protocolo:",
-    "1. Chame tasks next.",
-    `2. Para cada tarefa devolvida, abra um subagente (${spawn}) com o perfil indicado, todos na mesma resposta (paralelo). ` + `O prompt leva só: --run ${run} --task <id>, título, critérios, posse (os arquivos que pode tocar), caminho do ticket, e ` + '"chame tasks start <id> no começo; se precisar de outro arquivo, tasks claim <id> <arquivo>; não rode git; ' + 'no fim, tasks done <id> --evidence com a evidência, ou tasks fail <id> --error".',
-    '3. Quando terminarem, chame tasks status. "restam 0" → objetivo cumprido, com essa saída como evidência. "pausada" → pare. Senão volte ao passo 1.',
-    "4. Nunca edite tasks.json, tickets ou o git à mão; só pela ferramenta tasks."
+    `goal-tasks: bound run ${run} · ${summary}`,
+    "Protocol:",
+    "1. Call tasks next.",
+    `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"call tasks start <id> first; if you need another file, tasks claim <id> <file>; do not run git; ' + 'at the end, tasks done <id> --evidence with the evidence, or tasks fail <id> --error".',
+    `3. When they finish, call tasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
+    "4. Never edit tasks.json, the tickets or git by hand; only through the tasks tool."
   ].join(`
 `);
 }
@@ -956,7 +1707,7 @@ async function repoRoot(host, cwd) {
 async function requireRepo(host, cwd) {
   const root = await repoRoot(host, cwd);
   if (!root)
-    throw new ToolError(`não é um repositório git: ${cwd} (o goal-tasks faz um commit por tarefa)`);
+    throw new ToolError(tr("git.not_a_repo", { cwd }));
   return root;
 }
 async function currentBranch(host, root) {
@@ -1096,7 +1847,7 @@ async function effectsOf(host, scope, insensitive) {
   return all.filter((e) => (!scope.repo || norm(e.repo) === norm(scope.repo)) && (!scope.run || e.run === scope.run));
 }
 function effectLine(e) {
-  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` (revert de ${e.reverts})` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` (de ${e.from})` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
+  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` ${tr("ledger.reverts", { id: e.reverts })}` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` ${tr("ledger.from", { from: e.from })}` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
   const when = e.at.replace("T", " ").slice(0, 16);
   return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`;
 }
@@ -1132,10 +1883,10 @@ async function createRun(ctx, plan, options = {}) {
   const base = await currentBranch(host, root);
   const useRunBranch = plan.branch !== "current";
   if (!base)
-    throw new ToolError('HEAD está destacado: mude para um branch antes do plan (ou use "branch": "current")');
+    throw new ToolError(tr("plan.detached"));
   const head = await git(host, root, ["rev-parse", "--verify", "-q", "HEAD"]);
   if (useRunBranch && head.code !== 0)
-    throw new ToolError("o repositório ainda não tem commits: faça o primeiro commit antes do plan (o branch da execução parte dele)");
+    throw new ToolError(tr("plan.no_commits"));
   const now = host.now();
   let id = options.id;
   if (!id) {
@@ -1147,7 +1898,7 @@ async function createRun(ctx, plan, options = {}) {
   const dir = runDir(root, id);
   const branch = useRunBranch ? `gt/${id}` : base;
   if (useRunBranch && await branchExists(host, root, branch))
-    throw new ToolError(`o branch ${branch} já existe`);
+    throw new ToolError(tr("plan.branch_exists", { branch }));
   const profiles = plan.profiles ?? DEFAULT_PROFILES;
   const run = {
     version: 1,
@@ -1214,11 +1965,11 @@ async function createRun(ctx, plan, options = {}) {
 }
 function createdText(created) {
   const { run, tasks, tickets } = created;
-  const branch = run.repo.branch === run.repo.baseBranch ? `branch atual (${run.repo.branch})` : `branch ${run.repo.branch}`;
+  const branch = run.repo.branch === run.repo.baseBranch ? tr("plan.current_branch", { branch: run.repo.branch }) : `branch ${run.repo.branch}`;
   return [
-    `execução ${run.id} criada: ${tasks.tasks.length} tarefa(s), ${branch}`,
-    `tickets: ${tickets.length} em ${join(created.dir, "tickets")}`,
-    `próximo passo: tasks next`
+    tr("plan.created", { run: run.id, n: tasks.tasks.length, branch }),
+    tr("plan.tickets", { n: tickets.length, dir: join(created.dir, "tickets") }),
+    tr("plan.next_step")
   ].join(`
 `);
 }
@@ -1228,7 +1979,7 @@ async function planFromJson(ctx, raw, options = {}) {
     return {
       ok: false,
       code: 1,
-      text: `plano recusado, nada foi gravado. ${errors.length} erro(s):
+      text: `${tr("plan.refused")} ${tr("errors.count", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
 `)}`,
       data: { errors }
@@ -1260,17 +2011,17 @@ async function resolveDraft(ctx, args) {
   if (wanted) {
     const found = drafts.find((d) => d.id === wanted);
     if (!found)
-      throw new ToolError(`não há rascunho aberto com o id ${wanted}`);
+      throw new ToolError(tr("draft.not_found", { id: wanted }));
     return { root, ...found };
   }
   if (drafts.length === 0)
-    throw new ToolError("não há rascunho aberto: comece com tasks plan --draft");
+    throw new ToolError(tr("draft.none"));
   if (drafts.length > 1)
-    throw new ToolError(`há ${drafts.length} rascunhos abertos (${drafts.map((d) => d.id).join(", ")}): diga qual com --run <id>`);
+    throw new ToolError(tr("draft.many", { n: drafts.length, ids: drafts.map((d) => d.id).join(", ") }));
   return { root, ...drafts[0] };
 }
 function refused(prefix, errors) {
-  return { ok: false, code: 1, text: `${prefix} ${errors.length} erro(s):
+  return { ok: false, code: 1, text: `${prefix} ${tr("errors.count", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
 `)}`, data: { errors } };
 }
@@ -1297,13 +2048,13 @@ async function saveDraft(ctx, dir, draft) {
 }
 function draftSummary(draft) {
   if (draft.tasks.length === 0)
-    return `rascunho ${draft.id}: nenhuma tarefa ainda (acrescente com tasks plan --add)`;
+    return tr("draft.empty_summary", { id: draft.id });
   const lines = draft.tasks.map((t) => {
     const deps = t.dependsOn?.length ? t.dependsOn.join(", ") : "-";
     const own = t.exclusive ? "exclusive" : t.files?.length ? t.files.join(", ") : "-";
-    return `${t.id} · ${t.title} · depende de: ${deps} · posse: ${own}`;
+    return tr("draft.line", { id: t.id, title: t.title, deps, own });
   });
-  return [`rascunho ${draft.id}: ${draft.tasks.length} tarefa(s)`, ...lines].join(`
+  return [tr("draft.summary", { id: draft.id, n: draft.tasks.length }), ...lines].join(`
 `);
 }
 async function draftOpen(ctx, args) {
@@ -1311,7 +2062,7 @@ async function draftOpen(ctx, args) {
   const root = await requireRepo(host, ctx.cwd);
   const open = await listDrafts(ctx, root);
   if (open.length > 0)
-    throw new ToolError(`já há um rascunho aberto: ${open.map((d) => d.id).join(", ")} (continue com tasks plan --add, ou feche com --commit)`);
+    throw new ToolError(tr("draft.already_open", { ids: open.map((d) => d.id).join(", ") }));
   const name = typeof args.options.name === "string" ? args.options.name : undefined;
   const objective = typeof args.options.objective === "string" ? args.options.objective : undefined;
   const now = host.now();
@@ -1339,31 +2090,31 @@ async function draftOpen(ctx, args) {
       undo: { kind: "remove-line" }
     });
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" });
-  return ok(`rascunho ${id} aberto: acrescente lotes com tasks plan --add <json> (até ~20 tarefas por lote)`, { draft: id, dir });
+  return ok(tr("draft.opened", { id }), { draft: id, dir });
 }
 async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
-  const raw = await readJsonArg(ctx, args.positionals[0], "o lote");
+  const raw = await readJsonArg(ctx, args.positionals[0], "json.batch");
   return withLock(ctx.host, dir, async () => {
-    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
     const read = readPlan(raw);
-    const profiles = read.plan.profiles ?? current.profiles ?? DEFAULT_PROFILES;
+    const profiles = read.plan.profiles ?? current2.profiles ?? DEFAULT_PROFILES;
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
       profiles,
-      existingIds: current.tasks.map((t) => t.id)
+      existingIds: current2.tasks.map((t) => t.id)
     });
-    const earlier = read.plan.profiles ? current.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => `${t.id}: perfil desconhecido "${t.profile}" (perfis: ${Object.keys(profiles).join(", ")})`) : [];
+    const earlier = read.plan.profiles ? current2.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
     const errors = [...read.errors, ...batch.errors, ...earlier];
     if (errors.length > 0)
-      return refused("lote recusado, o rascunho não mudou.", errors);
-    const next = { ...current, tasks: [...current.tasks, ...batch.tasks] };
+      return refused(tr("draft.batch_refused"), errors);
+    const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
     for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx, dir, next);
-    const added = batch.tasks.map((t) => t.id).join(", ") || "nenhuma";
-    return ok(`lote aceito: ${batch.tasks.length} tarefa(s) (${added}); rascunho com ${next.tasks.length}. Feche com tasks plan --commit`, {
+    const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks");
+    return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
       draft: next.id,
       added: batch.tasks.map((t) => t.id),
       total: next.tasks.length
@@ -1373,38 +2124,38 @@ async function draftAdd(ctx, args) {
 async function draftFix(ctx, args) {
   const fixId = typeof args.options.fix === "string" ? args.options.fix : undefined;
   if (!fixId)
-    throw new ToolError("--fix precisa do id da tarefa: tasks plan --fix T04 <json>", 2);
+    throw new ToolError(tr("draft.fix_needs_id"), 2);
   const { dir, draft } = await resolveDraft(ctx, args);
-  let raw = await readJsonArg(ctx, args.positionals[0], "a tarefa");
+  let raw = await readJsonArg(ctx, args.positionals[0], "json.task");
   if (Array.isArray(raw)) {
     if (raw.length !== 1)
-      throw new ToolError("--fix troca uma tarefa só: mande um objeto");
+      throw new ToolError(tr("draft.fix_one"));
     raw = raw[0];
   }
   if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.id === undefined)
     raw = { ...raw, id: fixId };
   return withLock(ctx.host, dir, async () => {
-    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
-    const index = current.tasks.findIndex((t) => t.id === fixId);
+    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    const index = current2.tasks.findIndex((t) => t.id === fixId);
     if (index < 0)
-      throw new ToolError(`o rascunho não tem a tarefa ${fixId} (veja tasks plan --show)`);
+      throw new ToolError(tr("draft.no_task", { id: fixId }));
     const read = readPlan([raw]);
     const errors = [...read.errors];
     const task = read.plan.tasks[0];
     if (task && task.id !== fixId)
-      errors.push(`--fix ${fixId} recebeu a tarefa ${task.id}: o id não muda numa correção`);
+      errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }));
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
-      profiles: current.profiles ?? DEFAULT_PROFILES,
-      existingIds: current.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
+      profiles: current2.profiles ?? DEFAULT_PROFILES,
+      existingIds: current2.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
     });
     errors.push(...batch.errors);
     if (errors.length > 0 || !batch.tasks[0])
-      return refused(`correção de ${fixId} recusada, o rascunho não mudou.`, errors);
-    const tasks = [...current.tasks];
+      return refused(tr("draft.fix_refused", { id: fixId }), errors);
+    const tasks = [...current2.tasks];
     tasks[index] = batch.tasks[0];
-    await saveDraft(ctx, dir, { ...current, tasks });
-    return ok(`${fixId} corrigida; o rascunho tem ${tasks.length} tarefa(s)`, { draft: current.id, fixed: fixId });
+    await saveDraft(ctx, dir, { ...current2, tasks });
+    return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current2.id, fixed: fixId });
   });
 }
 async function draftShow(ctx, args) {
@@ -1417,13 +2168,13 @@ async function draftShow(ctx, args) {
 async function draftCommit(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   return withLock(ctx.host, dir, async () => {
-    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
-    if (current.tasks.length === 0)
-      throw new ToolError("o rascunho está vazio: acrescente tarefas com tasks plan --add");
-    const { plan, errors } = validatePlan(draftPlan(current), { platform: ctx.host.platform });
+    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    if (current2.tasks.length === 0)
+      throw new ToolError(tr("draft.empty"));
+    const { plan, errors } = validatePlan(draftPlan(current2), { platform: ctx.host.platform });
     if (errors.length > 0)
-      return refused("plano recusado, nada foi gravado; o rascunho continua aberto.", errors);
-    const created = await createRun(ctx, plan, { id: current.id });
+      return refused(tr("draft.commit_refused"), errors);
+    const created = await createRun(ctx, plan, { id: current2.id });
     await ctx.host.remove(draftFile(dir));
     return ok(createdText(created), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch }, { bind: created.run.id });
   });
@@ -1443,46 +2194,40 @@ defineAction("plan", async (ctx, args) => {
   const raw = await readJsonArg(ctx, args.positionals[0]);
   const name = typeof o.name === "string" ? o.name : undefined;
   return planFromJson(ctx, raw, { name });
-}, "plan <json|@arquivo> [--name slug]    cria a execução (tasks.json, tickets, branch gt/<run>)");
-addUsage([
-  "plan --draft [--name slug] [--objective texto]   abre um rascunho (plano em lotes)",
-  "  plan --add <json|@arquivo>            acrescenta um lote ao rascunho (valida o lote)",
-  "  plan --fix <id> <json|@arquivo>       troca uma tarefa do rascunho",
-  "  plan --show                           resumo do rascunho",
-  "  plan --commit                         validação completa; cria a execução e apaga o rascunho"
-].join(`
-`));
+}, "help.plan");
+for (const key of ["help.plan.draft", "help.plan.add", "help.plan.fix", "help.plan.show", "help.plan.commit"])
+  addUsage(key);
 defineAction("runs", async (ctx) => {
   const root = await requireRepo(ctx.host, ctx.cwd);
   const runs = await listRuns(ctx.host, root);
   return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) });
-}, "runs                                  execuções do repositório, com status e progresso");
+}, "help.runs");
 defineAction("import", async (ctx, args) => {
   const arg = args.positionals[0];
   if (!arg)
-    throw new ToolError("falta a pasta dos tickets: tasks import <pasta> [--check|--yes]", 2);
+    throw new ToolError(tr("import.no_folder"), 2);
   const dir = isAbsolute(arg) ? arg : join(ctx.cwd, arg);
   if ((await ctx.host.stat(dir))?.kind !== "dir")
-    throw new ToolError(`não é uma pasta: ${arg}`);
+    throw new ToolError(tr("path.not_a_folder", { path: arg }));
   const tickets = await readTicketsDir(ctx.host, dir);
   if (!tickets.length)
-    throw new ToolError(`nenhum ticket .md em ${arg}`);
+    throw new ToolError(tr("import.no_tickets", { dir: arg }));
   const raw = { tasks: tickets.map((t) => t.task) };
   const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
-  const read = [`${tickets.length} ticket(s) lido(s) de ${arg}:`, ...tickets.map((t) => `  ${ticketReadLine(t)}`)];
+  const read = [tr("import.read", { n: tickets.length, dir: arg }), ...tickets.map((t) => `  ${ticketReadLine(t)}`)];
   if (!args.options.yes) {
-    const verdict = errors.length ? `o plano lido tem ${errors.length} erro(s):
+    const verdict = errors.length ? `${tr("import.has_errors", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
-`)}` : "o plano lido é válido; crie a execução com --yes";
+`)}` : tr("import.valid");
     return ok(`${read.join(`
 `)}
 ${verdict}
-nada foi gravado (--check)`, { tickets, errors });
+${tr("import.check_only")}`, { tickets, errors });
   }
   if (errors.length)
     return { ok: false, code: 1, text: `${read.join(`
 `)}
-importação recusada, nada foi gravado. ${errors.length} erro(s):
+${tr("import.refused")} ${tr("errors.count", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
 `)}`, data: { errors } };
   const name = typeof args.options.name === "string" ? args.options.name : basename(dir.replace(/\/issues$/, ""));
@@ -1490,7 +2235,7 @@ ${errors.map((e) => `- ${e}`).join(`
   return ok(`${read.join(`
 `)}
 ${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, { bind: created.run.id });
-}, "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)");
+}, "help.import");
 // src/jlock.ts
 var JLOCK = {
   OK: 0,
@@ -1504,6 +2249,9 @@ var JLOCK = {
 };
 function jlockBin(host) {
   return host.env("JLOCK_BIN") || "jlock";
+}
+function jlockEnv() {
+  return { JLOCK_LANG: lang() };
 }
 function parseAnswer(text) {
   const line = text.split(`
@@ -1520,12 +2268,12 @@ function failure(code, stdout, stderr, what) {
   const answer = parseAnswer(stdout);
   const message = answer?.message ?? answer?.error ?? (stderr.trim() || stdout.trim());
   if (code === JLOCK.DISK)
-    return new ToolError(`jlock (${what}): erro de disco: ${message}`);
+    return new ToolError(tr("jlock.disk", { what, message }));
   if (code === JLOCK.USAGE)
-    return new ToolError(`jlock (${what}) recusou o uso: ${message} — é um bug do goal-tasks, registre-o`);
+    return new ToolError(tr("jlock.usage", { what, message }));
   if (code === 127)
-    return new ToolError(`jlock não encontrado no PATH (${message}); instale o jlock ou defina JLOCK_BIN`);
-  return new ToolError(`jlock (${what}) saiu com ${code}: ${message}`);
+    return new ToolError(tr("jlock.missing", { message }));
+  return new ToolError(tr("jlock.exit", { what, code, message }));
 }
 async function jlockList(host, filter = {}) {
   const argv = [jlockBin(host), "list", "--json"];
@@ -1535,24 +2283,24 @@ async function jlockList(host, filter = {}) {
     argv.push("--under", filter.under);
   if (filter.owner)
     argv.push("--owner", filter.owner);
-  const r = await host.run(argv);
+  const r = await host.run(argv, { env: jlockEnv() });
   if (r.code !== 0)
     throw failure(r.code, r.stdout, r.stderr, "list");
   try {
     const parsed = JSON.parse(r.stdout);
     return parsed.locks ?? [];
   } catch {
-    throw new ToolError(`jlock list devolveu algo que não é JSON: ${r.stdout.slice(0, 200)}`);
+    throw new ToolError(tr("jlock.list_not_json", { text: r.stdout.slice(0, 200) }));
   }
 }
 async function jlockRelease(host, group, owner) {
-  const r = await host.run([jlockBin(host), "release", "--group", group, "--owner", owner, "--json"]);
+  const r = await host.run([jlockBin(host), "release", "--group", group, "--owner", owner, "--json"], { env: jlockEnv() });
   if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER)
     throw failure(r.code, r.stdout, r.stderr, "release");
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
 }
 async function jlockReleaseKeys(host, keys, owner) {
-  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"]);
+  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"], { env: jlockEnv() });
   if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER)
     throw failure(r.code, r.stdout, r.stderr, "release");
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
@@ -1564,12 +2312,12 @@ function jlockVersion(host) {
   const bin = jlockBin(host);
   let pending = versions.get(bin);
   if (!pending) {
-    pending = host.run([bin, "--version"]).then((r) => {
+    pending = host.run([bin, "--version"], { env: jlockEnv() }).then((r) => {
       const m = /(\d+)\.(\d+)\.(\d+)/.exec(`${r.stdout}
 ${r.stderr}`);
       if (r.code === 127 || !m) {
         versions.delete(bin);
-        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || "jlock --version não respondeu a versão", "--version");
+        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || tr("jlock.no_version"), "--version");
       }
       return `${m[1]}.${m[2]}.${m[3]}`;
     });
@@ -1601,12 +2349,12 @@ function holdArgv(host, keys, id, wait, hold) {
   return argv;
 }
 async function detachedHold(host, argv, cwd, timeoutMs) {
-  const r = await host.run(argv, { cwd, timeoutMs });
+  const r = await host.run(argv, { cwd, timeoutMs, env: jlockEnv() });
   const answer = parseAnswer(r.stdout);
   if (!answer) {
     if (r.code === 127)
       throw failure(127, r.stdout, r.stderr, "hold");
-    throw new ToolError(`jlock hold respondeu algo que não é JSON (saída ${r.code}): ${(r.stdout || r.stderr).slice(0, 200)}`);
+    throw new ToolError(tr("jlock.hold_not_json_code", { code: r.code, text: (r.stdout || r.stderr).slice(0, 200) }));
   }
   if (answer.result === "error")
     throw failure(r.code, r.stdout, r.stderr, "hold");
@@ -1620,7 +2368,7 @@ async function startHold(host, resident, firstLineTimeoutMs) {
     })]);
     if (code2 === undefined) {
       await resident.stop();
-      throw new ToolError(`jlock hold não respondeu em ${Math.round(firstLineTimeoutMs / 1000)} s`);
+      throw new ToolError(tr("jlock.hold_silent", { seconds: Math.round(firstLineTimeoutMs / 1000) }));
     }
     throw failure(code2, resident.lines().join(`
 `), "", "hold");
@@ -1628,7 +2376,7 @@ async function startHold(host, resident, firstLineTimeoutMs) {
   const answer = parseAnswer(line);
   if (!answer) {
     await resident.stop();
-    throw new ToolError(`jlock hold respondeu algo que não é JSON: ${line.slice(0, 200)}`);
+    throw new ToolError(tr("jlock.hold_not_json", { text: line.slice(0, 200) }));
   }
   if (answer.result === "granted")
     return { answer, resident };
@@ -1641,7 +2389,7 @@ async function startHold(host, resident, firstLineTimeoutMs) {
 }
 function describeOwner(owner, run) {
   if (!owner.startsWith("gt:"))
-    return `outro programa: ${owner}`;
+    return tr("jlock.other_program", { owner });
   const rest = owner.slice(3);
   const slash2 = rest.lastIndexOf("/");
   if (slash2 < 0)
@@ -1742,17 +2490,17 @@ function waitingOf(state, locks) {
 function waitingText(w, state, platform) {
   const asked = describeKey(w.key, state.root, platform);
   const via = describeKey(w.via, state.root, platform);
-  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : `${via} (dentro de ${asked})`;
-  return `⏳ ${describeOwner(w.holder, state.run.id)}: ${shown} · posição ${w.position}`;
+  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
+  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown, position: w.position });
 }
 function blockerText(b, state, platform) {
   switch (b.kind) {
     case "failed":
-      return `⛔ ${b.ids.join(", ")} (falha)`;
+      return tr("frontier.failed_dependency", { ids: b.ids.join(", ") });
     case "dependency":
       return `⛔ ${b.ids.join(", ")}`;
     case "paused":
-      return "pausada";
+      return tr("view.paused");
     case "ownership": {
       const key = describeKey(b.key, state.root, platform);
       const via = b.via !== b.key ? ` (via ${describeKey(b.via, state.root, platform)})` : "";
@@ -1797,11 +2545,11 @@ defineAction("clean", async (ctx, args) => {
   const all = !!args.options.all;
   const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
   if (!all && !id)
-    throw new ToolError("diga qual: tasks clean <run> [--yes] (ou --all)", 2);
+    throw new ToolError(tr("clean.which"), 2);
   const ids = all ? (await host.list(runsDir(root))).filter((e) => e.kind === "dir").map((e) => e.name) : [id];
   for (const r of ids)
     if (!await host.stat(runDir(root, r)))
-      throw new ToolError(`não há a execução ${r} em ${runsDir(root)}`);
+      throw new ToolError(tr("run.not_in", { run: r, dir: runsDir(root) }));
   const lines = [];
   const busy = [];
   const left = [];
@@ -1812,18 +2560,18 @@ defineAction("clean", async (ctx, args) => {
     left.push(...await survivors(ctx, root, r));
   }
   const target = all ? join(root, SCRATCH) : runDir(root, id);
-  lines.push(`${all ? `apagar ${target} (${ids.length} execução(ões))` : `apagar ${target}`}; os commits ficam (são código)`);
+  lines.push(all ? tr("clean.delete_all", { target, n: ids.length }) : tr("clean.delete", { target }));
   if (left.length) {
-    lines.push("efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):");
+    lines.push(tr("clean.effects"));
     for (const e of left)
       lines.push(`  ${effectLine(e)}  →  tasks undo ${e.id} --run ${e.run}`);
   }
   if (busy.length)
     throw new ToolError(`${lines.join(`
 `)}
-recusado: há tarefas em andamento: ${busy.join(", ")}; libere-as antes`);
+${tr("clean.busy", { tasks: busy.join(", ") })}`);
   if (!args.options.yes) {
-    lines.push(`nada foi apagado; confirme com tasks clean ${all ? "--all" : id} --yes`);
+    lines.push(tr("clean.confirm", { which: all ? "--all" : id }));
     return ok(lines.join(`
 `), { target, effects: left, removed: false });
   }
@@ -1835,25 +2583,25 @@ recusado: há tarefas em andamento: ${busy.join(", ")}; libere-as antes`);
   await host.remove(target, { recursive: true });
   for (const e of dirs)
     await setEffectState(host, runDir(root, e.run), e.run, e.id, "undone");
-  lines.push(`apagado: ${target}`);
+  lines.push(tr("clean.deleted", { target }));
   return ok(lines.join(`
 `), { target, effects: left, removed: true });
-}, "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)");
+}, "help.clean");
 defineAction("archive", async (ctx, args) => {
   const { host } = ctx;
   const root = await requireRepo(host, ctx.cwd);
   const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
   if (!id)
-    throw new ToolError("diga qual: tasks archive <run>", 2);
+    throw new ToolError(tr("archive.which"), 2);
   const dir = runDir(root, id);
   if (!await host.stat(dir))
-    throw new ToolError(`não há a execução ${id} em ${runsDir(root)}`);
+    throw new ToolError(tr("run.not_in", { run: id, dir: runsDir(root) }));
   const running = await runningTasks(host, dir);
   if (running.length)
-    throw new ToolError(`${id} tem tarefas em andamento (${running.join(", ")}); libere-as antes de arquivar`);
+    throw new ToolError(tr("archive.busy", { run: id, tasks: running.join(", ") }));
   const to = archiveDir(host, root, id);
   if (await host.stat(to))
-    throw new ToolError(`já existe um arquivo de ${id} em ${to}`);
+    throw new ToolError(tr("archive.exists", { run: id, to }));
   const effect = await recordEffect(host, dir, { run: id, type: "archive", repo: root, path: dir, to, undo: { kind: "unarchive" } });
   try {
     await moveDir(host, dir, to);
@@ -1861,22 +2609,22 @@ defineAction("archive", async (ctx, args) => {
     await setEffectState(host, dir, id, effect.id, "undone");
     throw error;
   }
-  return ok(`execução ${id} arquivada em ${to}; volta com tasks resume ${id} --from-archive`, { run: id, to });
-}, "archive <run>                         move a execução para GOAL_TASKS_HOME/archive; resume --from-archive a traz");
+  return ok(tr("archive.done", { run: id, to }), { run: id, to });
+}, "help.archive");
 async function unarchive(ctx, run) {
   const { host } = ctx;
   const root = await requireRepo(host, ctx.cwd);
   const from = archiveDir(host, root, run);
   if (!await host.stat(from))
-    throw new ToolError(`não há arquivo da execução ${run} em ${from}`);
+    throw new ToolError(tr("archive.none", { run, from }));
   const dir = runDir(root, run);
   if (await host.stat(dir))
-    throw new ToolError(`a execução ${run} já está em ${dir}`);
+    throw new ToolError(tr("archive.already", { run, dir }));
   await moveDir(host, from, dir);
   const archived = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter((e) => e.type === "archive" && e.state === "active");
   for (const e of archived)
     await setEffectState(host, dir, run, e.id, "undone");
-  return `execução ${run} trazida de volta de ${from}`;
+  return tr("archive.back", { run, from });
 }
 
 // src/actions.ts
@@ -1886,32 +2634,32 @@ async function resolveRun(ctx, args) {
   const runs = await listRuns(ctx.host, root);
   let entry = explicit ? runs.find((r) => r.run.id === explicit) : undefined;
   if (explicit && !entry)
-    throw new ToolError(`execução não encontrada neste repositório: ${explicit} (veja tasks runs)`);
+    throw new ToolError(tr("run.not_found", { run: explicit }));
   if (!entry) {
     const active = runs.filter((r) => r.run.status !== "done");
     if (active.length > 1)
-      throw new ToolError(`há ${active.length} execuções ativas (${active.map((r) => r.run.id).join(", ")}): diga qual com --run <id>`);
+      throw new ToolError(tr("run.many", { n: active.length, ids: active.map((r) => r.run.id).join(", ") }));
     entry = active[0] ?? runs[runs.length - 1];
     if (!entry)
-      throw new ToolError("nenhuma execução neste repositório (crie com tasks plan; veja tasks runs)");
+      throw new ToolError(tr("run.none"));
   }
   if (!entry.tasks)
-    throw new ToolError(`a execução ${entry.run.id} não tem tasks.json`);
+    throw new ToolError(tr("run.no_tasks", { run: entry.run.id }));
   return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks };
 }
 async function reload(ctx, state) {
   const run = await readRun(ctx.host, state.dir);
   const tasks = await readTasks(ctx.host, state.dir);
   if (!run || !tasks)
-    throw new ToolError(`a execução ${state.run.id} sumiu de ${state.dir}`);
+    throw new ToolError(tr("run.gone", { run: state.run.id, dir: state.dir }));
   return { ...state, run, tasks };
 }
 function findTask(state, id) {
   if (!id)
-    throw new ToolError("falta o id da tarefa", 2);
+    throw new ToolError(tr("task.no_id"), 2);
   const task = state.tasks.tasks.find((t) => t.id === id);
   if (!task)
-    throw new ToolError(`a execução ${state.run.id} não tem a tarefa ${id}`);
+    throw new ToolError(tr("task.not_found", { run: state.run.id, id }));
   return task;
 }
 function taskIdArg(args) {
@@ -1951,7 +2699,7 @@ async function markLost(ctx, first, id) {
     if (!task || task.status !== "in_progress")
       return false;
     const now = ctx.host.now().toISOString();
-    const to = backToPending(task, state.run.maxAttempts, "posse perdida", now);
+    const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now);
     task.lost = now;
     const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
     await writeTicket(ctx.host, state.dir, tasks, id);
@@ -1974,12 +2722,12 @@ function holdModeOf(ctx) {
 async function acquireHold(ctx, state, task, keys, wait, timeoutMs) {
   const version = await jlockVersion(ctx.host);
   if (!versionAtLeast(version, MIN_JLOCK))
-    throw new ToolError(`jlock ${version} é antigo demais (mínimo ${MIN_JLOCK}): atualize com jlock update`);
+    throw new ToolError(tr("jlock.too_old", { version, minimum: MIN_JLOCK }));
   const mode = holdModeOf(ctx);
   const argv = holdArgv(ctx.host, keys, identity(ctx, state, task), wait, { mode, ttl: state.run.holdTtl ?? DEFAULT_HOLD_TTL });
   if (mode === "detach")
     return detachedHold(ctx.host, argv, state.root, timeoutMs);
-  const resident = await ctx.host.spawn(argv, { cwd: state.root });
+  const resident = await ctx.host.spawn(argv, { cwd: state.root, env: jlockEnv() });
   return startHold(ctx.host, resident, timeoutMs);
 }
 async function releaseHolds(ctx, run, task) {
@@ -2001,7 +2749,7 @@ defineAction("next", async (ctx, args) => {
   const raw = args.positionals[0] ?? (typeof args.options.limit === "string" ? args.options.limit : undefined);
   const limit = raw === undefined ? Infinity : Number(raw);
   if (!(limit > 0))
-    throw new ToolError(`limite inválido: ${raw}`, 2);
+    throw new ToolError(tr("next.bad_limit", { limit: String(raw) }), 2);
   const locks = await frontierLocks(ctx, state);
   const assessments = assess(state, locks, platform);
   const ready = selectReady(state, assessments, platform, limit);
@@ -2019,28 +2767,28 @@ defineAction("next", async (ctx, args) => {
   }));
   const lines = [];
   if (ready.length) {
-    lines.push(`prontas (${ready.length}) em ${state.run.id}; podem rodar em paralelo:`);
+    lines.push(tr("next.ready", { n: ready.length, run: state.run.id }));
     for (const t of items) {
-      const own = t.exclusive ? "exclusive (roda sozinha)" : t.files.join(", ") || "(nenhum arquivo)";
-      lines.push(`${t.id} · ${t.title} · perfil ${t.profile} · posse: ${own}`);
+      const own = t.exclusive ? tr("next.exclusive") : t.files.join(", ") || tr("next.no_files");
+      lines.push(tr("next.line", { id: t.id, title: t.title, profile: t.profile, own }));
       if (t.acceptance.length)
-        lines.push(`  critérios: ${t.acceptance.join("; ")}`);
+        lines.push(`  ${tr("next.criteria", { criteria: t.acceptance.join("; ") })}`);
       lines.push(`  ticket: ${t.ticket}`);
     }
   } else if (c.remaining === 0)
-    lines.push(`nada a fazer: ${progressLine(state.tasks.tasks)}`);
+    lines.push(tr("next.nothing", { progress: progressLine(state.tasks.tasks) }));
   else if (state.run.status === "paused")
-    lines.push("execução pausada: não inicie tarefas");
+    lines.push(tr("next.paused"));
   else {
     const running = state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id);
-    lines.push(`nenhuma pronta agora${running.length ? `; em andamento: ${running.join(", ")}` : ""}`);
+    lines.push(running.length ? tr("next.none_running", { tasks: running.join(", ") }) : tr("next.none"));
   }
   const why = blocked.filter((a) => a.blockers.length).map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`);
   if (why.length)
-    lines.push(`bloqueadas: ${why.join(" | ")}`);
+    lines.push(tr("frontier.blocked", { list: why.join(" | ") }));
   const waiting = waitingOf(state, locks);
   if (waiting.size)
-    lines.push(`aguardando: ${[...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ")}`);
+    lines.push(tr("frontier.waiting_list", { list: [...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ") }));
   return ok(lines.join(`
 `), {
     run: state.run.id,
@@ -2048,7 +2796,7 @@ defineAction("next", async (ctx, args) => {
     blocked: blocked.map((a) => ({ id: a.task.id, reasons: a.blockers.map((b) => blockerText(b, state, platform)) })),
     remaining: c.remaining
   });
-}, "next [limite]                         as prontas: perfil, critérios, posse e ticket");
+}, "help.next");
 defineAction("start", async (ctx, args) => {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
@@ -2056,15 +2804,15 @@ defineAction("start", async (ctx, args) => {
     const state = await reload(ctx, first);
     const task = findTask(state, id);
     if (state.run.status === "paused")
-      throw new ToolError(`a execução ${state.run.id} está pausada: não inicie tarefas`);
+      throw new ToolError(tr("start.paused", { run: state.run.id }));
     if (task.status !== "pending") {
-      const who = task.owner ? ` (dono: ${task.owner})` : "";
-      throw new ToolError(`${task.id} não está pendente: está ${task.status}${who}`);
+      const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : "";
+      throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`);
     }
     const byId = new Map(state.tasks.tasks.map((t2) => [t2.id, t2]));
     const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""));
     if (open.length)
-      throw new ToolError(`${task.id} não está pronta: depende de ${open.join(", ")}`);
+      throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }));
     const keys = taskKeys(state.root, task, ctx.host.platform);
     const now = ctx.host.now().toISOString();
     let hold;
@@ -2073,10 +2821,10 @@ defineAction("start", async (ctx, args) => {
       const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15000);
       if (outcome.answer.result !== "granted") {
         const a = outcome.answer;
-        const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : "outro dono";
+        const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : tr("start.other_owner");
         const key = a.failed ?? a.key ?? keys[0];
         const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : "";
-        throw new ToolError(`${task.id} não estava pronta: ${describeKey(key, state.root, ctx.host.platform)} em uso por ${holder}${via}; nada foi gravado`, 1, { result: a.result, key, holder: a.holder, position: a.position, via: a.via });
+        throw new ToolError(tr("start.busy", { id: task.id, key: describeKey(key, state.root, ctx.host.platform), holder, via }), 1, { result: a.result, key, holder: a.holder, position: a.position, via: a.via });
       }
       resident = outcome.resident;
       hold = { keys, startedAt: now, kind: "start" };
@@ -2104,15 +2852,15 @@ defineAction("start", async (ctx, args) => {
       remember(ctx, state, task.id, resident);
     await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys });
     const ticket = ticketPath(state.dir, changed.tasks, task.id);
-    const own = keys.length ? `posse travada no jlock (${keys.length} chave(s), dono ${ownerOf(state.run.id, task.id)})` : "sem arquivos na posse";
+    const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, task.id) }) : tr("start.no_files");
     return ok([
-      `${task.id} em andamento (tentativa ${t.attempts}): ${own}`,
+      tr("start.started", { id: task.id, attempt: t.attempts, own }),
       `ticket: ${ticket}`,
-      `outro arquivo: tasks claim ${task.id} <arquivo>; no fim: tasks done ${task.id} --evidence "…" (ou tasks fail ${task.id} --error "…")`
+      tr("start.hint", { id: task.id })
     ].join(`
 `), { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket });
   });
-}, "start <id>                            em andamento; trava a posse (jlock hold --no-wait)");
+}, "help.start");
 async function releaseHoldsOf(ctx, run, task, resident, keys) {
   if (!resident || !await resident.send(`release
 `))
@@ -2129,41 +2877,44 @@ async function statusOf(ctx, state) {
   const ready = selectReady(state, assessments, platform);
   const lines = [progressLine(state.tasks.tasks)];
   if (state.run.status === "paused")
-    lines.push("pausada: não inicie tarefas");
+    lines.push(tr("status.paused"));
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress");
   const byKey = new Map([...repoLocks, ...groupLocks].map((l) => [l.key, l]));
   const waiting = waitingOf(state, [...byKey.values()]);
   if (running.length)
-    lines.push(`em andamento: ${running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ")}`);
+    lines.push(tr("status.running", { list: running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ") }));
   if (waiting.size)
-    lines.push(`aguardando: ${[...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ")}`);
+    lines.push(tr("frontier.waiting_list", { list: [...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ") }));
   if (ready.length)
-    lines.push(`prontas: ${ready.map((t) => t.id).join(", ")}`);
+    lines.push(tr("status.ready", { list: ready.map((t) => t.id).join(", ") }));
   const blocked = assessments.filter((a) => a.blockers.length);
   if (blocked.length)
-    lines.push(`bloqueadas: ${blocked.map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`).join(" | ")}`);
+    lines.push(tr("frontier.blocked", { list: blocked.map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`).join(" | ") }));
   const failed = state.tasks.tasks.filter((t) => t.status === "failed");
   if (failed.length)
-    lines.push(`falhas: ${failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ")}`);
+    lines.push(tr("status.failed", { list: failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ") }));
   const lost = state.tasks.tasks.filter((t) => t.status === "pending" && t.lost).map((t) => t.id);
   for (const t of running) {
     const owner = ownerOf(state.run.id, t.id);
     const keys = taskKeys(state.root, t, platform);
     const held = groupLocks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key);
     if (keys.length && keys.some((k) => !held.includes(k)))
-      lost.push(`${t.id} (sem travas no jlock: tasks resume ou tasks release ${t.id})`);
+      lost.push(tr("status.lost_task", { id: t.id }));
   }
   if (lost.length)
-    lines.push(`posse perdida: ${lost.join(", ")}`);
+    lines.push(tr("status.lost", { list: lost.join(", ") }));
   const locks = groupLocks.map((l) => ({
     key: describeKey(l.key, state.root, platform),
     holder: l.holder ? describeOwner(l.holder.owner, state.run.id) : null,
     queue: l.queue.map((q) => ({ owner: describeOwner(q.owner, state.run.id), position: q.position }))
   }));
   if (locks.length)
-    lines.push(`travas ativas (jlock --group ${state.run.id}): ${locks.map((l) => `${l.key} → ${l.holder ?? "livre"}${l.queue.length ? ` (${l.queue.length} na fila: ${l.queue.map((q) => q.owner).join(", ")})` : ""}`).join(" · ")}`);
+    lines.push(tr("status.locks", {
+      run: state.run.id,
+      list: locks.map((l) => `${l.key} → ${l.holder ?? tr("status.free")}${l.queue.length ? ` ${tr("status.queue", { n: l.queue.length, owners: l.queue.map((q) => q.owner).join(", ") })}` : ""}`).join(" · ")
+    }));
   else
-    lines.push("travas ativas: nenhuma");
+    lines.push(tr("status.no_locks"));
   return {
     text: lines.join(`
 `),
@@ -2182,8 +2933,8 @@ defineAction("status", async (ctx, args) => {
   const state = await resolveRun(ctx, args);
   const s = await statusOf(ctx, state);
   return ok(s.text, s.data);
-}, "status                                feitas F/T (P%) · … · restam N, fronteira e travas");
-addUsage("  (sem --run: a execução ligada à sessão, GOAL_TASKS_RUN, ou a única ativa do repositório)");
+}, "help.status");
+addUsage("help.status.run");
 function possession(task) {
   return task.exclusive ? ["."] : [...task.files, ...task.claimed ?? []];
 }
@@ -2273,20 +3024,20 @@ function closeTask(task, status2, now) {
   delete task.holds;
 }
 function changesNote(changes) {
-  return changes.length ? `; edições não commitadas ficaram no disco: ${changes.join(", ")}` : "";
+  return changes.length ? `; ${tr("changes.left", { list: changes.join(", ") })}` : "";
 }
 async function giveBack(ctx, run, task) {
   try {
     await releaseHolds(ctx, run, task);
-    return "posse devolvida";
+    return tr("release.given_back");
   } catch (error) {
-    return `a posse não foi devolvida (${error.message}); use jlock release --group ${run} --owner ${ownerOf(run, task)}`;
+    return tr("release.failed", { message: error.message, run, owner: ownerOf(run, task) });
   }
 }
 function parseDuration(raw) {
   const m = /^(\d+(?:\.\d+)?)(ms|s|m|h)?$/.exec(raw.trim());
   if (!m)
-    throw new ToolError(`duração inválida: ${raw} (use 30s, 2m, 500ms)`, 2);
+    throw new ToolError(tr("duration.bad", { value: raw }), 2);
   const n = Number(m[1]);
   const unit = m[2] ?? "s";
   return Math.round(unit === "ms" ? n : unit === "s" ? n * 1000 : unit === "m" ? n * 60000 : n * 3600000);
@@ -2299,9 +3050,9 @@ defineAction("claim", async (ctx, args) => {
   const task = findTask(first, taskIdArg(args));
   const raw = args.positionals.slice(1);
   if (!raw.length)
-    throw new ToolError(`falta o arquivo: tasks claim ${task.id} <arquivo…>`, 2);
+    throw new ToolError(tr("claim.no_file", { id: task.id }), 2);
   if (task.status !== "in_progress")
-    throw new ToolError(`${task.id} não está em andamento (está ${task.status}): claim só durante a tarefa`);
+    throw new ToolError(tr("claim.not_running", { id: task.id, status: task.status }));
   const platform = ctx.host.platform;
   const files = [];
   const errors = [];
@@ -2313,14 +3064,14 @@ defineAction("claim", async (ctx, args) => {
       files.push(entry.path);
   }
   if (errors.length)
-    throw new ToolError(`claim recusado: ${errors.join("; ")}`);
-  const current = taskKeys(first.root, task, platform);
+    throw new ToolError(tr("claim.refused", { errors: errors.join("; ") }));
+  const current2 = taskKeys(first.root, task, platform);
   const wanted = files.filter((f) => {
     const key = normalizeKey(f, first.root, platform);
-    return !current.some((k) => covers(k, key));
+    return !current2.some((k) => covers(k, key));
   });
   if (!wanted.length)
-    return ok(`${task.id} já tem ${files.join(", ")} na posse: nada a fazer`, { task: task.id, granted: [] });
+    return ok(tr("claim.already", { id: task.id, files: files.join(", ") }), { task: task.id, granted: [] });
   const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)));
   const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s");
   const began = ctx.host.now().getTime();
@@ -2332,14 +3083,22 @@ defineAction("claim", async (ctx, args) => {
     const key = a.failed ?? a.key ?? keys[0];
     const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, first.root, platform)})` : "";
     await log(ctx, first, { action: "claim-timeout", task: task.id, keys, waitedSec: Number(waited) });
-    throw new ToolError(`${task.id} esperou ${waited} s por ${describeKey(key, first.root, platform)}: continua em uso por ${holderOf(a.holder)}${via}, ` + `posição ${a.position ?? "?"} na fila. Opções: pedir de novo (tasks claim ${task.id} ${wanted.join(" ")} --timeout 5m), ` + `fazer a parte que não depende desse arquivo, ou tasks fail ${task.id} --error "…"`, 1, { result: "timeout", key, holder: holderOf(a.holder), position: a.position, via: a.via });
+    throw new ToolError(tr("claim.timeout", {
+      id: task.id,
+      waited,
+      key: describeKey(key, first.root, platform),
+      holder: holderOf(a.holder),
+      via,
+      position: a.position ?? "?",
+      files: wanted.join(" ")
+    }), 1, { result: "timeout", key, holder: holderOf(a.holder), position: a.position, via: a.via });
   }
   if (a.result === "deadlock") {
     await log(ctx, first, { action: "claim-deadlock", task: task.id, keys, chain: a.chain });
-    throw new ToolError(`claim recusado: fecharia um ciclo de espera (deadlock): ${chainText(a.chain ?? "", first.run.id)}. ` + `Quem pediu por último cede: ${task.id} — faça outra parte, ou libere com tasks release ${task.id}`, 1, { result: "deadlock", chain: a.chain, yield: task.id });
+    throw new ToolError(tr("claim.deadlock", { chain: chainText(a.chain ?? "", first.run.id), id: task.id }), 1, { result: "deadlock", chain: a.chain, yield: task.id });
   }
   if (a.result !== "granted")
-    throw new ToolError(`jlock respondeu ${a.result} ao claim de ${task.id}`);
+    throw new ToolError(tr("claim.odd", { result: a.result, id: task.id }));
   const resident = outcome.resident;
   try {
     const done = await withLock(ctx.host, first.dir, async () => {
@@ -2347,7 +3106,7 @@ defineAction("claim", async (ctx, args) => {
       const copy = clone(state.tasks);
       const t = copy.tasks.find((x) => x.id === task.id);
       if (t.status !== "in_progress")
-        throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`);
+        throw new ToolError(tr("claim.left", { id: task.id, status: t.status }));
       t.claimed = [...t.claimed ?? [], ...wanted.filter((f) => !(t.claimed ?? []).includes(f))];
       const hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" };
       if (resident?.pid !== undefined)
@@ -2360,7 +3119,7 @@ defineAction("claim", async (ctx, args) => {
     });
     if (resident)
       remember(ctx, first, task.id, resident);
-    return ok(`${task.id} recebeu ${wanted.join(", ")} (esperou ${waited} s); posse: ${possession(done).join(", ")}`, {
+    return ok(tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done).join(", ") }), {
       task: task.id,
       granted: wanted,
       keys,
@@ -2370,25 +3129,25 @@ defineAction("claim", async (ctx, args) => {
     await releaseHoldsOf(ctx, first.run.id, task.id, resident, keys).catch(() => {});
     throw error;
   }
-}, "claim <id> <arquivo…> [--timeout 60s]  pede mais um arquivo; espera na fila do jlock");
+}, "help.claim");
 defineAction("done", async (ctx, args) => {
   const evidence = textArg(args, "evidence");
   let commit = null;
   let claimed = [];
   const t = await transition(ctx, args, "done", async (task, state) => {
     if (task.status !== "in_progress")
-      throw new ToolError(`${task.id} não está em andamento (está ${task.status})`);
+      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
     if (!evidence)
-      throw new ToolError(`done sem evidência é recusado: tasks done ${task.id} --evidence "o que prova que está feita"`, 2);
+      throw new ToolError(tr("done.no_evidence", { id: task.id }), 2);
     const branch = await currentBranch(ctx.host, state.root);
     if (branch !== state.run.repo.branch)
-      throw new ToolError(`o checkout está em ${branch ?? "HEAD destacado"}, mas a execução commita em ${state.run.repo.branch}`);
+      throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }));
     const split = await splitChanges(ctx, state, task);
     if (split.outside.length)
-      throw new ToolError(`${task.id} não pode ser concluída: arquivos modificados fora da posse: ${split.outside.join(", ")}. ` + `Peça-os com tasks claim ${task.id} <arquivo>, ou desfaça essas mudanças`, 1, { outside: split.outside });
+      throw new ToolError(tr("done.outside", { id: task.id, files: split.outside.join(", ") }), 1, { outside: split.outside });
     const missing = await missingKeys(ctx, state, task);
     if (missing.length)
-      throw new ToolError(`posse perdida: ${missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", ")} já não está com ${task.id} no jlock; ` + `o done foi recusado (use tasks release ${task.id} e comece de novo)`, 1, { missing });
+      throw new ToolError(tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }), 1, { missing });
     if (split.inside.length) {
       await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside]);
       await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`]);
@@ -2412,22 +3171,22 @@ defineAction("done", async (ctx, args) => {
     return { evidence, commit };
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
-  const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : "nenhuma mudança na posse, sem commit";
-  const lines = [`${t.task.id} feita: ${what}; ${released}`, progressLine(t.tasks.tasks)];
+  const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit");
+  const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)];
   if (claimed.length)
-    lines.push(`reclamados durante a tarefa: ${claimed.join(", ")}; atualize o plano se outras tarefas também os tocam`);
+    lines.push(tr("done.claimed", { files: claimed.join(", ") }));
   return ok(lines.join(`
 `), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed });
-}, 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita');
+}, "help.done");
 defineAction("skip", async (ctx, args) => {
   const reason = textArg(args, "reason");
   let wasRunning = false;
   let left = [];
   const t = await transition(ctx, args, "skip", async (task, state) => {
     if (!["pending", "in_progress", "failed"].includes(task.status))
-      throw new ToolError(`${task.id} está ${task.status}: não dá para pular`);
+      throw new ToolError(tr("skip.cannot", { id: task.id, status: task.status }));
     if (!reason)
-      throw new ToolError(`skip sem motivo é recusado: tasks skip ${task.id} --reason "por quê"`, 2);
+      throw new ToolError(tr("skip.no_reason", { id: task.id }), 2);
     wasRunning = task.status === "in_progress";
     if (wasRunning)
       left = (await splitChanges(ctx, state, task)).inside;
@@ -2436,40 +3195,40 @@ defineAction("skip", async (ctx, args) => {
     return { reason };
   });
   const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : "";
-  return ok(`${t.task.id} pulada: ${reason}${released}${changesNote(left)}
+  return ok(`${tr("skip.done", { id: t.task.id, reason })}${released}${changesNote(left)}
 ${progressLine(t.tasks.tasks)}`, {
     run: t.state.run.id,
     task: t.task.id,
     uncommitted: left
   });
-}, 'skip <id> --reason "…"                pulada (libera as dependentes)');
+}, "help.skip");
 defineAction("fail", async (ctx, args) => {
   const error = textArg(args, "error");
   let left = [];
   const t = await transition(ctx, args, "fail", async (task, state) => {
     if (task.status !== "in_progress")
-      throw new ToolError(`${task.id} não está em andamento (está ${task.status})`);
+      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
     if (!error)
-      throw new ToolError(`fail sem erro é recusado: tasks fail ${task.id} --error "o que deu errado"`, 2);
+      throw new ToolError(tr("fail.no_error", { id: task.id }), 2);
     left = (await splitChanges(ctx, state, task)).inside;
     closeTask(task, "failed", ctx.host.now().toISOString());
     task.error = error;
     return { error };
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
-  return ok(`${t.task.id} falhou: ${error}; ${released}${changesNote(left)}
+  return ok(`${tr("fail.done", { id: t.task.id, error })}; ${released}${changesNote(left)}
 ${progressLine(t.tasks.tasks)}`, {
     run: t.state.run.id,
     task: t.task.id,
     uncommitted: left
   });
-}, 'fail <id> --error "…"                 falha (bloqueia as dependentes)');
+}, "help.fail");
 function backToPending(task, maxAttempts, why, now) {
   task.owner = null;
   delete task.holds;
   if (task.attempts >= maxAttempts) {
     task.status = "failed";
-    task.error = `${why}; tentativas esgotadas (${task.attempts}/${maxAttempts})`;
+    task.error = tr("attempts.exhausted", { why, attempts: task.attempts, max: maxAttempts });
     task.finishedAt = now;
     return "failed";
   }
@@ -2483,13 +3242,13 @@ defineAction("release", async (ctx, args) => {
   const ended = !!args.options["agent-ended"];
   const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
     if (task.status !== "in_progress")
-      throw new ToolError(`${task.id} não está em andamento (está ${task.status})`);
+      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
     left = (await splitChanges(ctx, state, task)).inside;
-    to = backToPending(task, state.run.maxAttempts, ended ? "o subagente terminou sem concluir" : "liberada", ctx.host.now().toISOString());
+    to = backToPending(task, state.run.maxAttempts, tr(ended ? "release.agent_ended" : "release.released"), ctx.host.now().toISOString());
     return { uncommitted: left };
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
-  const where = to === "failed" ? `falhou: ${t.task.error}` : `voltou a pendente (tentativa ${t.task.attempts}/${t.state.run.maxAttempts})`;
+  const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts });
   return ok(`${t.task.id} ${where}; ${released}${changesNote(left)}
 ${progressLine(t.tasks.tasks)}`, {
     run: t.state.run.id,
@@ -2497,10 +3256,10 @@ ${progressLine(t.tasks.tasks)}`, {
     status: t.task.status,
     uncommitted: left
   });
-}, "release <id>                          em andamento → pendente (no maxAttempts, falha)");
+}, "help.release");
 function reopen(task) {
   if (task.status !== "skipped" && task.status !== "failed")
-    throw new ToolError(`${task.id} está ${task.status}: retry só reabre pulada ou falha`);
+    throw new ToolError(tr("retry.cannot", { id: task.id, status: task.status }));
   task.status = "pending";
   delete task.reason;
   delete task.error;
@@ -2531,7 +3290,7 @@ defineAction("retry", async (ctx, args) => {
       await syncRunStatus(ctx, state, tasks.tasks);
       return { ids, tasks };
     });
-    const text = reopened.ids.length ? `reabertas: ${reopened.ids.join(", ")}` : "nenhuma falha para reabrir";
+    const text = reopened.ids.length ? tr("retry.reopened", { list: reopened.ids.join(", ") }) : tr("retry.none");
     return ok(`${text}
 ${progressLine(reopened.tasks.tasks)}`, { reopened: reopened.ids });
   }
@@ -2539,9 +3298,9 @@ ${progressLine(reopened.tasks.tasks)}`, { reopened: reopened.ids });
     reopen(task);
     task.attempts = 0;
   });
-  return ok(`${t.task.id} reaberta: pendente
+  return ok(`${tr("retry.done", { id: t.task.id })}
 ${progressLine(t.tasks.tasks)}`, { run: t.state.run.id, task: t.task.id });
-}, "retry <id> | --all-failed             pulada ou falha → pendente");
+}, "help.retry");
 async function setPaused(ctx, args, paused) {
   const first = await resolveRun(ctx, args);
   return withLock(ctx.host, first.dir, async () => {
@@ -2557,12 +3316,12 @@ async function setPaused(ctx, args, paused) {
 defineAction("pause", async (ctx, args) => {
   const state = await setPaused(ctx, args, true);
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id);
-  const tail = running.length ? `; as em andamento terminam: ${running.join(", ")}` : "";
-  return ok(`execução ${state.run.id} pausada: start recusado, não inicie tarefas${tail}`, { run: state.run.id, status: "paused" });
-}, "pause / unpause                       pausada: start recusado; o protocolo manda parar");
+  const tail = running.length ? `; ${tr("pause.running", { list: running.join(", ") })}` : "";
+  return ok(`${tr("pause.done", { run: state.run.id })}${tail}`, { run: state.run.id, status: "paused" });
+}, "help.pause");
 defineAction("unpause", async (ctx, args) => {
   const state = await setPaused(ctx, args, false);
-  return ok(`execução ${state.run.id} retomada (${state.run.status})
+  return ok(`${tr("unpause.done", { run: state.run.id, status: state.run.status })}
 ${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.status });
 });
 defineAction("resume", async (ctx, args) => {
@@ -2570,7 +3329,7 @@ defineAction("resume", async (ctx, args) => {
   let back;
   if (args.options["from-archive"]) {
     if (!wanted)
-      throw new ToolError("diga qual: tasks resume <run> --from-archive", 2);
+      throw new ToolError(tr("resume.which"), 2);
     back = await unarchive(ctx, wanted);
   }
   const first = await resolveRun(ctx, { ...args, options: { ...args.options, ...wanted ? { run: wanted } : {} } });
@@ -2596,7 +3355,7 @@ defineAction("resume", async (ctx, args) => {
         continue;
       }
       const uncommitted = (await splitChanges(ctx, state2, task, false)).inside;
-      const to = backToPending(task, run.maxAttempts, "agente sem travas no jlock (janela encerrada)", now);
+      const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now);
       released.push({ id: task.id, to, uncommitted });
     }
     const tasks = released.length ? await writeTasks(ctx.host, state2.dir, copy, state2.tasks.revision) : state2.tasks;
@@ -2611,16 +3370,16 @@ defineAction("resume", async (ctx, args) => {
   });
   for (const r of released)
     await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
-  const lines = [...back ? [back] : [], `execução ${state.run.id} retomada nesta sessão`];
+  const lines = [...back ? [back] : [], tr("resume.bound", { run: state.run.id })];
   for (const r of released)
-    lines.push(`${r.id} liberada (sem travas no jlock) → ${r.to}${r.uncommitted.length ? `; edições no disco: ${r.uncommitted.join(", ")}` : ""}`);
+    lines.push(`${tr("resume.released", { id: r.id, to: r.to })}${r.uncommitted.length ? `; ${tr("resume.edits", { list: r.uncommitted.join(", ") })}` : ""}`);
   if (kept.length)
-    lines.push(`mantidas em andamento: ${kept.join(", ")}${keepOwners ? " (--keep-owners)" : " (travas vivas)"}`);
+    lines.push(tr(keepOwners ? "resume.kept_flag" : "resume.kept_live", { list: kept.join(", ") }));
   const s = await statusOf(ctx, state);
   lines.push(s.text);
   return ok(lines.join(`
 `), { ...s.data, released, kept }, { bind: state.run.id });
-}, "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas");
+}, "help.resume");
 function serializeEntry(serialize2, command) {
   const norm = command.trim().replace(/\s+/g, " ");
   return serialize2.find((e) => {
@@ -2635,7 +3394,7 @@ function serializeKey(root, entry) {
 defineAction("exec", async (ctx, args) => {
   const argv = args.positionals;
   if (!argv.length)
-    throw new ToolError("falta o comando: tasks exec -- <comando…>", 2);
+    throw new ToolError(tr("exec.no_command"), 2);
   const state = await resolveRun(ctx, args).catch(() => {
     return;
   });
@@ -2656,18 +3415,18 @@ defineAction("exec", async (ctx, args) => {
     "--",
     ...argv
   ] : [...argv];
-  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60000 });
-  const how = entry ? `serializado por jlock run ${serializeKey(root, entry)}` : "direto (fora de serialize)";
+  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60000, env: jlockEnv() });
+  const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct");
   const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "");
   return { ok: r.code === 0, code: r.code, text: `${output}${output ? `
-` : ""}[${how}; saiu com ${r.code}]`, data: { code: r.code, serialized: !!entry } };
-}, "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina");
+` : ""}[${tr("exec.exit", { how, code: r.code })}]`, data: { code: r.code, serialized: !!entry } };
+}, "help.exec");
 defineAction("ledger", async (ctx, args) => {
   const insensitive = caseInsensitive(ctx.host.platform);
   if (args.options["all-projects"]) {
     const all = await readEffects(ctx.host, globalLedger(ctx.host));
     const active2 = all.filter((e) => e.state === "active").length;
-    const lines2 = [`ledger global (${globalLedger(ctx.host)}): ${all.length} efeito(s), ${active2} ativo(s)`];
+    const lines2 = [tr("ledger.global", { file: globalLedger(ctx.host), n: all.length, active: active2 })];
     for (const repo of [...new Set(all.map((e) => e.repo))]) {
       lines2.push(`${repo}:`);
       for (const e of all.filter((x) => x.repo === repo))
@@ -2680,11 +3439,11 @@ defineAction("ledger", async (ctx, args) => {
   const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
   const effects = await effectsOf(ctx.host, { repo: root, run }, insensitive);
   const active = effects.filter((e) => e.state === "active").length;
-  const scope = run ? `da execução ${run}` : `do repositório ${root}`;
-  const lines = [`ledger ${scope}: ${effects.length} efeito(s), ${active} ativo(s)`, ...effects.map(effectLine)];
+  const scope = run ? tr("ledger.of_run", { run }) : tr("ledger.of_repo", { root });
+  const lines = [tr("ledger.header", { scope, n: effects.length, active }), ...effects.map(effectLine)];
   return ok(lines.join(`
 `), { effects });
-}, "ledger [--all-projects]               tudo o que a ferramenta criou: tipo, ref, execução, tarefa, estado");
+}, "help.ledger");
 function dirtyFiles(entries) {
   return entries.map((e) => e.path).filter((p) => !p.startsWith(`${SCRATCH}/`) && p !== SCRATCH);
 }
@@ -2696,13 +3455,13 @@ async function undoEffect(ctx, root, e, force) {
       const ref = e.undo.ref ?? e.ref;
       const dirty = dirtyFiles(await status(host, root));
       if (dirty.length)
-        throw new ToolError(`${e.id}: a árvore tem mudanças não salvas (${dirty.join(", ")}); commite ou descarte antes do undo`);
+        throw new ToolError(tr("undo.dirty", { id: e.id, files: dirty.join(", ") }));
       if (!await commitExists(host, root, ref))
-        throw new ToolError(`${e.id}: o commit ${ref} não existe mais (veja tasks effects --check)`);
+        throw new ToolError(tr("undo.no_commit", { id: e.id, ref }));
       const r = await git(host, root, ["revert", "--no-edit", ref]);
       if (r.code !== 0) {
         await git(host, root, ["revert", "--abort"]);
-        throw new ToolError(`${e.id}: git revert ${ref} não aplicou limpo: ${(r.stderr || r.stdout).trim()}`);
+        throw new ToolError(tr("undo.revert_failed", { id: e.id, ref, message: (r.stderr || r.stdout).trim() }));
       }
       const head = await shortHead(host, root);
       const branch = await currentBranch(host, root) ?? "HEAD";
@@ -2710,30 +3469,30 @@ async function undoEffect(ctx, root, e, force) {
       if (e.task)
         effect.task = e.task;
       await recordEffect(host, dir, effect);
-      return `${e.id}: revert de ${ref} → commit ${head}`;
+      return tr("undo.reverted", { id: e.id, ref, head });
     }
     case "git-branch-delete": {
       const branch = e.ref;
       if (!await branchExists(host, root, branch))
-        return `${e.id}: o branch ${branch} já não existia`;
+        return tr("undo.no_branch", { id: e.id, branch });
       const base = e.from ?? "main";
       if (!force && !await isMerged(host, root, branch, base))
-        throw new ToolError(`${e.id}: o branch ${branch} tem commits que não estão em ${base}; integre-os (git merge) ou use --force`);
+        throw new ToolError(tr("undo.unmerged", { id: e.id, branch, base }));
       if (await currentBranch(host, root) === branch) {
         const dirty = dirtyFiles(await status(host, root));
         if (dirty.length)
-          throw new ToolError(`${e.id}: ${branch} está em uso com mudanças não salvas (${dirty.join(", ")})`);
+          throw new ToolError(tr("undo.branch_dirty", { id: e.id, branch, files: dirty.join(", ") }));
         await gitOk(host, root, ["switch", "-q", base]);
       }
       await gitOk(host, root, ["branch", "-D", branch]);
-      return `${e.id}: branch ${branch} removido (checkout em ${base})`;
+      return tr("undo.branch_removed", { id: e.id, branch, base });
     }
     case "remove-line": {
       const others = (await host.list(runsDir(root))).filter((d) => d.kind === "dir" && d.name !== e.run);
       if (others.length && !force)
-        throw new ToolError(`${e.id}: outras execuções ainda usam a linha ${e.line} do exclude (${others.map((d) => d.name).join(", ")}); use --force para tirar mesmo assim`);
+        throw new ToolError(tr("undo.exclude_shared", { id: e.id, line: e.line ?? "", runs: others.map((d) => d.name).join(", ") }));
       const removed = await removeExcludeLine(host, root, e.line ?? ".scratch/");
-      return `${e.id}: ${removed ? "linha removida" : "a linha já não estava"} em ${e.path}`;
+      return tr(removed ? "undo.line_removed" : "undo.line_absent", { id: e.id, path: e.path ?? "" });
     }
     case "rmdir": {
       const target = e.path ?? dir;
@@ -2742,12 +3501,12 @@ async function undoEffect(ctx, root, e, force) {
       });
       const running = tasks?.tasks.filter((t) => t.status === "in_progress").map((t) => t.id) ?? [];
       if (running.length)
-        throw new ToolError(`${e.id}: a execução tem tarefas em andamento (${running.join(", ")}); libere-as antes`);
+        throw new ToolError(tr("undo.run_busy", { id: e.id, tasks: running.join(", ") }));
       await host.remove(target, { recursive: true });
-      return `${e.id}: pasta ${target} removida`;
+      return tr("undo.dir_removed", { id: e.id, dir: target });
     }
     default:
-      throw new ToolError(`${e.id}: não há desfazer automático para ${e.type} (${e.undo.kind})`);
+      throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }));
   }
 }
 async function undoMany(ctx, root, effects, force) {
@@ -2759,7 +3518,7 @@ async function undoMany(ctx, root, effects, force) {
       if (error instanceof ToolError && done.length)
         throw new ToolError(`${done.join(`
 `)}
-parou em: ${error.message}`, error.code, { undone: done });
+${tr("undo.stopped", { message: error.message })}`, error.code, { undone: done });
       throw error;
     }
     await setEffectState(ctx.host, runDir(root, e.run), e.run, e.id, "undone");
@@ -2774,13 +3533,13 @@ defineAction("undo", async (ctx, args) => {
   if (!id && !taskId) {
     const runId2 = typeof args.options.run === "string" ? args.options.run : undefined;
     if (!runId2)
-      throw new ToolError("diga o que desfazer: tasks undo <e-id> | --task <id> | --run <run>", 2);
+      throw new ToolError(tr("undo.which"), 2);
     const root = await requireRepo(ctx.host, ctx.cwd);
     const effects2 = (await effectsOf(ctx.host, { repo: root, run: runId2 }, insensitive)).filter((e) => e.state === "active");
     if (!effects2.length)
-      return ok(`a execução ${runId2} não tem efeitos ativos`, { undone: [] });
+      return ok(tr("undo.run_clean", { run: runId2 }), { undone: [] });
     const done2 = await undoMany(ctx, root, effects2, force);
-    return ok(`execução ${runId2} desfeita:
+    return ok(`${tr("undo.run_done", { run: runId2 })}
 ${done2.join(`
 `)}`, { undone: done2 });
   }
@@ -2789,17 +3548,17 @@ ${done2.join(`
   if (id) {
     const e = all.find((x) => x.id === id);
     if (!e)
-      throw new ToolError(`não há efeito ativo ${id} na execução ${state.run.id} (veja tasks ledger)`);
+      throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }));
     const done2 = await undoMany(ctx, state.root, [e], force);
     return ok(done2.join(`
 `), { undone: done2 });
   }
   const task = findTask(state, taskId);
   if (task.status === "in_progress")
-    throw new ToolError(`${task.id} está em andamento: libere-a (tasks release ${task.id}) antes do undo`);
+    throw new ToolError(tr("undo.task_running", { id: task.id }));
   const effects = all.filter((e) => e.task === task.id && !e.reverts);
   if (!effects.length)
-    throw new ToolError(`${task.id} não tem efeitos ativos para desfazer`);
+    throw new ToolError(tr("undo.task_clean", { id: task.id }));
   const done = await undoMany(ctx, state.root, effects, force);
   const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
     if (x.status === "done") {
@@ -2817,10 +3576,10 @@ ${done2.join(`
 `)}
 ${task.id} → ${t.task.status}
 ${progressLine(t.tasks.tasks)}`, { undone: done, task: task.id, status: t.task.status });
-}, "undo <e-id> | --task <id> | --run <run> [--force]   desfaz na ordem inversa (revert, branch, exclude, pasta)");
+}, "help.undo");
 defineAction("effects", async (ctx, args) => {
   if (!args.options.check)
-    throw new ToolError("use tasks effects --check", 2);
+    throw new ToolError(tr("effects.usage"), 2);
   const { host } = ctx;
   const root = await requireRepo(host, ctx.cwd);
   const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
@@ -2845,17 +3604,17 @@ defineAction("effects", async (ctx, args) => {
     } else if (e.type !== "dir" && e.type !== "archive" && !await host.stat(runDir(root, e.run)))
       leftovers.push(effectLine(e));
   }
-  const lines = [`${effects.length} efeito(s) ativo(s) conferido(s) com o disco e o git`];
-  lines.push(gone.length ? `sumiram por fora (marcados gone):
+  const lines = [tr("effects.checked", { n: effects.length })];
+  lines.push(gone.length ? `${tr("effects.gone")}
 ${gone.map((l) => `  ${l}`).join(`
-`)}` : "nada sumiu por fora");
+`)}` : tr("effects.none_gone"));
   if (leftovers.length)
-    lines.push(`ficaram de execuções já removidas:
+    lines.push(`${tr("effects.leftovers")}
 ${leftovers.map((l) => `  ${l}`).join(`
 `)}`);
   return ok(lines.join(`
 `), { checked: effects.length, gone, leftovers });
-}, "effects --check                       compara o ledger com o disco e o git (o que sumiu, o que ficou)");
+}, "help.effects");
 // src/gc.ts
 var SKIP = new Set(["node_modules", ".git"]);
 var MAX_FILES = 20000;
@@ -2983,64 +3742,64 @@ function size(bytes, capped) {
 }
 function age(newest, now) {
   if (!newest)
-    return "vazia";
+    return tr("gc.empty");
   const min = Math.max(0, Math.round((now - newest) / 60000));
   if (min < 60)
     return `${min} min`;
   if (min < 60 * 48)
     return `${Math.round(min / 60)} h`;
-  return `${Math.round(min / 1440)} dias`;
+  return tr("gc.days", { n: Math.round(min / 1440) });
 }
 function findingLine(f, now) {
   const parts = [f.type, f.path, size(f.bytes, f.bytesCapped), age(f.newest, now)];
   if (f.owner)
-    parts.push(`dono ${f.owner}${f.type === "worktree" ? f.known ? " (registrada)" : " (o repositório não a conhece: órfã)" : ""}`);
+    parts.push(f.type !== "worktree" ? tr("gc.owner", { owner: f.owner }) : tr(f.known ? "gc.owner_known" : "gc.owner_orphan", { owner: f.owner }));
   if (f.branch)
     parts.push(`branch ${f.branch}`);
   if (f.merged !== undefined)
-    parts.push(`integrado em ${f.base}: ${f.merged ? "sim" : "não"}`);
+    parts.push(tr(f.merged ? "gc.merged_yes" : "gc.merged_no", { base: f.base ?? "" }));
   return parts.join(" · ");
 }
 defineAction("gc", async (ctx, args) => {
   const { host } = ctx;
   const now = host.now().getTime();
-  const resolve = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
+  const resolve2 = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
   if (typeof args.options.remove === "string")
-    return removeFound(ctx, resolve(args.options.remove), !!args.options.yes);
+    return removeFound(ctx, resolve2(args.options.remove), !!args.options.yes);
   const raw = typeof args.options.scan === "string" ? args.options.scan : args.positionals[0];
   if (!raw)
-    throw new ToolError("use tasks gc --scan <raiz> (relatório) ou tasks gc --remove <caminho> --yes", 2);
-  const root = resolve(raw);
+    throw new ToolError(tr("gc.usage"), 2);
+  const root = resolve2(raw);
   if ((await host.stat(root))?.kind !== "dir")
-    throw new ToolError(`não é uma pasta: ${raw}`);
+    throw new ToolError(tr("path.not_a_folder", { path: raw }));
   const depth = typeof args.options.depth === "string" ? Number(args.options.depth) : 4;
   if (!(depth >= 0))
-    throw new ToolError(`--depth inválido: ${args.options.depth}`, 2);
+    throw new ToolError(tr("gc.bad_depth", { depth: String(args.options.depth) }), 2);
   const found = await scan(host, root, depth);
-  const lines = [`gc --scan ${root} (profundidade ${depth}, só leitura): ${found.length} achado(s)`];
+  const lines = [tr("gc.header", { root, depth, n: found.length })];
   for (const f of found)
     lines.push(`  ${findingLine(f, now)}`);
-  lines.push(found.length ? "nada foi tocado; remover: tasks gc --remove <caminho> --yes" : "nada a relatar");
+  lines.push(tr(found.length ? "gc.untouched" : "gc.nothing"));
   return ok(lines.join(`
 `), { root, depth, findings: found });
-}, "gc --scan <raiz> [--depth 4]          relatório só leitura: worktrees órfãs, execuções, arquivos");
+}, "help.gc");
 async function removeFound(ctx, path, yes) {
   const { host } = ctx;
   const found = await classify(host, path);
   if (!found)
-    throw new ToolError(`${path} não é algo que o relatório do gc lista (worktree, execução ou arquivo de execução); nada foi removido`);
+    throw new ToolError(tr("gc.not_listed", { path }));
   if (!yes)
-    throw new ToolError(`nada foi removido: confirme com tasks gc --remove ${path} --yes`);
-  let how = "pasta removida";
+    throw new ToolError(tr("gc.confirm", { path }));
+  let how = tr("gc.folder_removed");
   if (found.type === "worktree" && found.known && found.owner) {
     const r = await git(host, found.owner, ["worktree", "remove", path]);
     if (r.code !== 0)
-      throw new ToolError(`git worktree remove recusou: ${(r.stderr || r.stdout).trim()} (mudanças não salvas?); nada foi removido`);
-    how = `git worktree remove em ${found.owner}`;
+      throw new ToolError(tr("gc.worktree_refused", { message: (r.stderr || r.stdout).trim() }));
+    how = tr("gc.worktree_removed", { owner: found.owner });
   } else
     await host.remove(path, { recursive: true });
   await recordGlobalEffect(host, { run: "gc", type: "dir", repo: found.owner ?? dirname(path), path, undo: { kind: "none" } });
-  return ok(`${found.type} removida: ${path} (${how}); registrado no ledger global`, { removed: path, type: found.type });
+  return ok(tr("gc.removed", { type: found.type, path, how }), { removed: path, type: found.type });
 }
 // src/guard.ts
 var ALLOW = { allow: true };
@@ -3066,10 +3825,10 @@ function checkEdit(ctx, path) {
     return ALLOW;
   const lower = caseInsensitive(ctx.platform) ? rel.toLowerCase() : rel;
   if (lower.startsWith(TOOL_FILES) || lower === SCRATCH)
-    return { allow: false, reason: `${rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão` };
+    return { allow: false, reason: tr("guard.run_files", { rel }) };
   if (!ctx.task || owned(ctx, rel))
     return ALLOW;
-  return { allow: false, reason: `fora da posse de ${ctx.task.id}: ${rel}; use tasks claim ${ctx.task.id} ${rel}` };
+  return { allow: false, reason: tr("guard.outside", { id: ctx.task.id, rel }) };
 }
 var GIT_MUTATORS = new Set([
   "add",
@@ -3175,7 +3934,7 @@ function checkShell(ctx, command) {
     if (exe === "git") {
       const sub = gitSubcommand(words);
       if (sub && GIT_MUTATORS.has(sub) && ctx.task)
-        return { allow: false, reason: `subagente não roda git ${sub}: o commit é feito por tasks done ${ctx.task.id}` };
+        return { allow: false, reason: tr("guard.git", { sub, id: ctx.task.id }) };
       continue;
     }
     for (const p of writtenPaths(words)) {
@@ -3232,7 +3991,7 @@ function buildView(state, locks, platform, tool) {
         st = a && a.blockers.length ? "blocked" : "ready";
         detail = a?.blockers.map((b) => blockerText(b, state, platform)).join(" · ") ?? "";
         if (t.lost)
-          detail = `posse perdida${detail ? ` · ${detail}` : ""}`;
+          detail = `${tr("view.lost")}${detail ? ` · ${detail}` : ""}`;
       }
     }
     return { mark: MARKS[st], id: t.id, title: t.title, detail, state: st };
@@ -3267,45 +4026,42 @@ function barCells(percent, cells = BAR_CELLS) {
   const partial = EIGHTHS[eighths % 8];
   return { full: "█".repeat(full), partial, empty: "█".repeat(Math.max(0, cells - full - (partial ? 1 : 0))) };
 }
-function bar(percent, width) {
-  const w = Math.max(1, width);
+function bar(percent, width2) {
+  const w = Math.max(1, width2);
   const units = Math.round(Math.max(0, Math.min(100, percent)) / 100 * w * 8);
   const full = Math.floor(units / 8);
   const part = EIGHTHS[units % 8];
   const used = full + (part ? 1 : 0);
   return "█".repeat(full) + part + "░".repeat(Math.max(0, w - used));
 }
-function plural2(n, one, many) {
-  return `${n} ${n === 1 ? one : many}`;
-}
 function headerText(view, collapsed) {
   if (view.kind === "runs")
-    return `${collapsed ? "▸" : "▾"} Tasks · sem execução ligada`;
+    return `${collapsed ? "▸" : "▾"} Tasks · ${tr("view.no_run")}`;
   if (collapsed)
-    return view.paused ? "▸ Tasks · pausada" : `▸ Tasks ${view.done}/${view.total} · ${view.percent}%`;
-  return `▾ Tasks · ${view.run}${view.paused ? " · pausada" : ""}`;
+    return view.paused ? `▸ Tasks · ${tr("view.paused")}` : `▸ Tasks ${view.done}/${view.total} · ${view.percent}%`;
+  return `▾ Tasks · ${view.run}${view.paused ? ` · ${tr("view.paused")}` : ""}`;
 }
 function summaryTail(view) {
   const parts = [`${view.percent}% · ${view.done}/${view.total}`];
   if (view.skipped)
-    parts.push(plural2(view.skipped, "pulada", "puladas"));
+    parts.push(tr("progress.skipped", { n: view.skipped }));
   if (view.failed)
-    parts.push(plural2(view.failed, "falha", "falhas"));
+    parts.push(tr("progress.failed", { n: view.failed }));
   return parts.join(" · ");
 }
 function summaryText(view, barWidth) {
   return `${bar(view.percent, barWidth)}  ${summaryTail(view)}`;
 }
-function fit(text, width) {
+function fit(text, width2) {
   const chars = [...text];
-  return chars.length <= width ? text : `${chars.slice(0, Math.max(1, width - 1)).join("")}…`;
+  return chars.length <= width2 ? text : `${chars.slice(0, Math.max(1, width2 - 1)).join("")}…`;
 }
-function lineText(line, width) {
+function lineText(line, width2) {
   const head = `${line.mark} ${line.id} `;
-  const detail = line.detail ? fit(line.detail, Math.max(8, Math.floor(width * 0.45))) : "";
-  const room = width - [...head].length - (detail ? [...detail].length + 1 : 0);
+  const detail = line.detail ? fit(line.detail, Math.max(8, Math.floor(width2 * 0.45))) : "";
+  const room = width2 - [...head].length - (detail ? [...detail].length + 1 : 0);
   const title = fit(line.title, Math.max(4, room));
-  const gap = Math.max(1, width - [...head].length - [...title].length - [...detail].length);
+  const gap = Math.max(1, width2 - [...head].length - [...title].length - [...detail].length);
   return detail ? `${head}${title}${" ".repeat(gap)}${detail}` : `${head}${title}`;
 }
 function viewLines(view, options) {
@@ -3314,7 +4070,7 @@ function viewLines(view, options) {
     return out;
   if (view.kind === "runs") {
     if (!view.runs.length)
-      out.push("nenhuma execução (tasks plan)");
+      out.push(tr("view.no_runs"));
     for (const r of view.runs)
       out.push(fit(`${r.id} · ${r.status} · ${r.done}/${r.total} (${r.percent}%)`, options.width));
     return out;
@@ -3347,6 +4103,7 @@ export {
   writeTasks,
   writeRun,
   withLock,
+  width,
   waitingText,
   waitingOf,
   viewLines,
@@ -3355,6 +4112,7 @@ export {
   validateGraph,
   validateBatch,
   unarchive,
+  tr,
   toTask,
   ticketReadLine,
   ticketPath,
@@ -3362,6 +4120,8 @@ export {
   ticketFileName,
   taskKeys,
   taskIdArg,
+  tags,
+  systemLocale,
   summaryText,
   summaryTail,
   stringify,
@@ -3378,6 +4138,7 @@ export {
   serializeKey,
   serializeEntry,
   selectReady,
+  select,
   scan,
   runsView,
   runsDir,
@@ -3386,6 +4147,7 @@ export {
   runId,
   runDir,
   resolveRun,
+  resolve,
   requireRepo,
   repoRoot,
   repoRelative,
@@ -3427,11 +4189,13 @@ export {
   listRuns,
   listDrafts,
   lineText,
+  lang,
   join,
   jlockVersion,
   jlockReleaseKeys,
   jlockRelease,
   jlockList,
+  jlockEnv,
   jlockBin,
   isNameKey,
   isMerged,
@@ -3469,6 +4233,7 @@ export {
   commitExists,
   clone,
   classify,
+  choose,
   checkShell,
   checkEdit,
   chainText,
@@ -3503,6 +4268,7 @@ export {
   DEFAULT_PROFILE,
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_HOLD_TTL,
+  CATALOGS,
   BAR_CELLS,
   ALL
 };
