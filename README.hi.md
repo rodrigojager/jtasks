@@ -39,6 +39,8 @@ flowchart LR
 आपको [bun](https://bun.sh) और `git` चाहिए। इस रिपॉज़िटरी के क्लोन से:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # एक `jtasks` कमांड (या bun cli/jtasks.ts <action> चलाएँ)
 jtasks doctor        # क्या यह मशीन तैयार है?
@@ -47,7 +49,7 @@ jtasks doctor --fix --yes   # जो नहीं है उसे इंस्�
 
 `--yes` के बिना `jtasks doctor --fix` केवल यह सूची दिखाता है कि वह क्या करेगा। वह जो कुछ इंस्टॉल करता है, सब ledger में जाता है, इसलिए `jtasks undo` उसे हटा देता है। फिर, अपने एजेंट के लिए:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (mod; देखें [`claude/README.md`](claude/README.md))।
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (mod; देखें [`claude/README.md`](claude/README.md))।
 - **OpenCode:** `opencode.json` में `plugins` में `<jtasks>/opencode` जोड़ें (देखें [`opencode/README.md`](opencode/README.md))।
 - **Codex या टर्मिनल:** [`skills/`](skills/README.md) की स्किल एजेंट को कमांड सिखाती हैं।
 

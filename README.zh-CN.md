@@ -39,6 +39,8 @@ flowchart LR
 你需要 [bun](https://bun.sh) 和 `git`。在本仓库的克隆中：
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # 一个 `jtasks` 命令（或运行 bun cli/jtasks.ts <action>）
 jtasks doctor        # 这台机器准备好了吗？
@@ -47,7 +49,7 @@ jtasks doctor --fix --yes   # 安装缺少的部分：jlock、OpenCode 智能体
 
 不带 `--yes` 的 `jtasks doctor --fix` 只列出它将要做的事。它安装的一切都会记入 ledger，因此 `jtasks undo` 可以把它们移除。然后，根据你的智能体：
 
-- **Claude Code：** `claude --plugin-dir <jtasks>/claude`（mod；见 [`claude/README.md`](claude/README.md)）。
+- **Claude Code：** `/plugin install jtasks --marketplace rodrigojager/jtasks`（mod；见 [`claude/README.md`](claude/README.md)）。
 - **OpenCode：** 在 `opencode.json` 的 `plugins` 中加入 `<jtasks>/opencode`（见 [`opencode/README.md`](opencode/README.md)）。
 - **Codex 或终端：** [`skills/`](skills/README.md) 中的 skill 会教智能体使用这些命令。
 

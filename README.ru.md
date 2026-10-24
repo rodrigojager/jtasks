@@ -60,6 +60,8 @@ flowchart LR
 Нужны [bun](https://bun.sh) и `git`. Из клона этого репозитория:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # команда `jtasks` (или запускайте bun cli/jtasks.ts <действие>)
 jtasks doctor        # готова ли эта машина?
@@ -69,7 +71,7 @@ jtasks doctor --fix --yes   # устанавливает недостающее:
 `jtasks doctor --fix` без `--yes` только перечисляет, что он сделал бы. Всё, что он устанавливает, попадает в
 реестр, так что `jtasks undo` это удаляет. Затем, для вашего агента:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (мод; см. [`claude/README.md`](claude/README.md)).
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (мод; см. [`claude/README.md`](claude/README.md)).
 - **OpenCode:** добавьте `<jtasks>/opencode` в `plugins` в `opencode.json` (см.
   [`opencode/README.md`](opencode/README.md)).
 - **Codex или терминал:** навыки в [`skills/`](skills/README.md) обучают агента командам.

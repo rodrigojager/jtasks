@@ -8,15 +8,19 @@ task's profile, and the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and
 the hooks module runs it with no Node and no `node_modules`. It needs `jlock` in `PATH` and `git`.
 
-## Use it (not done by this repository)
+## Install
 
-For one session, from this folder's parent:
+In Claude Code, one line installs the mod from this repository's marketplace (Claude Code 2.1.275 or later):
 
 ```
-claude --plugin-dir D:/jtasks/claude
+/plugin install jtasks --marketplace rodrigojager/jtasks
 ```
 
-Or add the repository as a marketplace and install it; nothing here changes your Claude Code configuration.
+Or, for one session from a clone, without installing anything:
+
+```
+claude --plugin-dir <jtasks>/claude
+```
 
 ## Language
 

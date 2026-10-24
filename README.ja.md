@@ -39,6 +39,8 @@ flowchart LR
 [bun](https://bun.sh) と `git` が必要です。このリポジトリのクローンで:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # `jtasks` コマンドを作る（または bun cli/jtasks.ts <action> を実行）
 jtasks doctor        # このマシンは準備できているか?
@@ -47,7 +49,7 @@ jtasks doctor --fix --yes   # 足りないものをインストール: jlock、O
 
 `--yes` なしの `jtasks doctor --fix` は、何をするかを一覧にするだけです。インストールしたものはすべて ledger に入るので、`jtasks undo` で削除できます。そのうえで、使うエージェントに合わせて:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude`（mod。[`claude/README.md`](claude/README.md) を参照）。
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks`（mod。[`claude/README.md`](claude/README.md) を参照）。
 - **OpenCode:** `opencode.json` の `plugins` に `<jtasks>/opencode` を追加（[`opencode/README.md`](opencode/README.md) を参照）。
 - **Codex またはターミナル:** [`skills/`](skills/README.md) のスキルがエージェントにコマンドを教えます。
 

@@ -1,0 +1,17 @@
+{
+  "name": "jtasks",
+  "owner": {
+    "name": "Rodrigo Jäger",
+    "url": "https://github.com/rodrigojager"
+  },
+  "metadata": {
+    "description": "jtasks: a deterministic task list with dependencies and file ownership for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "jtasks",
+      "source": "./claude",
+      "description": "Deterministic task list with dependencies and file ownership (jlock): the jtasks tool, a Tasks pane, /jtasks, the execute/review agents and the ownership guard for subagents."
+    }
+  ]
+}

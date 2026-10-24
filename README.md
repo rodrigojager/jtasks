@@ -55,6 +55,8 @@ edit outside the task's ownership and git commands from subagents.
 You need [bun](https://bun.sh) and `git`. From a clone of this repository:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # a `jtasks` command (or run bun cli/jtasks.ts <action>)
 jtasks doctor        # is this machine ready?
@@ -64,7 +66,7 @@ jtasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agen
 `jtasks doctor --fix` without `--yes` only lists what it would do. Everything it installs goes to the ledger, so
 `jtasks undo` removes it. Then, for your agent:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (the mod; see [`claude/README.md`](claude/README.md)).
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (the mod; see [`claude/README.md`](claude/README.md)).
 - **OpenCode:** add `<jtasks>/opencode` to `plugins` in `opencode.json` (see [`opencode/README.md`](opencode/README.md)).
 - **Codex or a terminal:** the skills in [`skills/`](skills/README.md) teach the agent the commands.
 

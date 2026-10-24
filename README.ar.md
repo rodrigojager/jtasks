@@ -63,6 +63,8 @@ flowchart LR
 <div dir="ltr">
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # a `jtasks` command (or run bun cli/jtasks.ts <action>)
 jtasks doctor        # is this machine ready?
@@ -74,7 +76,7 @@ jtasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agen
 الأمر `jtasks doctor --fix` دون `--yes` يسرد فقط ما سيفعله. وكل ما يثبّته يدخل السجل، فيزيله `jtasks undo`. ثم، بحسب
 وكيلك:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (التعديل؛ انظر
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (التعديل؛ انظر
   [`claude/README.md`](claude/README.md)).
 - **OpenCode:** أضف `<jtasks>/opencode` إلى `plugins` في `opencode.json` (انظر
   [`opencode/README.md`](opencode/README.md)).

@@ -63,6 +63,8 @@ der Aufgabe und git-Befehle von Subagenten ab.
 Du brauchst [bun](https://bun.sh) und `git`. Aus einem Klon dieses Repositorys:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # ein Befehl `jtasks` (oder führe bun cli/jtasks.ts <aktion> aus)
 jtasks doctor        # ist dieser Rechner bereit?
@@ -72,7 +74,7 @@ jtasks doctor --fix --yes   # installiert, was fehlt: jlock, die OpenCode-Agente
 `jtasks doctor --fix` ohne `--yes` listet nur auf, was es tun würde. Alles, was es installiert, kommt ins Ledger,
 sodass `jtasks undo` es wieder entfernt. Danach, für deinen Agenten:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (der Mod; siehe
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (der Mod; siehe
   [`claude/README.md`](claude/README.md)).
 - **OpenCode:** füge `<jtasks>/opencode` zu `plugins` in `opencode.json` hinzu (siehe
   [`opencode/README.md`](opencode/README.md)).

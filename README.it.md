@@ -61,6 +61,8 @@ dell'attività e i comandi git dei subagenti.
 Servono [bun](https://bun.sh) e `git`. Da un clone di questo repository:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # un comando `jtasks` (oppure bun cli/jtasks.ts <azione>)
 jtasks doctor        # questa macchina è pronta?
@@ -70,7 +72,7 @@ jtasks doctor --fix --yes   # installa ciò che manca: jlock, gli agenti di Open
 `jtasks doctor --fix` senza `--yes` elenca soltanto ciò che farebbe. Tutto ciò che installa finisce nel ledger,
 quindi `jtasks undo` lo rimuove. Poi, per il tuo agente:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (il mod; vedi [`claude/README.md`](claude/README.md)).
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (il mod; vedi [`claude/README.md`](claude/README.md)).
 - **OpenCode:** aggiungi `<jtasks>/opencode` a `plugins` in `opencode.json` (vedi
   [`opencode/README.md`](opencode/README.md)).
 - **Codex o un terminale:** le skill in [`skills/`](skills/README.md) insegnano i comandi all'agente.

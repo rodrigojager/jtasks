@@ -61,6 +61,8 @@ ediciones fuera de la posesión de la tarea y los comandos git de los subagentes
 Necesitas [bun](https://bun.sh) y `git`. Desde un clon de este repositorio:
 
 ```
+git clone https://github.com/rodrigojager/jtasks
+cd jtasks
 bun install
 bun link            # un comando `jtasks` (o ejecuta bun cli/jtasks.ts <acción>)
 jtasks doctor        # ¿está lista esta máquina?
@@ -70,7 +72,7 @@ jtasks doctor --fix --yes   # instala lo que falta: jlock, los agentes de OpenCo
 `jtasks doctor --fix` sin `--yes` solo enumera lo que haría. Todo lo que instala va al ledger, así que `jtasks undo`
 lo elimina. Después, para tu agente:
 
-- **Claude Code:** `claude --plugin-dir <jtasks>/claude` (el mod; ver [`claude/README.md`](claude/README.md)).
+- **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (el mod; ver [`claude/README.md`](claude/README.md)).
 - **OpenCode:** añade `<jtasks>/opencode` a `plugins` en `opencode.json` (ver
   [`opencode/README.md`](opencode/README.md)).
 - **Codex o una terminal:** las skills de [`skills/`](skills/README.md) le enseñan los comandos al agente.
