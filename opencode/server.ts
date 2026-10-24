@@ -10,6 +10,8 @@ import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
 import { judge } from "./src/guard.ts"
 import { agentFor, applyProfileModels, SUBAGENT_TOOLS } from "./src/profiles.ts"
+import { TasksRpc } from "./src/rpc.ts"
+import { viewFor } from "./src/view.ts"
 
 export const PLUGIN_ID = "goal-tasks"
 export const TOOL_NAME = "tasks"
@@ -93,6 +95,10 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         return result
       }
 
+      const rpc = await ctx.rpc.register(TasksRpc, {
+        state: async (input) => ({ view: await viewFor(host, bindings, (input as { sessionID: string }).sessionID, fallbackDir) }) as never,
+      })
+
       await ctx.tool.transform((editor) => {
         editor.add({
           name: TOOL_NAME,
@@ -102,6 +108,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           execute: async (input, context) => {
             const { command, json } = (input ?? {}) as { command?: string; json?: unknown }
             const result = await call(context.sessionID, String(command ?? "help"), json)
+            const run = (await bindings.run(context.sessionID))?.run
+            if (run) await rpc.events.emit("changed", { run }).catch(() => {})
             return { content: result.text, metadata: { ok: result.ok, code: result.code } }
           },
         })
@@ -136,6 +144,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
 
       return async () => {
         await agentModels?.dispose()
+        await rpc.dispose().catch(() => {})
         for (const list of residents.values())
           for (const r of list) {
             if (!(await r.send("release\n"))) await r.stop()

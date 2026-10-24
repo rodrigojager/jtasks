@@ -19,9 +19,17 @@ Point a configuration file at this folder; nothing here touches your OpenCode co
 }
 ```
 
-OpenCode loads the folder's `server.ts`. The agents named by the profiles (`impl`, `impl-deep`, `review` by
+OpenCode loads the folder's `server.ts`; the package also exports `./tui` (`tui.tsx`, the sidebar section) and
+`./rpc` (`goal-tasks.state`, the data the section reads). The agents named by the profiles (`impl`, `impl-deep`, `review` by
 default) are your own agents in `opencode.json`; a profile with `opencode.model` gives that agent the model for
 the session (see `docs/DEVIATIONS.md`).
+
+## The sidebar section
+
+In a session bound to a run, the sidebar shows `▾ Tasks · <run>`, the bar with `done/total · skipped · failed`,
+and one line per task (☑ done with its commit, ◐ running with its profile, ☐ pending with ⛔/🔒/⏳ and the reason,
+⊘ skipped, ✗ failed). A click on the header folds it to `▸ Tasks 7/12 · 58%`. Without a bound run it lists the
+repository's runs.
 
 ## The tool
 

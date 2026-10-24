@@ -18,3 +18,4 @@ export * from "./actions.js";
 export * from "./housekeeping.js";
 export * from "./gc.js";
 export * from "./guard.js";
+export * from "./view.js";

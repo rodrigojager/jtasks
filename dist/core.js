@@ -3127,6 +3127,150 @@ function checkShell(ctx, command) {
   }
   return ALLOW;
 }
+// src/view.ts
+var MARKS = {
+  done: "☑",
+  running: "◐",
+  waiting: "◐",
+  ready: "☐",
+  blocked: "☐",
+  skipped: "⊘",
+  failed: "✗"
+};
+function profileDetail(tasks, task, tool) {
+  const p = tasks.profiles[task.profile];
+  const extra = tool === "opencode" ? p?.opencode?.agent : p?.claude?.model;
+  return extra && extra !== task.profile ? `${task.profile}·${extra}` : task.profile;
+}
+function buildView(state, locks, platform, tool) {
+  const c = counts(state.tasks.tasks);
+  const pending = new Map(assess(state, locks, platform).map((a) => [a.task.id, a]));
+  const waiting = waitingOf(state, locks);
+  const lines = state.tasks.tasks.map((t) => {
+    let st;
+    let detail = "";
+    switch (t.status) {
+      case "done":
+        st = "done";
+        detail = t.commit ?? "";
+        break;
+      case "skipped":
+        st = "skipped";
+        detail = t.reason ?? "";
+        break;
+      case "failed":
+        st = "failed";
+        detail = t.error ?? "";
+        break;
+      case "in_progress": {
+        const w = waiting.get(t.id);
+        st = w ? "waiting" : "running";
+        detail = w ? waitingText(w, state, platform) : profileDetail(state.tasks, t, tool);
+        break;
+      }
+      default: {
+        const a = pending.get(t.id);
+        st = a && a.blockers.length ? "blocked" : "ready";
+        detail = a?.blockers.map((b) => blockerText(b, state, platform)).join(" · ") ?? "";
+        if (t.lost)
+          detail = `posse perdida${detail ? ` · ${detail}` : ""}`;
+      }
+    }
+    return { mark: MARKS[st], id: t.id, title: t.title, detail, state: st };
+  });
+  return {
+    kind: "run",
+    run: state.run.id,
+    paused: state.run.status === "paused",
+    done: c.done,
+    total: c.total,
+    skipped: c.skipped,
+    failed: c.failed,
+    remaining: c.remaining,
+    percent: c.percent,
+    lines
+  };
+}
+function runsView(runs) {
+  return {
+    kind: "runs",
+    runs: runs.map((r) => {
+      const c = r.tasks ? counts(r.tasks.tasks) : { done: 0, total: 0 };
+      return { id: r.run.id, status: r.run.status, done: c.done, total: c.total, percent: progress(c.done, c.total) };
+    })
+  };
+}
+var EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"];
+function bar(percent, width) {
+  const w = Math.max(1, width);
+  const units = Math.round(Math.max(0, Math.min(100, percent)) / 100 * w * 8);
+  const full = Math.floor(units / 8);
+  const part = EIGHTHS[units % 8];
+  const used = full + (part ? 1 : 0);
+  return "█".repeat(full) + part + "░".repeat(Math.max(0, w - used));
+}
+function plural2(n, one, many) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+function headerText(view, collapsed) {
+  if (view.kind === "runs")
+    return `${collapsed ? "▸" : "▾"} Tasks · sem execução ligada`;
+  if (collapsed)
+    return view.paused ? "▸ Tasks · pausada" : `▸ Tasks ${view.done}/${view.total} · ${view.percent}%`;
+  return `▾ Tasks · ${view.run}${view.paused ? " · pausada" : ""}`;
+}
+function summaryText(view, barWidth) {
+  const parts = [`${bar(view.percent, barWidth)}  ${view.percent}% · ${view.done}/${view.total}`];
+  if (view.skipped)
+    parts.push(plural2(view.skipped, "pulada", "puladas"));
+  if (view.failed)
+    parts.push(plural2(view.failed, "falha", "falhas"));
+  return parts.join(" · ");
+}
+function fit(text, width) {
+  const chars = [...text];
+  return chars.length <= width ? text : `${chars.slice(0, Math.max(1, width - 1)).join("")}…`;
+}
+function lineText(line, width) {
+  const head = `${line.mark} ${line.id} `;
+  const detail = line.detail ? fit(line.detail, Math.max(8, Math.floor(width * 0.45))) : "";
+  const room = width - [...head].length - (detail ? [...detail].length + 1 : 0);
+  const title = fit(line.title, Math.max(4, room));
+  const gap = Math.max(1, width - [...head].length - [...title].length - [...detail].length);
+  return detail ? `${head}${title}${" ".repeat(gap)}${detail}` : `${head}${title}`;
+}
+function viewLines(view, options) {
+  const out = [headerText(view, options.collapsed)];
+  if (options.collapsed)
+    return out;
+  if (view.kind === "runs") {
+    if (!view.runs.length)
+      out.push("nenhuma execução (tasks plan)");
+    for (const r of view.runs)
+      out.push(fit(`${r.id} · ${r.status} · ${r.done}/${r.total} (${r.percent}%)`, options.width));
+    return out;
+  }
+  out.push(summaryText(view, Math.max(8, Math.min(16, options.width - 24))));
+  for (const l of view.lines)
+    out.push(lineText(l, options.width));
+  return out;
+}
+async function loadView(host, root, run, tool) {
+  const dir = runDir(root, run);
+  const [runFile, tasks] = await Promise.all([readRun(host, dir).catch(() => {
+    return;
+  }), readTasks(host, dir).catch(() => {
+    return;
+  })]);
+  if (!runFile || !tasks)
+    return;
+  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
+  const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => []);
+  return buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool);
+}
+async function loadRunsView(host, root) {
+  return runsView(await listRuns(host, root));
+}
 export {
   yymmdd,
   writeTickets,
@@ -3136,6 +3280,7 @@ export {
   withLock,
   waitingText,
   waitingOf,
+  viewLines,
   validatePlan,
   validateGraph,
   validateBatch,
@@ -3147,6 +3292,7 @@ export {
   ticketFileName,
   taskKeys,
   taskIdArg,
+  summaryText,
   stringify,
   statusOf,
   status,
@@ -3163,6 +3309,7 @@ export {
   serializeEntry,
   selectReady,
   scan,
+  runsView,
   runsDir,
   runTool,
   runLine,
@@ -3205,8 +3352,11 @@ export {
   missingKeys,
   markLost,
   log,
+  loadView,
+  loadRunsView,
   listRuns,
   listDrafts,
+  lineText,
   join,
   jlockReleaseKeys,
   jlockRelease,
@@ -3217,6 +3367,7 @@ export {
   isAbsolute,
   identity,
   holdArgv,
+  headerText,
   hasExcludeLine,
   goalTasksHome,
   globalLedger,
@@ -3250,9 +3401,11 @@ export {
   caseInsensitive,
   canonical,
   bullet,
+  buildView,
   branchExists,
   blockerText,
   basename,
+  bar,
   backToPending,
   atomicWrite,
   assess,

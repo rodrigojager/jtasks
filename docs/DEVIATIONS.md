@@ -94,3 +94,16 @@ edit/write/patch, `shell` para comandos) e `resources`.
 perfil desconhecido recusa a chamada, e um perfil com `opencode.model` dá esse modelo ao agente por
 `agent.transform`, só durante a sessão. Como nada é gravado na configuração, não há efeito `agent-config` no
 ledger. A guarda decide no `permission.hook("evaluate")` pela regra do núcleo (`src/guard.ts`).
+
+## 8. OpenCode: a barra da seção não vem do HUD (ticket 13)
+
+**O plano (seção 15):** a seção "Tasks" na sidebar usa a barra `Meter` do HUD.
+
+**Por quê:** o HUD é outro projeto (`opencode-hud`), fora deste repositório; importar dele faria o plugin depender
+de uma instalação que não é nossa.
+
+**No lugar:** a barra e as linhas vêm do modelo de exibição do núcleo (`src/view.ts`, `bar()` em oitavos de
+célula), o mesmo que o painel do Claude Code desenha. O resto saiu como o plano supõe: `context.ui.slot({ append:
+"sidebar.content" })`, dados pelo RPC `goal-tasks.state` (`ctx.rpc.register` no servidor, `context.client.rpc` na
+TUI), releitura em `session.tool.success`, no evento `changed` do RPC e a cada 2 s enquanto há tarefa em andamento;
+o estado dobrado fica em `context.storage.store`.

@@ -67,6 +67,8 @@ export async function fakeHost(directory: string) {
   const tools: any[] = []
   const agents = new Map<string, Agent>(["build", "impl", "impl-deep", "review"].map((id) => [id, { id }]))
   const registration = { dispose: async () => {} }
+  const rpcImpls = new Map<string, Record<string, (input: unknown, context: unknown) => Promise<unknown>>>()
+  const rpcListeners = new Map<string, ((event: { data: unknown }) => void)[]>()
   const ctx = {
     app: { version: "2.1.3" },
     location: { directory },
@@ -89,6 +91,19 @@ export async function fakeHost(directory: string) {
       hook: async (name: string, cb: Hook) => (hooks.set(`tool.${name}`, cb), registration),
     },
     permission: { hook: async (name: string, cb: Hook) => (hooks.set(`permission.${name}`, cb), registration) },
+    rpc: {
+      register: async (def: { id: string }, impl: Record<string, (input: unknown, context: unknown) => Promise<unknown>>) => {
+        rpcImpls.set(def.id, impl)
+        return {
+          dispose: async () => void rpcImpls.delete(def.id),
+          events: {
+            emit: async (name: string, data: unknown) => {
+              for (const l of rpcListeners.get(`${def.id}.${name}`) ?? []) l({ data })
+            },
+          },
+        }
+      },
+    },
     agent: {
       transform: async (cb: (editor: any) => void) => {
         cb({
@@ -140,5 +155,22 @@ export async function fakeHost(directory: string) {
     await hooks.get("permission.evaluate")!(event)
     return event
   }
-  return { ctx, tools, hooks, agents, storage, addSession, call, request, subagent, permission, cleanup }
+  /** What a TUI's `context.client.rpc(def)` would get: the server implementation, through the fake transport. */
+  const rpcClient = (def: { id: string }) =>
+    new Proxy(
+      {
+        events: {
+          on: (name: string, cb: (event: { data: unknown }) => void) => {
+            const key = `${def.id}.${name}`
+            rpcListeners.set(key, [...(rpcListeners.get(key) ?? []), cb])
+            return () => rpcListeners.set(key, (rpcListeners.get(key) ?? []).filter((x) => x !== cb))
+          },
+        },
+      } as Record<string, unknown>,
+      {
+        get: (target, method: string) =>
+          method in target ? target[method] : (input: unknown) => rpcImpls.get(def.id)![method]!(input, { signal: new AbortController().signal }),
+      },
+    )
+  return { ctx, tools, hooks, agents, storage, addSession, call, request, subagent, permission, rpcClient, cleanup }
 }
