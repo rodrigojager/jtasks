@@ -1043,6 +1043,15 @@ async function recordEffect(host, runDir2, effect) {
 `);
   return full;
 }
+async function recordGlobalEffect(host, effect) {
+  const file = globalLedger(host);
+  const existing = (await readEffects(host, file)).filter((e) => e.id.startsWith("g-"));
+  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
+  const full = { id: `g-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
+  await host.appendText(file, `${JSON.stringify(full)}
+`);
+  return full;
+}
 async function setEffectState(host, runDir2, run, id, state) {
   const at = host.now().toISOString();
   for (const file of [join(runDir2, "ledger.jsonl"), globalLedger(host)]) {
@@ -2774,6 +2783,192 @@ ${leftovers.map((l) => `  ${l}`).join(`
   return ok(lines.join(`
 `), { checked: effects.length, gone, leftovers });
 }, "effects --check                       compara o ledger com o disco e o git (o que sumiu, o que ficou)");
+// src/gc.ts
+var SKIP = new Set(["node_modules", ".git"]);
+var MAX_FILES = 20000;
+async function measure(host, dir) {
+  let bytes = 0;
+  let newest = 0;
+  let files = 0;
+  const walk = async (d) => {
+    for (const e of await host.list(d)) {
+      if (files >= MAX_FILES)
+        return false;
+      const p = join(d, e.name);
+      if (e.kind === "dir") {
+        if (!await walk(p))
+          return false;
+      } else if (e.kind === "file") {
+        const s = await host.stat(p);
+        files++;
+        if (s) {
+          bytes += s.size;
+          newest = Math.max(newest, s.mtimeMs);
+        }
+      }
+    }
+    return true;
+  };
+  const complete = await walk(dir);
+  return { bytes, newest, capped: !complete };
+}
+async function mainBranch(host, repo) {
+  const r = await git(host, repo, ["symbolic-ref", "--short", "-q", "HEAD"]);
+  return r.code === 0 ? r.stdout.trim() || undefined : undefined;
+}
+async function merged(host, repo, branch, base) {
+  const r = await git(host, repo, ["merge-base", "--is-ancestor", `refs/heads/${branch}`, `refs/heads/${base}`]);
+  return r.code === 0 ? true : r.code === 1 ? false : undefined;
+}
+async function worktreeFinding(host, dir, gitFile) {
+  const m = /^gitdir:\s*(.+)$/m.exec(gitFile);
+  if (!m)
+    return;
+  const raw = slash(m[1].trim());
+  const gitdir = isAbsolute(raw) ? normalize(raw) : join(dir, raw);
+  const cut = gitdir.toLowerCase().lastIndexOf("/.git/worktrees/");
+  const owner = cut >= 0 ? gitdir.slice(0, cut) : undefined;
+  const f = { path: dir, type: "worktree", bytes: 0, bytesCapped: false, newest: 0 };
+  if (owner)
+    f.owner = owner;
+  const head = await host.readText(join(gitdir, "HEAD"));
+  const ref = head ? /^ref:\s*refs\/heads\/(.+)$/m.exec(head) : null;
+  if (ref)
+    f.branch = ref[1].trim();
+  if (owner && await host.stat(owner)) {
+    const list = await git(host, owner, ["worktree", "list", "--porcelain"]);
+    const insensitive = caseInsensitive(host.platform);
+    const norm = (p) => insensitive ? normalize(p).toLowerCase() : normalize(p);
+    f.known = list.code === 0 && list.stdout.split(`
+`).some((l) => l.startsWith("worktree ") && norm(l.slice(9).trim()) === norm(dir));
+    const base = await mainBranch(host, owner);
+    if (base)
+      f.base = base;
+    if (f.branch && base) {
+      const isMerged2 = await merged(host, owner, f.branch, base);
+      if (isMerged2 !== undefined)
+        f.merged = isMerged2;
+    }
+  } else
+    f.known = false;
+  return f;
+}
+async function runFinding(host, dir, type) {
+  const run = await readJson(host, join(dir, "run.json")).catch(() => {
+    return;
+  });
+  const f = { path: dir, type, bytes: 0, bytesCapped: false, newest: 0 };
+  if (run?.repo) {
+    f.owner = run.repo.root;
+    f.branch = run.repo.branch;
+    f.base = run.repo.baseBranch;
+    if (run.repo.branch !== run.repo.baseBranch && await host.stat(run.repo.root)) {
+      const isMerged2 = await merged(host, run.repo.root, run.repo.branch, run.repo.baseBranch);
+      if (isMerged2 !== undefined)
+        f.merged = isMerged2;
+    }
+  }
+  return f;
+}
+async function classify(host, dir) {
+  const git2 = await host.stat(join(dir, ".git"));
+  if (git2?.kind === "file")
+    return worktreeFinding(host, dir, await host.readText(join(dir, ".git")) ?? "");
+  if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file") {
+    const inRepo = /\/\.scratch\/goal-tasks\/runs$/i.test(dirname(slash(dir)));
+    return runFinding(host, dir, inRepo ? "run" : "archive");
+  }
+  return;
+}
+async function scan(host, root, depth = 4) {
+  const out = [];
+  const walk = async (dir, level) => {
+    const found = await classify(host, dir);
+    if (found) {
+      const m = await measure(host, dir);
+      out.push({ ...found, bytes: m.bytes, newest: m.newest, bytesCapped: m.capped });
+      return;
+    }
+    if (level >= depth)
+      return;
+    for (const e of await host.list(dir))
+      if (e.kind === "dir" && !SKIP.has(e.name))
+        await walk(join(dir, e.name), level + 1);
+  };
+  await walk(normalize(root), 0);
+  return out;
+}
+function size(bytes, capped) {
+  const units = ["B", "KB", "MB", "GB"];
+  let n = bytes;
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i++;
+  }
+  return `${capped ? "≥ " : ""}${i === 0 ? n : n.toFixed(1)} ${units[i]}`;
+}
+function age(newest, now) {
+  if (!newest)
+    return "vazia";
+  const min = Math.max(0, Math.round((now - newest) / 60000));
+  if (min < 60)
+    return `${min} min`;
+  if (min < 60 * 48)
+    return `${Math.round(min / 60)} h`;
+  return `${Math.round(min / 1440)} dias`;
+}
+function findingLine(f, now) {
+  const parts = [f.type, f.path, size(f.bytes, f.bytesCapped), age(f.newest, now)];
+  if (f.owner)
+    parts.push(`dono ${f.owner}${f.type === "worktree" ? f.known ? " (registrada)" : " (o repositório não a conhece: órfã)" : ""}`);
+  if (f.branch)
+    parts.push(`branch ${f.branch}`);
+  if (f.merged !== undefined)
+    parts.push(`integrado em ${f.base}: ${f.merged ? "sim" : "não"}`);
+  return parts.join(" · ");
+}
+defineAction("gc", async (ctx, args) => {
+  const { host } = ctx;
+  const now = host.now().getTime();
+  const resolve = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
+  if (typeof args.options.remove === "string")
+    return removeFound(ctx, resolve(args.options.remove), !!args.options.yes);
+  const raw = typeof args.options.scan === "string" ? args.options.scan : args.positionals[0];
+  if (!raw)
+    throw new ToolError("use tasks gc --scan <raiz> (relatório) ou tasks gc --remove <caminho> --yes", 2);
+  const root = resolve(raw);
+  if ((await host.stat(root))?.kind !== "dir")
+    throw new ToolError(`não é uma pasta: ${raw}`);
+  const depth = typeof args.options.depth === "string" ? Number(args.options.depth) : 4;
+  if (!(depth >= 0))
+    throw new ToolError(`--depth inválido: ${args.options.depth}`, 2);
+  const found = await scan(host, root, depth);
+  const lines = [`gc --scan ${root} (profundidade ${depth}, só leitura): ${found.length} achado(s)`];
+  for (const f of found)
+    lines.push(`  ${findingLine(f, now)}`);
+  lines.push(found.length ? "nada foi tocado; remover: tasks gc --remove <caminho> --yes" : "nada a relatar");
+  return ok(lines.join(`
+`), { root, depth, findings: found });
+}, "gc --scan <raiz> [--depth 4]          relatório só leitura: worktrees órfãs, execuções, arquivos");
+async function removeFound(ctx, path, yes) {
+  const { host } = ctx;
+  const found = await classify(host, path);
+  if (!found)
+    throw new ToolError(`${path} não é algo que o relatório do gc lista (worktree, execução ou arquivo de execução); nada foi removido`);
+  if (!yes)
+    throw new ToolError(`nada foi removido: confirme com tasks gc --remove ${path} --yes`);
+  let how = "pasta removida";
+  if (found.type === "worktree" && found.known && found.owner) {
+    const r = await git(host, found.owner, ["worktree", "remove", path]);
+    if (r.code !== 0)
+      throw new ToolError(`git worktree remove recusou: ${(r.stderr || r.stdout).trim()} (mudanças não salvas?); nada foi removido`);
+    how = `git worktree remove em ${found.owner}`;
+  } else
+    await host.remove(path, { recursive: true });
+  await recordGlobalEffect(host, { run: "gc", type: "dir", repo: found.owner ?? dirname(path), path, undo: { kind: "none" } });
+  return ok(`${found.type} removida: ${path} (${how}); registrado no ledger global`, { removed: path, type: found.type });
+}
 export {
   yymmdd,
   writeTickets,
@@ -2808,6 +3003,7 @@ export {
   serializeKey,
   serializeEntry,
   selectReady,
+  scan,
   runsDir,
   runTool,
   runLine,
@@ -2822,6 +3018,7 @@ export {
   releaseHolds,
   relativeInside,
   relConflicts,
+  recordGlobalEffect,
   recordEffect,
   readTicketsDir,
   readTasks,
@@ -2866,6 +3063,7 @@ export {
   git,
   formatRunsList,
   firstConflict,
+  findingLine,
   findTask,
   excludeFile,
   effectsOf,
@@ -2883,6 +3081,7 @@ export {
   conflicts,
   commitReachable,
   commitExists,
+  classify,
   chainText,
   caseInsensitive,
   canonical,

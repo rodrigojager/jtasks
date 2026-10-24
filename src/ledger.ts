@@ -74,6 +74,16 @@ export async function recordEffect(host: Host, runDir: string, effect: NewEffect
   return full
 }
 
+/** An effect that belongs to no run (`gc --remove`): written to the global index only, with a `g-` id. */
+export async function recordGlobalEffect(host: Host, effect: NewEffect): Promise<Effect> {
+  const file = globalLedger(host)
+  const existing = (await readEffects(host, file)).filter((e) => e.id.startsWith("g-"))
+  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0)
+  const full: Effect = { id: `g-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" }
+  await host.appendText(file, `${JSON.stringify(full)}\n`)
+  return full
+}
+
 /** Changes the state of one effect in both ledgers. */
 export async function setEffectState(host: Host, runDir: string, run: string, id: string, state: EffectState): Promise<void> {
   const at = host.now().toISOString()
