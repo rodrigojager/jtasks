@@ -2,7 +2,7 @@
 
 import { assess, blockerText, ownerOf, selectReady, taskKeys, type RunState } from "./frontier.ts"
 import { counts, progressLine } from "./format.ts"
-import { requireRepo } from "./git.ts"
+import { currentBranch, gitOk, requireRepo, shortHead, status as gitStatus } from "./git.ts"
 import type { Resident } from "./host.ts"
 import {
   describeKey,
@@ -14,10 +14,12 @@ import {
   type Identity,
   type JlockLock,
 } from "./jlock.ts"
-import { join } from "./paths.ts"
+import { covers, normalizeKey } from "./keys.ts"
+import { recordEffect } from "./ledger.ts"
+import { caseInsensitive, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
-import type { Hold, Task } from "./schema.ts"
-import { appendLog, listRuns, readRun, readTasks, withLock, writeTasks } from "./store.ts"
+import type { Hold, Task, TasksFile } from "./schema.ts"
+import { appendLog, listRuns, readRun, readTasks, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext } from "./tool.ts"
 
@@ -32,10 +34,11 @@ export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<Ru
   if (explicit && !entry) throw new ToolError(`execução não encontrada neste repositório: ${explicit} (veja tasks runs)`)
   if (!entry) {
     const active = runs.filter((r) => r.run.status !== "done")
-    if (active.length === 0) throw new ToolError("nenhuma execução ativa neste repositório (crie com tasks plan; veja tasks runs)")
     if (active.length > 1)
       throw new ToolError(`há ${active.length} execuções ativas (${active.map((r) => r.run.id).join(", ")}): diga qual com --run <id>`)
-    entry = active[0]!
+    // With every run finished, the most recent one (so `status` still answers "restam 0").
+    entry = active[0] ?? runs[runs.length - 1]
+    if (!entry) throw new ToolError("nenhuma execução neste repositório (crie com tasks plan; veja tasks runs)")
   }
   if (!entry.tasks) throw new ToolError(`a execução ${entry.run.id} não tem tasks.json`)
   return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks }
@@ -308,3 +311,328 @@ defineAction(
 )
 
 addUsage("  (sem --run: a execução ligada à sessão, GOAL_TASKS_RUN, ou a única ativa do repositório)")
+
+// ── Ownership and the working tree ────────────────────────────────────────────────────────────────────────────
+
+/** The task's ownership as relative paths: files and claims; `.` (everything) when exclusive. */
+export function possession(task: Task): string[] {
+  return task.exclusive ? ["."] : [...task.files, ...(task.claimed ?? [])]
+}
+
+function inPossession(path: string, own: string[], insensitive: boolean): boolean {
+  const p = insensitive ? path.toLowerCase() : path
+  return own.some((o) => {
+    const x = insensitive ? o.toLowerCase() : o
+    return x === "." || covers(x, p)
+  })
+}
+
+export interface TreeSplit {
+  /** Changes inside the task's ownership: what its commit takes. */
+  inside: string[]
+  /** Changes inside what another task or program owns right now (parallel work in the same checkout). */
+  others: string[]
+  /** Changes nobody owns: they block the task's done. */
+  outside: string[]
+}
+
+/**
+ * The working tree's changes, split by ownership: the task's own; another in-progress task's of this run, or
+ * a key someone else holds in jlock under the repository (parallel work in the same checkout); and nobody's.
+ * The run's own folder never counts.
+ */
+export async function splitChanges(ctx: ToolContext, state: RunState, task: Task, withOthers = true): Promise<TreeSplit> {
+  const insensitive = caseInsensitive(ctx.host.platform)
+  const own = possession(task)
+  const otherOwn: string[] = []
+  const otherKeys: string[] = []
+  if (withOthers) {
+    for (const t of state.tasks.tasks) if (t.id !== task.id && t.status === "in_progress") otherOwn.push(...possession(t))
+    const owner = ownerOf(state.run.id, task.id)
+    for (const l of await jlockList(ctx.host, { under: state.root }))
+      if (l.holder && l.holder.owner !== owner && l.holder.stale !== true) otherKeys.push(l.key)
+  }
+  const out: TreeSplit = { inside: [], others: [], outside: [] }
+  for (const e of await gitStatus(ctx.host, state.root)) {
+    if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH) continue
+    let list = out.outside
+    if (inPossession(e.path, own, insensitive)) list = out.inside
+    else if (inPossession(e.path, otherOwn, insensitive)) list = out.others
+    else {
+      const key = normalizeKey(e.path, state.root, ctx.host.platform)
+      if (otherKeys.some((k) => covers(k, key))) list = out.others
+    }
+    if (!list.includes(e.path)) list.push(e.path)
+  }
+  return out
+}
+
+/** The task's keys that jlock no longer shows as held by its owner. */
+export async function missingKeys(ctx: ToolContext, state: RunState, task: Task): Promise<string[]> {
+  const keys = taskKeys(state.root, task, ctx.host.platform)
+  if (!keys.length) return []
+  const owner = ownerOf(state.run.id, task.id)
+  const held = new Set((await jlockList(ctx.host, { group: state.run.id })).filter((l) => l.holder?.owner === owner).map((l) => l.key))
+  return keys.filter((k) => !held.has(k))
+}
+
+function textArg(args: ParsedArgs, name: string): string | undefined {
+  const v = args.options[name]
+  return typeof v === "string" && v.trim() ? v.trim() : undefined
+}
+
+/** Keeps `run.json`'s status in step with the tasks: `done` when nothing remains, `active` again otherwise. */
+async function syncRunStatus(ctx: ToolContext, state: RunState, tasks: Task[]) {
+  const run = await readRun(ctx.host, state.dir)
+  if (!run || run.status === "paused") return
+  const remaining = counts(tasks).remaining
+  const status = remaining === 0 ? "done" : "active"
+  if (run.status !== status) await writeRun(ctx.host, state.dir, { ...run, status })
+}
+
+interface Transition {
+  task: Task
+  tasks: TasksFile
+  state: RunState
+}
+
+/**
+ * One transition under the run's write lock: re-read, `change` decides (throwing to refuse) and edits the copy,
+ * then tasks.json, the ticket, the log and run.json's status are written.
+ */
+async function transition(
+  ctx: ToolContext,
+  args: ParsedArgs,
+  action: string,
+  change: (task: Task, state: RunState) => Promise<Record<string, unknown> | void> | Record<string, unknown> | void,
+): Promise<Transition> {
+  const first = await resolveRun(ctx, args)
+  const id = taskIdArg(args)
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first)
+    const original = findTask(state, id)
+    const copy = structuredClone(state.tasks)
+    const task = copy.tasks.find((t) => t.id === original.id)!
+    const from = task.status
+    const extra = (await change(task, state)) ?? {}
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+    await writeTicket(ctx.host, state.dir, tasks, task.id)
+    await log(ctx, state, { action, task: task.id, from, to: task.status, ...extra })
+    await syncRunStatus(ctx, state, tasks.tasks)
+    return { task, tasks, state: { ...state, tasks } }
+  })
+}
+
+function closeTask(task: Task, status: Task["status"], now: string) {
+  task.status = status
+  task.owner = null
+  task.finishedAt = now
+  delete task.holds
+}
+
+function changesNote(changes: string[]): string {
+  return changes.length ? `; edições não commitadas ficaram no disco: ${changes.join(", ")}` : ""
+}
+
+async function giveBack(ctx: ToolContext, run: string, task: string): Promise<string> {
+  try {
+    await releaseHolds(ctx, run, task)
+    return "posse devolvida"
+  } catch (error) {
+    return `a posse não foi devolvida (${(error as Error).message}); use jlock release --group ${run} --owner ${ownerOf(run, task)}`
+  }
+}
+
+// ── done ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+defineAction(
+  "done",
+  async (ctx, args) => {
+    const evidence = textArg(args, "evidence")
+    let commit: string | null = null
+    let claimed: string[] = []
+    const t = await transition(ctx, args, "done", async (task, state) => {
+      if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
+      if (!evidence) throw new ToolError(`done sem evidência é recusado: tasks done ${task.id} --evidence "o que prova que está feita"`, 2)
+      const branch = await currentBranch(ctx.host, state.root)
+      if (branch !== state.run.repo.branch)
+        throw new ToolError(`o checkout está em ${branch ?? "HEAD destacado"}, mas a execução commita em ${state.run.repo.branch}`)
+      const split = await splitChanges(ctx, state, task)
+      if (split.outside.length)
+        throw new ToolError(
+          `${task.id} não pode ser concluída: arquivos modificados fora da posse: ${split.outside.join(", ")}. ` +
+            `Peça-os com tasks claim ${task.id} <arquivo>, ou desfaça essas mudanças`,
+          1,
+          { outside: split.outside },
+        )
+      const missing = await missingKeys(ctx, state, task)
+      if (missing.length)
+        throw new ToolError(
+          `posse perdida: ${missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", ")} já não está com ${task.id} no jlock; ` +
+            `o done foi recusado (use tasks release ${task.id} e comece de novo)`,
+          1,
+          { missing },
+        )
+      if (split.inside.length) {
+        await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside])
+        await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`])
+        commit = await shortHead(ctx.host, state.root)
+        await recordEffect(ctx.host, state.dir, {
+          run: state.run.id,
+          task: task.id,
+          type: "commit",
+          repo: state.root,
+          ref: commit,
+          branch: state.run.repo.branch,
+          undo: { kind: "git-revert", ref: commit },
+        })
+      }
+      claimed = task.claimed ?? []
+      closeTask(task, "done", ctx.host.now().toISOString())
+      task.commit = commit
+      task.evidence = evidence
+      for (const a of task.acceptance) a.done = true
+      return { evidence, commit }
+    })
+    const released = await giveBack(ctx, t.state.run.id, t.task.id)
+    const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : "nenhuma mudança na posse, sem commit"
+    const lines = [`${t.task.id} feita: ${what}; ${released}`, progressLine(t.tasks.tasks)]
+    if (claimed.length) lines.push(`reclamados durante a tarefa: ${claimed.join(", ")}; atualize o plano se outras tarefas também os tocam`)
+    return ok(lines.join("\n"), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed })
+  },
+  'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
+)
+
+// ── skip / fail / release / retry ─────────────────────────────────────────────────────────────────────────────
+
+defineAction(
+  "skip",
+  async (ctx, args) => {
+    const reason = textArg(args, "reason")
+    let wasRunning = false
+    let left: string[] = []
+    const t = await transition(ctx, args, "skip", async (task, state) => {
+      if (!["pending", "in_progress", "failed"].includes(task.status)) throw new ToolError(`${task.id} está ${task.status}: não dá para pular`)
+      if (!reason) throw new ToolError(`skip sem motivo é recusado: tasks skip ${task.id} --reason "por quê"`, 2)
+      wasRunning = task.status === "in_progress"
+      if (wasRunning) left = (await splitChanges(ctx, state, task)).inside
+      closeTask(task, "skipped", ctx.host.now().toISOString())
+      task.reason = reason
+      return { reason }
+    })
+    const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : ""
+    return ok(`${t.task.id} pulada: ${reason}${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+      run: t.state.run.id,
+      task: t.task.id,
+      uncommitted: left,
+    })
+  },
+  'skip <id> --reason "…"                pulada (libera as dependentes)',
+)
+
+defineAction(
+  "fail",
+  async (ctx, args) => {
+    const error = textArg(args, "error")
+    let left: string[] = []
+    const t = await transition(ctx, args, "fail", async (task, state) => {
+      if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
+      if (!error) throw new ToolError(`fail sem erro é recusado: tasks fail ${task.id} --error "o que deu errado"`, 2)
+      left = (await splitChanges(ctx, state, task)).inside
+      closeTask(task, "failed", ctx.host.now().toISOString())
+      task.error = error
+      return { error }
+    })
+    const released = await giveBack(ctx, t.state.run.id, t.task.id)
+    return ok(`${t.task.id} falhou: ${error}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+      run: t.state.run.id,
+      task: t.task.id,
+      uncommitted: left,
+    })
+  },
+  'fail <id> --error "…"                 falha (bloqueia as dependentes)',
+)
+
+/** In progress → pending (or failed at maxAttempts), keeping the edits on disk. Used by release, resume, lost. */
+export function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed" {
+  task.owner = null
+  delete task.holds
+  if (task.attempts >= maxAttempts) {
+    task.status = "failed"
+    task.error = `${why}; tentativas esgotadas (${task.attempts}/${maxAttempts})`
+    task.finishedAt = now
+    return "failed"
+  }
+  task.status = "pending"
+  delete task.startedAt
+  return "pending"
+}
+
+defineAction(
+  "release",
+  async (ctx, args) => {
+    let left: string[] = []
+    let to: string = "pending"
+    const t = await transition(ctx, args, "release", async (task, state) => {
+      if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
+      left = (await splitChanges(ctx, state, task)).inside
+      to = backToPending(task, state.run.maxAttempts, "liberada", ctx.host.now().toISOString())
+      return { uncommitted: left }
+    })
+    const released = await giveBack(ctx, t.state.run.id, t.task.id)
+    const where = to === "failed" ? `falhou: ${t.task.error}` : `voltou a pendente (tentativa ${t.task.attempts}/${t.state.run.maxAttempts})`
+    return ok(`${t.task.id} ${where}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+      run: t.state.run.id,
+      task: t.task.id,
+      status: t.task.status,
+      uncommitted: left,
+    })
+  },
+  "release <id>                          em andamento → pendente (no maxAttempts, falha)",
+)
+
+function reopen(task: Task) {
+  if (task.status !== "skipped" && task.status !== "failed") throw new ToolError(`${task.id} está ${task.status}: retry só reabre pulada ou falha`)
+  task.status = "pending"
+  delete task.reason
+  delete task.error
+  delete task.finishedAt
+  delete task.startedAt
+  task.owner = null
+}
+
+defineAction(
+  "retry",
+  async (ctx, args) => {
+    if (args.options["all-failed"]) {
+      const first = await resolveRun(ctx, args)
+      const reopened = await withLock(ctx.host, first.dir, async () => {
+        const state = await reload(ctx, first)
+        const copy = structuredClone(state.tasks)
+        const ids: string[] = []
+        for (const task of copy.tasks)
+          if (task.status === "failed") {
+            reopen(task)
+            task.attempts = 0
+            ids.push(task.id)
+          }
+        if (!ids.length) return { ids, tasks: state.tasks }
+        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+        for (const id of ids) {
+          await writeTicket(ctx.host, state.dir, tasks, id)
+          await log(ctx, state, { action: "retry", task: id, from: "failed", to: "pending" })
+        }
+        await syncRunStatus(ctx, state, tasks.tasks)
+        return { ids, tasks }
+      })
+      const text = reopened.ids.length ? `reabertas: ${reopened.ids.join(", ")}` : "nenhuma falha para reabrir"
+      return ok(`${text}\n${progressLine(reopened.tasks.tasks)}`, { reopened: reopened.ids })
+    }
+    const t = await transition(ctx, args, "retry", (task) => {
+      reopen(task)
+      task.attempts = 0
+    })
+    return ok(`${t.task.id} reaberta: pendente\n${progressLine(t.tasks.tasks)}`, { run: t.state.run.id, task: t.task.id })
+  },
+  "retry <id> | --all-failed             pulada ou falha → pendente",
+)

@@ -51,3 +51,15 @@ um processo morto e é quebrada. A `revision` continua recusando escrita baseada
 **No lugar:** `next` lê `--under <repo>`, e a lista inteira da máquina quando a execução tem tarefa `exclusive`
 em jogo. Um `*` segurado por outra execução sem `exclusive` na nossa só aparece no `start`, que recebe `queued` do
 jlock e responde "não estava pronta" sem gravar nada.
+
+## 5. `done` tolera mudanças que estão na posse de outra tarefa em andamento (ticket 05)
+
+**O plano:** no `done`, arquivos modificados fora da posse → recusa.
+
+**Por quê:** as tarefas paralelas trabalham no mesmo checkout; quando T01 termina, os arquivos que T02 (ainda em
+andamento) já mudou aparecem no `git status` e estão fora da posse de T01. Recusar travaria todo `done` enquanto
+houver outra tarefa em andamento.
+
+**No lugar:** o `done` separa as mudanças em três grupos: da posse da tarefa (vão para o commit), da posse de outra
+tarefa em andamento da execução ou de uma chave que outro dono segura no jlock sob o repositório (ficam no disco,
+fora do commit), e de ninguém (recusam o `done`, com a lista e a sugestão de `tasks claim`).
