@@ -77,6 +77,7 @@ const BOOLEAN_FLAGS = new Set([
   "force",
   "help",
   "add",
+  "agent-ended",
 ])
 
 export function parseArgs(argv: readonly string[]): ParsedArgs {

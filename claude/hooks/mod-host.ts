@@ -6,7 +6,7 @@
 
 import type { FsEntry, FsStat, ProcessRunInit, ProcessRunResult, ProcessSpawnRequest } from 'claude-code'
 import type { DirEntry, FileStat, Host, Resident, RunOptions, RunResult, SpawnOptions } from '../core/core.js'
-import type { BoundRun } from '../types'
+import type { AgentTask, BoundRun } from '../types'
 
 export type Env = Record<string, string | undefined>
 
@@ -21,6 +21,8 @@ export interface Port {
   sleep(ms: number): Promise<void>
   getRun(): Promise<BoundRun | null>
   setRun(run: BoundRun | null): Promise<void>
+  getAgents(): Promise<Record<string, AgentTask>>
+  setAgents(agents: Record<string, AgentTask>): Promise<void>
   sessionId(): Promise<string>
   cwd(): Promise<string>
   env: Env

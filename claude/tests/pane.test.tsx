@@ -62,18 +62,18 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   await ui.unmount()
 })
 
-test('/goal-tasks opens and closes the pane; with no bound run it lists the runs', async ($, on) => {
+test('/jtasks opens and closes the pane; with no bound run it lists the runs', async ($, on) => {
   const { panes } = engine(on)
   on('command.run', (_$: unknown, e: unknown) => e as never)
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
-  const opened = await $.command.run({ command: 'goal-tasks', args: '' } as never)
+  const opened = await $.command.run({ command: 'jtasks', args: '' } as never)
   expect((opened as { text: string }).text).toBe('Painel Tasks aberto.')
   // No run is bound: the pane lists the repository's runs (none yet).
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ key: 'toggle' }))?.text).toBe('▾ Tasks · sem execução ligada')
   expect((await ui.find({ type: 'Text', text: /nenhuma execução/ }))?.text).toBe('nenhuma execução (tasks plan)')
   await ui.unmount()
-  const closed = await $.command.run({ command: 'goal-tasks', args: '' } as never)
+  const closed = await $.command.run({ command: 'jtasks', args: '' } as never)
   expect((closed as { text: string }).text).toBe('Painel Tasks fechado.')
   expect(panes).toEqual(['open tasks', 'close tasks'])
 })

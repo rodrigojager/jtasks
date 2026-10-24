@@ -1,12 +1,14 @@
 // goal-tasks for Claude Code: the `tasks` tool (the core's runTool on a host made of $.fs and $.process), the run
 // bound to the session in $.state (subagents share it), the protocol section in the system prompt while a run is
 // bound (prompt.compose runs at every request, so it is back after a compaction too), and the "Tasks" pane with
-// /goal-tasks (Claude Code ships its own /tasks), refreshed every 2 s while open.
+// /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open.
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 import { parseArgs, runTool, splitCommand, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
+import { serializedCommand, spawnDecision } from './agents.ts'
+import { judgeCall, type GuardedCall } from './guard.ts'
 import { computeView, isLive, PANE, PANE_TITLE, paneLines } from './pane.tsx'
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
@@ -15,6 +17,7 @@ const RUN = { plugin: 'goal-tasks', key: 'run' } as const
 // Change the tag when the view's fields change: it declines what an earlier version stored.
 const viewAtom = atom({ plugin: 'goal-tasks', key: 'view' } as const, null as PaneView | null, { shape: 'view-1' })
 const collapsedAtom = atom({ plugin: 'goal-tasks', key: 'collapsed' } as const, false)
+const AGENTS = { plugin: 'goal-tasks', key: 'agents' } as const
 const FULL_NAME = 'mcp__goal-tasks__tasks'
 
 /** Actions that may name another run than the bound one (they create, bind or only list). */
@@ -53,6 +56,11 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
   if (agentId) ctx.agent = agentId
   if (json !== undefined) ctx.json = json
   const result = await runTool(ctx, argv)
+  const id = parsed.positionals[0]
+  if (agentId && result.ok && id && (bound || result.bind)) {
+    const agents = await p.getAgents()
+    if (parsed.action === 'start' || parsed.action === 'claim') await p.setAgents({ ...agents, [agentId]: { run: result.bind ?? bound!.run, task: id } })
+  }
   if (result.ok && result.bind) {
     const dir = (result.data as { dir?: string } | undefined)?.dir?.replace(/\\/g, '/')
     const root = dir ? dir.replace(/\/\.scratch\/goal-tasks\/runs\/[^/]+$/, '') : (bound?.root ?? cwd)
@@ -74,6 +82,8 @@ export const register: Register = (on) => {
       sleep: (ms) => $.clock.sleep(ms),
       getRun: async () => (await $.state.get(RUN)).value ?? null,
       setRun: async (run) => void (await $.state.set(RUN, run)),
+      getAgents: async () => (await $.state.get(AGENTS)).value ?? {},
+      setAgents: async (agents) => void (await $.state.set(AGENTS, agents)),
       sessionId: () => $.session.id(),
       cwd: () => $.session.cwd(),
       env: {
@@ -84,7 +94,7 @@ export const register: Register = (on) => {
       },
     }
     await $.tool.register({ name: TOOL_NAME, description: TOOL_DESCRIPTION, inputSchema: TOOL_SCHEMA, isDeferred: false })
-    await $.command.register({ name: 'goal-tasks', description: 'Abre ou fecha o painel Tasks (goal-tasks)' })
+    await $.command.register({ name: 'jtasks', description: 'Abre ou fecha o painel Tasks (goal-tasks)' })
 
     const stored = await $.store.get('collapsed')
     if (typeof stored === 'boolean') await update($, collapsedAtom, () => stored)
@@ -109,7 +119,7 @@ export const register: Register = (on) => {
     return started
   })
 
-  on('command.run', { command: 'goal-tasks' }, async ($) => {
+  on('command.run', { command: 'jtasks' }, async ($) => {
     if (paneOpen) {
       await $.ui.close({ id: PANE })
       paneOpen = false
@@ -156,6 +166,69 @@ export const register: Register = (on) => {
     await refresh?.(true).catch(() => undefined)
     return { result: result.text }
   }).catch(($, e, next) => (next.called ? next(e) : { result: 'goal-tasks: a ferramenta falhou nesta chamada; tente de novo (tasks status)' }))
+
+  // A subagent of a task: the model, role and effort of the task's profile; an unknown profile refuses it.
+  on('agent.spawn', async ($, e, next) => {
+    const p = port
+    const bound = p ? await p.getRun() : null
+    if (!p || !bound) return next(e)
+    const decision = await spawnDecision(createModHost(p, await p.cwd()), bound, e.prompt)
+    if (decision.error) return { deny: `goal-tasks: ${decision.error}` }
+    if (!decision.task) return next(e)
+    const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.model ? { model: decision.model } : {}) })
+    if (spawned.agentId) await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task } })
+    return spawned
+  }).catch(($, e, next) => (next.called ? next(e) : { deny: 'goal-tasks: não deu para ler o perfil da tarefa; tente de novo' }))
+
+  // The guard: edits outside the ownership, mutating git of a subagent, and direct edits of the run's files.
+  const guard = async (call: GuardedCall, agentId: string | undefined): Promise<string | undefined> => {
+    const p = port
+    const bound = p ? await p.getRun() : null
+    if (!p || !bound) return undefined
+    const agent = agentId ? (await p.getAgents())[agentId] : undefined
+    const verdict = await judgeCall(createModHost(p, await p.cwd()), await p.cwd(), bound, agent, call)
+    return verdict.allow ? undefined : `goal-tasks: ${verdict.reason}`
+  }
+  const refused = { deny: 'goal-tasks: a guarda de posse falhou nesta chamada; ela foi recusada por segurança' }
+  on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
+    const deny = await guard({ tool: 'Edit', file_path: e.file_path }, e.agentId)
+    return deny ? { deny } : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  on('tool.call', { tool: 'Write' }, async ($, e, next) => {
+    const deny = await guard({ tool: 'Write', file_path: e.file_path }, e.agentId)
+    return deny ? { deny } : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  on('tool.call', { tool: 'NotebookEdit' }, async ($, e, next) => {
+    const deny = await guard({ tool: 'NotebookEdit', notebook_path: e.notebook_path }, e.agentId)
+    return deny ? { deny } : next(e)
+  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const deny = await guard({ tool: 'Bash', command: e.command }, e.agentId)
+    if (deny) return { deny }
+    const p = port
+    const bound = p && e.agentId ? await p.getRun() : null
+    if (!p || !bound || !e.agentId) return next(e)
+    const agent = (await p.getAgents())[e.agentId]
+    const owner = `gt:${bound.run}/${agent?.task ?? 'exec'}-bash`
+    const wrapped = await serializedCommand(createModHost(p, await p.cwd()), bound, e.command, owner)
+    return next(wrapped ? { ...e, command: wrapped } : e)
+  }).catch(($, e, next) => (next.called ? next(e) : refused))
+
+  // A subagent whose loop ended with its task still in progress: the task goes back to the queue.
+  on('turn.complete', async ($, e, next) => {
+    const done = await next(e)
+    const p = port
+    if (!p || !e.agentId) return done
+    const agents = await p.getAgents()
+    const mine = agents[e.agentId]
+    if (!mine) return done
+    const { [e.agentId]: _gone, ...rest } = agents
+    await p.setAgents(rest)
+    const bound = await p.getRun()
+    if (bound?.run === mine.run) await callTool(p, `release ${mine.task} --agent-ended`, undefined, e.agentId).catch(() => undefined)
+    await refresh?.(true).catch(() => undefined)
+    return done
+  })
 
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)

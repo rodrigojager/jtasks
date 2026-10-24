@@ -739,10 +739,12 @@ defineAction(
   async (ctx, args) => {
     let left: string[] = []
     let to: string = "pending"
-    const t = await transition(ctx, args, "release", async (task, state) => {
+    // --agent-ended: the host saw the subagent's loop end with its task still in progress (logged as such).
+    const ended = !!args.options["agent-ended"]
+    const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
       if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status})`)
       left = (await splitChanges(ctx, state, task)).inside
-      to = backToPending(task, state.run.maxAttempts, "liberada", ctx.host.now().toISOString())
+      to = backToPending(task, state.run.maxAttempts, ended ? "o subagente terminou sem concluir" : "liberada", ctx.host.now().toISOString())
       return { uncommitted: left }
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)

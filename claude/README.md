@@ -2,7 +2,7 @@
 
 The Claude Code mod of [goal-tasks](../README.md): the `tasks` tool (`mcp__goal-tasks__tasks`, the same contract as
 the CLI), the run bound to the session (`$.state`, shared by subagents), the execution protocol in the system
-prompt while a run is bound, a "Tasks" pane with the checklist and `/tasks`, the model of each subagent from its
+prompt while a run is bound, a "Tasks" pane with the checklist and `/jtasks` (Claude Code has its own `/tasks`), the model of each subagent from its
 task's profile, and the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of subagents.
 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and

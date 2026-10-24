@@ -7,6 +7,12 @@ export type BoundRun = {
   root: string
 }
 
+/** The task a subagent works on (from its spawn's `--task`, or its own `tasks start`). */
+export type AgentTask = {
+  run: string
+  task: string
+}
+
 /** One checklist line of the pane (the core's ViewLine). */
 export type PaneLine = {
   mark: string
@@ -38,6 +44,7 @@ declare module 'claude-code' {
       run: BoundRun | null
       collapsed: boolean
       view: Shaped<PaneView | null>
+      agents: Record<string, AgentTask>
     }
   }
 }

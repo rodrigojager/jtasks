@@ -596,7 +596,8 @@ var BOOLEAN_FLAGS = new Set([
   "all-projects",
   "force",
   "help",
-  "add"
+  "add",
+  "agent-ended"
 ]);
 function parseArgs(argv) {
   const positionals = [];
@@ -2422,11 +2423,12 @@ function backToPending(task, maxAttempts, why, now) {
 defineAction("release", async (ctx, args) => {
   let left = [];
   let to = "pending";
-  const t = await transition(ctx, args, "release", async (task, state) => {
+  const ended = !!args.options["agent-ended"];
+  const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
     if (task.status !== "in_progress")
       throw new ToolError(`${task.id} não está em andamento (está ${task.status})`);
     left = (await splitChanges(ctx, state, task)).inside;
-    to = backToPending(task, state.run.maxAttempts, "liberada", ctx.host.now().toISOString());
+    to = backToPending(task, state.run.maxAttempts, ended ? "o subagente terminou sem concluir" : "liberada", ctx.host.now().toISOString());
     return { uncommitted: left };
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
