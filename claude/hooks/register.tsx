@@ -175,7 +175,7 @@ export const register: Register = (on) => {
             {rows.map((row, index) => <Box key={`row-${index}`} flexDirection="column">
               <Text>
                 <Text color={ROW_MARK_COLOR[row.state]} dimColor={row.state === 'pending' || row.state === 'skipped'}>{row.state === 'running' ? SPINNER_FRAMES[spinnerFrame] : ROW_MARK[row.state]}</Text>
-                {' '}<Text color={row.state === 'running' ? 'claude' : undefined} dimColor={row.state !== 'running' && row.state !== 'failed'} strikethrough={row.state === 'done' || row.state === 'skipped'}>{row.label}</Text>
+                {' '}<Text color={row.state === 'running' ? 'claude' : undefined} dimColor={row.state === 'pending' || row.state === 'skipped'} strikethrough={row.state === 'skipped'}>{row.label}</Text>
               </Text>
             </Box>)}
           </Box>

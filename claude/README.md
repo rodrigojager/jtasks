@@ -28,8 +28,8 @@ starting Claude Code, for example `GOAL_TASKS_LANG=en claude --plugin-dir D:/goa
 
 ## Tasks pane
 
-The Tasks pane shows the bound run's progress in a claude-hud-style bar, then one row per task, on a black
-background. For example:
+The Tasks pane shows the bound run's progress in a claude-hud-style bar, then one row per task, on the same
+background as the rest of Claude Code. For example:
 
 ```text
 ▾ Tasks · pane-redesign-261024-hjr6
@@ -41,7 +41,7 @@ background. For example:
 ```
 
 The bar has ten cells in claude-hud's Usage blue, the empty ones in the same blue, dim; the percentage and the
-`done/total` count follow it. A green `✓` marks a completed task, its label struck through and dim. Claude Code's
+`done/total` count follow it. A green `✓` marks a completed task, its label in the normal text color. Claude Code's
 orange spinner (`✻ ✶ ✽ ✢ ·`, shown here as `✻`) marks a running task, its label orange too. Upcoming tasks are a dim
 `○`. A failed task has a red `✗`; a skipped one a dim `✓` with its label struck through. Use the header button to fold
 or unfold the pane, or toggle it with `/jtasks`.
