@@ -7,6 +7,12 @@ Revisão 4, 23/10/2026: a posse de arquivos passa a ser imposta por um serviço 
 plano próprio: o jlock, em `D:\jlock\docs\PLAN.md`); worktrees só sob demanda; livro-razão de tudo que a
 ferramenta cria. Nada foi implementado ainda.
 
+Revisão 5, 24/10/2026: o jlock existe (0.1.0, testado no Windows) e alguns detalhes saíram diferentes do que a
+revisão 4 imaginou. Os ajustes estão marcados com **[rev. 5]**: posse por arquivos e pastas (não por padrões);
+posse mantida viva por um `jlock hold` por tarefa; convenção de identidade nas travas; `claim` mapeado nos códigos do
+jlock; `serialize` pelo `jlock run`; guarda de edição pela `tasks.json`; Windows primeiro. A seção 20 lista os
+comandos exatos. Nenhuma mudança no jlock.
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -20,13 +26,17 @@ ferramenta cria. Nada foi implementado ainda.
 - **O JSON nasce validado:** a skill entrega o plano pela ferramenta, e os tickets Markdown são gerados dele. O
   passo final da `to-tickets` chama `tasks plan`; a ferramenta devolve os erros exatos até passar, e só então grava.
 - **Paralelismo por posse de arquivos, na mesma pasta, sem worktrees, com travas de verdade.** Cada tarefa declara
-  os arquivos (ou globs) que vai tocar. A posse é adquirida no jlock (CLI de travas da máquina, plano próprio): um
+  os arquivos e pastas que vai tocar (**[rev. 5]** uma pasta cobre tudo dentro dela; padrões como `src/*.ts` não
+  existem no jlock e são recusados no plano). A posse é adquirida no jlock (CLI de travas da máquina, plano próprio): um
   dono por chave, fila em ordem de chegada para quem espera, dois pedidos simultâneos resolvidos por criação atômica
   de arquivo, travas de processo morto recuperadas por heartbeat, e deadlock detectado antes de entrar na fila. Um
   subagente que precisa de um arquivo não declarado pede com `tasks claim`: se estiver em uso, ele entra na fila e a
   tarefa ganha uma dependência dinâmica ("aguardando T02: types.ts"), visível no painel. A guarda nas ferramentas
   de edição recusa qualquer escrita fora da posse. O ralph v1 já fazia a posse estática com `files_allowed`; a fila
-  e a espera são o que faltava.
+  e a espera são o que faltava. **[rev. 5]** Uma trava do jlock expira se ninguém a renova por 30 s (é assim que ele
+  recupera travas de processos mortos): por isso cada tarefa em andamento tem um `jlock hold` vivo, que renova a
+  posse e a devolve quando a tarefa termina; se a janela morre, o `hold` morre junto e a posse volta ao quadro em
+  ≤ 30 s.
 - **Commits por tarefa, feitos pela ferramenta.** O subagente não roda git. No `done`, a ferramenta faz `git add` só
   dos arquivos da posse e um commit `T04: título`. Cada tarefa vira um commit isolado: reverter uma tarefa é
   `git revert` de um commit, e o diff de cada tarefa fica auditável.
@@ -68,6 +78,9 @@ projeto/
 ├─ ledger.jsonl                         ← índice global: todo efeito de todos os projetos
 └─ archive\<repo>\<run>\                 ← execuções arquivadas
 
+%LOCALAPPDATA%\jlock\                    ← [rev. 5] o quadro de travas, do jlock, da máquina inteira; o goal-tasks
+                                            só o usa pelo CLI (jlock acquire/hold/release/list), nunca lê a pasta
+
 D:\worktrees\<repo>\<run>\<task>\        ← só quando a execução pede worktree
 
 Claude Code: mod `goal-tasks` (ferramenta + painel + /tasks)   ─┐  mesmo core.js
@@ -88,8 +101,9 @@ sem Node e sem `node_modules`, e a cópia final do OpenCode também.
   `profile`, `boundary`).
 - `tasks plan` valida e devolve erros exatos: id repetido, dependência inexistente, ciclo, perfil desconhecido,
   posse em comum entre tarefas sem dependência entre si ("T04 e T05 tocam `src/humanizer/move.ts` e podem rodar
-  juntas: adicione uma dependência ou separe o arquivo"). O modelo corrige e chama de novo. Nada é gravado até
-  passar.
+  juntas: adicione uma dependência ou separe o arquivo"), **[rev. 5]** padrão em `files` ("`src/*.ts`: o jlock trava
+  arquivos e pastas, não padrões; liste os arquivos ou use a pasta `src`"; a forma `pasta/**` é aceita e vira a
+  pasta). O modelo corrige e chama de novo. Nada é gravado até passar.
 - Ao passar, grava `tasks.json` e gera `tickets/NN-slug.md` (com uma seção Files). O ticket é visão; o JSON é a
   verdade.
 
@@ -103,28 +117,58 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
 
 ### Regras
 
-- `files` é uma lista de caminhos ou globs relativos ao repositório. `exclusive: true` significa "toca coisa demais
-  ou desconhecida": roda sozinha.
+- `files` é uma lista de arquivos e pastas relativos ao repositório (**[rev. 5]** uma pasta cobre tudo dentro dela,
+  pela regra de hierarquia do jlock; `pasta/**` é aceito como açúcar para a pasta; qualquer outro padrão é recusado
+  no `plan`). `exclusive: true` significa "toca coisa demais ou desconhecida": roda sozinha.
 - **Fronteira:** tarefa pronta = pendente, dependências satisfeitas, e posse livre no jlock (nenhuma chave em uso ou
   em interseção com uma em uso, por qualquer execução, ferramenta ou script na máquina; as chaves são caminhos
-  absolutos, e uma pasta travada cobre o que está dentro dela). Interseção é calculada por glob; na dúvida, conta
-  como interseção. `start` adquire todas as chaves da posse de uma vez, em ordem canônica (sem espera: se alguma
-  estiver em uso, a tarefa não estava pronta). Uma tarefa `exclusive` adquire a chave `*`, que conflita com tudo.
+  absolutos, e uma pasta travada cobre o que está dentro dela). **[rev. 5]** Interseção é a regra de hierarquia do
+  jlock, e só ela: duas chaves conflitam se são iguais ou se uma é pasta acima da outra; `*` conflita com tudo;
+  `name:` só com igual. `next` lê `jlock list --json` uma vez e aplica essa regra localmente (o mesmo código da
+  validação do plano). `start` adquire todas as chaves da posse de uma vez, em ordem canônica, sem espera
+  (`--no-wait`): resposta `queued` (código 10) quer dizer que a tarefa não estava pronta. Uma tarefa `exclusive`
+  adquire a chave `*`, que conflita com tudo.
+- **Posse viva [rev. 5]:** `start` e `claim` são o mesmo gesto: subir um `jlock hold` e ler a primeira linha. O
+  `hold` adquire as chaves (com as mesmas opções do `acquire`), imprime o resultado em JSON e fica vivo renovando o
+  heartbeat; o goal-tasks guarda o processo (`holds: [{ pid, keys }]` na tarefa). `done`, `skip`, `fail` e `release`
+  escrevem `release` na entrada padrão de cada `hold` da tarefa (reserva, de outra janela:
+  `jlock release --group <run> --owner <dono>`). Se um `hold` termina com código 14 (`lost`: alguém usou
+  `unlock --force`, ou a trava expirou com a máquina dormindo ou travada), a ferramenta trata como `release`
+  involuntário: a tarefa volta a `pending` com `attempts+1`, o log registra `lost`, o painel mostra
+  "posse perdida: T04". Se a janela morre, os `hold`s morrem com ela e as travas somem em ≤ 30 s: é isso que
+  permite `resume` em outra janela sem `unlock --force`.
+- **Identidade no jlock [rev. 5]:** dono = `gt:<run>/<task>` (ex.: `gt:cursory-261023-k7f2/T05`), grupo = `<run>`,
+  intenção = título da tarefa, meta `task=T05 run=<run> tool=claude|opencode|cli session=<id>`. Com isso,
+  `jlock list --group <run> --json` são as travas ativas da execução (para `status`), e
+  `jlock list --under <repo> --json` é tudo que está travado no repositório, inclusive por outras janelas, outras
+  execuções e outros programas (para o painel). O painel traduz `holder.owner`: mesma execução → `T05`; outra →
+  `auth-261024-p0q9/T03`; sem o prefixo `gt:` → "outro programa: <owner>".
 - **Validação do plano:** duas tarefas sem relação de dependência e com posse em comum são um erro. Isso força o
   planejador a decidir a ordem na hora do plano, não na hora da execução.
-- **Pedido em tempo de execução:** `tasks claim T04 src/x.ts` adquire a trava no jlock. Livre → entra na posse na
-  hora. Em uso → a tarefa entra na fila dessa chave e fica `waiting` (estado derivado), com
-  `waitingFor: { key, holder: "T05", position }`; a chamada espera até ser atendida ou até `--timeout`, e então o
-  subagente decide: continuar esperando, fazer o que não depende daquele arquivo, ou `tasks fail`. Se o pedido
-  criaria um deadlock (T05 já espera por algo de T04), o jlock recusa com a cadeia, e a resposta diz quem deve
-  ceder. Todo `claim` vai para o log; no fim, a ferramenta sugere atualizar o plano com o que foi reclamado.
+- **Pedido em tempo de execução:** `tasks claim T04 src/x.ts` adquire a trava no jlock (**[rev. 5]** sobe
+  `jlock hold <abs> --owner gt:<run>/T04 --group <run> --intent "<título>" --timeout <t> --json`, com `t` = 60 s
+  por padrão ou o `--timeout` do `claim`). Livre → `granted` (código 0): o arquivo entra em `claimed` e o `hold`
+  fica. Em uso → a tarefa entra na fila dessa chave e fica `waiting` (estado derivado), com
+  `waitingFor: { key, holder: "T05", position, via }` (**[rev. 5]** `via` diz quando o bloqueio vem de uma pasta
+  acima ou de um arquivo dentro: "`src/` está com T05", e não `src/x.ts`); a chamada espera até ser atendida ou até
+  o prazo (`timeout`, código 11, com `holder` e `position`), e então o subagente decide: continuar esperando, fazer o
+  que não depende daquele arquivo, ou `tasks fail`. Se o pedido criaria um deadlock (T05 já espera por algo de T04),
+  o jlock recusa com a cadeia (`deadlock`, código 12, campo `chain`), e a resposta diz quem deve ceder
+  (**[rev. 5]** quem pediu por último). Todo `claim` vai para o log; no fim, a ferramenta sugere atualizar o plano
+  com o que foi reclamado.
 - **Guarda:** no Claude Code, `tool.call` em `Edit`/`Write`/`NotebookEdit` do subagente é recusado fora da posse,
   com a mensagem "fora da posse de T04; use `tasks claim`". `Bash` de subagente é recusado quando o comando é
   mutador de git (`commit`, `checkout`, `reset`, `stash`, `add`) ou de arquivos (`rm`, `mv`, `>`, `sed -i`) fora
   da posse. Leitura, build e teste são livres. No OpenCode, um hook de permissão aplica as mesmas regras.
+  **[rev. 5]** A guarda decide pela `tasks.json` (`files` + `claimed`), sem chamar o jlock a cada edição (um
+  processo por edição seria lento e desnecessário): o jlock é o juiz entre processos, a `tasks.json` é a cópia local
+  da posse, e o `done` reconcilia as duas (`jlock list --group <run> --json` tem de conter todas as chaves da posse
+  da tarefa; se faltar alguma, a posse foi perdida e o `done` é recusado dizendo qual).
 - **Builds e testes que colidem** (mesma pasta de saída, mesma porta): a tarefa declara `exclusive: true` ou a
-  execução define um `serialize: ["bun test", "dotnet build"]`, e a ferramenta enfileira esses comandos entre
-  tarefas em andamento. Alternativa: uma tarefa final de integração, bloqueada por todas, roda a suíte uma vez.
+  execução define um `serialize: ["bun test", "dotnet build"]`, e **[rev. 5]** a ferramenta roda cada um desses
+  comandos como `jlock run name:gt/<repo-slug>/<comando-slug> -- <comando>`: só um roda por vez na máquina, os
+  outros esperam na fila do jlock; nenhuma fila própria. Alternativa: uma tarefa final de integração, bloqueada por
+  todas, roda a suíte uma vez.
 
 ### Por que a trava do Windows não basta
 
@@ -226,14 +270,14 @@ branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por
 | Gravado | Significa | Transições |
 |---|---|---|
 | `pending` | ainda não começou | → `in_progress` (só se pronta e a execução não estiver pausada), → `skipped` |
-| `in_progress` | tem `owner`, `startedAt` e a posse travada | → `done` (exige `evidence`; faz o commit), → `skipped`, → `failed` (exige `error`), → `pending` por `release` |
+| `in_progress` | tem `owner`, `startedAt`, a posse travada e **[rev. 5]** um ou mais `hold` vivos (`holds`) | → `done` (exige `evidence`; faz o commit), → `skipped`, → `failed` (exige `error`), → `pending` por `release` |
 | `done` | concluída e commitada | final; `retry` reabre (o commit anterior fica no histórico) |
 | `skipped` | pulada com motivo; libera as dependentes | `retry` → `pending` |
 | `failed` | erro ou `maxAttempts`; bloqueia as dependentes | `retry` → `pending`; `skip` → `skipped` |
 
 Derivados, nunca gravados: `ready` (pendente, dependências satisfeitas, posse livre), `blocked` (dependência aberta
 ou falha, ou posse em uso) e `waiting` (em andamento, na fila de uma chave de outra tarefa). O painel mostra o
-motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts.
+motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts (**[rev. 5]** ou ⏳ T02: src/, quando o bloqueio vem da pasta).
 
 ### Regras do núcleo
 
@@ -241,6 +285,9 @@ motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts.
 - `start` falha se não pronta, com dono, posse em uso, ou execução pausada.
 - `done` sem evidência é recusado; com arquivos modificados fora da posse também.
 - Gravação atômica (`.tmp` + `rename`), releitura antes de escrever, `revision` incremental.
+- **[rev. 5]** Cada tarefa em andamento guarda seus `hold`s (`holds: [{ pid, keys, startedAt }]`); a sessão que os
+  criou fala com eles pela entrada padrão; qualquer outra sessão usa `jlock release --group <run> --owner <dono>`.
+  Os `pid`s são informativos (nunca se encerra processo por PID a partir de outra janela).
 
 ---
 
@@ -257,11 +304,11 @@ a execução ligada à sessão.
 | execução | `runs` | lista as execuções do projeto com status e progresso |
 | | `resume <run> [--keep-owners]` | liga a sessão, tira de `paused`, libera tarefas de agentes que já não existem, mostra status e fronteira |
 | | `pause` / `unpause` | pausa: `start` recusado; o protocolo manda parar |
-| | `status` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas |
+| | `status` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas (**[rev. 5]** de `jlock list --group <run> --json`) |
 | tarefa | `next [limit]` | as prontas, com perfil, critérios, posse e caminho do ticket |
-| | `start id` | → em andamento; trava a posse |
-| | `claim id <arquivo…>` | acrescenta à posse se livre; senão "em uso por Txx" |
-| | `done id --evidence` | confere o status do git → commit só da posse → feita → libera a posse |
+| | `start id` | → em andamento; trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta") |
+| | `claim id <arquivo…>` | acrescenta à posse se livre; senão espera até `--timeout` ("em uso por Txx, posição N") ou recusa por deadlock com a cadeia (**[rev. 5]** um `jlock hold` por `claim`) |
+| | `done id --evidence` | confere o status do git e a posse no jlock → commit só da posse → feita → libera a posse (**[rev. 5]** `release` aos `hold`s) |
 | | `skip id --reason` / `fail id --error` | pular ou registrar falha; libera a posse |
 | | `retry id` / `retry --all-failed` | pulada ou falha → pendente |
 | | `release id` | em andamento → pendente (`attempts+1`; no `maxAttempts` vira `failed`); edições não commitadas ficam no disco e são listadas |
@@ -316,7 +363,8 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
 - Duas execuções no mesmo projeto ao mesmo tempo: as travas do jlock são da máquina inteira (registro em
   `%LOCALAPPDATA%\jlock`), não da execução. Duas execuções, ou um Claude Code e um OpenCode em janelas diferentes,
   disputam os mesmos arquivos pela mesma fila; quem chegou depois espera. O painel mostra
-  "aguardando auth-261024-p0q9/T03".
+  "aguardando auth-261024-p0q9/T03" (**[rev. 5]** lendo `jlock list --under <repo> --json` a cada 2 s, junto com a
+  `tasks.json`).
 
 ---
 
@@ -324,7 +372,10 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
 
 - **Retomar:** `tasks resume <run>` em qualquer janela. A posição é a fronteira; `next` devolve as primeiras não
   executadas. Tarefas em andamento de agentes mortos são liberadas (as edições não commitadas ficam no disco e são
-  listadas para a próxima tentativa aproveitar ou descartar).
+  listadas para a próxima tentativa aproveitar ou descartar). **[rev. 5]** Como: os `hold`s da janela morta já
+  morreram e as travas expiraram em ≤ 30 s; `resume` compara cada tarefa `in_progress` com
+  `jlock list --group <run> --json`: sem as suas travas → `release` automático (`attempts+1`). Uma tarefa que ainda
+  tem as travas (janela viva em outro lugar) fica como está, salvo `--keep-owners` ao contrário.
 - **Pausar:** `tasks pause`: `start` recusado; o resumo no prompt diz "pausada: não inicie tarefas"; os subagentes
   em andamento terminam.
 - **Tentar de novo:** `tasks retry T04`; histórico no `log.jsonl`; `attempts` conta.
@@ -420,7 +471,7 @@ skills/to-tickets/SKILL.md   a skill, viajando com a ferramenta que ela chama
 
 | Peça | API do mod | Função |
 |---|---|---|
-| ferramenta | `$.tool.register` em `session.start` | a `tasks`; arquivos via `$.fs`; git via `$.process.run` |
+| ferramenta | `$.tool.register` em `session.start` | a `tasks`; arquivos via `$.fs`; git e jlock via `$.process.run`; **[rev. 5]** `jlock hold` via `$.process.spawn`, um por tarefa e por `claim` |
 | ligação | `$.state` (`run`) | execução da sessão; subagentes compartilham |
 | painel | `$.ui.open({ id: "tasks" })` + `ui.render` em `{ component: "Pane" }` | checklist + barra; abre sozinho com execução ligada e largura suficiente |
 | toggle | `$.command.register({ name: "tasks" })` + `command.run`; botão "▾/▸" via `ui.press` | `/tasks` abre/fecha; o botão recolhe para uma linha; `collapsed` em `$.store` |
@@ -428,7 +479,7 @@ skills/to-tickets/SKILL.md   a skill, viajando com a ferramenta que ela chama
 | contexto | `prompt.section` + `$.ui.invalidate("prompt.section")`; `session.compact` | resumo sempre no prompt; sobrevive à compactação |
 | perfil | `on("agent.spawn")` | modelo do subagente pelo perfil |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
-| agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento |
+| agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
 
 ```
 ▾ Tasks · cursory-261023-k7f2
@@ -465,7 +516,8 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 ## 16. Onde fica o determinismo
 
 **Determinístico (código):** esquema e validação do plano (inclusive conflito de posse), geração dos tickets,
-transições, fronteira com posse, ciclos, dono único, `revision`, gravação atômica, progresso, ligação sessão →
+transições, fronteira com posse (**[rev. 5]** pela regra de hierarquia do jlock), posse viva pelos `hold`s,
+ciclos, dono único, `revision`, gravação atômica, progresso, ligação sessão →
 execução, pausa, retomada, falha por `maxAttempts`, guarda de posse e de git, commit por tarefa, ledger e desfazer,
 worktrees quando pedidas, `gc` como relatório, limpeza e arquivamento, desenho das interfaces, reinjeção após
 compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto.
@@ -482,6 +534,12 @@ motivo.
   `import` de volta; importação dos 24 tickets reais (viram `exclusive`); fronteira com posse, puladas e falhas;
   `claim` negado e concedido; interseção de globs; ciclos; dois `start` na mesma tarefa; `revision` concorrente;
   `resume`; `maxAttempts`; progresso; ledger e `undo` em ordem inversa.
+- **jlock real [rev. 5]** (binário instalado no `PATH`; `JLOCK_HOME` temporário por teste; tempos curtos por
+  `JLOCK_HEARTBEAT_MS`/`JLOCK_STALE_MS`): `start` sobe o `hold` e a trava aparece em `jlock list --group`; matar o
+  processo que faz as vezes da janela (filho nosso, por PID) → trava expira e `resume` libera a tarefa; `claim` de
+  arquivo em uso → `waiting` com `holder`/`position`/`via`; `claim` que fecharia ciclo → recusado com `chain`;
+  `done` com trava perdida → recusado; `serialize` roda dois comandos em sequência pelo `jlock run`; `plan` recusa
+  `src/*.ts` e aceita `src/**`.
 - **Git** (repositório temporário em `D:\claude-cache`): branch da execução, commit só da posse, `done` recusado
   com arquivo fora da posse, `undo` de commit (revert) e de branch; e, para a política opcional, worktree, merge
   limpo, conflito, remoção, `remove-pending`, `gc --scan` achando uma órfã fabricada e não tocando nela sem `--yes`.
@@ -497,7 +555,9 @@ motivo.
 
 1. **jlock** (plano e repositório próprios): o CLI de travas com fila, heartbeat, deadlock, lista e force unlock,
    com seus testes de corrida. Pré-requisito de tudo que segue; o goal-tasks o chama como processo.
-2. **Núcleo + CLI + ledger.** Formato com posse (adquirida no jlock), `plan`/`validate`/`import`, tickets,
+   **[rev. 5] Feito:** 0.1.0 em 24/10/2026, validado no Windows; a fase 2 (idiomas, help, doctor, instalador,
+   update) está em andamento e não muda o protocolo.
+2. **Núcleo + CLI + ledger.** Formato com posse (adquirida no jlock instalado), `plan`/`validate`/`import`, tickets,
    transições, fronteira com posse, `claim`, `runs`/`resume`/`pause`/`retry`, commit por tarefa,
    `ledger`/`undo`/`effects`, `clean`/`archive`, testes. Já dá para rodar um goal pelo terminal, com tudo rastreado.
 3. **OpenCode.** Ferramenta, ligação, contexto, seção, perfis, guarda de posse. Reaproveita o HUD.
@@ -524,8 +584,37 @@ motivo.
 | Órfãs e efeitos das execuções de hoje | Fora do alcance do ledger por construção; só relatório via `gc --scan`, remoção quando você quiser e com `--yes`. |
 | O avaliador do `/goal` só vê a conversa | A saída de `tasks status` é texto na conversa. Alternativa sem avaliador: Stop hook clássico lendo o arquivo. |
 | Largura do painel do Claude Code | Abre sozinho só a partir de ~110–144 colunas; abaixo, `/tasks` à mão. |
+| **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o goal-tasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no goal-tasks depende de API do Windows. |
+| **[rev. 5]** Um processo `hold` por tarefa e por `claim` | Dezenas de processos de ~1 MB, dormindo; aceitável. Se pesar, o jlock pode ganhar depois um `hold` que renove várias chaves de donos diferentes; o goal-tasks não muda. |
+| **[rev. 5]** Posse perdida no meio (`hold` saiu com 14) | A tarefa volta a `pending` com `attempts+1`; as edições ficam no disco e são listadas; o painel mostra "posse perdida"; o log diz quem forçou (vem do `log.jsonl` do jlock, campo `by`). |
 
 Fontes consultadas em 23/10/2026: tipos dos mods do Claude Code (build 2.1.309) e as ferramentas
 `EnterWorktree`/`ExitWorktree`/`Agent`; API de plugin do OpenCode 2.1.3; plugin de goal do OpenCode 0.1.68; Codex
 CLI (goal, `update_plan`); pi-goal e rpiv-todo; ralph (`files_allowed`) e ralph-v2; skill `to-tickets` e os 24
 tickets do spybrowser; herdr worktree; artigos sobre worktrees para agentes paralelos.
+
+---
+
+## 20. Como o goal-tasks fala com o jlock **[rev. 5]**
+
+Tudo pelo CLI instalado (`jlock` no `PATH`), sempre com `--json`, sempre com caminhos absolutos. O goal-tasks nunca
+lê nem escreve em `%LOCALAPPDATA%\jlock`.
+
+| Ação do goal-tasks | Comando jlock | O que importa na resposta |
+|---|---|---|
+| `next` (posse livre?) | `jlock list --under <repo> --json` | `locks[].key`, `holder.owner`, `queue[]`; a regra de hierarquia decide o conflito localmente |
+| `start T04` | `jlock hold <chave…> --no-wait --owner gt:<run>/T04 --group <run> --intent "<título>" --meta task=T04 --meta run=<run> --meta tool=<claude\|opencode\|cli> --json` (processo residente) | primeira linha: `granted` (segue vivo) ou `queued` + código 10 ("não estava pronta"); `exclusive` usa a chave `*` |
+| `claim T04 <arquivo>` | `jlock hold <abs> --timeout <t> --owner gt:<run>/T04 --group <run> --intent "<título>" --json` (outro processo residente) | `granted` (0); `timeout` (11) com `holder`, `position`, `via`; `deadlock` (12) com `chain` |
+| `done` / `skip` / `fail` / `release` | escrever `release\n` na entrada padrão de cada `hold` da tarefa; de outra janela: `jlock release --group <run> --owner gt:<run>/T04 --json` | `released` (0); `not_owner` (13) = a posse já não era nossa |
+| `done` (conferência) | `jlock list --group <run> --json` | todas as chaves da posse da tarefa presentes com `holder.owner` = o nosso; senão, recusa |
+| `status` | `jlock list --group <run> --json` | travas ativas da execução |
+| painel (a cada 2 s) | `jlock list --under <repo> --json` | tudo travado no repositório, por qualquer janela ou programa |
+| `resume` | `jlock list --group <run> --json` | tarefa `in_progress` sem suas travas → `release` automático |
+| `serialize` | `jlock run name:gt/<repo-slug>/<comando-slug> -- <comando>` | código de saída do comando; 11 se `--timeout` for dado e vencer |
+| emergência (pessoa) | `jlock unlock --group <run> --force --by gt:<run> --reason "…"`; `jlock graph`; `jlock list --watch` | o `hold` afetado sai com 14 e a tarefa volta a `pending` |
+
+Códigos do jlock que o goal-tasks traduz: 0 ok; 10 ocupado; 11 prazo; 12 deadlock; 13 não é o dono; 14 posse
+perdida; 20 erro de disco (vira erro da ferramenta, com a mensagem do jlock); 2 uso errado (bug nosso: registrar).
+
+Tempos: o goal-tasks não mexe em `JLOCK_HEARTBEAT_MS`/`JLOCK_STALE_MS` em produção (5 s / 30 s); só os testes usam
+valores curtos.
