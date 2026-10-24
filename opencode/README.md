@@ -52,6 +52,14 @@ tasks { "command": "plan --add", "json": [ { "id": "T05", "title": "…", "files
 
 `help` lists every action. A session bound to a run refuses `--run` naming another one.
 
+## When a subagent or OpenCode dies
+
+A subagent's session that goes idle (or is deleted) while its task is still in progress gives the task back to the
+queue: `release --agent-ended` (the attempt was counted at `start`; at `maxAttempts` the task fails), its locks are
+released, the edits stay on disk and the log says `agent-ended`. The root session going idle is the orchestrator
+waiting and changes nothing. If OpenCode itself dies, each `jlock hold --release-on-eof` reads the end of its input
+and the locks are freed at once; `tasks status` then shows `posse perdida` and `tasks resume` gives the tasks back.
+
 ## Tests
 
 ```

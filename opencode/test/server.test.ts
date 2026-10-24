@@ -199,4 +199,41 @@ describe("OpenCode plugin", () => {
     expect(locks()).toEqual([])
     expect((await h.call("s1", "status")).text).toContain("posse perdida: T01 (sem travas no jlock")
   })
+
+  test("a subagent whose session ends with its task in progress gives it back (log agent-ended); one that finished changes nothing", async () => {
+    const { repo, h } = await setup()
+    const planned = await h.call("s1", "plan", plan)
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const dir = join(repo, ".scratch/goal-tasks/runs", run)
+    const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
+    const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+    const until = async (check: () => boolean) => {
+      for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
+      expect(check()).toBe(true)
+    }
+
+    // c1 starts T01 and its session goes idle without done: the task goes back to the queue, its lock too.
+    h.addSession("c1", "s1")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    expect(locks()).toHaveLength(1)
+    h.emit("session.idle", { sessionID: "c1" })
+    // The release writes pending first, then gives the lock back: wait for both.
+    await until(() => tasksOf()[0]!.status === "pending" && locks().length === 0)
+    const log = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l))
+    expect(log.at(-1)).toMatchObject({ action: "agent-ended", task: "T01", from: "in_progress", to: "pending" })
+
+    // The root session going idle is the orchestrator waiting: nothing happens.
+    h.addSession("c2", "s1")
+    expect((await h.call("c2", "start T02")).ok).toBe(true)
+    h.emit("session.idle", { sessionID: "s1" })
+    await Bun.sleep(300)
+    expect(tasksOf()[1]!.status).toBe("in_progress")
+
+    // c2 finishes T02 before its session is deleted: nothing changes.
+    writeFiles(repo, { "src/recorder/rec.ts": "export const rec = 1\n" })
+    expect((await h.call("c2", 'done T02 --evidence "ok"')).ok).toBe(true)
+    h.emit("session.deleted", { sessionID: "c2" })
+    await Bun.sleep(300)
+    expect(tasksOf()[1]!.status).toBe("done")
+  })
 })

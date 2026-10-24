@@ -70,8 +70,30 @@ export async function fakeHost(directory: string, host?: Host) {
   const registration = { dispose: async () => {} }
   const rpcImpls = new Map<string, Record<string, (input: unknown, context: unknown) => Promise<unknown>>>()
   const rpcListeners = new Map<string, ((event: { data: unknown }) => void)[]>()
+  // The event stream the plugin subscribes to: what OpenCode publishes, pushed by the test with `emit`.
+  const pending: { type: string; data: unknown }[] = []
+  let wake: (() => void) | undefined
+  let closed = false
+  const emit = (type: string, data: unknown) => {
+    pending.push({ type, data })
+    wake?.()
+  }
+  const stream: AsyncIterable<{ type: string; data: unknown }> = {
+    [Symbol.asyncIterator]: () => ({
+      next: async () => {
+        while (!pending.length && !closed) await new Promise<void>((r) => (wake = r))
+        return pending.length ? { done: false, value: pending.shift()! } : { done: true, value: undefined }
+      },
+      return: async () => {
+        closed = true
+        wake?.()
+        return { done: true, value: undefined }
+      },
+    }),
+  }
   const ctx = {
     app: { version: "2.1.3" },
+    event: { subscribe: () => stream },
     location: { directory },
     storage: {
       get: async (k: string) => storage.get(k),
@@ -173,5 +195,5 @@ export async function fakeHost(directory: string, host?: Host) {
           method in target ? target[method] : (input: unknown) => rpcImpls.get(def.id)![method]!(input, { signal: new AbortController().signal }),
       },
     )
-  return { ctx, tools, hooks, agents, storage, addSession, call, request, subagent, permission, rpcClient, cleanup }
+  return { ctx, tools, hooks, agents, storage, addSession, call, request, subagent, permission, rpcClient, cleanup, emit }
 }

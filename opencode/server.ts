@@ -6,6 +6,7 @@ import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
 import { holdModeFor, parseArgs, readTasks, runDir, runTool, splitCommand, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
+import { onSessionEnded } from "./src/agents.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
 import { judge } from "./src/guard.ts"
@@ -156,7 +157,24 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         await judge(host, bindings, event as never, fallbackDir)
       })
 
+      // A subagent's session that goes idle (or is deleted) with its task in progress gives the task back.
+      const events = (ctx.event?.subscribe?.() as AsyncIterable<{ type: string; data?: { sessionID?: string } }> | undefined)?.[
+        Symbol.asyncIterator
+      ]()
+      if (events)
+        void (async () => {
+          for (;;) {
+            const next = await events.next().catch(() => ({ done: true, value: undefined }) as const)
+            if (next.done) return
+            const { type, data } = next.value
+            if ((type !== "session.idle" && type !== "session.deleted") || !data?.sessionID) continue
+            const end = type === "session.idle" ? "idle" : "deleted"
+            await onSessionEnded(host, bindings, data.sessionID, end, (sessionID, command) => call(sessionID, command, undefined)).catch(() => {})
+          }
+        })()
+
       return async () => {
+        await events?.return?.().catch(() => {})
         await agentModels?.dispose()
         await rpc.dispose().catch(() => {})
         for (const list of residents.values())
