@@ -6,8 +6,8 @@ import { caseInsensitive, isAbsolute, normalize, slash } from "./paths.ts"
 import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
-const TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"])
-const PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"])
+const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"])
+const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"])
 const GLOB = /[*?[\]{}]/
 
 export interface ValidateOptions {
@@ -70,6 +70,10 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (typeof obj.objective === "string") plan.objective = obj.objective
     else errors.push(tr("plan.must_be_text", { field: "objective" }))
   }
+  if (obj.source !== undefined) {
+    if (typeof obj.source === "string") plan.source = obj.source
+    else errors.push(tr("plan.must_be_text", { field: "source" }))
+  }
   if (obj.profiles !== undefined) {
     if (obj.profiles && typeof obj.profiles === "object" && !Array.isArray(obj.profiles)) {
       const profiles: Record<string, Profile> = {}
@@ -114,6 +118,7 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (typeof t.id !== "string" || !t.id.trim()) errors.push(tr("plan.task_missing", { name, field: "id" }))
     if (typeof t.title !== "string" || !t.title.trim()) errors.push(tr("plan.task_missing", { name, field: "title" }))
     if (t.what !== undefined && typeof t.what !== "string") errors.push(tr("plan.task_text", { name, field: "what" }))
+    if (t.source !== undefined && typeof t.source !== "string") errors.push(tr("plan.task_text", { name, field: "source" }))
     if (t.dependsOn !== undefined && !isStringList(t.dependsOn)) errors.push(tr("plan.task_depends_list", { name }))
     if (t.files !== undefined && !isStringList(t.files)) errors.push(tr("plan.task_files_list", { name }))
     if (t.profile !== undefined && typeof t.profile !== "string") errors.push(tr("plan.task_text", { name, field: "profile" }))

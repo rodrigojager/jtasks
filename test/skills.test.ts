@@ -10,12 +10,12 @@ setDefaultTimeout(60_000)
 afterAll(cleanupTemp)
 
 const HOSTS = ["claude-code", "opencode", "codex"]
-const SKILLS = ["jtasks", "to-tickets"]
+const SKILLS = ["jtasks", "to-jtasks"]
 const dir = (host: string, skill: string) => join(REPO_ROOT, "skills", host, skill)
 const read = (host: string, skill: string, name = "SKILL.md") => readFileSync(join(dir(host, skill), name), "utf8")
-const example = JSON.parse(read("claude-code", "to-tickets", "example-plan.json"))
+const example = JSON.parse(read("claude-code", "to-jtasks", "example-plan.json"))
 
-describe("to-tickets skill", () => {
+describe("to-jtasks skill", () => {
   test("the example plan passes the core's validation", () => {
     expect(validatePlan(example, { platform: "win32" }).errors).toEqual([])
   })
@@ -34,7 +34,7 @@ describe("to-tickets skill", () => {
 
   test("the skill states the batch commands, the ownership rules and the never-by-hand rule, in every host", () => {
     for (const host of HOSTS) {
-      const text = read(host, "to-tickets")
+      const text = read(host, "to-jtasks")
       for (const needle of ["jtasks plan --draft", "jtasks plan --add", "jtasks plan --fix <id>", "jtasks plan --show", "jtasks plan --commit", "`dir/**`", "`src/*.ts` is refused", "Never edit `tasks.json`"])
         expect(text, host).toContain(needle)
     }

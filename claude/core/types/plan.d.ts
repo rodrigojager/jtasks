@@ -2,7 +2,7 @@
 import { type PlanInput, type PlanTask, type Profile, type RunFile, type Task, type TasksFile } from "./schema.js";
 import { type ToolContext, type ToolResult } from "./tool.js";
 export declare function actorOf(ctx: ToolContext): string;
-export declare function toTask(p: PlanTask, profiles: Record<string, Profile>): Task;
+export declare function toTask(p: PlanTask, profiles: Record<string, Profile>, source?: string): Task;
 export interface CreateRunOptions {
     /** Reuse the id of a draft (`plan --commit`). */
     id?: string;
@@ -24,6 +24,7 @@ export interface Draft {
     created: string;
     feature?: string;
     objective?: string;
+    source?: string;
     profiles?: Record<string, Profile>;
     serialize?: string[];
     maxAttempts?: number;

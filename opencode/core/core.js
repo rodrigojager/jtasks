@@ -199,7 +199,7 @@ var en_default = {
   "doctor.package_missing": "the package has no {file}",
   "doctor.skills_missing": "skills missing: {list}",
   "doctor.skills_no_agents": "no Claude Code, OpenCode or Codex folder in this home (nothing to check)",
-  "doctor.skills_ok": "to-tickets and jtasks are there for {agents}",
+  "doctor.skills_ok": "to-jtasks and jtasks are there for {agents}",
   "doctor.step_copy": "copy {file}",
   "doctor.step_jlock": "install jlock with its official installer",
   "doctor.summary": "ok: {ok}, warnings: {warn}, failures: {fail}",
@@ -289,7 +289,7 @@ var en_default = {
   "help.plan": "plan <json|@file> [--name slug]       creates the run (tasks.json, tickets, branch gt/<run>)",
   "help.plan.add": "  plan --add <json|@file>               adds a batch to the draft (validates the batch)",
   "help.plan.commit": "  plan --commit                         complete validation; creates the run and deletes the draft",
-  "help.plan.draft": "plan --draft [--name slug] [--objective text]   opens a draft (a plan in batches)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   opens a draft (a plan in batches)",
   "help.plan.fix": "  plan --fix <id> <json|@file>          replaces one task of the draft",
   "help.plan.show": "  plan --show                           a summary of the draft",
   "help.release": "release <id>                          in progress → pending (at maxAttempts, failed)",
@@ -579,7 +579,7 @@ var pt_BR_default = {
   "doctor.package_missing": "o pacote não tem {file}",
   "doctor.skills_missing": "faltam as skills: {list}",
   "doctor.skills_no_agents": "nenhuma pasta do Claude Code, OpenCode ou Codex nesta casa (nada a conferir)",
-  "doctor.skills_ok": "to-tickets e jtasks existem para {agents}",
+  "doctor.skills_ok": "to-jtasks e jtasks existem para {agents}",
   "doctor.step_copy": "copiar {file}",
   "doctor.step_jlock": "instalar o jlock pelo instalador oficial",
   "doctor.summary": "ok: {ok}, avisos: {warn}, falhas: {fail}",
@@ -669,7 +669,7 @@ var pt_BR_default = {
   "help.plan": "plan <json|@arquivo> [--name slug]    cria a execução (tasks.json, tickets, branch gt/<run>)",
   "help.plan.add": "  plan --add <json|@arquivo>            acrescenta um lote ao rascunho (valida o lote)",
   "help.plan.commit": "  plan --commit                         validação completa; cria a execução e apaga o rascunho",
-  "help.plan.draft": "plan --draft [--name slug] [--objective texto]   abre um rascunho (plano em lotes)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective texto] [--source ref]   abre um rascunho (plano em lotes)",
   "help.plan.fix": "  plan --fix <id> <json|@arquivo>       troca uma tarefa do rascunho",
   "help.plan.show": "  plan --show                           resumo do rascunho",
   "help.release": "release <id>                          em andamento → pendente (no maxAttempts, falha)",
@@ -959,7 +959,7 @@ var es_default = {
   "doctor.package_missing": "el paquete no tiene {file}",
   "doctor.skills_missing": "faltan las skills: {list}",
   "doctor.skills_no_agents": "ninguna carpeta de Claude Code, OpenCode o Codex en este home (nada que comprobar)",
-  "doctor.skills_ok": "to-tickets y jtasks existen para {agents}",
+  "doctor.skills_ok": "to-jtasks y jtasks existen para {agents}",
   "doctor.step_copy": "copiar {file}",
   "doctor.step_jlock": "instalar jlock con su instalador oficial",
   "doctor.summary": "ok: {ok}, avisos: {warn}, fallos: {fail}",
@@ -1049,7 +1049,7 @@ var es_default = {
   "help.plan": "plan <json|@archivo> [--name slug]    crea la ejecución (tasks.json, tickets, rama gt/<run>)",
   "help.plan.add": "  plan --add <json|@archivo>          añade un lote al borrador (valida el lote)",
   "help.plan.commit": "  plan --commit                       validación completa; crea la ejecución y borra el borrador",
-  "help.plan.draft": "plan --draft [--name slug] [--objective texto]   abre un borrador (un plan por lotes)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective texto] [--source ref]   abre un borrador (plan por lotes)",
   "help.plan.fix": "  plan --fix <id> <json|@archivo>     reemplaza una tarea del borrador",
   "help.plan.show": "  plan --show                         un resumen del borrador",
   "help.release": "release <id>                          en curso → pendiente (en maxAttempts, fallida)",
@@ -1339,7 +1339,7 @@ var fr_default = {
   "doctor.package_missing": "le paquet n'a pas de {file}",
   "doctor.skills_missing": "skills manquantes: {list}",
   "doctor.skills_no_agents": "aucun dossier de Claude Code, OpenCode ou Codex dans ce dossier personnel (rien à vérifier)",
-  "doctor.skills_ok": "to-tickets et jtasks sont présentes pour {agents}",
+  "doctor.skills_ok": "to-jtasks et jtasks sont présentes pour {agents}",
   "doctor.step_copy": "copier {file}",
   "doctor.step_jlock": "installer jlock avec son installeur officiel",
   "doctor.summary": "ok: {ok}, avertissements: {warn}, échecs: {fail}",
@@ -1429,7 +1429,7 @@ var fr_default = {
   "help.plan": "plan <json|@fichier> [--name slug]    crée l'exécution (tasks.json, tickets, branche gt/<run>)",
   "help.plan.add": "  plan --add <json|@fichier>          ajoute un lot au brouillon (valide le lot)",
   "help.plan.commit": "  plan --commit                       validation complète; crée l'exécution, supprime le brouillon",
-  "help.plan.draft": "plan --draft [--name slug] [--objective texte]   ouvre un brouillon (un plan par lots)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective texte] [--source ref]   ouvre un brouillon (plan par lots)",
   "help.plan.fix": "  plan --fix <id> <json|@fichier>     remplace une tâche du brouillon",
   "help.plan.show": "  plan --show                         un résumé du brouillon",
   "help.release": "release <id>                          en cours → en attente (à maxAttempts, en échec)",
@@ -1719,7 +1719,7 @@ var de_default = {
   "doctor.package_missing": "dem Paket fehlt {file}",
   "doctor.skills_missing": "fehlende Skills: {list}",
   "doctor.skills_no_agents": "kein Ordner von Claude Code, OpenCode oder Codex in diesem Home-Verzeichnis (nichts zu prüfen)",
-  "doctor.skills_ok": "to-tickets und jtasks sind für {agents} vorhanden",
+  "doctor.skills_ok": "to-jtasks und jtasks sind für {agents} vorhanden",
   "doctor.step_copy": "{file} kopieren",
   "doctor.step_jlock": "jlock mit seinem offiziellen Installer installieren",
   "doctor.summary": "ok: {ok}, Warnungen: {warn}, Fehler: {fail}",
@@ -1809,7 +1809,7 @@ var de_default = {
   "help.plan": "plan <json|@datei> [--name slug]      erstellt den Lauf (tasks.json, Tickets, Branch gt/<run>)",
   "help.plan.add": "  plan --add <json|@datei>            fügt dem Entwurf einen Batch hinzu (prüft den Batch)",
   "help.plan.commit": "  plan --commit                       volle Prüfung; erstellt den Lauf und löscht den Entwurf",
-  "help.plan.draft": "plan --draft [--name slug] [--objective text]   öffnet einen Entwurf (ein Plan in Batches)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   öffnet einen Entwurf (Batch-Plan)",
   "help.plan.fix": "  plan --fix <id> <json|@datei>       ersetzt eine Aufgabe des Entwurfs",
   "help.plan.show": "  plan --show                         eine Zusammenfassung des Entwurfs",
   "help.release": "release <id>                          in Arbeit → ausstehend (bei maxAttempts fehlgeschlagen)",
@@ -2099,7 +2099,7 @@ var it_default = {
   "doctor.package_missing": "il pacchetto non ha {file}",
   "doctor.skills_missing": "skill mancanti: {list}",
   "doctor.skills_no_agents": "nessuna cartella di Claude Code, OpenCode o Codex in questa home (niente da verificare)",
-  "doctor.skills_ok": "to-tickets e jtasks ci sono per {agents}",
+  "doctor.skills_ok": "to-jtasks e jtasks ci sono per {agents}",
   "doctor.step_copy": "copiare {file}",
   "doctor.step_jlock": "installare jlock con il suo installer ufficiale",
   "doctor.summary": "ok: {ok}, avvisi: {warn}, errori: {fail}",
@@ -2189,7 +2189,7 @@ var it_default = {
   "help.plan": "plan <json|@file> [--name slug]       crea l'esecuzione (tasks.json, ticket, branch gt/<run>)",
   "help.plan.add": "  plan --add <json|@file>             aggiunge un lotto alla bozza (convalida il lotto)",
   "help.plan.commit": "  plan --commit                       convalida completa; crea l'esecuzione ed elimina la bozza",
-  "help.plan.draft": "plan --draft [--name slug] [--objective testo]   apre una bozza (un piano a lotti)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective testo] [--source ref]   apre una bozza (un piano a lotti)",
   "help.plan.fix": "  plan --fix <id> <json|@file>        sostituisce un'attività della bozza",
   "help.plan.show": "  plan --show                         un riepilogo della bozza",
   "help.release": "release <id>                          in corso → in sospeso (a maxAttempts, fallita)",
@@ -2479,7 +2479,7 @@ var zh_CN_default = {
   "doctor.package_missing": "软件包中没有 {file}",
   "doctor.skills_missing": "缺少 skill：{list}",
   "doctor.skills_no_agents": "此主目录中没有 Claude Code、OpenCode 或 Codex 的文件夹（无需检查）",
-  "doctor.skills_ok": "{agents} 已有 to-tickets 和 jtasks",
+  "doctor.skills_ok": "{agents} 已有 to-jtasks 和 jtasks",
   "doctor.step_copy": "复制 {file}",
   "doctor.step_jlock": "用官方安装程序安装 jlock",
   "doctor.summary": "ok：{ok}，警告：{warn}，失败：{fail}",
@@ -2569,7 +2569,7 @@ var zh_CN_default = {
   "help.plan": "plan <json|@文件> [--name slug]       创建运行（tasks.json、工单、分支 gt/<run>）",
   "help.plan.add": "  plan --add <json|@文件>               向草稿添加一个批次（校验该批次）",
   "help.plan.commit": "  plan --commit                         完整校验；创建运行并删除草稿",
-  "help.plan.draft": "plan --draft [--name slug] [--objective 文本]   打开草稿（分批编写计划）",
+  "help.plan.draft": "plan --draft [--name slug] [--objective 文本] [--source ref]   打开草稿（分批编写计划）",
   "help.plan.fix": "  plan --fix <id> <json|@文件>          替换草稿中的一个任务",
   "help.plan.show": "  plan --show                           草稿摘要",
   "help.release": "release <id>                          进行中 → 待处理（达到 maxAttempts 则失败）",
@@ -2859,7 +2859,7 @@ var ja_default = {
   "doctor.package_missing": "パッケージに {file} がない",
   "doctor.skills_missing": "足りないスキル: {list}",
   "doctor.skills_no_agents": "このホームに Claude Code、OpenCode、Codex のフォルダがない（確認対象なし）",
-  "doctor.skills_ok": "{agents} に to-tickets と jtasks がある",
+  "doctor.skills_ok": "{agents} に to-jtasks と jtasks がある",
   "doctor.step_copy": "{file} をコピー",
   "doctor.step_jlock": "公式インストーラーで jlock をインストール",
   "doctor.summary": "ok: {ok}、警告: {warn}、失敗: {fail}",
@@ -2949,7 +2949,7 @@ var ja_default = {
   "help.plan": "plan <json|@ファイル> [--name slug]   実行を作成（tasks.json、チケット、ブランチ gt/<run>）",
   "help.plan.add": "  plan --add <json|@ファイル>           下書きにバッチを追加（バッチを検証）",
   "help.plan.commit": "  plan --commit                         完全な検証。実行を作成し、下書きを削除",
-  "help.plan.draft": "plan --draft [--name slug] [--objective テキスト]   下書きを開く（バッチ単位の計画）",
+  "help.plan.draft": "plan --draft [--name slug] [--objective テキスト] [--source ref]   下書きを開く（バッチ計画）",
   "help.plan.fix": "  plan --fix <id> <json|@ファイル>      下書きのタスクを 1 つ置き換える",
   "help.plan.show": "  plan --show                           下書きの概要",
   "help.release": "release <id>                          進行中 → 未着手（maxAttempts に達したら失敗）",
@@ -3239,7 +3239,7 @@ var ru_default = {
   "doctor.package_missing": "в пакете нет {file}",
   "doctor.skills_missing": "нет навыков: {list}",
   "doctor.skills_no_agents": "в этой домашней папке нет папок Claude Code, OpenCode или Codex (проверять нечего)",
-  "doctor.skills_ok": "to-tickets и jtasks на месте для {agents}",
+  "doctor.skills_ok": "to-jtasks и jtasks на месте для {agents}",
   "doctor.step_copy": "скопировать {file}",
   "doctor.step_jlock": "установить jlock официальным установщиком",
   "doctor.summary": "ok: {ok}, предупреждений: {warn}, сбоев: {fail}",
@@ -3329,7 +3329,7 @@ var ru_default = {
   "help.plan": "plan <json|@файл> [--name slug]       создаёт прогон (tasks.json, тикеты, ветка gt/<run>)",
   "help.plan.add": "  plan --add <json|@файл>             добавляет пакет в черновик (проверяет пакет)",
   "help.plan.commit": "  plan --commit                       полная проверка; создаёт прогон и удаляет черновик",
-  "help.plan.draft": "plan --draft [--name slug] [--objective текст]   открывает черновик (план по пакетам)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective текст] [--source ref]   открывает черновик (план пакетами)",
   "help.plan.fix": "  plan --fix <id> <json|@файл>        заменяет одну задачу черновика",
   "help.plan.show": "  plan --show                         сводка черновика",
   "help.release": "release <id>                          в работе → в ожидании (при maxAttempts — провал)",
@@ -3619,7 +3619,7 @@ var ar_default = {
   "doctor.package_missing": "الحزمة ليس فيها {file}",
   "doctor.skills_missing": "مهارات ناقصة: {list}",
   "doctor.skills_no_agents": "لا مجلد لـ Claude Code أو OpenCode أو Codex في مجلد المستخدم هذا (لا شيء للفحص)",
-  "doctor.skills_ok": "to-tickets و jtasks موجودتان لـ {agents}",
+  "doctor.skills_ok": "to-jtasks و jtasks موجودتان لـ {agents}",
   "doctor.step_copy": "نسخ {file}",
   "doctor.step_jlock": "تثبيت jlock بمثبّته الرسمي",
   "doctor.summary": "ok: {ok}، التحذيرات: {warn}، الإخفاقات: {fail}",
@@ -3709,7 +3709,7 @@ var ar_default = {
   "help.plan": "plan <json|@file> [--name slug]       ينشئ التشغيل (tasks.json، تذاكر، فرع gt/<run>)",
   "help.plan.add": "  plan --add <json|@file>             يضيف دفعة إلى المسودة (يتحقق من الدفعة)",
   "help.plan.commit": "  plan --commit                       تحقق كامل؛ ينشئ التشغيل ويحذف المسودة",
-  "help.plan.draft": "plan --draft [--name slug] [--objective text]   يفتح مسودة (خطة على دفعات)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   يفتح مسودة (خطة على دفعات)",
   "help.plan.fix": "  plan --fix <id> <json|@file>        يستبدل مهمة واحدة في المسودة",
   "help.plan.show": "  plan --show                         ملخص المسودة",
   "help.release": "release <id>                          قيد التنفيذ → معلّقة (عند maxAttempts، فاشلة)",
@@ -3999,7 +3999,7 @@ var hi_default = {
   "doctor.package_missing": "पैकेज में {file} नहीं है",
   "doctor.skills_missing": "स्किल गायब: {list}",
   "doctor.skills_no_agents": "इस होम में Claude Code, OpenCode या Codex का कोई फ़ोल्डर नहीं (जाँचने को कुछ नहीं)",
-  "doctor.skills_ok": "{agents} के लिए to-tickets और jtasks मौजूद हैं",
+  "doctor.skills_ok": "{agents} के लिए to-jtasks और jtasks मौजूद हैं",
   "doctor.step_copy": "{file} कॉपी करें",
   "doctor.step_jlock": "jlock को उसके आधिकारिक इंस्टॉलर से इंस्टॉल करें",
   "doctor.summary": "ok: {ok}, चेतावनियाँ: {warn}, विफल: {fail}",
@@ -4089,7 +4089,7 @@ var hi_default = {
   "help.plan": "plan <json|@file> [--name slug]       रन बनाता है (tasks.json, टिकट, ब्रांच gt/<run>)",
   "help.plan.add": "  plan --add <json|@file>               ड्राफ़्ट में एक बैच जोड़ता है (बैच की जाँच करता है)",
   "help.plan.commit": "  plan --commit                         पूरी जाँच; रन बनाता है और ड्राफ़्ट हटाता है",
-  "help.plan.draft": "plan --draft [--name slug] [--objective text]   ड्राफ़्ट खोलता है (बैचों में योजना)",
+  "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   ड्राफ़्ट खोलता है (बैचों में योजना)",
   "help.plan.fix": "  plan --fix <id> <json|@file>          ड्राफ़्ट का एक कार्य बदलता है",
   "help.plan.show": "  plan --show                           ड्राफ़्ट का सारांश",
   "help.release": "release <id>                          प्रगति पर → लंबित (maxAttempts पर, विफल)",
@@ -4392,8 +4392,8 @@ function width(text) {
 }
 
 // src/validate.ts
-var TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"]);
+var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"]);
 var GLOB = /[*?[\]{}]/;
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
@@ -4448,6 +4448,12 @@ function readPlan(raw) {
       plan.objective = obj.objective;
     else
       errors.push(tr("plan.must_be_text", { field: "objective" }));
+  }
+  if (obj.source !== undefined) {
+    if (typeof obj.source === "string")
+      plan.source = obj.source;
+    else
+      errors.push(tr("plan.must_be_text", { field: "source" }));
   }
   if (obj.profiles !== undefined) {
     if (obj.profiles && typeof obj.profiles === "object" && !Array.isArray(obj.profiles)) {
@@ -4507,6 +4513,8 @@ function readPlan(raw) {
       errors.push(tr("plan.task_missing", { name, field: "title" }));
     if (t.what !== undefined && typeof t.what !== "string")
       errors.push(tr("plan.task_text", { name, field: "what" }));
+    if (t.source !== undefined && typeof t.source !== "string")
+      errors.push(tr("plan.task_text", { name, field: "source" }));
     if (t.dependsOn !== undefined && !isStringList(t.dependsOn))
       errors.push(tr("plan.task_depends_list", { name }));
     if (t.files !== undefined && !isStringList(t.files))
@@ -4698,6 +4706,7 @@ function renderTicket(task, index, all) {
     "",
     `**What to build:** ${task.what?.trim() || task.title}`,
     "",
+    ...task.source ? [`**Source:** ${task.source}`, ""] : [],
     `**Blocked by:** ${blocked}`,
     "",
     `**Status:** ${task.status}`,
@@ -4795,6 +4804,9 @@ function parseTicket(text, file, index) {
     task.what = what;
   else
     notes.push(tr("import.no_what"));
+  const source = fields.get("source") ?? fields.get("parent");
+  if (source)
+    task.source = source;
   const blocked = fields.get("blocked by");
   if (blocked === undefined)
     notes.push(tr("import.no_blocked"));
@@ -5403,7 +5415,7 @@ function actorOf(ctx) {
   const base = ctx.session ? `${ctx.tool}:${ctx.session}` : ctx.tool;
   return ctx.agent ? `${base}/agent:${ctx.agent}` : base;
 }
-function toTask(p, profiles) {
+function toTask(p, profiles, source) {
   const fallback = DEFAULT_PROFILE in profiles ? DEFAULT_PROFILE : Object.keys(profiles)[0] ?? DEFAULT_PROFILE;
   const task = {
     id: p.id,
@@ -5418,6 +5430,8 @@ function toTask(p, profiles) {
   };
   if (p.what)
     task.what = p.what;
+  if (p.source || source)
+    task.source = p.source || source;
   if (p.exclusive)
     task.exclusive = true;
   if (p.boundary)
@@ -5466,7 +5480,7 @@ async function createRun(ctx, plan, options = {}) {
     run: id,
     revision: 1,
     profiles,
-    tasks: plan.tasks.map((t) => toTask(t, profiles))
+    tasks: plan.tasks.map((t) => toTask(t, profiles, plan.source))
   };
   const existed = !!await host.stat(dir);
   const undo = [];
@@ -5578,6 +5592,8 @@ function draftPlan(draft) {
     plan.feature = draft.feature;
   if (draft.objective !== undefined)
     plan.objective = draft.objective;
+  if (draft.source !== undefined)
+    plan.source = draft.source;
   if (draft.profiles !== undefined)
     plan.profiles = draft.profiles;
   if (draft.serialize !== undefined)
@@ -5612,6 +5628,7 @@ async function draftOpen(ctx, args) {
     throw new ToolError(tr("draft.already_open", { ids: open.map((d) => d.id).join(", ") }));
   const name = typeof args.options.name === "string" ? args.options.name : undefined;
   const objective = typeof args.options.objective === "string" ? args.options.objective : undefined;
+  const source = typeof args.options.source === "string" ? args.options.source : undefined;
   const now = host.now();
   let id;
   do
@@ -5623,6 +5640,8 @@ async function draftOpen(ctx, args) {
     draft.feature = name;
   if (objective)
     draft.objective = objective;
+  if (source)
+    draft.source = source;
   const addedExclude = await addExcludeLine(host, root, ".scratch/");
   await host.mkdir(dir);
   await saveDraft(ctx, dir, draft);
@@ -5656,7 +5675,7 @@ async function draftAdd(ctx, args) {
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
-    for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"])
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx, dir, next);
@@ -7668,8 +7687,8 @@ async function loadRunsView(host, root) {
 }
 // src/doctor.ts
 var OPENCODE_AGENTS = ["execute", "execute-deep", "review"];
-var SKILLS = ["to-tickets", "jtasks"];
-var SKILL_FILES = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], jtasks: ["SKILL.md"] };
+var SKILLS = ["to-jtasks", "jtasks"];
+var SKILL_FILES = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], jtasks: ["SKILL.md"] };
 function userHome(host) {
   return (host.env("JTASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/");
 }

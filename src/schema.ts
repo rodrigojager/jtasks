@@ -28,6 +28,8 @@ export interface Task {
   id: string
   title: string
   what?: string
+  /** Where the task came from: the spec, issue or document the plan was made from (a path or a URL). */
+  source?: string
   status: TaskStatus
   dependsOn: string[]
   profile: string
@@ -102,6 +104,7 @@ export interface PlanTask {
   id: string
   title: string
   what?: string
+  source?: string
   dependsOn?: string[]
   files?: string[]
   acceptance?: (string | { text: string; done?: boolean })[]
@@ -114,6 +117,8 @@ export interface PlanTask {
 export interface PlanInput {
   feature?: string
   objective?: string
+  /** The spec, issue or document the plan was made from; every task without its own `source` gets it. */
+  source?: string
   profiles?: Record<string, Profile>
   serialize?: string[]
   maxAttempts?: number

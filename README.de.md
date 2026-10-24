@@ -133,7 +133,7 @@ sie gleichzeitig nehmen. T03 wartet auf beide. `done` hat den Commit `T01: Sum` 
 
 ## Mit Claude Code
 
-Bitte Claude bei geladenem Mod, mit der Skill `to-tickets` zu planen (sie wird mit dem Mod ausgeliefert): Sie
+Bitte Claude bei geladenem Mod, mit der Skill `to-jtasks` zu planen (sie wird mit dem Mod ausgeliefert): Sie
 zerlegt die Arbeit in Aufgaben, lässt dich sie freigeben und übergibt den Plan in Batches an das Tool. Starte dann
 ein Goal:
 
@@ -147,7 +147,7 @@ Bereich.
 
 ## Mit OpenCode
 
-Mit dem Plugin genauso: `to-tickets` zum Planen, dann ein Goal. Der `subagent`-Aufruf jeder Aufgabe bekommt den
+Mit dem Plugin genauso: `to-jtasks` zum Planen, dann ein Goal. Der `subagent`-Aufruf jeder Aufgabe bekommt den
 Agenten ihres Profils (`execute`, `execute-deep`, `review`, installiert von `jtasks doctor --fix --yes`, oder
 jeden Agenten, den du im Plan nennst). Die Seitenleiste zeigt die Checkliste und den Fortschrittsbalken.
 

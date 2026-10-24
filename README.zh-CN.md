@@ -105,7 +105,7 @@ $ jtasks status
 
 ## 配合 Claude Code
 
-加载 mod 后，让 Claude 用 `to-tickets` skill 来做计划（它随 mod 一起提供）：它会把工作拆分成任务，请你批准，然后分批把计划交给工具。接着启动一个目标：
+加载 mod 后，让 Claude 用 `to-jtasks` skill 来做计划（它随 mod 一起提供）：它会把工作拆分成任务，请你批准，然后分批把计划交给工具。接着启动一个目标：
 
 ```
 /goal 运行 <run> 的每个任务都已完成或跳过（jtasks status 显示没有剩余）
@@ -115,7 +115,7 @@ Claude 调用 `jtasks next`，在同一个回复中为每个就绪任务打开�
 
 ## 配合 OpenCode
 
-使用插件时也一样：用 `to-tickets` 做计划，然后设定一个目标。每个任务的 `subagent` 调用会得到其配置对应的智能体（`execute`、`execute-deep`、`review`，由 `jtasks doctor --fix --yes` 安装，或者是你在计划中指定的任意智能体）。侧边栏显示清单和进度条。
+使用插件时也一样：用 `to-jtasks` 做计划，然后设定一个目标。每个任务的 `subagent` 调用会得到其配置对应的智能体（`execute`、`execute-deep`、`review`，由 `jtasks doctor --fix --yes` 安装，或者是你在计划中指定的任意智能体）。侧边栏显示清单和进度条。
 
 ## 在终端或 Codex 中
 

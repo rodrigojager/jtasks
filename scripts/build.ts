@@ -88,7 +88,7 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
     after:
       "the protocol the mod injects into the prompt (`jtasks next`, one subagent per ready task, `jtasks status` until " +
       "nothing is left); without the mod, the `jtasks` skill.",
-    frontmatter: { "to-tickets": "disable-model-invocation: true\n" },
+    frontmatter: { "to-jtasks": "disable-model-invocation: true\n" },
   },
   opencode: {
     calling:

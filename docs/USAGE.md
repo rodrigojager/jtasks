@@ -22,7 +22,7 @@ jtasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skill
 0.1.0, 0.1.1 for `--release-on-eof`, and its own `jlock doctor --json`); `JTASKS_HOME` (a writable folder, the
 global ledger); OpenCode (the agents `execute`, `execute-deep`, `review` in `~/.config/opencode/agents/`, the
 project's `.opencode/agents/` or `opencode.json`, and whether the plugin is configured); Claude Code (found, and
-whether the mod is installed; informative); the skills `to-tickets` and `jtasks` of every agent installed
+whether the mod is installed; informative); the skills `to-jtasks` and `jtasks` of every agent installed
 (Claude Code, OpenCode, Codex); and the language with where it came from. Exit 0 with no failure (warnings do not
 change it), 20 with one; `--json` gives `{ result, checks: [{ name, status, detail, fix }], summary }`.
 
@@ -50,6 +50,7 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
 {
   "feature": "login-por-email",
   "objective": "Login por link mágico",
+  "source": "https://github.com/acme/app/issues/42",
   "serialize": ["bun test"],
   "profiles": { "execute": { "claude": { "agent": "jtasks:execute", "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
@@ -60,6 +61,8 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
 }
 ```
 
+- `source`: the spec, issue or document the plan came from (a path or a URL); every ticket shows it as `Source`, and
+  a task may name its own. `what` is the behaviour the task delivers; `acceptance`, the criteria its `done` answers.
 - `files`: files and folders relative to the repository; a folder owns everything inside it; `dir/**` is the
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
@@ -71,8 +74,8 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 
-The full schema is [`schema.json`](../skills/claude-code/to-tickets/schema.json), beside the `to-tickets` skill,
-which turns a conversation into this plan and delivers it. The skills (`to-tickets` to plan, `jtasks` to carry a
+The full schema is [`schema.json`](../skills/claude-code/to-jtasks/schema.json), beside the `to-jtasks` skill,
+which turns a conversation into this plan and delivers it. The skills (`to-jtasks` to plan, `jtasks` to carry a
 run out) exist for Claude Code, OpenCode and Codex; where they go and how to install them: [`skills/README.md`](../skills/README.md)
 (the mod carries its own copy).
 
@@ -85,7 +88,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 |---|---|---|
 | plan | `validate <json\|@file\|dir>` | validates a plan (or a folder of tickets) without writing |
 | | `plan <json\|@file> [--name slug]` | creates the run: `run.json`, `tasks.json`, tickets, branch `gt/<run>`, `.scratch/` in `.git/info/exclude`, ledger |
-| | `plan --draft [--name s] [--objective t]` | opens a draft (not a run yet) |
+| | `plan --draft [--name s] [--objective t] [--source r]` | opens a draft (not a run yet) |
 | | `plan --add <json\|@file>` | adds a batch; refused whole on any error of the batch |
 | | `plan --fix <id> <json\|@file>` | replaces one task of the draft |
 | | `plan --show` | ids, titles, dependencies and ownership of the draft |
@@ -150,7 +153,7 @@ line. Every `jlock` the tool starts gets `JLOCK_LANG` with the same tag, so the 
 
 What does not change with the language: action and option names, `--json` (the data is the same in every
 language), ids, `tasks.json`, `run.json`, `log.jsonl`, the ledger, the section headings of the generated tickets
-(`What to build`, `Blocked by`, `Status`, `Files`, `Scope boundary`), and what the model reads: the protocol
+(`What to build`, `Source`, `Blocked by`, `Status`, `Files`, `Scope boundary`), and what the model reads: the protocol
 injected into its prompt is English and quotes the tool's answers (`restam 0`, `0 left`) in the tool's language.
 
 ```
@@ -161,7 +164,7 @@ jtasks help claim --lang pt-BR
 ## With `/goal`
 
 ```
-Planejar     to-tickets (passos 1–4, com "quais arquivos") → jtasks plan --draft / --add / --commit
+Planejar     to-jtasks (passos 1–4, com "quais arquivos") → jtasks plan --draft / --add / --commit
 Claude Code  /goal todas as tarefas da execução <run> estão done ou skipped (jtasks status responde "restam 0")
 OpenCode     create_goal com o mesmo objetivo; update_goal com a saída de jtasks status
 Retomar      em qualquer janela: jtasks resume <run> → /goal de novo

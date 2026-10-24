@@ -1,6 +1,6 @@
 ---
 name: jtasks
-description: Carry out a jtasks run (a task list with dependencies and file ownership, held as jlock locks) with the `jtasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-tickets) and the user asks to execute it, with or without /goal.
+description: Carry out a jtasks run (a task list with dependencies and file ownership, held as jlock locks) with the `jtasks` tool: take the next ready tasks, work each one inside its ownership, ask for more files with claim, finish with evidence, and loop until the run has nothing left. Use it when a run exists (or a plan was just handed to the tool with to-jtasks) and the user asks to execute it, with or without /goal.
 {{FRONTMATTER}}---
 
 # jtasks: carry out a run

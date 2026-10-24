@@ -8,7 +8,7 @@ como histórico.
 ## Estado
 
 Itens 2 a 6 da seção 18 do plano entregues (núcleo + CLI + ledger, plugin do OpenCode, mod do Claude Code, skill
-`to-tickets`, `gc --scan`); itens 7 (worktrees per-task) e 8 (Codex, pi, ralph) ficaram de fora. Os tickets ficam em
+`to-jtasks`, `gc --scan`); itens 7 (worktrees per-task) e 8 (Codex, pi, ralph) ficaram de fora. Os tickets ficam em
 `.scratch/jtasks/issues/NN-slug.md` (fora do git) e seguem o mesmo processo do jlock: fronteira (menor ticket
 cujos bloqueios estão `done`), `**Status:**` no arquivo, critérios `- [ ]`, um commit por ticket (`NN: <título>`).
 Uso em `docs/USAGE.md`; desvios em `docs/DEVIATIONS.md`. Segunda leva (plano rev. 5.2, seção 18 itens 9 a 15):

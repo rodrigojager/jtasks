@@ -133,7 +133,7 @@ prendre en même temps. T03 attend les deux. `done` a fait le commit `T01: Sum` 
 
 ## Avec Claude Code
 
-Une fois le mod chargé, demandez à Claude de planifier avec la skill `to-tickets` (elle est fournie avec le mod) :
+Une fois le mod chargé, demandez à Claude de planifier avec la skill `to-jtasks` (elle est fournie avec le mod) :
 elle découpe le travail en tâches, vous demande de les approuver et transmet le plan à l'outil par lots. Ensuite,
 lancez un goal :
 
@@ -146,7 +146,7 @@ profil) et appelle `jtasks status` jusqu'à ce qu'il ne reste rien. `/jtasks` ou
 
 ## Avec OpenCode
 
-Avec le plugin, c'est pareil : `to-tickets` pour planifier, puis un goal. L'appel `subagent` de chaque tâche reçoit
+Avec le plugin, c'est pareil : `to-jtasks` pour planifier, puis un goal. L'appel `subagent` de chaque tâche reçoit
 l'agent de son profil (`execute`, `execute-deep`, `review`, installés par `jtasks doctor --fix --yes`, ou
 n'importe quel agent que vous nommez dans le plan). La barre latérale affiche la checklist et la barre de
 progression.

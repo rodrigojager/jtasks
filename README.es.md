@@ -130,7 +130,7 @@ T03 espera a las dos. `done` hizo el commit `T01: Sum` solo con `src/sum.ts`.
 
 ## Con Claude Code
 
-Con el mod cargado, pide a Claude que planifique con la skill `to-tickets` (viene con el mod): divide el trabajo en
+Con el mod cargado, pide a Claude que planifique con la skill `to-jtasks` (viene con el mod): divide el trabajo en
 tareas, te pide que las apruebes y entrega el plan a la herramienta por lotes. Después, inicia un goal:
 
 ```
@@ -142,7 +142,7 @@ perfil) y llama a `jtasks status` hasta que no quede nada. `/jtasks` abre o cier
 
 ## Con OpenCode
 
-Con el plugin, lo mismo: `to-tickets` para planificar y luego un goal. La llamada `subagent` de cada tarea recibe
+Con el plugin, lo mismo: `to-jtasks` para planificar y luego un goal. La llamada `subagent` de cada tarea recibe
 el agente de su perfil (`execute`, `execute-deep`, `review`, instalados por `jtasks doctor --fix --yes`, o
 cualquier agente que nombres en el plan). La barra lateral muestra la lista de comprobación y la barra de progreso.
 

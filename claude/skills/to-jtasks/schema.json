@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/rodrigojager/jtasks/skills/to-tickets/schema.json",
+  "$id": "https://github.com/rodrigojager/jtasks/skills/to-jtasks/schema.json",
   "title": "jtasks plan",
   "description": "The plan (or one batch of it) that `jtasks plan` / `jtasks plan --add` takes: a list of tasks, or an object with `tasks`.",
   "oneOf": [
@@ -10,6 +10,7 @@
       "properties": {
         "feature": { "type": "string", "description": "Short slug of the feature (names the run)." },
         "objective": { "type": "string", "description": "One line: what the run achieves." },
+        "source": { "type": "string", "description": "The spec, issue or document the plan came from (a path or a URL); every task without its own source shows it in its ticket." },
         "profiles": {
           "type": "object",
           "description": "Agent profiles by name; without it: execute, execute-deep, review.",
@@ -35,19 +36,20 @@
       "properties": {
         "id": { "type": "string", "description": "Stable id, e.g. T04." },
         "title": { "type": "string" },
-        "what": { "type": "string", "description": "What to build: the end-to-end behaviour, from the user's side." },
+        "what": { "type": "string", "minLength": 1, "description": "What to build: the end-to-end behaviour this task makes work, from the user's side; no file paths (they go in files) and no code." },
+        "source": { "type": "string", "description": "Where this task came from, when it is not the plan's source." },
         "dependsOn": { "type": "array", "items": { "type": "string" }, "description": "Ids of the tasks that block this one." },
         "files": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },
           "description": "Files and folders it owns, relative to the repository; a folder owns everything inside; dir/** is the folder; no other patterns."
         },
-        "acceptance": { "type": "array", "items": { "type": "string" }, "description": "Acceptance criteria." },
+        "acceptance": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Acceptance criteria: each one observable, false at the commit the task starts from, and made true by this task alone." },
         "profile": { "type": "string", "description": "Name of a profile (default execute)." },
         "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
         "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." }
       },
-      "required": ["id", "title"],
+      "required": ["id", "title", "what", "acceptance"],
       "additionalProperties": false
     },
     "profile": {

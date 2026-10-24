@@ -66,7 +66,7 @@ describe("jtasks doctor", () => {
     expect(check(r, "opencode")).toMatchObject({ status: "warn", fix: "jtasks doctor --fix --yes" })
     expect(check(r, "opencode").detail).toContain("execute, execute-deep, review")
     expect(check(r, "skills")).toMatchObject({ status: "warn", fix: "jtasks doctor --fix --yes" })
-    expect(check(r, "skills").detail).toContain("opencode/to-tickets, opencode/jtasks")
+    expect(check(r, "skills").detail).toContain("opencode/to-jtasks, opencode/jtasks")
   })
 
   test("the agents found in opencode.json count; the language follows --lang", async () => {

@@ -36,6 +36,15 @@ describe("tickets", () => {
     expect(second).toContain("**Scope boundary:** só a suíte")
   })
 
+  test("the plan's source reaches every ticket, and a task's own source wins", () => {
+    const plan = "https://github.com/acme/app/issues/42"
+    const own = toTask({ id: "T01", title: "Base", source: "docs/spec.md" }, DEFAULT_PROFILES, plan)
+    const inherited = toTask({ id: "T02", title: "Outra" }, DEFAULT_PROFILES, plan)
+    expect(renderTicket(own, 0, [own, inherited])).toContain("**What to build:** Base\n\n**Source:** docs/spec.md\n\n**Blocked by:**")
+    expect(renderTicket(inherited, 1, [own, inherited])).toContain(`**Source:** ${plan}\n`)
+    expect(renderTicket(tasks[0]!, 0, tasks)).not.toContain("**Source:**")
+  })
+
   test("file names use the task number and the title's slug", () => {
     expect(ticketFileName(tasks[1]!, 1)).toBe("02-integracao-suite.md")
     expect(ticketFileName({ ...tasks[0]!, id: "setup" }, 6)).toBe("07-base.md")

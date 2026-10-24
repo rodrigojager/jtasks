@@ -24,7 +24,7 @@ describe("jtasks doctor --fix", () => {
     const ctx = { host: withEnv({ JTASKS_USER_HOME: home }), packageRoot: REPO_ROOT }
     const r = await tasksOk(repo, ["doctor", "--fix"], ctx)
     const planned = (r.data as { planned: string[] }).planned
-    // 3 agents + 3 hosts × (to-tickets: 3 files, jtasks: 1 file).
+    // 3 agents + 3 hosts × (to-jtasks: 3 files, jtasks: 1 file).
     expect(planned).toHaveLength(3 + 3 * 4)
     expect(existsSync(join(home, ".config/opencode/agents/execute.md"))).toBe(false)
   })
@@ -39,7 +39,7 @@ describe("jtasks doctor --fix", () => {
     const r = await tasksOk(repo, ["doctor", "--fix", "--yes"], ctx)
     const agent = join(home, ".config/opencode/agents/execute-deep.md")
     expect(readFileSync(agent, "utf8")).toBe(readFileSync(join(REPO_ROOT, "opencode/agents/execute-deep.md"), "utf8"))
-    for (const h of [".claude/skills", ".config/opencode/skills", ".agents/skills"]) expect(existsSync(join(home, h, "to-tickets/schema.json"))).toBe(true)
+    for (const h of [".claude/skills", ".config/opencode/skills", ".agents/skills"]) expect(existsSync(join(home, h, "to-jtasks/schema.json"))).toBe(true)
     expect(readFileSync(join(home, ".claude/skills/jtasks/SKILL.md"), "utf8")).toBe(readFileSync(join(REPO_ROOT, "skills/claude-code/jtasks/SKILL.md"), "utf8"))
     // The user's own file stays, and the next check still sees a skill there.
     expect(readFileSync(join(home, ".agents/skills/jtasks/SKILL.md"), "utf8")).toBe("mine\n")

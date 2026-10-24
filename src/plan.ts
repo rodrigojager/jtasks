@@ -28,7 +28,7 @@ export function actorOf(ctx: ToolContext): string {
   return ctx.agent ? `${base}/agent:${ctx.agent}` : base
 }
 
-export function toTask(p: PlanTask, profiles: Record<string, Profile>): Task {
+export function toTask(p: PlanTask, profiles: Record<string, Profile>, source?: string): Task {
   const fallback = DEFAULT_PROFILE in profiles ? DEFAULT_PROFILE : (Object.keys(profiles)[0] ?? DEFAULT_PROFILE)
   const task: Task = {
     id: p.id,
@@ -42,6 +42,7 @@ export function toTask(p: PlanTask, profiles: Record<string, Profile>): Task {
     owner: null,
   }
   if (p.what) task.what = p.what
+  if (p.source || source) task.source = (p.source || source)!
   if (p.exclusive) task.exclusive = true
   if (p.boundary) task.boundary = p.boundary
   return task
@@ -102,7 +103,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     run: id,
     revision: 1,
     profiles,
-    tasks: plan.tasks.map((t) => toTask(t, profiles)),
+    tasks: plan.tasks.map((t) => toTask(t, profiles, plan.source)),
   }
 
   const existed = !!(await host.stat(dir))
@@ -178,6 +179,7 @@ export interface Draft {
   created: string
   feature?: string
   objective?: string
+  source?: string
   profiles?: Record<string, Profile>
   serialize?: string[]
   maxAttempts?: number
@@ -224,6 +226,7 @@ function draftPlan(draft: Draft): PlanInput {
   const plan: PlanInput = { tasks: draft.tasks }
   if (draft.feature !== undefined) plan.feature = draft.feature
   if (draft.objective !== undefined) plan.objective = draft.objective
+  if (draft.source !== undefined) plan.source = draft.source
   if (draft.profiles !== undefined) plan.profiles = draft.profiles
   if (draft.serialize !== undefined) plan.serialize = draft.serialize
   if (draft.maxAttempts !== undefined) plan.maxAttempts = draft.maxAttempts
@@ -256,6 +259,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
     )
   const name = typeof args.options.name === "string" ? args.options.name : undefined
   const objective = typeof args.options.objective === "string" ? args.options.objective : undefined
+  const source = typeof args.options.source === "string" ? args.options.source : undefined
   const now = host.now()
   let id: string
   do id = runId(name || objective || "run", now, () => host.random())
@@ -264,6 +268,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
   const draft: Draft = { version: 1, id, created: now.toISOString(), tasks: [] }
   if (name) draft.feature = name
   if (objective) draft.objective = objective
+  if (source) draft.source = source
   const addedExclude = await addExcludeLine(host, root, ".scratch/")
   await host.mkdir(dir)
   await saveDraft(ctx, dir, draft)
@@ -302,7 +307,7 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const errors = [...read.errors, ...batch.errors, ...earlier]
     if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
-    for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"] as const)
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")

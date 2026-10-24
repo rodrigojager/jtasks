@@ -29,6 +29,7 @@ export function renderTicket(task: Task, index: number, all: Task[]): string {
     "",
     `**What to build:** ${task.what?.trim() || task.title}`,
     "",
+    ...(task.source ? [`**Source:** ${task.source}`, ""] : []),
     `**Blocked by:** ${blocked}`,
     "",
     `**Status:** ${task.status}`,
@@ -86,7 +87,7 @@ export interface ParsedTicket {
 
 const FIELD = /^\*\*([^*]+?):\*\*\s*(.*)$/
 
-/** Reads one ticket in the jlock / to-tickets format. */
+/** Reads one ticket in the jlock / to-jtasks format. */
 export function parseTicket(text: string, file: string, index: number): ParsedTicket {
   const notes: string[] = []
   const lines = text.replace(/\r\n/g, "\n").split("\n")
@@ -130,6 +131,9 @@ export function parseTicket(text: string, file: string, index: number): ParsedTi
   const what = fields.get("what to build")
   if (what) task.what = what
   else notes.push(tr("import.no_what"))
+
+  const source = fields.get("source") ?? fields.get("parent")
+  if (source) task.source = source
 
   const blocked = fields.get("blocked by")
   if (blocked === undefined) notes.push(tr("import.no_blocked"))

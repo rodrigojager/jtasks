@@ -1,12 +1,13 @@
 {
   "feature": "login-por-email",
   "objective": "Login por link mágico enviado por email",
+  "source": "https://github.com/acme/app/issues/42",
   "serialize": ["bun test"],
   "tasks": [
     {
       "id": "T01",
       "title": "Separar os tipos de sessão do módulo de rotas",
-      "what": "Prefatoração: os tipos de sessão saem de src/routes.ts para src/session/types.ts, sem mudar comportamento.",
+      "what": "Prefatoração: os tipos de sessão ganham um módulo próprio, fora das rotas, sem mudar comportamento.",
       "files": ["src/routes.ts", "src/session/types.ts"],
       "acceptance": ["bun test passa sem mudança nos testes", "src/routes.ts não declara mais tipos de sessão"],
       "boundary": "Nenhuma rota nova."
@@ -39,6 +40,7 @@
     {
       "id": "T05",
       "title": "Integração: suíte completa",
+      "what": "Revisão do login de ponta a ponta: a suíte inteira passa e cada critério das tarefas anteriores se confirma no código.",
       "dependsOn": ["T04"],
       "exclusive": true,
       "profile": "review",

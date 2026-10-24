@@ -25,8 +25,8 @@ export interface Check {
 }
 
 export const OPENCODE_AGENTS = ["execute", "execute-deep", "review"]
-export const SKILLS = ["to-tickets", "jtasks"]
-export const SKILL_FILES: Record<string, string[]> = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
+export const SKILLS = ["to-jtasks", "jtasks"]
+export const SKILL_FILES: Record<string, string[]> = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
 
 /** Where the doctor looks for and installs agents and skills: JTASKS_USER_HOME, else the user's home. */
 export function userHome(host: Host): string {

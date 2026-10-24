@@ -36,7 +36,7 @@ padrão do OpenCode (`execute`, `execute-deep`, `review`), e acrescenta: posse p
   `jtasks` (mod no Claude Code, plugin no OpenCode, CLI no terminal) valida esquema e transições e grava de forma
   atômica. O modelo escolhe a ação; nunca edita JSON nem Markdown.
 - **O JSON nasce validado:** a skill entrega o plano pela ferramenta, e os tickets Markdown são gerados dele. O
-  passo final da `to-tickets` chama `jtasks plan`; a ferramenta devolve os erros exatos até passar, e só então grava.
+  passo final da `to-jtasks` chama `jtasks plan`; a ferramenta devolve os erros exatos até passar, e só então grava.
 - **Paralelismo por posse de arquivos, na mesma pasta, sem worktrees, com travas de verdade.** Cada tarefa declara
   os arquivos e pastas que vai tocar (**[rev. 5]** uma pasta cobre tudo dentro dela; padrões como `src/*.ts` não
   existem no jlock e são recusados no plano). A posse é adquirida no jlock (CLI de travas da máquina, plano próprio): um
@@ -115,7 +115,7 @@ locales/<tag>.json   os catálogos de texto (seção 21), embutidos no core.js p
 cli/jtasks.ts         o CLI
 claude/              o mod (core/ é a cópia do núcleo; skills/ a cópia das skills do Claude Code)
 opencode/            o plugin (core/ a cópia do núcleo; agents/ os três agentes prontos, seção 13)
-skills/<agente>/<skill>/   to-tickets e jtasks para claude-code, opencode e codex (seção 23)
+skills/<agente>/<skill>/   to-jtasks e jtasks para claude-code, opencode e codex (seção 23)
 docs/                PLAN.md, DEVIATIONS.md, USAGE.md, evidence/
 README.md, README.<tag>.md   onze idiomas (seção 23)
 ```
@@ -124,7 +124,7 @@ README.md, README.<tag>.md   onze idiomas (seção 23)
 
 ## 3. Do plano às tarefas, sem parser frágil
 
-- A `to-tickets` continua igual nos passos 1 a 4 (contexto, código, fatias verticais, aprovação sua). Ganha uma
+- A `to-jtasks` (antes `to-tickets`, derivada da skill homônima de Matt Pocock) segue os passos 1 a 4 (contexto, código, fatias verticais, aprovação sua). Ganha uma
   pergunta a mais no passo 4: quais arquivos cada fatia toca. A skill já explora o código, então sabe responder.
 - O passo 5 chama `jtasks plan` com a lista em JSON (`id`, `title`, `what`, `dependsOn`, `files`, `acceptance[]`,
   `profile`, `boundary`).
@@ -244,7 +244,7 @@ se sustenta:
   teria de ser por trecho (frágil), e os testes de uma tarefa rodam com o código inacabado da outra.
 
 Quando um arquivo é um "hub" (um `routes.ts` gigante, um `types.ts` central) e a posse por arquivo serializa demais,
-o remédio determinístico é o que a própria `to-tickets` já manda: pré-refatorar, dividindo o hub em módulos numa
+o remédio determinístico é o que a própria `to-jtasks` já manda: pré-refatorar, dividindo o hub em módulos numa
 tarefa prévia, para que a posse por arquivo volte a ser fina. Fora isso, as tarefas que tocam o hub rodam em
 sequência e as outras em paralelo. A trava por função fica registrada como ideia para o futuro, só se um projeto real
 mostrar contenção que a pré-refatoração não resolva.
@@ -480,7 +480,7 @@ worktree, é a ferramenta que cria, registra e remove.
 ## 12. O fluxo com o `/goal`
 
 ```
-Planejar     to-tickets (passos 1–4, agora com "quais arquivos") → jtasks plan
+Planejar     to-jtasks (passos 1–4, agora com "quais arquivos") → jtasks plan
 Claude Code  /goal todas as tarefas da execução cursory-261023-k7f2 estão done ou skipped
              (a ferramenta tasks responde "restam 0")
 OpenCode     create_goal com o mesmo objetivo; update_goal com a saída de jtasks status
@@ -540,7 +540,7 @@ agente por `agent.transform`, só durante a sessão; não há efeito `agent-conf
 hooks/hooks.json             { "modules": ["./register.tsx"] }
 hooks/register.tsx           o módulo (importa ../core/core.js)
 types/index.d.ts             PluginState: { "jtasks": { run?: string, collapsed: boolean, view, agents } }
-skills/<skill>/SKILL.md      [rev. 5.2] to-tickets e jtasks, cópias de skills/claude-code/ feitas pelo build
+skills/<skill>/SKILL.md      [rev. 5.2] to-jtasks e jtasks, cópias de skills/claude-code/ feitas pelo build
 core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 ```
 
@@ -598,7 +598,7 @@ execução, pausa, retomada, falha por `maxAttempts`, guarda de posse e de git, 
 worktrees quando pedidas, `gc` como relatório, limpeza e arquivamento, desenho das interfaces, reinjeção após
 compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto.
 
-**Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-tickets`),
+**Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
 motivo.
 
@@ -650,7 +650,7 @@ motivo.
 3. **OpenCode.** Ferramenta, ligação, contexto, seção, perfis, guarda de posse. Barra própria no visual do HUD.
 4. **Claude Code.** Mod com ferramenta, ligação, painel, `/jtasks`, reinjeção, perfil no spawn, guarda de posse e
    de git, liberação de agente morto.
-5. **Skill.** A pergunta "quais arquivos" no passo 4 e a chamada de `jtasks plan` no passo 5 da `to-tickets`; esquema
+5. **Skill.** A pergunta "quais arquivos" no passo 4 e a chamada de `jtasks plan` no passo 5 da `to-jtasks`; esquema
    anexado; cópia dentro do plugin para o Claude Code.
 6. **`gc --scan` como relatório.** Para olhar as órfãs atuais sem tocar nelas; a remoção, quando os três projetos
    terminarem.
@@ -668,7 +668,7 @@ motivo.
     no mod, `--release-on-eof --ttl` no plugin, `holdTtl` no plano; fim de subagente no OpenCode devolve a tarefa.
 12. **Barra no estilo do HUD** (23).
 13. **Idiomas** (24, 25, 26): núcleo e CLI em `en`/`pt-BR`; mod e plugin; os outros nove catálogos.
-14. **Skills e doctor** (27, 28): `to-tickets` e `jtasks` para Claude Code, OpenCode e Codex; `jtasks doctor` e
+14. **Skills e doctor** (27, 28): `to-jtasks` e `jtasks` para Claude Code, OpenCode e Codex; `jtasks doctor` e
     `--fix --yes` (jlock, agentes, skills, pelo ledger global).
 15. **READMEs em onze idiomas e o teste real do mod** (29, 30).
 
@@ -678,7 +678,7 @@ motivo.
 
 | Ponto | Como resolver |
 |---|---|
-| Posse declarada no plano fica incompleta (o modelo descobre arquivos durante a tarefa) | `claim` em tempo de execução, logado; no fim, a ferramenta sugere atualizar o plano. Fatias verticais da `to-tickets` já tendem a ter posse bem definida. |
+| Posse declarada no plano fica incompleta (o modelo descobre arquivos durante a tarefa) | `claim` em tempo de execução, logado; no fim, a ferramenta sugere atualizar o plano. Fatias verticais da `to-jtasks` já tendem a ter posse bem definida. |
 | Guarda de Bash por padrão de comando é imperfeita | Cobre git mutador e os escritores comuns; o `done` confere o `git status` inteiro e recusa qualquer alteração fora da posse, então o que escapar da guarda é pego antes do commit. |
 | Testes/builds em paralelo na mesma pasta | `serialize` na execução ou tarefa `exclusive` de integração. |
 | Subagentes do Claude Code enxergam a ferramenta do mod? O `tool.call` traz `e.agentId`? | Primeiro teste; os tipos indicam que sim. Alternativas no plano. |
@@ -694,7 +694,7 @@ motivo.
 
 Fontes consultadas em 23/10/2026: tipos dos mods do Claude Code (build 2.1.309) e as ferramentas
 `EnterWorktree`/`ExitWorktree`/`Agent`; API de plugin do OpenCode 2.1.3; plugin de goal do OpenCode 0.1.68; Codex
-CLI (goal, `update_plan`); pi-goal e rpiv-todo; ralph (`files_allowed`) e ralph-v2; skill `to-tickets` e os 24
+CLI (goal, `update_plan`); pi-goal e rpiv-todo; ralph (`files_allowed`) e ralph-v2; skill `to-tickets` (Matt Pocock) e os 24
 tickets do spybrowser; herdr worktree; artigos sobre worktrees para agentes paralelos.
 
 ---
@@ -763,14 +763,14 @@ Cada arquivo criado é um efeito `install` no ledger global, e `jtasks undo --ef
 
 ## 23. Skills e READMEs **[rev. 5.2]**
 
-`skills/<agente>/<skill>/`, como no jlock, para `claude-code`, `opencode` e `codex`: `to-tickets` (planejar: a
+`skills/<agente>/<skill>/`, como no jlock, para `claude-code`, `opencode` e `codex`: `to-jtasks` (planejar: a
 pergunta "quais arquivos", o JSON em lotes pela ferramenta) e `jtasks` (executar pelo CLI quando não há mod nem
 plugin: identidade `--run`/`--task`, o laço `next` → `start` → trabalho na posse → `claim` → `done`/`fail` →
 `status`, o que fazer em `timeout`/`deadlock`/posse perdida, ser o orquestrador com ou sem `/goal`). Cada versão usa
 o nome da ferramenta no seu host; `skills/README.md` traz a tabela de pastas e os comandos de uma linha; o build
 copia as do Claude Code para `claude/skills/`; o `doctor --fix` instala.
 
-Com o mod ou o plugin, o protocolo vem injetado e a skill `jtasks` não é necessária: `to-tickets` planeja,
+Com o mod ou o plugin, o protocolo vem injetado e a skill `jtasks` não é necessária: `to-jtasks` planeja,
 `/goal` (ou `create_goal`) recebe "todas as tarefas da execução `<run>` estão done ou skipped", e a cada volta o
 modelo chama `next`, abre os subagentes e chama `status`. Sem mod nem plugin (um terminal, o Codex), a skill
 `jtasks` é o protocolo: o agente repete `next` até "restam 0" ele mesmo.

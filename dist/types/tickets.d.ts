@@ -16,7 +16,7 @@ export interface ParsedTicket {
     /** What was missing or guessed. */
     notes: string[];
 }
-/** Reads one ticket in the jlock / to-tickets format. */
+/** Reads one ticket in the jlock / to-jtasks format. */
 export declare function parseTicket(text: string, file: string, index: number): ParsedTicket;
 /** Every `*.md` ticket of a folder, in name order. */
 export declare function readTicketsDir(host: Host, dir: string): Promise<ParsedTicket[]>;
