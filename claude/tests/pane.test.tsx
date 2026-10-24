@@ -57,10 +57,11 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   const doneRow = (await ui.findAll({ type: 'Text' })).find((t) => t.text === 'T1 - Base')
   expect(doneRow?.text).toBe('T1 - Base')
   expect(doneRow?.props.strikethrough).toBe(true)
+  expect(doneRow?.props.dimColor).toBe(true)
   expect((await ui.findAll({ type: 'Text' })).some((t) => t.text === '✓' && t.props.color === 'green')).toBe(true)
   expect((await ui.find({ type: 'Text', text: /50% · 1\/2/ }))?.text).toBe('█████░░░░░ 50% · 1/2')
   const half = (await ui.findAll({ type: 'Text' })).filter((t) => t.props.color !== undefined && /█/.test(t.text))
-  expect(half.map((t) => [t.text, t.props.color])).toEqual([['█████', 'suggestion']])
+  expect(half.map((t) => [t.text, t.props.color])).toEqual([['█████', 'blueBright']])
 
   // The header button folds the pane to one line, and the choice is stored.
   await ui.press({ key: 'toggle' })
@@ -91,7 +92,7 @@ test('the running mark animates while the pane is open and stays still when idle
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
   const run = await plan($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  const frames = ['✻', '✶', '✳', '✢', '·']
+  const frames = ['✻', '✶', '✽', '✢', '·']
   const mark = async () => (await ui.findAll({ type: 'Text' })).find((text) => frames.includes(text.text))?.text
 
   const idleMark = await mark()

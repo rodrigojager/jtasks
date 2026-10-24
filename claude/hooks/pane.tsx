@@ -22,13 +22,21 @@ export async function computeView(p: Port): Promise<PaneView> {
   return (root ? await loadRunsView(host, root) : { kind: 'runs', runs: [] }) as PaneView
 }
 
-/** Colors for the HUD bar: Claude Code's bright blue and a dim track. */
-/** Legacy renderer color; the next renderer uses HUD_BAR_COLOR for the Usage-blue HUD bar. */
-export const BAR_COLOR = 'suggestion'
-export const HUD_BAR_COLOR = 'brightBlue'
-export const TRACK_COLOR = 'subtle'
+/**
+ * The bar's color, claude-hud's Usage blue (ANSI bright blue), and its track: the same blue, dimmed by hand, since
+ * the terminal draws `dimColor` as plain gray whatever the color.
+ */
+export const BAR_COLOR = 'blueBright'
+export const TRACK_COLOR = '#2e4678'
+/** The pane's background. */
+export const PANE_BACKGROUND = 'black'
 
-export const SPINNER_FRAMES = ['✻', '✶', '✳', '✢', '·'] as const
+/** Claude Code's spinner shapes; ✽ stands for ✳, which terminals may draw as a green emoji square. */
+export const SPINNER_FRAMES = ['✻', '✶', '✽', '✢', '·'] as const
+
+/** Each row's mark (a running row draws the spinner instead) and its color: green check, red cross, the rest dim. */
+export const ROW_MARK: Record<PaneRow['state'], string> = { done: '✓', running: '✻', pending: '○', failed: '✗', skipped: '✓' }
+export const ROW_MARK_COLOR: Record<PaneRow['state'], string | undefined> = { done: 'green', running: 'claude', pending: undefined, failed: 'error', skipped: undefined }
 
 export interface HudBar {
   filled: string

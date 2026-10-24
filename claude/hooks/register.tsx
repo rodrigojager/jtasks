@@ -9,7 +9,7 @@ import { parseArgs, runTool, select, splitCommand, systemLocale, tr, type Reside
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
-import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
+import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, PANE_BACKGROUND, ROW_MARK, ROW_MARK_COLOR, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
 
@@ -160,7 +160,7 @@ export const register: Register = (on) => {
       await $.store.set('collapsed', folded)
     }
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" minHeight={e.props.scroll?.bodyRows} backgroundColor={PANE_BACKGROUND}>
         <Button key="toggle" plain onPress={toggle}>
           {header}
         </Button>
@@ -170,12 +170,12 @@ export const register: Register = (on) => {
           const rows = paneRows(view)
           return <Box flexDirection="column">
             <Box key="summary" marginBottom={1}>
-              <Text><Text color={BAR_COLOR}>{bar.filled}</Text><Text dimColor>{bar.empty}</Text><Text color={BAR_COLOR}>{` ${bar.text}`}</Text></Text>
+              <Text><Text color={BAR_COLOR}>{bar.filled}</Text><Text color={TRACK_COLOR}>{bar.empty}</Text><Text color={BAR_COLOR}>{` ${bar.text}`}</Text></Text>
             </Box>
-            {rows.map((row, index) => <Box key={`row-${index}`} flexDirection="column" marginBottom={index < rows.length - 1 ? 1 : 0}>
+            {rows.map((row, index) => <Box key={`row-${index}`} flexDirection="column">
               <Text>
-                <Text color={row.state === 'done' ? 'green' : row.state === 'running' ? 'claude' : undefined} dimColor={row.state === 'pending'}>{row.state === 'done' ? '✓' : row.state === 'running' ? SPINNER_FRAMES[spinnerFrame] : row.state === 'pending' ? '○' : row.state === 'failed' ? '✗' : '–'}</Text>
-                {' '}<Text color={row.state === 'running' ? 'claude' : undefined} dimColor={row.state === 'pending'} strikethrough={row.state === 'done'}>{row.label}</Text>
+                <Text color={ROW_MARK_COLOR[row.state]} dimColor={row.state === 'pending' || row.state === 'skipped'}>{row.state === 'running' ? SPINNER_FRAMES[spinnerFrame] : ROW_MARK[row.state]}</Text>
+                {' '}<Text color={row.state === 'running' ? 'claude' : undefined} dimColor={row.state !== 'running' && row.state !== 'failed'} strikethrough={row.state === 'done' || row.state === 'skipped'}>{row.label}</Text>
               </Text>
             </Box>)}
           </Box>
