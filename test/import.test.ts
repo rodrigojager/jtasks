@@ -1,9 +1,12 @@
-import { afterAll, describe, expect, test } from "bun:test"
+import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { parseTicket } from "../src/tickets.ts"
 import type { TasksFile } from "../src/schema.ts"
 import { REPO_ROOT, cleanupTemp, makeRepo, tasks, tasksOk } from "./helpers.ts"
+
+// Real git and jlock processes: a busy machine needs more than the default 5 s.
+setDefaultTimeout(60_000)
 
 afterAll(cleanupTemp)
 

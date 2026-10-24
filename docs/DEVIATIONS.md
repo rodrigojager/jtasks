@@ -107,3 +107,29 @@ célula), o mesmo que o painel do Claude Code desenha. O resto saiu como o plano
 "sidebar.content" })`, dados pelo RPC `goal-tasks.state` (`ctx.rpc.register` no servidor, `context.client.rpc` na
 TUI), releitura em `session.tool.success`, no evento `changed` do RPC e a cada 2 s enquanto há tarefa em andamento;
 o estado dobrado fica em `context.storage.store`.
+
+## 9. Claude Code: o host do mod (ticket 14)
+
+**O plano (seção 14):** a ferramenta usa arquivos por `$.fs`, git e jlock por `$.process.run`, e o `jlock hold`
+por `$.process.spawn`; o núcleo grava de forma atômica e fala com o `hold` pela entrada padrão; o resumo fica no
+prompt por `prompt.section` + `$.ui.invalidate("prompt.section")`.
+
+**O resumo no prompt:** o Claude Code 2.1.310 não tem `prompt.section`; o evento que compõe o system prompt é
+`prompt.compose`, que roda a cada requisição. O mod acrescenta nele a seção `goal-tasks:protocol` (escopo
+`session`) enquanto há execução ligada, e por rodar a cada requisição ela volta sozinha depois de uma compactação,
+sem `$.ui.invalidate` nem `session.compact`.
+
+**O que a API tem:** `$.fs` lê, grava, lista e faz `stat`, mas não renomeia, não apaga e não cria pasta;
+`$.process.spawn` recebe a entrada padrão inteira na partida (`input`) e a fecha, sem escrita depois; e o
+validador recusa `$` passado como argumento (`$` é sempre escrito `$.noun.call(...)` no lugar da chamada).
+
+**No lugar:** o `session.start` monta uma "porta" de funções que chamam `$.fs`, `$.process`, `$.clock` e `$.state`
+diretamente, guardada no módulo; o host do núcleo (`claude/hooks/mod-host.ts`) é feito dessa porta. Renomear,
+apagar e criar pasta (inclusive a pasta exclusiva da trava de escrita) vão por `$.process.run`: `cmd /d /c move
+/y`, `rmdir /s /q`, `del /f /q` e `mkdir` no Windows; `mv -f`, `rm` e `mkdir` fora dele. O `hold` sobe por
+`$.process.spawn` e o laço que lê a saída o mantém vivo; para devolver, o núcleo chama `jlock release --group
+--owner` e encerra o laço (o que encerra o filho). Um recarregamento do módulo encerra os `hold`s da sessão: as
+tarefas em andamento aparecem como "posse perdida" no `status` e o `resume` as devolve à fila. Como `claude
+plugin test` roda sem sistema de arquivos e sem processos, os testes do mod usam uma máquina falsa
+(`claude/tests/machine.ts`: arquivos em memória e as respostas de git, jlock e cmd); o fluxo real com git e jlock
+é coberto pelos testes do núcleo e do plugin do OpenCode.

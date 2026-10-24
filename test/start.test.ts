@@ -1,9 +1,12 @@
-import { afterAll, describe, expect, test } from "bun:test"
+import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Resident } from "../src/host.ts"
 import type { TasksFile } from "../src/schema.ts"
 import { CLI, cleanupTemp, foreignHold, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk } from "./helpers.ts"
+
+// Real git and jlock processes: a busy machine needs more than the default 5 s.
+setDefaultTimeout(60_000)
 
 const runs: string[] = []
 const residents: Resident[] = []

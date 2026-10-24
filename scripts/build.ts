@@ -2,7 +2,7 @@
 // - dist/core.js: the core (src/index.ts), ESM, no `node:*`, for every form including the Claude Code mod;
 // - dist/node-host.js: the Node host, for the CLI and the OpenCode plugin;
 // - dist/types/*.d.ts with dist/core.d.ts and dist/node-host.d.ts: the declarations for the two bundles;
-// - the copies the packages ship: opencode/core/ (core, node host, types).
+// - the copies the packages ship: opencode/core/ and claude/core/ (core, node host, types).
 // `bun scripts/build.ts --check` only reports which generated files differ from a fresh build.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -65,7 +65,7 @@ export async function buildAll(): Promise<Bundle[]> {
     ...types,
   ]
   const copies = (prefix: string) => dist.map((b) => ({ out: b.out.replace(/^dist\//, `${prefix}/`), text: b.text }))
-  return [...dist, ...copies("opencode/core")]
+  return [...dist, ...copies("opencode/core"), ...copies("claude/core")]
 }
 
 /** The generated files that differ from disk. */
@@ -95,6 +95,6 @@ if (import.meta.main) {
       mkdirSync(dirname(join(root, b.out)), { recursive: true })
       writeFileSync(join(root, b.out), b.text)
     }
-    console.log(`wrote ${all.length} files (dist/, opencode/core/)`)
+    console.log(`wrote ${all.length} files (dist/, opencode/core/, claude/core/)`)
   }
 }

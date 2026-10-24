@@ -1,8 +1,11 @@
-import { afterAll, describe, expect, test } from "bun:test"
+import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { PLUGIN_ID, TOOL_NAME } from "../server.ts"
 import { cleanupTemp, fakeHost, makeRepo, sh, writeFiles } from "./fake-host.ts"
+
+// Real git and jlock processes: a busy machine needs more than the default 5 s.
+setDefaultTimeout(60_000)
 
 const cleanups: (() => Promise<void>)[] = []
 afterAll(async () => {

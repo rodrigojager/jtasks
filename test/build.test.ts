@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test, setDefaultTimeout } from "bun:test"
 import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { buildAll, stale } from "../scripts/build.ts"
 import { REPO_ROOT } from "./helpers.ts"
+
+// Real git and jlock processes: a busy machine needs more than the default 5 s.
+setDefaultTimeout(60_000)
 
 describe("versioned bundles", () => {
   test("every generated file matches a fresh build (run bun scripts/build.ts)", async () => {

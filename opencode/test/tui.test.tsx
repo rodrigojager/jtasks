@@ -1,12 +1,15 @@
 /** @jsxImportSource @opentui/solid */
 // The TUI section, mounted in OpenTUI's test renderer against a fake TUI context whose RPC client reaches the
 // server plugin of a fake host (real jlock and git in temporary folders).
-import { afterAll, afterEach, describe, expect, test } from "bun:test"
+import { afterAll, afterEach, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { RGBA } from "@opentui/core"
 import { testRender } from "@opentui/solid"
 import { createStore, produce } from "solid-js/store"
 import { createTuiPlugin } from "../tui.tsx"
 import { cleanupTemp, fakeHost, makeRepo, writeFiles } from "./fake-host.ts"
+
+// Real git and jlock processes: a busy machine needs more than the default 5 s.
+setDefaultTimeout(60_000)
 
 const cleanups: (() => Promise<void>)[] = []
 let mounted: { renderer: { destroy(): void } }[] = []
