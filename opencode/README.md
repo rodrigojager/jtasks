@@ -42,10 +42,25 @@ injected into each request are English, for the model; `--json` data is the same
 
 ## The sidebar section
 
-In a session bound to a run, the sidebar shows `▾ Tasks · <run>`, the bar with `done/total · skipped · failed`,
-and one line per task (☑ done with its commit, ◐ running with its profile, ☐ pending with ⛔/🔒/⏳ and the reason,
-⊘ skipped, ✗ failed). A click on the header folds it to `▸ Tasks 7/12 · 58%`. Without a bound run it lists the
-repository's runs.
+In a session bound to a run, the sidebar shows a `▾ Tasks` header. The first row is `Progress`: the bar (in the
+opencode-hud style), the percent and `done/total`. Then comes one row per task, showing only its title, after a mark:
+
+- a green `✓` when the task is done;
+- OpenCode's spinner while it runs: the 3×2 grid of squares with two neighbouring squares missing, the gap going
+  round, animated in the theme's hue;
+- nothing, and the title in dim gray, while it is pending;
+- a red `✗` when it failed.
+
+```
+▾ Tasks
+Progress ██████▋███ 66% · 2/3
+✓ Pane model: claude-hud bar and task rows
+⠶ Pane render and spinner
+  Pane documentation
+```
+
+A click on the header folds the section to `▸ Tasks 2/3 · 66%`, and another click opens it again. Without a bound
+run the section lists the repository's runs.
 
 ## The tool
 
