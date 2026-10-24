@@ -137,3 +137,17 @@ nome `/jtasks` foi escolhido pelo usuário.
 a ferramenta do modelo e o CLI continuam se chamando `jtasks`.
 
 **O que fazer:** nada; está na seção 14 do plano.
+
+## 11. O jlock se instala sozinho, sem o `doctor` (ticket 42)
+
+**O que mudou:** o plano (seção 22) deixava a instalação do jlock para `jtasks doctor --fix --yes`. A pedido do
+usuário, quem instala o jtasks não precisa de um passo a mais: o primeiro comando que pode precisar do jlock, no CLI,
+no mod ou no plugin, instala um jlock que falta pelo instalador oficial; o mod e o plugin fazem isso assim que
+carregam. O binário entra no ledger global (`jtasks undo <g-id>` o remove) e é usado na hora, pelo caminho, porque o
+processo não enxerga o `PATH` que o instalador mudou.
+
+**Consequência:** é a única coisa que a ferramenta instala sem pedir, e é na máquina, não num projeto. `JLOCK_BIN`
+(um jlock escolhido pelo usuário) ou `JTASKS_NO_JLOCK_INSTALL=1` desligam; uma falha (sem rede, por exemplo) só avisa,
+com a linha que instala à mão, e o comando segue.
+
+**O que fazer:** nada; o `doctor` continua diagnosticando e instalando agentes e skills.

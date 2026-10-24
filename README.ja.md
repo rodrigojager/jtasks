@@ -47,6 +47,8 @@ jtasks doctor        # このマシンは準備できているか?
 jtasks doctor --fix --yes   # 足りないものをインストール: jlock、OpenCode のエージェント、スキル
 ```
 
+**jlock は jtasks に付いてきます。** jtasks はロックを [jlock](https://github.com/rodrigojager/jlock) で管理しますが、自分でインストールする必要はありません。CLI・mod・プラグインのいずれでも、jlock を必要とする最初のコマンドが、見つからなければ公式インストーラーでインストールし（mod とプラグインは読み込まれた時点で）、場所を知らせます。`jtasks undo` で削除でき、`JTASKS_NO_JLOCK_INSTALL=1` なら jlock は自分で管理します。
+
 `--yes` なしの `jtasks doctor --fix` は、何をするかを一覧にするだけです。インストールしたものはすべて ledger に入るので、`jtasks undo` で削除できます。そのうえで、使うエージェントに合わせて:
 
 - **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks`（mod。[`claude/README.md`](claude/README.md) を参照）。
@@ -141,6 +143,7 @@ Windows を優先: jlock と jtasks は Windows で検証済みです。Linux �
 | `JTASKS_LANG` | システムの言語 | 応答の言語（コマンドの `--lang` が優先） |
 | `JTASKS_RUN` | 未設定 | `--run` の代わりに CLI が扱う実行 |
 | `JLOCK_BIN` | `jlock` | jlock の実行ファイル |
+| `JTASKS_NO_JLOCK_INSTALL` | 未設定 | `1`: jlock を自動でインストールしない |
 
 jlock と同じ 11 言語に対応しています: English、Português (Brasil)、Español、Français、Deutsch、Italiano、简体中文、日本語、Русский、العربية、हिन्दी。すべてのコマンドは [`docs/USAGE.md`](docs/USAGE.md) にあります。設計（ポルトガル語）は [`docs/PLAN.md`](docs/PLAN.md)、設計と違う結果になった点は [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) にあります。
 

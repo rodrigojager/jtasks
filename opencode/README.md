@@ -6,7 +6,9 @@ compaction), the agent of each task's profile on its `subagent` call, and the ow
 `shell` permissions.
 
 The package is self-contained: `core/core.js` (the core, generated from `../src` by `bun scripts/build.ts`) and
-`core/node-host.js` travel with it. It needs `jlock` in `PATH` and `git`.
+`core/node-host.js` travel with it. It needs `git`; `jlock` comes by itself: when it is missing, the plugin installs
+it through jlock's official installer as soon as it loads, and the first tool answer says where
+(`JTASKS_NO_JLOCK_INSTALL=1` turns this off).
 
 ## Install (not done by this repository)
 

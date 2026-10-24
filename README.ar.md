@@ -73,6 +73,8 @@ jtasks doctor --fix --yes   # installs what is missing: jlock, the OpenCode agen
 
 </div>
 
+**يأتي jlock مع jtasks.** يحفظ jtasks أقفاله في [jlock](https://github.com/rodrigojager/jlock)، ولا تحتاج إلى تثبيته بنفسك: أول أمر يحتاج إليه، في واجهة CLI أو التعديل أو الإضافة، يثبّته بالمثبّت الرسمي إن لم يكن موجودًا (التعديل والإضافة فور تحميلهما) ويخبرك أين. يزيله `jtasks undo`؛ ومع `JTASKS_NO_JLOCK_INSTALL=1` يبقى jlock على عاتقك.
+
 الأمر `jtasks doctor --fix` دون `--yes` يسرد فقط ما سيفعله. وكل ما يثبّته يدخل السجل، فيزيله `jtasks undo`. ثم، بحسب
 وكيلك:
 
@@ -189,6 +191,7 @@ Windows أولًا: جرى التحقق من jlock و jtasks على Windows؛ و
 | `JTASKS_LANG` | لغة النظام | لغة الإجابات (`--lang` في الأمر له الأولوية) |
 | `JTASKS_RUN` | غير مضبوط | التشغيل الذي تعمل عليه واجهة CLI، بدلًا من `--run` |
 | `JLOCK_BIN` | `jlock` | الملف التنفيذي لـ jlock |
+| `JTASKS_NO_JLOCK_INSTALL` | غير مضبوط | `1`: لا يثبّت jlock من تلقاء نفسه أبدًا |
 
 إحدى عشرة لغة، هي نفسها لغات jlock: English، Português (Brasil)، Español، Français، Deutsch، Italiano، 简体中文، 日本語،
 Русский، العربية، हिन्दी. كل الأوامر في [`docs/USAGE.md`](docs/USAGE.md)؛ والتصميم (بالبرتغالية) في

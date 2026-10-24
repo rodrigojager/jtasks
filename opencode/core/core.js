@@ -165,7 +165,7 @@ var en_default = {
   "clean.effects": "effects still active (they stay; undo each with the command beside it, if you want):",
   "clean.which": "say which: jtasks clean <run> [--yes] (or --all)",
   "doctor.claude_absent": "Claude Code not found (nothing to check)",
-  "doctor.claude_mod_absent": "the jtasks mod is not installed (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "the jtasks mod is not installed (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "the jtasks mod is installed",
   "doctor.confirm": "nothing was installed; confirm with jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: already there with other content, kept",
@@ -186,6 +186,9 @@ var en_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes installs it, or see https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock installed at {file} ({id}); open a new terminal if it is not in PATH yet",
   "doctor.jlock_installed_somewhere": "jlock installed (where its installer said); open a new terminal",
+  "setup.jlock_installed": "jlock was missing and is now installed at {file} (jtasks undo {id} removes it)",
+  "setup.jlock_failed": "jlock is missing and its automatic install failed ({message}); install it with: {command}",
+  "setup.jlock_not_found_after": "the installer ended, but jlock is not where it puts it",
   "doctor.jlock_missing": "jlock not found ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof needs jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -545,7 +548,7 @@ var pt_BR_default = {
   "clean.effects": "efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):",
   "clean.which": "diga qual: jtasks clean <run> [--yes] (ou --all)",
   "doctor.claude_absent": "Claude Code não encontrado (nada a conferir)",
-  "doctor.claude_mod_absent": "o mod jtasks não está instalado (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "o mod jtasks não está instalado (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "o mod jtasks está instalado",
   "doctor.confirm": "nada foi instalado; confirme com jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: já existe com outro conteúdo, mantido",
@@ -566,6 +569,9 @@ var pt_BR_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes o instala, ou veja https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock instalado em {file} ({id}); abra um terminal novo se ainda não estiver no PATH",
   "doctor.jlock_installed_somewhere": "jlock instalado (onde o instalador disse); abra um terminal novo",
+  "setup.jlock_installed": "o jlock não estava instalado e agora está em {file} (jtasks undo {id} o remove)",
+  "setup.jlock_failed": "o jlock não está instalado e a instalação automática falhou ({message}); instale com: {command}",
+  "setup.jlock_not_found_after": "o instalador terminou, mas o jlock não está onde ele o põe",
   "doctor.jlock_missing": "jlock não encontrado ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof precisa do jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -925,7 +931,7 @@ var es_default = {
   "clean.effects": "efectos aún activos (se quedan; deshaz cada uno con el comando de al lado, si quieres):",
   "clean.which": "di cuál: jtasks clean <run> [--yes] (o --all)",
   "doctor.claude_absent": "Claude Code no encontrado (nada que comprobar)",
-  "doctor.claude_mod_absent": "el mod jtasks no está instalado (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "el mod jtasks no está instalado (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "el mod jtasks está instalado",
   "doctor.confirm": "no se instaló nada; confirma con jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: ya existe con otro contenido, se conserva",
@@ -946,6 +952,9 @@ var es_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes lo instala, o ver https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock instalado en {file} ({id}); abre una terminal nueva si aún no está en el PATH",
   "doctor.jlock_installed_somewhere": "jlock instalado (donde indicó su instalador); abre una terminal nueva",
+  "setup.jlock_installed": "jlock no estaba instalado y ahora está en {file} (jtasks undo {id} lo quita)",
+  "setup.jlock_failed": "jlock no está instalado y la instalación automática falló ({message}); instálalo con: {command}",
+  "setup.jlock_not_found_after": "el instalador terminó, pero jlock no está donde lo pone",
   "doctor.jlock_missing": "jlock no encontrado ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof necesita jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -1305,7 +1314,7 @@ var fr_default = {
   "clean.effects": "effets encore actifs (ils restent; annulez chacun avec la commande à côté, si vous voulez):",
   "clean.which": "précisez laquelle: jtasks clean <run> [--yes] (ou --all)",
   "doctor.claude_absent": "Claude Code introuvable (rien à vérifier)",
-  "doctor.claude_mod_absent": "le mod jtasks n'est pas installé (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "le mod jtasks n'est pas installé (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "le mod jtasks est installé",
   "doctor.confirm": "rien n'a été installé; confirmez avec jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: déjà présent avec un autre contenu, conservé",
@@ -1326,6 +1335,9 @@ var fr_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes l'installe, ou voir https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock installé dans {file} ({id}); ouvrez un nouveau terminal s'il n'est pas encore dans le PATH",
   "doctor.jlock_installed_somewhere": "jlock installé (là où son installeur l'a indiqué); ouvrez un nouveau terminal",
+  "setup.jlock_installed": "jlock n'était pas installé ; il l'est maintenant dans {file} (jtasks undo {id} le retire)",
+  "setup.jlock_failed": "jlock n'est pas installé et l'installation automatique a échoué ({message}) ; installez-le avec : {command}",
+  "setup.jlock_not_found_after": "l'installateur a terminé, mais jlock n'est pas là où il le place",
   "doctor.jlock_missing": "jlock introuvable ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof demande jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -1685,7 +1697,7 @@ var de_default = {
   "clean.effects": "noch aktive Effekte (sie bleiben; mach jeden bei Bedarf mit dem Befehl daneben rückgängig):",
   "clean.which": "sag, welchen: jtasks clean <run> [--yes] (oder --all)",
   "doctor.claude_absent": "Claude Code nicht gefunden (nichts zu prüfen)",
-  "doctor.claude_mod_absent": "der jtasks-Mod ist nicht installiert (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "der jtasks-Mod ist nicht installiert (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "der jtasks-Mod ist installiert",
   "doctor.confirm": "nichts wurde installiert; bestätige mit jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: existiert bereits mit anderem Inhalt, beibehalten",
@@ -1706,6 +1718,9 @@ var de_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes installiert es, oder siehe https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock installiert in {file} ({id}); öffne ein neues Terminal, falls es noch nicht im PATH ist",
   "doctor.jlock_installed_somewhere": "jlock installiert (dort, wo sein Installer es angab); öffne ein neues Terminal",
+  "setup.jlock_installed": "jlock fehlte und ist jetzt unter {file} installiert (jtasks undo {id} entfernt es)",
+  "setup.jlock_failed": "jlock fehlt und die automatische Installation ist fehlgeschlagen ({message}); installieren mit: {command}",
+  "setup.jlock_not_found_after": "das Installationsprogramm ist fertig, aber jlock liegt nicht dort, wo es es ablegt",
   "doctor.jlock_missing": "jlock nicht gefunden ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof braucht jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -2065,7 +2080,7 @@ var it_default = {
   "clean.effects": "effetti ancora attivi (restano; annulla ciascuno con il comando accanto, se vuoi):",
   "clean.which": "indica quale: jtasks clean <run> [--yes] (o --all)",
   "doctor.claude_absent": "Claude Code non trovato (niente da verificare)",
-  "doctor.claude_mod_absent": "il mod jtasks non è installato (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "il mod jtasks non è installato (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "il mod jtasks è installato",
   "doctor.confirm": "nulla è stato installato; conferma con jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: esiste già con un altro contenuto, mantenuto",
@@ -2086,6 +2101,9 @@ var it_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes lo installa, o vedi https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock installato in {file} ({id}); apri un nuovo terminale se non è ancora nel PATH",
   "doctor.jlock_installed_somewhere": "jlock installato (dove ha indicato il suo installer); apri un nuovo terminale",
+  "setup.jlock_installed": "jlock non era installato e ora si trova in {file} (jtasks undo {id} lo rimuove)",
+  "setup.jlock_failed": "jlock non è installato e l'installazione automatica non è riuscita ({message}); installalo con: {command}",
+  "setup.jlock_not_found_after": "l'installer ha finito, ma jlock non è dove lo mette",
   "doctor.jlock_missing": "jlock non trovato ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof richiede jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -2445,7 +2463,7 @@ var zh_CN_default = {
   "clean.effects": "仍生效的副作用（会保留；如需撤销，运行各自旁边的命令）：",
   "clean.which": "请指明：jtasks clean <run> [--yes]（或 --all）",
   "doctor.claude_absent": "未找到 Claude Code（无需检查）",
-  "doctor.claude_mod_absent": "jtasks mod 未安装（claude --plugin-dir <jtasks>/claude）",
+  "doctor.claude_mod_absent": "jtasks mod 未安装（/plugin install jtasks --marketplace rodrigojager/jtasks）",
   "doctor.claude_mod_installed": "jtasks mod 已安装",
   "doctor.confirm": "未安装任何内容；用 jtasks doctor --fix --yes 确认",
   "doctor.file_differs": "{file}：已存在但内容不同，已保留",
@@ -2466,6 +2484,9 @@ var zh_CN_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes 会安装它，或见 https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock 已安装到 {file}（{id}）；如果它还不在 PATH 中，请打开新终端",
   "doctor.jlock_installed_somewhere": "jlock 已安装（位置以其安装程序的输出为准）；请打开新终端",
+  "setup.jlock_installed": "jlock 未安装，现已安装到 {file}（jtasks undo {id} 可将其移除）",
+  "setup.jlock_failed": "jlock 未安装，自动安装失败（{message}）；请用以下命令安装：{command}",
+  "setup.jlock_not_found_after": "安装程序已结束，但 jlock 不在其安装位置",
   "doctor.jlock_missing": "找不到 jlock（{bin}）",
   "doctor.jlock_no_eof": "hold --release-on-eof 需要 jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}；jlock doctor：{n}/{total} ok",
@@ -2825,7 +2846,7 @@ var ja_default = {
   "clean.effects": "まだ有効な副作用（残る。取り消すなら各行の横のコマンドで）:",
   "clean.which": "どれか指定する: jtasks clean <run> [--yes]（または --all）",
   "doctor.claude_absent": "Claude Code が見つからない（確認対象なし）",
-  "doctor.claude_mod_absent": "jtasks の mod がインストールされていない（claude --plugin-dir <jtasks>/claude）",
+  "doctor.claude_mod_absent": "jtasks の mod がインストールされていない（/plugin install jtasks --marketplace rodrigojager/jtasks）",
   "doctor.claude_mod_installed": "jtasks の mod はインストール済み",
   "doctor.confirm": "何もインストールしていない。jtasks doctor --fix --yes で確定する",
   "doctor.file_differs": "{file}: 別の内容ですでにある。そのまま残した",
@@ -2846,6 +2867,9 @@ var ja_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes でインストールする。または https://github.com/rodrigojager/jlock を参照",
   "doctor.jlock_installed": "jlock を {file} にインストールした（{id}）。まだ PATH になければ新しいターミナルを開く",
   "doctor.jlock_installed_somewhere": "jlock をインストールした（場所はインストーラーの表示どおり）。新しいターミナルを開く",
+  "setup.jlock_installed": "jlock が未インストールだったため {file} にインストールしました（jtasks undo {id} で削除）",
+  "setup.jlock_failed": "jlock が未インストールで、自動インストールに失敗しました（{message}）。次のコマンドでインストールしてください: {command}",
+  "setup.jlock_not_found_after": "インストーラーは終了しましたが、jlock が配置先にありません",
   "doctor.jlock_missing": "jlock が見つからない（{bin}）",
   "doctor.jlock_no_eof": "hold --release-on-eof には jlock {minimum} が必要",
   "doctor.jlock_ok": "jlock {version}。jlock doctor: {n}/{total} ok",
@@ -3205,7 +3229,7 @@ var ru_default = {
   "clean.effects": "эффекты ещё активны (остаются; при желании отмените каждый командой рядом с ним):",
   "clean.which": "укажите какой: jtasks clean <run> [--yes] (или --all)",
   "doctor.claude_absent": "Claude Code не найден (проверять нечего)",
-  "doctor.claude_mod_absent": "мод jtasks не установлен (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "мод jtasks не установлен (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "мод jtasks установлен",
   "doctor.confirm": "ничего не установлено; подтвердите через jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: уже есть с другим содержимым, оставлен",
@@ -3226,6 +3250,9 @@ var ru_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes установит его, или см. https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock установлен в {file} ({id}); откройте новый терминал, если его ещё нет в PATH",
   "doctor.jlock_installed_somewhere": "jlock установлен (туда, куда указал его установщик); откройте новый терминал",
+  "setup.jlock_installed": "jlock не был установлен; теперь он в {file} (jtasks undo {id} удаляет его)",
+  "setup.jlock_failed": "jlock не установлен, автоматическая установка не удалась ({message}); установите командой: {command}",
+  "setup.jlock_not_found_after": "установщик завершился, но jlock нет там, куда он его кладёт",
   "doctor.jlock_missing": "jlock не найден ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof требует jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -3585,7 +3612,7 @@ var ar_default = {
   "clean.effects": "آثار لا تزال نشطة (تبقى؛ تراجع عن كل منها بالأمر المجاور له إن أردت):",
   "clean.which": "حدّد أيّها: jtasks clean <run> [--yes] (أو --all)",
   "doctor.claude_absent": "لم يُعثر على Claude Code (لا شيء للفحص)",
-  "doctor.claude_mod_absent": "التعديل jtasks غير مثبّت (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "التعديل jtasks غير مثبّت (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "التعديل jtasks مثبّت",
   "doctor.confirm": "لم يُثبَّت شيء؛ أكّد بالأمر jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: موجود بالفعل بمحتوى آخر، أُبقي عليه",
@@ -3606,6 +3633,9 @@ var ar_default = {
   "doctor.jlock_install_fix": "يثبّته jtasks doctor --fix --yes، أو انظر https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "ثُبّت jlock في {file} ({id})؛ افتح طرفية جديدة إن لم يكن في PATH بعد",
   "doctor.jlock_installed_somewhere": "ثُبّت jlock (حيث أشار مثبّته)؛ افتح طرفية جديدة",
+  "setup.jlock_installed": "لم يكن jlock مثبتًا، وهو الآن مثبت في {file} (يزيله jtasks undo {id})",
+  "setup.jlock_failed": "jlock غير مثبت وفشل التثبيت التلقائي ({message})؛ ثبّته بالأمر: {command}",
+  "setup.jlock_not_found_after": "انتهى المثبّت لكن jlock ليس في المكان الذي يضعه فيه",
   "doctor.jlock_missing": "لم يُعثر على jlock ({bin})",
   "doctor.jlock_no_eof": "يحتاج hold --release-on-eof إلى jlock {minimum}",
   "doctor.jlock_ok": "jlock {version}؛ jlock doctor: {n}/{total} ok",
@@ -3965,7 +3995,7 @@ var hi_default = {
   "clean.effects": "अब भी सक्रिय प्रभाव (ये बने रहते हैं; चाहें तो हर एक को बगल वाली कमांड से पूर्ववत करें):",
   "clean.which": "बताएँ कौन सा: jtasks clean <run> [--yes] (या --all)",
   "doctor.claude_absent": "Claude Code नहीं मिला (जाँचने को कुछ नहीं)",
-  "doctor.claude_mod_absent": "jtasks mod इंस्टॉल नहीं है (claude --plugin-dir <jtasks>/claude)",
+  "doctor.claude_mod_absent": "jtasks mod इंस्टॉल नहीं है (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "jtasks mod इंस्टॉल है",
   "doctor.confirm": "कुछ इंस्टॉल नहीं हुआ; jtasks doctor --fix --yes से पुष्टि करें",
   "doctor.file_differs": "{file}: पहले से दूसरी सामग्री के साथ है, रखा गया",
@@ -3986,6 +4016,9 @@ var hi_default = {
   "doctor.jlock_install_fix": "jtasks doctor --fix --yes इसे इंस्टॉल करता है, या देखें https://github.com/rodrigojager/jlock",
   "doctor.jlock_installed": "jlock {file} में इंस्टॉल हुआ ({id}); अगर यह अभी PATH में नहीं है तो नया टर्मिनल खोलें",
   "doctor.jlock_installed_somewhere": "jlock इंस्टॉल हुआ (जहाँ उसके इंस्टॉलर ने बताया); नया टर्मिनल खोलें",
+  "setup.jlock_installed": "jlock इंस्टॉल नहीं था; अब यह {file} में इंस्टॉल है (jtasks undo {id} इसे हटाता है)",
+  "setup.jlock_failed": "jlock इंस्टॉल नहीं है और स्वचालित इंस्टॉल विफल रहा ({message}); इससे इंस्टॉल करें: {command}",
+  "setup.jlock_not_found_after": "इंस्टॉलर समाप्त हो गया, पर jlock वहाँ नहीं है जहाँ वह उसे रखता है",
   "doctor.jlock_missing": "jlock नहीं मिला ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof को jlock {minimum} चाहिए",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
@@ -4858,6 +4891,282 @@ function ticketReadLine(t) {
   return `${tr("import.line", { file: t.file, id: k.id, title: k.title, deps, own, n: crit })}${tail}`;
 }
 
+// src/store.ts
+var SCRATCH = ".scratch/jtasks";
+function runsDir(root) {
+  return join(root, SCRATCH, "runs");
+}
+function runDir(root, run) {
+  return join(runsDir(root), run);
+}
+function jtasksHome(host) {
+  const own = host.env("JTASKS_HOME");
+  if (own)
+    return own.replace(/\\/g, "/");
+  const home = host.env("USERPROFILE") ?? host.env("HOME") ?? ".";
+  return join(home, ".jtasks");
+}
+
+class StaleRevisionError extends Error {
+  expected;
+  found;
+  constructor(expected, found) {
+    super(tr("store.stale", { expected, found }));
+    this.expected = expected;
+    this.found = found;
+  }
+}
+async function atomicWrite(host, file, text) {
+  const tmp = `${file}.${Math.floor(host.random() * 1e9).toString(36)}.tmp`;
+  await host.writeText(tmp, text);
+  try {
+    await host.rename(tmp, file);
+  } catch (error) {
+    await host.remove(tmp).catch(() => {});
+    throw error;
+  }
+}
+async function readJson(host, file) {
+  const text = await host.readText(file);
+  if (text === undefined)
+    return;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(tr("store.invalid_json", { file, message: error.message }));
+  }
+}
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+function stringify(value) {
+  return `${JSON.stringify(value, null, 2)}
+`;
+}
+async function readRun(host, dir) {
+  return readJson(host, join(dir, "run.json"));
+}
+async function readTasks(host, dir) {
+  return readJson(host, join(dir, "tasks.json"));
+}
+async function writeRun(host, dir, run) {
+  await atomicWrite(host, join(dir, "run.json"), stringify(run));
+}
+async function writeTasks(host, dir, tasks, expected) {
+  const current2 = await readTasks(host, dir);
+  const found = current2?.revision ?? 0;
+  if (found !== expected)
+    throw new StaleRevisionError(expected, found);
+  const next = { ...tasks, revision: expected + 1 };
+  await atomicWrite(host, join(dir, "tasks.json"), stringify(next));
+  return next;
+}
+var LOCK_STALE_MS = 1e4;
+var LOCK_WAIT_MS = 20000;
+async function withLock(host, dir, fn) {
+  const lock = join(dir, ".write.lock");
+  const deadline = host.now().getTime() + LOCK_WAIT_MS;
+  for (;; ) {
+    if (await host.mkdirExclusive(lock))
+      break;
+    const stat = await host.stat(lock);
+    if (stat && host.now().getTime() - stat.mtimeMs > LOCK_STALE_MS) {
+      await host.remove(lock, { recursive: true }).catch(() => {});
+      continue;
+    }
+    if (host.now().getTime() > deadline)
+      throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }));
+    await host.sleep(15 + Math.floor(host.random() * 35));
+  }
+  try {
+    return await fn();
+  } finally {
+    await host.remove(lock, { recursive: true }).catch(() => {});
+  }
+}
+async function mutateTasks(host, dir, change) {
+  return withLock(host, dir, async () => {
+    const tasks = await readTasks(host, dir);
+    if (!tasks)
+      throw new Error(tr("store.no_tasks", { dir }));
+    const copy = clone(tasks);
+    const result = await change(copy);
+    return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
+  });
+}
+async function listRuns(host, root) {
+  const out = [];
+  for (const entry of await host.list(runsDir(root))) {
+    if (entry.kind !== "dir")
+      continue;
+    const dir = join(runsDir(root), entry.name);
+    const run = await readRun(host, dir).catch(() => {
+      return;
+    });
+    if (!run)
+      continue;
+    out.push({ dir, run, tasks: await readTasks(host, dir).catch(() => {
+      return;
+    }) });
+  }
+  return out.sort((a, b) => a.run.created.localeCompare(b.run.created) || a.run.id.localeCompare(b.run.id));
+}
+async function appendLog(host, dir, entry) {
+  await host.appendText(join(dir, "log.jsonl"), `${JSON.stringify(entry)}
+`);
+}
+
+// src/ledger.ts
+function globalLedger(host) {
+  return join(jtasksHome(host), "ledger.jsonl");
+}
+async function readEffects(host, file) {
+  const text = await host.readText(file);
+  if (!text)
+    return [];
+  const out = [];
+  for (const line of text.split(`
+`)) {
+    if (!line.trim())
+      continue;
+    try {
+      out.push(JSON.parse(line));
+    } catch {}
+  }
+  return out;
+}
+function serialize(effects) {
+  return effects.map((e) => `${JSON.stringify(e)}
+`).join("");
+}
+async function recordEffect(host, runDir2, effect) {
+  const file = join(runDir2, "ledger.jsonl");
+  const existing = await readEffects(host, file);
+  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
+  const full = { id: `e-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
+  await host.appendText(file, `${JSON.stringify(full)}
+`);
+  await host.appendText(globalLedger(host), `${JSON.stringify(full)}
+`);
+  return full;
+}
+async function recordGlobalEffect(host, effect) {
+  const file = globalLedger(host);
+  const existing = (await readEffects(host, file)).filter((e) => e.id.startsWith("g-"));
+  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
+  const full = { id: `g-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
+  await host.appendText(file, `${JSON.stringify(full)}
+`);
+  return full;
+}
+async function setEffectState(host, runDir2, run, id, state) {
+  const at = host.now().toISOString();
+  for (const file of [join(runDir2, "ledger.jsonl"), globalLedger(host)]) {
+    const effects = await readEffects(host, file);
+    let changed = false;
+    for (const e of effects)
+      if (e.id === id && e.run === run && e.state !== state) {
+        e.state = state;
+        e.changedAt = at;
+        changed = true;
+      }
+    if (changed)
+      await atomicWrite(host, file, serialize(effects));
+  }
+}
+async function effectsOf(host, scope, insensitive) {
+  const norm = (p) => slash(insensitive ? p.toLowerCase() : p).replace(/\/+$/, "");
+  const all = await readEffects(host, globalLedger(host));
+  return all.filter((e) => (!scope.repo || norm(e.repo) === norm(scope.repo)) && (!scope.run || e.run === scope.run));
+}
+function effectLine(e) {
+  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` ${tr("ledger.reverts", { id: e.reverts })}` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` ${tr("ledger.from", { from: e.from })}` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
+  const when = e.at.replace("T", " ").slice(0, 16);
+  return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`;
+}
+
+// src/setup.ts
+var INSTALLERS = "https://raw.githubusercontent.com/rodrigojager/jlock/main";
+function userHome(host) {
+  return (host.env("JTASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/");
+}
+function jlockInstallPath(host) {
+  const dir = host.env("JLOCK_INSTALL_DIR");
+  const exe = host.platform === "win32" ? "jlock.exe" : "jlock";
+  if (dir)
+    return join(dir.replace(/\\/g, "/"), exe);
+  if (host.platform === "win32") {
+    const local = host.env("LOCALAPPDATA");
+    return local ? join(local.replace(/\\/g, "/"), "Programs/jlock", exe) : undefined;
+  }
+  return join(userHome(host), ".local/bin", exe);
+}
+function jlockInstallCommand(host) {
+  return host.platform === "win32" ? `irm ${INSTALLERS}/install.ps1 | iex` : `curl -fsSL ${INSTALLERS}/install.sh | sh`;
+}
+async function installJlock(host, by) {
+  const own = host.env("JTASKS_JLOCK_INSTALLER");
+  const argv = own ? ["bun", own] : host.platform === "win32" ? ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", jlockInstallCommand(host)] : ["sh", "-c", jlockInstallCommand(host)];
+  const dir = host.env("JLOCK_INSTALL_DIR");
+  const r = await host.run(argv, dir ? { timeoutMs: 5 * 60000, env: { JLOCK_INSTALL_DIR: dir } } : { timeoutMs: 5 * 60000 });
+  if (r.code !== 0)
+    throw new Error(tr("doctor.jlock_install_failed", { code: r.code, message: (r.stderr || r.stdout).trim().slice(0, 400) }));
+  const path = jlockInstallPath(host);
+  if (!path || (await host.stat(path))?.kind !== "file")
+    return {};
+  const e = await recordGlobalEffect(host, { run: by, type: "install", repo: dirname(path), path, undo: { kind: "remove-file" } });
+  return { path, effect: e.id };
+}
+var setup;
+var resolved;
+var shown = false;
+function installedJlock() {
+  return resolved;
+}
+async function answers(host, bin) {
+  const r = await host.run([bin, "--version"], { timeoutMs: 15000, env: { JLOCK_LANG: lang() } }).catch(() => {
+    return;
+  });
+  return !!r && r.code === 0 && /\d+\.\d+\.\d+/.test(`${r.stdout}
+${r.stderr}`);
+}
+function ensureJlock(host) {
+  setup ??= (async () => {
+    if (host.env("JLOCK_BIN") || host.env("JTASKS_NO_JLOCK_INSTALL") === "1")
+      return { status: "off" };
+    if (await answers(host, "jlock"))
+      return { status: "present" };
+    const path = jlockInstallPath(host);
+    if (path && await answers(host, path)) {
+      resolved = path;
+      return { status: "found", path };
+    }
+    try {
+      const done = await installJlock(host, "setup");
+      if (!done.path || !await answers(host, done.path))
+        throw new Error(tr("setup.jlock_not_found_after"));
+      resolved = done.path;
+      return { status: "installed", path: done.path, notice: tr("setup.jlock_installed", { file: done.path, id: done.effect ?? "-" }) };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { status: "failed", notice: tr("setup.jlock_failed", { message, command: jlockInstallCommand(host) }) };
+    }
+  })();
+  return setup;
+}
+async function jlockNotice(host) {
+  const s = await ensureJlock(host);
+  if (!s.notice || shown)
+    return;
+  shown = true;
+  return s.notice;
+}
+function resetJlockSetup() {
+  setup = undefined;
+  resolved = undefined;
+  shown = false;
+}
+
 // src/tool.ts
 var VERSION = "0.1.0";
 
@@ -5047,145 +5356,31 @@ function langArg(argv) {
   }
   return;
 }
+var WITHOUT_JLOCK = new Set(["help", "version", "doctor", "validate", "ledger", "undo"]);
 async function dispatch(ctx, argv) {
-  try {
-    const args = parseArgs(argv);
-    if (args.options.help)
-      return await actions.get("help")(ctx, args);
-    const fn = actions.get(args.action);
-    if (!fn)
-      throw new ToolError(tr("tool.unknown_action", { action: args.action }), 2);
-    return await fn(ctx, args);
-  } catch (error) {
-    if (error instanceof ToolError)
-      return { ok: false, code: error.code, text: error.message, data: error.data ?? { error: error.message } };
-    const message = error instanceof Error ? error.message : String(error);
-    return { ok: false, code: 1, text: tr("tool.error", { message }), data: { error: message } };
-  }
-}
-// src/store.ts
-var SCRATCH = ".scratch/jtasks";
-function runsDir(root) {
-  return join(root, SCRATCH, "runs");
-}
-function runDir(root, run) {
-  return join(runsDir(root), run);
-}
-function jtasksHome(host) {
-  const own = host.env("JTASKS_HOME");
-  if (own)
-    return own.replace(/\\/g, "/");
-  const home = host.env("USERPROFILE") ?? host.env("HOME") ?? ".";
-  return join(home, ".jtasks");
-}
-
-class StaleRevisionError extends Error {
-  expected;
-  found;
-  constructor(expected, found) {
-    super(tr("store.stale", { expected, found }));
-    this.expected = expected;
-    this.found = found;
-  }
-}
-async function atomicWrite(host, file, text) {
-  const tmp = `${file}.${Math.floor(host.random() * 1e9).toString(36)}.tmp`;
-  await host.writeText(tmp, text);
-  try {
-    await host.rename(tmp, file);
-  } catch (error) {
-    await host.remove(tmp).catch(() => {});
-    throw error;
-  }
-}
-async function readJson(host, file) {
-  const text = await host.readText(file);
-  if (text === undefined)
-    return;
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    throw new Error(tr("store.invalid_json", { file, message: error.message }));
-  }
-}
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-function stringify(value) {
-  return `${JSON.stringify(value, null, 2)}
-`;
-}
-async function readRun(host, dir) {
-  return readJson(host, join(dir, "run.json"));
-}
-async function readTasks(host, dir) {
-  return readJson(host, join(dir, "tasks.json"));
-}
-async function writeRun(host, dir, run) {
-  await atomicWrite(host, join(dir, "run.json"), stringify(run));
-}
-async function writeTasks(host, dir, tasks, expected) {
-  const current2 = await readTasks(host, dir);
-  const found = current2?.revision ?? 0;
-  if (found !== expected)
-    throw new StaleRevisionError(expected, found);
-  const next = { ...tasks, revision: expected + 1 };
-  await atomicWrite(host, join(dir, "tasks.json"), stringify(next));
-  return next;
-}
-var LOCK_STALE_MS = 1e4;
-var LOCK_WAIT_MS = 20000;
-async function withLock(host, dir, fn) {
-  const lock = join(dir, ".write.lock");
-  const deadline = host.now().getTime() + LOCK_WAIT_MS;
-  for (;; ) {
-    if (await host.mkdirExclusive(lock))
-      break;
-    const stat = await host.stat(lock);
-    if (stat && host.now().getTime() - stat.mtimeMs > LOCK_STALE_MS) {
-      await host.remove(lock, { recursive: true }).catch(() => {});
-      continue;
+  let notice;
+  const result = await (async () => {
+    try {
+      const args = parseArgs(argv);
+      if (args.options.help)
+        return await actions.get("help")(ctx, args);
+      const fn = actions.get(args.action);
+      if (!fn)
+        throw new ToolError(tr("tool.unknown_action", { action: args.action }), 2);
+      if (!WITHOUT_JLOCK.has(args.action))
+        notice = await jlockNotice(ctx.host);
+      return await fn(ctx, args);
+    } catch (error) {
+      if (error instanceof ToolError)
+        return { ok: false, code: error.code, text: error.message, data: error.data ?? { error: error.message } };
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, code: 1, text: tr("tool.error", { message }), data: { error: message } };
     }
-    if (host.now().getTime() > deadline)
-      throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }));
-    await host.sleep(15 + Math.floor(host.random() * 35));
-  }
-  try {
-    return await fn();
-  } finally {
-    await host.remove(lock, { recursive: true }).catch(() => {});
-  }
-}
-async function mutateTasks(host, dir, change) {
-  return withLock(host, dir, async () => {
-    const tasks = await readTasks(host, dir);
-    if (!tasks)
-      throw new Error(tr("store.no_tasks", { dir }));
-    const copy = clone(tasks);
-    const result = await change(copy);
-    return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
-  });
-}
-async function listRuns(host, root) {
-  const out = [];
-  for (const entry of await host.list(runsDir(root))) {
-    if (entry.kind !== "dir")
-      continue;
-    const dir = join(runsDir(root), entry.name);
-    const run = await readRun(host, dir).catch(() => {
-      return;
-    });
-    if (!run)
-      continue;
-    out.push({ dir, run, tasks: await readTasks(host, dir).catch(() => {
-      return;
-    }) });
-  }
-  return out.sort((a, b) => a.run.created.localeCompare(b.run.created) || a.run.id.localeCompare(b.run.id));
-}
-async function appendLog(host, dir, entry) {
-  await host.appendText(join(dir, "log.jsonl"), `${JSON.stringify(entry)}
-`);
+  })();
+  if (notice)
+    result.text = `${notice}
+${result.text}`;
+  return result;
 }
 // src/format.ts
 function counts(tasks) {
@@ -5341,74 +5536,6 @@ async function commitReachable(host, root, ref) {
     return false;
   const r = await git(host, root, ["branch", "--all", "--contains", ref, "--format=%(refname)"]);
   return r.code === 0 && r.stdout.trim() !== "";
-}
-// src/ledger.ts
-function globalLedger(host) {
-  return join(jtasksHome(host), "ledger.jsonl");
-}
-async function readEffects(host, file) {
-  const text = await host.readText(file);
-  if (!text)
-    return [];
-  const out = [];
-  for (const line of text.split(`
-`)) {
-    if (!line.trim())
-      continue;
-    try {
-      out.push(JSON.parse(line));
-    } catch {}
-  }
-  return out;
-}
-function serialize(effects) {
-  return effects.map((e) => `${JSON.stringify(e)}
-`).join("");
-}
-async function recordEffect(host, runDir2, effect) {
-  const file = join(runDir2, "ledger.jsonl");
-  const existing = await readEffects(host, file);
-  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
-  const full = { id: `e-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
-  await host.appendText(file, `${JSON.stringify(full)}
-`);
-  await host.appendText(globalLedger(host), `${JSON.stringify(full)}
-`);
-  return full;
-}
-async function recordGlobalEffect(host, effect) {
-  const file = globalLedger(host);
-  const existing = (await readEffects(host, file)).filter((e) => e.id.startsWith("g-"));
-  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
-  const full = { id: `g-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
-  await host.appendText(file, `${JSON.stringify(full)}
-`);
-  return full;
-}
-async function setEffectState(host, runDir2, run, id, state) {
-  const at = host.now().toISOString();
-  for (const file of [join(runDir2, "ledger.jsonl"), globalLedger(host)]) {
-    const effects = await readEffects(host, file);
-    let changed = false;
-    for (const e of effects)
-      if (e.id === id && e.run === run && e.state !== state) {
-        e.state = state;
-        e.changedAt = at;
-        changed = true;
-      }
-    if (changed)
-      await atomicWrite(host, file, serialize(effects));
-  }
-}
-async function effectsOf(host, scope, insensitive) {
-  const norm = (p) => slash(insensitive ? p.toLowerCase() : p).replace(/\/+$/, "");
-  const all = await readEffects(host, globalLedger(host));
-  return all.filter((e) => (!scope.repo || norm(e.repo) === norm(scope.repo)) && (!scope.run || e.run === scope.run));
-}
-function effectLine(e) {
-  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` ${tr("ledger.reverts", { id: e.reverts })}` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` ${tr("ledger.from", { from: e.from })}` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
-  const when = e.at.replace("T", " ").slice(0, 16);
-  return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`;
 }
 // src/plan.ts
 function actorOf(ctx) {
@@ -5814,7 +5941,7 @@ var JLOCK = {
   DISK: 20
 };
 function jlockBin(host) {
-  return host.env("JLOCK_BIN") || "jlock";
+  return host.env("JLOCK_BIN") || installedJlock() || "jlock";
 }
 function jlockEnv() {
   return { JLOCK_LANG: lang() };
@@ -6056,8 +6183,8 @@ function waitingOf(state, locks) {
 function waitingText(w, state, platform) {
   const asked = describeKey(w.key, state.root, platform);
   const via = describeKey(w.via, state.root, platform);
-  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
-  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown, position: w.position });
+  const shown2 = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
+  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown: shown2, position: w.position });
 }
 function blockerText(b, state, platform) {
   switch (b.kind) {
@@ -7689,9 +7816,6 @@ async function loadRunsView(host, root) {
 var OPENCODE_AGENTS = ["execute", "execute-deep", "review"];
 var SKILLS = ["to-jtasks", "jtasks"];
 var SKILL_FILES = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], jtasks: ["SKILL.md"] };
-function userHome(host) {
-  return (host.env("JTASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/");
-}
 function skillHosts(host) {
   const home = userHome(host);
   return [
@@ -7860,7 +7984,7 @@ async function fixSteps(ctx, checks) {
   const steps = [];
   const jlock = checks.find((c) => c.name === "jlock");
   if (jlock?.fixable)
-    steps.push({ what: tr("doctor.step_jlock"), run: () => installJlock(ctx) });
+    steps.push({ what: tr("doctor.step_jlock"), run: () => installJlock2(ctx) });
   const opencode = join(userHome(host), ".config/opencode");
   if (checks.find((c) => c.name === "opencode")?.status === "warn")
     for (const agent of OPENCODE_AGENTS) {
@@ -7875,32 +7999,11 @@ async function fixSteps(ctx, checks) {
     }
   return steps;
 }
-async function installJlock(ctx) {
-  const { host } = ctx;
-  const own = host.env("JTASKS_JLOCK_INSTALLER");
-  const base = "https://raw.githubusercontent.com/rodrigojager/jlock/main";
-  const argv = own ? ["bun", own] : host.platform === "win32" ? ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `irm ${base}/install.ps1 | iex`] : ["sh", "-c", `curl -fsSL ${base}/install.sh | sh`];
-  const dir = host.env("JLOCK_INSTALL_DIR");
-  const r = await host.run(argv, dir ? { timeoutMs: 5 * 60000, env: { JLOCK_INSTALL_DIR: dir } } : { timeoutMs: 5 * 60000 });
-  if (r.code !== 0)
-    throw new ToolError(tr("doctor.jlock_install_failed", { code: r.code, message: (r.stderr || r.stdout).trim().slice(0, 400) }));
-  const installed = jlockInstallPath(host);
-  if (installed && await isFile(host, installed)) {
-    const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(installed), path: installed, undo: { kind: "remove-file" } });
-    return tr("doctor.jlock_installed", { file: installed, id: e.id });
-  }
-  return tr("doctor.jlock_installed_somewhere");
-}
-function jlockInstallPath(host) {
-  const dir = host.env("JLOCK_INSTALL_DIR");
-  const exe = host.platform === "win32" ? "jlock.exe" : "jlock";
-  if (dir)
-    return join(dir.replace(/\\/g, "/"), exe);
-  if (host.platform === "win32") {
-    const local = host.env("LOCALAPPDATA");
-    return local ? join(local.replace(/\\/g, "/"), "Programs/jlock", exe) : undefined;
-  }
-  return join(userHome(host), ".local/bin", exe);
+async function installJlock2(ctx) {
+  const done = await installJlock(ctx.host, "doctor").catch((error) => {
+    throw new ToolError(error.message);
+  });
+  return done.path ? tr("doctor.jlock_installed", { file: done.path, id: done.effect ?? "-" }) : tr("doctor.jlock_installed_somewhere");
 }
 async function doctor(ctx, args) {
   const lang2 = typeof args.options.lang === "string" ? args.options.lang : ctx.lang;
@@ -7985,6 +8088,7 @@ export {
   runChecks,
   resolveRun,
   resolve,
+  resetJlockSetup,
   requireRepo,
   repoRoot,
   repoRelative,
@@ -8032,13 +8136,17 @@ export {
   jlockVersion,
   jlockReleaseKeys,
   jlockRelease,
+  jlockNotice,
   jlockList,
   jlockInstallPath,
+  jlockInstallCommand,
   jlockEnv,
   jlockBin,
   isNameKey,
   isMerged,
   isAbsolute,
+  installedJlock,
+  installJlock,
   identity,
   holdModeOf,
   holdModeFor,
@@ -8053,6 +8161,7 @@ export {
   findingLine,
   findTask,
   excludeFile,
+  ensureJlock,
   effectsOf,
   effectLine,
   draftSummary,

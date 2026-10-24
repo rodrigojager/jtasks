@@ -5,7 +5,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { parseArgs, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { ensureJlock, parseArgs, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
@@ -92,6 +92,9 @@ export const register: Register = (on) => {
         USERPROFILE: await $.env.get('USERPROFILE'),
         HOME: await $.env.get('HOME'),
         JLOCK_BIN: await $.env.get('JLOCK_BIN'),
+        JLOCK_INSTALL_DIR: await $.env.get('JLOCK_INSTALL_DIR'),
+        LOCALAPPDATA: await $.env.get('LOCALAPPDATA'),
+        JTASKS_NO_JLOCK_INSTALL: await $.env.get('JTASKS_NO_JLOCK_INSTALL'),
         JTASKS_LANG: await $.env.get('JTASKS_LANG'),
         JLOCK_LANG: await $.env.get('JLOCK_LANG'),
       },
@@ -99,6 +102,8 @@ export const register: Register = (on) => {
     // The session's language (plan section 21): what the pane and the tool's answers speak until a --lang.
     const env = port.env
     select({ env: (name) => env[name as keyof typeof env] ?? undefined, system: systemLocale() })
+    // jlock comes with jtasks: a missing one is installed in the background (the first tool call tells the user).
+    void ensureJlock(createModHost(port, await port.cwd())).catch(() => undefined)
     await $.tool.register({ name: TOOL_NAME, description: TOOL_DESCRIPTION, inputSchema: TOOL_SCHEMA, isDeferred: false })
     await $.command.register({ name: 'jtasks', description: tr('mod.command') })
 

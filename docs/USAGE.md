@@ -33,7 +33,10 @@ global ledger (`jtasks ledger --all-projects`, ids `g-…`), and `jtasks undo <g
 mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs `--fix`; in the mod and the plugin
 `doctor` only diagnoses. `JTASKS_USER_HOME` makes it look and install somewhere else than the user's home.
 
-- **CLI:** the `jtasks` command above (it needs `jlock` in `PATH`; `jtasks doctor --fix --yes` installs it).
+- **CLI:** the `jtasks` command above. jlock comes by itself: in every form, the first command that may need it
+  installs a missing jlock through its official installer, records it in the global ledger (`jtasks undo <g-id>`
+  removes it), uses it at once and says where; the mod and the plugin do it as soon as they load. `JLOCK_BIN` (your
+  own jlock) or `JTASKS_NO_JLOCK_INSTALL=1` turns this off.
 - **Claude Code mod:** `claude --plugin-dir D:/jtasks/claude` for one session, or add the repository as a
   marketplace and install `jtasks`. The tool is `mcp__jtasks__jtasks`; the pane opens with `/jtasks`
   (Claude Code has its own `/tasks`). See [`claude/README.md`](../claude/README.md).
@@ -142,6 +145,7 @@ queue.
 | `JTASKS_RUN` | unset | the CLI's bound run |
 | `JTASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
+| `JTASKS_NO_JLOCK_INSTALL` | unset | `1`: never install a missing jlock by itself |
 | `JLOCK_HOME`, `JLOCK_HEARTBEAT_MS`, `JLOCK_STALE_MS` | jlock's | passed through to jlock (only tests change them) |
 
 ## Languages

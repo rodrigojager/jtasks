@@ -9,6 +9,7 @@ import type { ToolName } from "./schema.ts"
 import { readTicketsDir } from "./tickets.ts"
 import { validatePlan } from "./validate.ts"
 import { select, systemLocale, tr } from "./i18n.ts"
+import { jlockNotice } from "./setup.ts"
 
 export const VERSION = "0.1.0"
 
@@ -255,16 +256,25 @@ function langArg(argv: readonly string[]): string | undefined {
   return undefined
 }
 
+/** Actions that never call jlock: they run without making sure it is installed. */
+const WITHOUT_JLOCK = new Set(["help", "version", "doctor", "validate", "ledger", "undo"])
+
 async function dispatch(ctx: ToolContext, argv: readonly string[]): Promise<ToolResult> {
-  try {
-    const args = parseArgs(argv)
-    if (args.options.help) return await actions.get("help")!(ctx, args)
-    const fn = actions.get(args.action)
-    if (!fn) throw new ToolError(tr("tool.unknown_action", { action: args.action }), 2)
-    return await fn(ctx, args)
-  } catch (error) {
-    if (error instanceof ToolError) return { ok: false, code: error.code, text: error.message, data: error.data ?? { error: error.message } }
-    const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, code: 1, text: tr("tool.error", { message }), data: { error: message } }
-  }
+  let notice: string | undefined
+  const result = await (async (): Promise<ToolResult> => {
+    try {
+      const args = parseArgs(argv)
+      if (args.options.help) return await actions.get("help")!(ctx, args)
+      const fn = actions.get(args.action)
+      if (!fn) throw new ToolError(tr("tool.unknown_action", { action: args.action }), 2)
+      if (!WITHOUT_JLOCK.has(args.action)) notice = await jlockNotice(ctx.host)
+      return await fn(ctx, args)
+    } catch (error) {
+      if (error instanceof ToolError) return { ok: false, code: error.code, text: error.message, data: error.data ?? { error: error.message } }
+      const message = error instanceof Error ? error.message : String(error)
+      return { ok: false, code: 1, text: tr("tool.error", { message }), data: { error: message } }
+    }
+  })()
+  if (notice) result.text = `${notice}\n${result.text}`
+  return result
 }

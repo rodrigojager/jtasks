@@ -47,6 +47,8 @@ jtasks doctor        # क्या यह मशीन तैयार है?
 jtasks doctor --fix --yes   # जो नहीं है उसे इंस्टॉल करता है: jlock, OpenCode के एजेंट, स्किल
 ```
 
+**jlock, jtasks के साथ आता है।** jtasks अपने लॉक [jlock](https://github.com/rodrigojager/jlock) में रखता है, और आपको इसे खुद इंस्टॉल नहीं करना पड़ता: CLI, mod या plugin में जिस पहले कमांड को इसकी ज़रूरत होती है, वह इसके न होने पर इसे आधिकारिक इंस्टॉलर से इंस्टॉल करता है (mod और plugin लोड होते ही) और बताता है कि कहाँ। `jtasks undo` इसे हटाता है; `JTASKS_NO_JLOCK_INSTALL=1` के साथ jlock आपके ज़िम्मे रहता है।
+
 `--yes` के बिना `jtasks doctor --fix` केवल यह सूची दिखाता है कि वह क्या करेगा। वह जो कुछ इंस्टॉल करता है, सब ledger में जाता है, इसलिए `jtasks undo` उसे हटा देता है। फिर, अपने एजेंट के लिए:
 
 - **Claude Code:** `/plugin install jtasks --marketplace rodrigojager/jtasks` (mod; देखें [`claude/README.md`](claude/README.md))।
@@ -141,6 +143,7 @@ mod या प्लगइन के बिना, `jtasks` स्किल ह�
 | `JTASKS_LANG` | सिस्टम की भाषा | उत्तरों की भाषा (कमांड पर `--lang` को प्राथमिकता) |
 | `JTASKS_RUN` | सेट नहीं | वह रन जिस पर CLI काम करता है, `--run` की जगह |
 | `JLOCK_BIN` | `jlock` | jlock का executable |
+| `JTASKS_NO_JLOCK_INSTALL` | सेट नहीं | `1`: jlock को कभी अपने आप इंस्टॉल नहीं करता |
 
 ग्यारह भाषाएँ, वही जो jlock में हैं: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文, 日本語, Русский, العربية, हिन्दी। हर कमांड [`docs/USAGE.md`](docs/USAGE.md) में है; डिज़ाइन (पुर्तगाली में) [`docs/PLAN.md`](docs/PLAN.md) है, और जो अलग निकला वह [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) में है।
 

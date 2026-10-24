@@ -5,6 +5,7 @@ import type { Host, Resident } from "./host.ts"
 import { relativeInside, caseInsensitive } from "./paths.ts"
 import { ToolError } from "./tool.ts"
 import { lang, tr } from "./i18n.ts"
+import { installedJlock } from "./setup.ts"
 
 export const JLOCK = {
   OK: 0,
@@ -59,8 +60,9 @@ export interface JlockAnswer {
   error?: string
 }
 
+/** JLOCK_BIN, else the jlock this process found or installed outside PATH (setup.ts), else `jlock` from PATH. */
 export function jlockBin(host: Host): string {
-  return host.env("JLOCK_BIN") || "jlock"
+  return host.env("JLOCK_BIN") || installedJlock() || "jlock"
 }
 
 /** The environment of every jlock process: its messages in the language the tool speaks. */

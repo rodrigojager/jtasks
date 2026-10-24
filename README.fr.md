@@ -71,6 +71,11 @@ jtasks doctor        # cette machine est-elle prête ?
 jtasks doctor --fix --yes   # installe ce qui manque : jlock, les agents OpenCode, les skills
 ```
 
+**jlock est fourni avec jtasks.** jtasks garde ses verrous dans [jlock](https://github.com/rodrigojager/jlock), et vous n'avez pas à
+l'installer : la première commande qui en a besoin, dans la CLI, le mod ou le plugin, l'installe avec son
+installateur officiel s'il manque (le mod et le plugin dès leur chargement) et indique où. `jtasks undo` le retire ;
+avec `JTASKS_NO_JLOCK_INSTALL=1`, jlock reste à votre charge.
+
 `jtasks doctor --fix` sans `--yes` se contente de lister ce qu'il ferait. Tout ce qu'il installe va dans le ledger,
 donc `jtasks undo` le retire. Ensuite, pour votre agent :
 
@@ -177,6 +182,7 @@ Windows d'abord : jlock et jtasks ont été validés sous Windows ; Linux et mac
 | `JTASKS_LANG` | celle du système | la langue des réponses (`--lang` sur une commande l'emporte) |
 | `JTASKS_RUN` | non définie | l'exécution sur laquelle travaille le CLI, au lieu de `--run` |
 | `JLOCK_BIN` | `jlock` | l'exécutable de jlock |
+| `JTASKS_NO_JLOCK_INSTALL` | non définie | `1` : n'installe jamais jlock de lui-même |
 
 Onze langues, les mêmes que jlock : English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文,
 日本語, Русский, العربية, हिन्दी. Toutes les commandes sont dans [`docs/USAGE.md`](docs/USAGE.md) ; la conception

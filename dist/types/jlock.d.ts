@@ -48,6 +48,7 @@ export interface JlockAnswer {
     message?: string;
     error?: string;
 }
+/** JLOCK_BIN, else the jlock this process found or installed outside PATH (setup.ts), else `jlock` from PATH. */
 export declare function jlockBin(host: Host): string;
 /** The environment of every jlock process: its messages in the language the tool speaks. */
 export declare function jlockEnv(): Record<string, string>;

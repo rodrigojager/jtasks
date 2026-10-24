@@ -47,6 +47,8 @@ jtasks doctor        # 这台机器准备好了吗？
 jtasks doctor --fix --yes   # 安装缺少的部分：jlock、OpenCode 智能体、skill
 ```
 
+**jlock 随 jtasks 一起提供。** jtasks 的锁保存在 [jlock](https://github.com/rodrigojager/jlock) 中，你无需自己安装它：CLI、mod 或插件中第一个需要它的命令会在它缺失时通过官方安装程序安装它（mod 和插件在加载时即安装），并告诉你装在哪里。`jtasks undo` 可将其移除；设置 `JTASKS_NO_JLOCK_INSTALL=1` 则由你自己管理 jlock。
+
 不带 `--yes` 的 `jtasks doctor --fix` 只列出它将要做的事。它安装的一切都会记入 ledger，因此 `jtasks undo` 可以把它们移除。然后，根据你的智能体：
 
 - **Claude Code：** `/plugin install jtasks --marketplace rodrigojager/jtasks`（mod；见 [`claude/README.md`](claude/README.md)）。
@@ -141,6 +143,7 @@ Windows 优先：jlock 和 jtasks 已在 Windows 上验证；Linux 和 macOS 跟
 | `JTASKS_LANG` | 系统语言 | 回答的语言（命令中的 `--lang` 优先） |
 | `JTASKS_RUN` | 未设置 | CLI 操作的运行，代替 `--run` |
 | `JLOCK_BIN` | `jlock` | jlock 可执行文件 |
+| `JTASKS_NO_JLOCK_INSTALL` | 未设置 | `1`：从不自行安装 jlock |
 
 十一种语言，与 jlock 相同：English、Português (Brasil)、Español、Français、Deutsch、Italiano、简体中文、日本語、Русский、العربية、हिन्दी。所有命令见 [`docs/USAGE.md`](docs/USAGE.md)；设计文档（葡萄牙语）是 [`docs/PLAN.md`](docs/PLAN.md)，与设计不同的地方见 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md)。
 

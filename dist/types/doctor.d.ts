@@ -13,8 +13,6 @@ export interface Check {
 export declare const OPENCODE_AGENTS: string[];
 export declare const SKILLS: string[];
 export declare const SKILL_FILES: Record<string, string[]>;
-/** Where the doctor looks for and installs agents and skills: JTASKS_USER_HOME, else the user's home. */
-export declare function userHome(host: Host): string;
 /** The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. */
 export declare function skillHosts(host: Host): {
     host: string;
@@ -25,5 +23,3 @@ export declare function skillHosts(host: Host): {
 export declare function checkJlock(host: Host): Promise<Check>;
 export declare function runChecks(ctx: ToolContext, lang: string | undefined): Promise<Check[]>;
 export declare function checksText(checks: Check[]): string;
-/** Where jlock's installer puts the binary by default (JLOCK_INSTALL_DIR wins, as in the installer). */
-export declare function jlockInstallPath(host: Host): string | undefined;

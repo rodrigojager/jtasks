@@ -4,7 +4,7 @@
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { holdModeFor, parseArgs, readTasks, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { ensureJlock, holdModeFor, parseArgs, readTasks, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
@@ -50,6 +50,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       // The language of the views the sidebar asks for (each tool call chooses again, with its own --lang).
       select({ env: (name) => host.env(name), system: systemLocale() })
       const residents = new Map<string, Resident[]>()
+      // jlock comes with jtasks: a missing one is installed now (the first tool call tells the user).
+      await ensureJlock(host).catch(() => undefined)
       // `jlock hold --release-on-eof` kept alive with its standard input open (OpenCode dying frees the locks at
       // once); an older jlock gets `--detach` and the ttl.
       const holdMode = await holdModeFor(host).catch(() => "detach" as const)

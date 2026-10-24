@@ -2,7 +2,7 @@
 // `jlock doctor`, each with what to do when it is not ok. It only reads (a temporary file in JTASKS_HOME, removed
 // even on failure). `jtasks doctor --fix` lists what it would install; `--fix --yes` installs it: jlock through its
 // official installer, the OpenCode agents and the skills of the three agents, each file recorded in the global
-// ledger so `jtasks undo <g-id>` removes it. It never overwrites a file that differs, never touches PATH, and never
+// ledger so `jtasks undo <g-id>` removes it (every command also installs a missing jlock by itself: setup.ts). It never overwrites a file that differs, never touches PATH, and never
 // installs the mod or the plugin.
 
 import { choose, systemLocale, tr } from "./i18n.ts"
@@ -10,6 +10,7 @@ import type { Host } from "./host.ts"
 import { EOF_JLOCK, jlockBin, jlockEnv, MIN_JLOCK, versionAtLeast } from "./jlock.ts"
 import { globalLedger, readEffects, recordGlobalEffect } from "./ledger.ts"
 import { dirname, join } from "./paths.ts"
+import { installJlock as installJlockWith, jlockInstallPath, userHome } from "./setup.ts"
 import { jtasksHome } from "./store.ts"
 import { defineAction, ok, ToolError, VERSION, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 
@@ -27,11 +28,6 @@ export interface Check {
 export const OPENCODE_AGENTS = ["execute", "execute-deep", "review"]
 export const SKILLS = ["to-jtasks", "jtasks"]
 export const SKILL_FILES: Record<string, string[]> = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
-
-/** Where the doctor looks for and installs agents and skills: JTASKS_USER_HOME, else the user's home. */
-export function userHome(host: Host): string {
-  return (host.env("JTASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/")
-}
 
 /** The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. */
 export function skillHosts(host: Host): { host: string; present: string; dir: string }[] {
@@ -229,37 +225,12 @@ async function fixSteps(ctx: ToolContext, checks: Check[]): Promise<FixStep[]> {
   return steps
 }
 
-/** jlock through its official installer (or JTASKS_JLOCK_INSTALLER, a script run with bun, for the tests). */
+/** jlock through its official installer (setup.ts), recorded in the global ledger. */
 async function installJlock(ctx: ToolContext): Promise<string> {
-  const { host } = ctx
-  const own = host.env("JTASKS_JLOCK_INSTALLER")
-  const base = "https://raw.githubusercontent.com/rodrigojager/jlock/main"
-  const argv = own
-    ? ["bun", own]
-    : host.platform === "win32"
-      ? ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `irm ${base}/install.ps1 | iex`]
-      : ["sh", "-c", `curl -fsSL ${base}/install.sh | sh`]
-  const dir = host.env("JLOCK_INSTALL_DIR")
-  const r = await host.run(argv, dir ? { timeoutMs: 5 * 60_000, env: { JLOCK_INSTALL_DIR: dir } } : { timeoutMs: 5 * 60_000 })
-  if (r.code !== 0) throw new ToolError(tr("doctor.jlock_install_failed", { code: r.code, message: (r.stderr || r.stdout).trim().slice(0, 400) }))
-  const installed = jlockInstallPath(host)
-  if (installed && (await isFile(host, installed))) {
-    const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(installed), path: installed, undo: { kind: "remove-file" } })
-    return tr("doctor.jlock_installed", { file: installed, id: e.id })
-  }
-  return tr("doctor.jlock_installed_somewhere")
-}
-
-/** Where jlock's installer puts the binary by default (JLOCK_INSTALL_DIR wins, as in the installer). */
-export function jlockInstallPath(host: Host): string | undefined {
-  const dir = host.env("JLOCK_INSTALL_DIR")
-  const exe = host.platform === "win32" ? "jlock.exe" : "jlock"
-  if (dir) return join(dir.replace(/\\/g, "/"), exe)
-  if (host.platform === "win32") {
-    const local = host.env("LOCALAPPDATA")
-    return local ? join(local.replace(/\\/g, "/"), "Programs/jlock", exe) : undefined
-  }
-  return join(userHome(host), ".local/bin", exe)
+  const done = await installJlockWith(ctx.host, "doctor").catch((error: Error) => {
+    throw new ToolError(error.message)
+  })
+  return done.path ? tr("doctor.jlock_installed", { file: done.path, id: done.effect ?? "-" }) : tr("doctor.jlock_installed_somewhere")
 }
 
 async function doctor(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {

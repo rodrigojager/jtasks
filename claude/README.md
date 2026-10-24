@@ -6,7 +6,9 @@ prompt while a run is bound, a "Tasks" pane with the checklist and `/jtasks` (Cl
 task's profile, and the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of subagents.
 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and
-the hooks module runs it with no Node and no `node_modules`. It needs `jlock` in `PATH` and `git`.
+the hooks module runs it with no Node and no `node_modules`. It needs `git`; `jlock` comes by itself: when it is
+missing, the mod installs it through jlock's official installer as soon as it loads, and the first tool answer says
+where (`JTASKS_NO_JLOCK_INSTALL=1` turns this off).
 
 ## Install
 
