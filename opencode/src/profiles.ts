@@ -2,7 +2,7 @@
 // The `subagent` call of a task (`--task <id>` in its prompt) gets the agent of the task's profile; a profile the
 // run does not have refuses the call. Agents named by the profiles get the profile's model through agent.transform.
 
-import { readTasks, runDir } from "../core/core.js"
+import { readTasks, runDir, tr } from "../core/core.js"
 import type { Host, Profile } from "../core/core.js"
 import type { RunBinding } from "./binding.ts"
 
@@ -23,12 +23,12 @@ export interface SpawnDecision {
 export async function agentFor(host: Host, binding: RunBinding, prompt: string): Promise<SpawnDecision> {
   const { run, task } = taskOfPrompt(prompt)
   if (!task) return {}
-  if (run && run !== binding.run) return { error: `--run ${run} não é a execução ligada a esta sessão (${binding.run})` }
+  if (run && run !== binding.run) return { error: tr("spawn.other_run", { run, bound: binding.run }) }
   const tasks = await readTasks(host, runDir(binding.root, binding.run)).catch(() => undefined)
   const t = tasks?.tasks.find((x) => x.id === task)
-  if (!tasks || !t) return { error: `a execução ${binding.run} não tem a tarefa ${task}` }
+  if (!tasks || !t) return { error: tr("task.not_found", { run: binding.run, id: task }) }
   const profile = tasks.profiles[t.profile]
-  if (!profile) return { error: `perfil desconhecido "${t.profile}" (perfis: ${Object.keys(tasks.profiles).join(", ")})` }
+  if (!profile) return { error: tr("spawn.unknown_profile", { profile: t.profile, profiles: Object.keys(tasks.profiles).join(", ") }) }
   return profile.opencode?.agent ? { agent: profile.opencode.agent } : {}
 }
 
@@ -49,7 +49,7 @@ export function missingAgents(editor: Pick<AgentEditorLike, "get">, profiles: Re
 
 /** The warning line for a profile whose agent does not exist. */
 export function agentMissingLine(profile: string, agent: string): string {
-  return `aviso: o perfil "${profile}" aponta o agente "${agent}", que não existe: instale os agentes do goal-tasks com tasks doctor --fix, ou aponte um agente seu no plano`
+  return tr("profiles.agent_missing", { profile, agent })
 }
 
 /** Gives each agent named by a profile the profile's model, when the profile has one and the agent exists. */

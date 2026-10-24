@@ -5,7 +5,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { parseArgs, runTool, select, splitCommand, systemLocale, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { parseArgs, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
@@ -33,7 +33,7 @@ let refresh: ((force: boolean) => Promise<void>) | undefined
 let paneOpen = false
 
 function needPort(): Port {
-  if (!port) throw new Error('goal-tasks: a sessão ainda não começou (session.start)')
+  if (!port) throw new Error(tr('mod.no_session'))
   return port
 }
 
@@ -49,7 +49,7 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
   const bound = await p.getRun()
   const asked = typeof parsed.options.run === 'string' ? parsed.options.run : undefined
   if (bound && asked && asked !== bound.run && !ANY_RUN.has(parsed.action))
-    return { ok: false, code: 1, text: `esta sessão está ligada à execução ${bound.run}; --run ${asked} é recusado` }
+    return { ok: false, code: 1, text: tr('binding.other_run', { run: bound.run, asked }) }
   const cwd = await p.cwd()
   const ctx: ToolContext = { host: createModHost(p, cwd), cwd, tool: 'claude', session: await p.sessionId(), residents, holdMode: 'detach' }
   if (bound) ctx.boundRun = bound.run
@@ -99,7 +99,7 @@ export const register: Register = (on) => {
     const env = port.env
     select({ env: (name) => env[name as keyof typeof env] ?? undefined, system: systemLocale() })
     await $.tool.register({ name: TOOL_NAME, description: TOOL_DESCRIPTION, inputSchema: TOOL_SCHEMA, isDeferred: false })
-    await $.command.register({ name: 'jtasks', description: 'Abre ou fecha o painel Tasks (goal-tasks)' })
+    await $.command.register({ name: 'jtasks', description: tr('mod.command') })
 
     const stored = await $.store.get('collapsed')
     if (typeof stored === 'boolean') await update($, collapsedAtom, () => stored)
@@ -128,12 +128,12 @@ export const register: Register = (on) => {
     if (paneOpen) {
       await $.ui.close({ id: PANE })
       paneOpen = false
-      return { text: 'Painel Tasks fechado.' }
+      return { text: tr('mod.pane_closed') }
     }
     const opened = await $.ui.open({ id: PANE, title: PANE_TITLE })
     paneOpen = opened.isPlaced
     await refresh?.(true)
-    return { text: opened.isPlaced ? 'Painel Tasks aberto.' : `O painel Tasks não coube agora: ${opened.reason}` }
+    return { text: opened.isPlaced ? tr('mod.pane_open') : tr('mod.pane_no_room', { reason: String(opened.reason) }) }
   })
 
   on('ui.close', { id: 'tasks' }, async ($, e, next) => {
@@ -145,7 +145,7 @@ export const register: Register = (on) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     const view = await read($, viewAtom)
     const collapsed = await read($, collapsedAtom)
-    if (!view) return <Text dimColor>Tasks: carregando…</Text>
+    if (!view) return <Text dimColor>{tr('view.loading')}</Text>
     const { header, summary, body } = paneLines(view, collapsed, e.props.bodyColumns ?? 60)
     const toggle = async () => {
       const folded = !collapsed
@@ -180,7 +180,7 @@ export const register: Register = (on) => {
     if (result.ok && result.bind && !paneOpen) paneOpen = (await $.ui.open({ id: PANE, title: PANE_TITLE })).isPlaced
     await refresh?.(true).catch(() => undefined)
     return { result: result.text }
-  }).catch(($, e, next) => (next.called ? next(e) : { result: 'goal-tasks: a ferramenta falhou nesta chamada; tente de novo (tasks status)' }))
+  }).catch(($, e, next) => (next.called ? next(e) : { result: tr('mod.tool_failed') }))
 
   // A subagent of a task: the model, role and effort of the task's profile; an unknown profile refuses it.
   on('agent.spawn', async ($, e, next) => {
@@ -193,7 +193,7 @@ export const register: Register = (on) => {
     const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.model ? { model: decision.model } : {}) })
     if (spawned.agentId) await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task } })
     return spawned
-  }).catch(($, e, next) => (next.called ? next(e) : { deny: 'goal-tasks: não deu para ler o perfil da tarefa; tente de novo' }))
+  }).catch(($, e, next) => (next.called ? next(e) : { deny: tr('mod.profile_failed') }))
 
   // The guard: edits outside the ownership, mutating git of a subagent, and direct edits of the run's files.
   const guard = async (call: GuardedCall, agentId: string | undefined): Promise<string | undefined> => {
@@ -204,19 +204,19 @@ export const register: Register = (on) => {
     const verdict = await judgeCall(createModHost(p, await p.cwd()), await p.cwd(), bound, agent, call)
     return verdict.allow ? undefined : `goal-tasks: ${verdict.reason}`
   }
-  const refused = { deny: 'goal-tasks: a guarda de posse falhou nesta chamada; ela foi recusada por segurança' }
+  const refused = () => ({ deny: tr('mod.guard_failed') })
   on('tool.call', { tool: 'Edit' }, async ($, e, next) => {
     const deny = await guard({ tool: 'Edit', file_path: e.file_path }, e.agentId)
     return deny ? { deny } : next(e)
-  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  }).catch(($, e, next) => (next.called ? next(e) : refused()))
   on('tool.call', { tool: 'Write' }, async ($, e, next) => {
     const deny = await guard({ tool: 'Write', file_path: e.file_path }, e.agentId)
     return deny ? { deny } : next(e)
-  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  }).catch(($, e, next) => (next.called ? next(e) : refused()))
   on('tool.call', { tool: 'NotebookEdit' }, async ($, e, next) => {
     const deny = await guard({ tool: 'NotebookEdit', notebook_path: e.notebook_path }, e.agentId)
     return deny ? { deny } : next(e)
-  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  }).catch(($, e, next) => (next.called ? next(e) : refused()))
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const deny = await guard({ tool: 'Bash', command: e.command }, e.agentId)
     if (deny) return { deny }
@@ -227,7 +227,7 @@ export const register: Register = (on) => {
     const owner = `gt:${bound.run}/${agent?.task ?? 'exec'}-bash`
     const wrapped = await serializedCommand(createModHost(p, await p.cwd()), bound, e.command, owner)
     return next(wrapped ? { ...e, command: wrapped } : e)
-  }).catch(($, e, next) => (next.called ? next(e) : refused))
+  }).catch(($, e, next) => (next.called ? next(e) : refused()))
 
   // A subagent whose loop ended with its task still in progress: the task goes back to the queue.
   on('turn.complete', async ($, e, next) => {

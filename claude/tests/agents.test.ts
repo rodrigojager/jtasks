@@ -40,7 +40,7 @@ test("a task's subagent runs on its profile's model, with the role and effort in
   const { run, spawned } = await scene($, on)
   const a = await $.agent.spawn({ prompt: `--run ${run} --task T01 Faça a base.`, description: 'T01', subagentType: 'general-purpose' } as never)
   expect(a.model).toBe('sonnet')
-  expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.\n\n(Perfil implement: esforço medium.)`)
+  expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.\n\n(Profile implement: effort medium.)`)
   const b = await $.agent.spawn({ prompt: `--run ${run} --task T02 Funda.`, description: 'T02', subagentType: 'general-purpose' } as never)
   expect(b.model).toBe('opus')
   // A subagent of no task is left alone.

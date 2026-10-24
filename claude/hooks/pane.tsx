@@ -1,7 +1,7 @@
 // The "Tasks" pane: the bound run's checklist and bar (the core's view model, the same the OpenCode sidebar draws),
 // folded to one line by its header button. The view is kept in $.state, so writing it redraws the pane.
 
-import { barCells, headerText, lineText, loadRunsView, loadView, repoRoot, summaryTail, type View } from '../core/core.js'
+import { barCells, headerText, lineText, loadRunsView, loadView, repoRoot, summaryTail, tr, type View } from '../core/core.js'
 import type { PaneView } from '../types'
 import { createModHost, type Port } from './mod-host.ts'
 
@@ -42,7 +42,7 @@ export function paneLines(view: PaneView, collapsed: boolean, columns: number): 
   const header = headerText(v, collapsed)
   if (collapsed) return { header, body: [] }
   if (v.kind === 'runs') {
-    const body = v.runs.length ? v.runs.map((r) => `${r.id} · ${r.status} · ${r.done}/${r.total} (${r.percent}%)`) : ['nenhuma execução (tasks plan)']
+    const body = v.runs.length ? v.runs.map((r) => `${r.id} · ${r.status} · ${r.done}/${r.total} (${r.percent}%)`) : [tr('view.no_runs')]
     return { header, body }
   }
   const width = Math.max(24, columns)

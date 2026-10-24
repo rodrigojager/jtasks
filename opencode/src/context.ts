@@ -1,7 +1,7 @@
 // The protocol and the run's progress line, in every model request of a bound session (and in compaction), so
 // that the list survives compaction. Read from tasks.json/run.json only: no jlock call per request.
 
-import { progressLine, protocolText, readRun, readTasks, runDir } from "../core/core.js"
+import { progressLine, protocolText, readRun, readTasks, runDir, tr } from "../core/core.js"
 import type { Host } from "../core/core.js"
 import type { RunBinding } from "./binding.ts"
 
@@ -11,8 +11,8 @@ export async function contextText(host: Host, binding: RunBinding): Promise<stri
   const dir = runDir(binding.root, binding.run)
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!run || !tasks) return undefined
-  const summary = run.status === "paused" ? `pausada: não inicie tarefas · ${progressLine(tasks.tasks)}` : progressLine(tasks.tasks)
-  return protocolText(run.id, summary, 'ferramenta subagent, agent = o agente do perfil')
+  const summary = run.status === "paused" ? `${tr("status.paused")} · ${progressLine(tasks.tasks)}` : progressLine(tasks.tasks)
+  return protocolText(run.id, summary, "the subagent tool, agent = the task's profile agent")
 }
 
 /** Replaces our part of the system prompt (never two copies, never a stale one). */

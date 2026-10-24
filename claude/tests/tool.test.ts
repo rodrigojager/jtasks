@@ -75,7 +75,7 @@ test('the protocol section is in the system prompt only while a run is bound', a
   expect(section.scope).toBe('session')
   expect(section.text).toContain(`goal-tasks: bound run ${run} · feitas 0/2 (0%) · restam 2`)
   expect(section.text).toContain('1. Call tasks next.')
-  expect(section.text).toContain('ferramenta Agent')
+  expect(section.text).toContain('the Agent tool')
 })
 
 test('start takes the ownership with jlock hold --detach --ttl through $.process.run; done gives it back with jlock release', async ($, on) => {

@@ -4,7 +4,7 @@
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { holdModeFor, parseArgs, readTasks, runDir, runTool, splitCommand, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { holdModeFor, parseArgs, readTasks, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
@@ -17,16 +17,17 @@ import { viewFor } from "./src/view.ts"
 export const PLUGIN_ID = "goal-tasks"
 export const TOOL_NAME = "tasks"
 
-export const TOOL_DESCRIPTION = `goal-tasks ${VERSION}: lista de tarefas determinística com dependências e posse de arquivos (jlock). ` +
-  `"command" é a linha de comando do CLI tasks sem o "tasks" (ex.: "next", "start T04", "claim T04 src/x.ts", ` +
-  `"done T04 --evidence \\"bun test: 12 passed\\"", "status", "plan --add"); "json" leva o plano ou o lote em JSON ` +
-  `(plan, plan --add, plan --fix <id>). "help" lista as ações. Nunca edite tasks.json, tickets ou o git à mão.`
+// What the model reads is English in every language (plan section 21); the answers are in the person's language.
+export const TOOL_DESCRIPTION = `goal-tasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
+  `"command" is the tasks CLI command line without the "tasks" (e.g. "next", "start T04", "claim T04 src/x.ts", ` +
+  `"done T04 --evidence \\"bun test: 12 passed\\"", "status", "plan --add"); "json" carries the plan or the batch in JSON ` +
+  `(plan, plan --add, plan --fix <id>). "help" lists the actions. Never edit tasks.json, the tickets or git by hand.`
 
 export const TOOL_INPUT = {
   type: "object",
   properties: {
-    command: { type: "string", description: 'A linha de comando do tasks, sem o "tasks": "next", "start T04", "status"…' },
-    json: { description: "Plano, lote ou tarefa em JSON, para plan, plan --add e plan --fix." },
+    command: { type: "string", description: 'The tasks command line, without the "tasks": "next", "start T04", "status"…' },
+    json: { description: "A plan, batch or task in JSON, for plan, plan --add and plan --fix." },
   },
   required: ["command"],
   additionalProperties: false,
@@ -46,6 +47,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
     id: PLUGIN_ID,
     async setup(ctx) {
       const host = options.host ?? createNodeHost()
+      // The language of the views the sidebar asks for (each tool call chooses again, with its own --lang).
+      select({ env: (name) => host.env(name), system: systemLocale() })
       const residents = new Map<string, Resident[]>()
       // `jlock hold --release-on-eof` kept alive with its standard input open (OpenCode dying frees the locks at
       // once); an older jlock gets `--detach` and the ttl.
@@ -79,7 +82,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         }
         const asked = typeof parsed.options.run === "string" ? parsed.options.run : undefined
         if (run && asked && asked !== run.run && !ANY_RUN.has(action))
-          return { ok: false, code: 1, text: `esta sessão está ligada à execução ${run.run}; --run ${asked} é recusado` }
+          return { ok: false, code: 1, text: tr("binding.other_run", { run: run.run, asked }) }
         const tctx: ToolContext = {
           host,
           cwd: (await bindings.directory(sessionID)) ?? fallbackDir,

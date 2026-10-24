@@ -29,10 +29,10 @@ describe("catalogs", () => {
     expect(all.map(([tag]) => tag).sort()).toEqual([...tags()].sort())
   })
 
-  test("no human text is left in the code: no accented letter outside comments in src/ and cli/", () => {
+  test("no human text is left in the code: no accented letter outside comments in src/, cli/, the mod and the plugin", () => {
     const offenders: string[] = []
-    for (const dir of ["src", "cli"])
-      for (const name of readdirSync(join(REPO_ROOT, dir)).filter((n) => n.endsWith(".ts"))) {
+    for (const dir of ["src", "cli", "claude/hooks", "opencode", "opencode/src"])
+      for (const name of readdirSync(join(REPO_ROOT, dir)).filter((n) => /\.tsx?$/.test(n))) {
         readFileSync(join(REPO_ROOT, dir, name), "utf8")
           .split("\n")
           .forEach((line, i) => {

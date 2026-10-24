@@ -18,6 +18,14 @@ claude --plugin-dir D:/goal-tasks/claude
 
 Or add the repository as a marketplace and install it; nothing here changes your Claude Code configuration.
 
+## Language
+
+The pane, `/jtasks` and the tool's answers speak the language picked when the session starts: `GOAL_TASKS_LANG`,
+then `JLOCK_LANG`, then the system's language, then English (`en` and `pt-BR` today). A single call can ask for
+another with `--lang <tag>` (`{ "command": "status --lang en" }`). The tool's description and the protocol in the
+system prompt are English, for the model; `--json` data is the same in every language. Set the variable before
+starting Claude Code, for example `GOAL_TASKS_LANG=en claude --plugin-dir D:/goal-tasks/claude`.
+
 ## Check it
 
 ```

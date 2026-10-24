@@ -138,4 +138,32 @@ describe("TUI section", () => {
     const view = await t.mount("other")
     expect(await frame(view, (f) => f.includes("Tasks"))).toContain("▾ Tasks · sem execução ligada")
   })
+
+  test("the same section in English: GOAL_TASKS_LANG=en for the server and the TUI", async () => {
+    process.env.GOAL_TASKS_LANG = "en"
+    try {
+      const repo = makeRepo()
+      const server = await fakeHost(repo)
+      if (server.cleanup) cleanups.push(server.cleanup)
+      server.addSession("other")
+      const t = await tui(server)
+      const empty = await t.mount("other")
+      expect(await frame(empty, (f) => f.includes("Tasks"))).toContain("▾ Tasks · no bound run")
+      const planned = await server.call("s1", "plan", {
+        tasks: [
+          { id: "T01", title: "Movimento", files: ["src/a.ts"] },
+          { id: "T02", title: "Junta", dependsOn: ["T01"], files: ["src/b.ts"] },
+        ],
+      })
+      expect(planned.text).toMatch(/^run \S+ created: 2 task\(s\)/)
+      const view = await t.mount("s1")
+      const first = await frame(view, (f) => f.includes("T02"))
+      expect(first).toContain("██████████ 0% · 0/2")
+      expect(first).toMatch(/T02 Junta\s+⛔/)
+      await view.mockMouse.click(2, 0)
+      expect(await frame(view, (f) => f.includes("▸ Tasks"))).toContain("▸ Tasks 0/2 · 0%")
+    } finally {
+      process.env.GOAL_TASKS_LANG = "pt-BR"
+    }
+  })
 })

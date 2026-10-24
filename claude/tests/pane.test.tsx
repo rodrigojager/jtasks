@@ -17,16 +17,16 @@ const PANE = {
   props: { title: 'Tasks', isFocused: false, bodyColumns: 50, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} },
 } as const
 
-/** The engine beneath the pane: the machine and the session (clock, store, panes). */
-function engine(on: any) {
+/** The engine beneath the pane: the machine and the session (clock, store, panes), in a language. */
+function engine(on: any, lang = 'pt-BR') {
   const machine = installMachine(on, ROOT)
-  const { clock, panes, store } = installSession(on, ROOT)
+  const { clock, panes, store } = installSession(on, ROOT, 'session-1', lang)
   return { machine, clock, panes, store }
 }
 
 async function plan($: any): Promise<string> {
   const r = await $.tool.call({ tool: TOOL, command: 'plan', json: PLAN })
-  return /execução (\S+) criada/.exec(String(r.result))![1]!
+  return /(?:execução|run) (\S+) (?:criada|created)/.exec(String(r.result))![1]!
 }
 
 test('binding a run opens the pane; it draws the checklist on terminal and desktop and follows a done', async ($, on) => {
@@ -93,4 +93,24 @@ test('a view an earlier version stored is declined', async ($, on) => {
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ type: 'Text' }))?.text).toBe('Tasks: carregando…')
   await ui.unmount()
+})
+
+test('the same pane in English: GOAL_TASKS_LANG=en for the session', async ($, on) => {
+  const { panes } = engine(on, 'en')
+  on('command.run', (_$: unknown, e: unknown) => e as never)
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+  const opened = await $.command.run({ command: 'jtasks', args: '' } as never)
+  expect((opened as { text: string }).text).toBe('Tasks pane open.')
+  const empty = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await empty.find({ key: 'toggle' }))?.text).toBe('▾ Tasks · no bound run')
+  expect((await empty.find({ type: 'Text', text: /no run/ }))?.text).toBe('no run (tasks plan)')
+  await empty.unmount()
+  const run = await plan($)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect((await ui.find({ key: 'toggle' }))?.text).toBe(`▾ Tasks · ${run}`)
+  expect((await ui.find({ type: 'Text', text: /T02/ }))?.text).toContain('⛔ T01')
+  await ui.press({ key: 'toggle' })
+  expect((await ui.find({ key: 'toggle' }))?.text).toBe('▸ Tasks 0/2 · 0%')
+  await ui.unmount()
+  expect(panes[0]).toBe('open tasks')
 })

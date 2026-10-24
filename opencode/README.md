@@ -33,6 +33,13 @@ ledger, undone by `tasks undo`), or copy them yourself. A profile may name any a
 profile with `opencode.model` gives that agent the model for the session (see `docs/DEVIATIONS.md`). After
 `plan --commit` and `resume`, the tool warns about a profile whose agent does not exist; the run is created anyway.
 
+## Language
+
+The sidebar section and the tool's answers speak the language picked when OpenCode starts (the server and the TUI
+each pick it the same way): `GOAL_TASKS_LANG`, then `JLOCK_LANG`, then the system's language, then English (`en`
+and `pt-BR` today). A single call can ask for another with `--lang <tag>`. The tool's description and the protocol
+injected into each request are English, for the model; `--json` data is the same in every language.
+
 ## The sidebar section
 
 In a session bound to a run, the sidebar shows `▾ Tasks · <run>`, the bar with `done/total · skipped · failed`,

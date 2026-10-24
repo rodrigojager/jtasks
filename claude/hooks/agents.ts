@@ -3,7 +3,7 @@
 // prompt; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
 // Bash, run through `jlock run` (one at a time on the machine).
 
-import { readRun, readTasks, runDir, serializeEntry, serializeKey, type Host } from '../core/core.js'
+import { readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr } from '../core/core.js'
 import type { BoundRun } from '../types'
 
 export function taskOfPrompt(prompt: string): { run?: string; task?: string } {
@@ -23,15 +23,15 @@ export interface SpawnDecision {
 export async function spawnDecision(host: Host, bound: BoundRun, prompt: string): Promise<SpawnDecision> {
   const { run, task } = taskOfPrompt(prompt)
   if (!task) return {}
-  if (run && run !== bound.run) return { error: `--run ${run} não é a execução ligada a esta sessão (${bound.run})` }
+  if (run && run !== bound.run) return { error: tr('spawn.other_run', { run, bound: bound.run }) }
   const tasks = await readTasks(host, runDir(bound.root, bound.run)).catch(() => undefined)
   const t = tasks?.tasks.find((x) => x.id === task)
-  if (!tasks || !t) return { error: `a execução ${bound.run} não tem a tarefa ${task}` }
+  if (!tasks || !t) return { error: tr('task.not_found', { run: bound.run, id: task }) }
   const profile = tasks.profiles[t.profile]
-  if (!profile) return { error: `perfil desconhecido "${t.profile}" (perfis: ${Object.keys(tasks.profiles).join(', ')})` }
+  if (!profile) return { error: tr('spawn.unknown_profile', { profile: t.profile, profiles: Object.keys(tasks.profiles).join(', ') }) }
   const c = profile.claude ?? {}
   const role = c.role ? `--role ${c.role} ` : ''
-  const effort = c.effort ? `\n\n(Perfil ${t.profile}: esforço ${c.effort}.)` : ''
+  const effort = c.effort ? `\n\n(Profile ${t.profile}: effort ${c.effort}.)` : ''
   const out: SpawnDecision = { task, prompt: `${role}${prompt}${effort}` }
   if (c.model) out.model = c.model
   return out

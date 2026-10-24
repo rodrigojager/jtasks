@@ -5,7 +5,7 @@
 
 import type { Plugin } from "@opencode/plugin/tui"
 import { createSignal, For, onCleanup, Show } from "solid-js"
-import { barCells, headerText, lineText, summaryTail, type LineState, type View } from "./core/core.js"
+import { barCells, headerText, lineText, select, summaryTail, systemLocale, type LineState, type View } from "./core/core.js"
 import { TasksRpc } from "./src/rpc.ts"
 
 type Context = Plugin.Context
@@ -22,6 +22,8 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
   return {
     id: "goal-tasks.tui",
     setup(context: Context) {
+      // The TUI is its own process: it picks the language as the server does (GOAL_TASKS_LANG, JLOCK_LANG, system).
+      select({ env: (name) => process.env[name], system: systemLocale() })
       const rpc = context.client.rpc(TasksRpc)
       const [prefs, setPrefs] = context.storage.store("prefs", { initial: { collapsed: false } })
       const theme = () => context.theme.surface("sidebar" as never) as unknown as Record<string, any>

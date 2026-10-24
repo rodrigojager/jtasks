@@ -1,6 +1,6 @@
 // The display model (src/view.ts, shipped in core/core.js): the same lines the sidebar and the Claude pane draw.
-import { describe, expect, test } from "bun:test"
-import { bar, barCells, buildView, headerText, lineText, runsView, toTask, viewLines, DEFAULT_PROFILES } from "../core/core.js"
+import { describe, expect, test, beforeEach } from "bun:test"
+import { bar, barCells, buildView, headerText, lineText, runsView, toTask, viewLines, DEFAULT_PROFILES, select } from "../core/core.js"
 import type { JlockLock, PlanTask, RunFile, RunState } from "../core/core.js"
 
 const ROOT = "D:/Proj"
@@ -14,6 +14,9 @@ function state(tasks: PlanTask[], status: RunFile["status"] = "active"): RunStat
     tasks: { version: 1, run: RUN, revision: 1, profiles: DEFAULT_PROFILES, tasks: tasks.map((t) => toTask(t, DEFAULT_PROFILES)) },
   }
 }
+
+// The texts below are the Portuguese ones, whatever language an earlier test of this process left selected.
+beforeEach(() => void select({ lang: "pt-BR" }))
 
 describe("view", () => {
   const s = state([
