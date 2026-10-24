@@ -2,7 +2,7 @@
 // for the whole test process, so no test touches the real ledger or the real lock registry; both are removed after
 // the last test, together with the test root when it is left empty.
 
-import { afterAll } from "bun:test"
+import { afterAll, setDefaultTimeout } from "bun:test"
 import { mkdirSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -18,6 +18,8 @@ process.env.JLOCK_HOME = `${home}/jlock`
 process.env.JLOCK_HEARTBEAT_MS = "200"
 process.env.JLOCK_STALE_MS = "1500"
 process.env.JLOCK_HINTS = "0"
+// Tests start real git and jlock processes; on a busy machine 5 s (the default) is not enough.
+setDefaultTimeout(60_000)
 delete process.env.GOAL_TASKS_RUN
 
 function remove(dir: string) {

@@ -1,0 +1,21 @@
+{
+  "name": "opencode-goal-tasks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "goal-tasks for OpenCode v2: the tasks tool, run binding, protocol in context, profiles and the ownership guard.",
+  "license": "MIT",
+  "author": "Rodrigo Jäger",
+  "exports": {
+    ".": "./server.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.1.3",
+    "@types/bun": "1.3.14",
+    "typescript": "5.9.3"
+  }
+}

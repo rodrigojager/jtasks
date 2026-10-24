@@ -38,7 +38,7 @@ import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffe
 import { caseInsensitive, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
 import type { Hold, Task, TasksFile } from "./schema.ts"
-import { appendLog, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
+import { appendLog, clone, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext } from "./tool.ts"
 import { normalizeFileEntry } from "./validate.ts"
@@ -122,7 +122,7 @@ function remember(ctx: ToolContext, state: RunState, task: string, resident: Res
 export async function markLost(ctx: ToolContext, first: RunState, id: string): Promise<boolean> {
   const changed = await withLock(ctx.host, first.dir, async () => {
     const state = await reload(ctx, first)
-    const copy = structuredClone(state.tasks)
+    const copy = clone(state.tasks)
     const task = copy.tasks.find((t) => t.id === id)
     if (!task || task.status !== "in_progress") return false
     const now = ctx.host.now().toISOString()
@@ -265,7 +265,7 @@ defineAction(
         if (resident.pid !== undefined) hold.pid = resident.pid
         if (spawned.out) hold.out = spawned.out
       }
-      const changed = structuredClone(state.tasks)
+      const changed = clone(state.tasks)
       const t = changed.tasks.find((x) => x.id === task.id)!
       t.status = "in_progress"
       t.attempts += 1
@@ -473,7 +473,7 @@ async function transition(
   return withLock(ctx.host, first.dir, async () => {
     const state = await reload(ctx, first)
     const original = findTask(state, id)
-    const copy = structuredClone(state.tasks)
+    const copy = clone(state.tasks)
     const task = copy.tasks.find((t) => t.id === original.id)!
     const from = task.status
     const extra = (await change(task, state)) ?? {}
@@ -581,7 +581,7 @@ defineAction(
     try {
       const done = await withLock(ctx.host, first.dir, async () => {
         const state = await reload(ctx, first)
-        const copy = structuredClone(state.tasks)
+        const copy = clone(state.tasks)
         const t = copy.tasks.find((x) => x.id === task.id)!
         if (t.status !== "in_progress") throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`)
         t.claimed = [...(t.claimed ?? []), ...wanted.filter((f) => !(t.claimed ?? []).includes(f))]
@@ -774,7 +774,7 @@ defineAction(
       const first = await resolveRun(ctx, args)
       const reopened = await withLock(ctx.host, first.dir, async () => {
         const state = await reload(ctx, first)
-        const copy = structuredClone(state.tasks)
+        const copy = clone(state.tasks)
         const ids: string[] = []
         for (const task of copy.tasks)
           if (task.status === "failed") {
@@ -853,7 +853,7 @@ defineAction(
       if (run.status === "paused") run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
       if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
         run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }]
-      const copy = structuredClone(state.tasks)
+      const copy = clone(state.tasks)
       for (const task of copy.tasks) {
         if (task.status !== "in_progress") continue
         const keys = taskKeys(state.root, task, ctx.host.platform)

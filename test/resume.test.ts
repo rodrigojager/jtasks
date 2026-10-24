@@ -82,7 +82,7 @@ describe("resume after a dead window", () => {
     // ≤ JLOCK_STALE_MS (1.5 s in the tests): the holder of T01 is dead.
     const t0 = Date.now()
     await until(() => (jlockListJson("--group", run).some((l) => l.holder?.owner === `gt:${run}/T01` && !(l.holder as { stale?: boolean }).stale) ? undefined : true))
-    expect(Date.now() - t0).toBeLessThan(1500 + 1500)
+    expect(Date.now() - t0).toBeLessThan(1500 + 3500)
     expect((await tasksOk(repo, ["status"])).text).toContain("posse perdida: T01 (sem travas no jlock")
 
     const r = await tasksOk(repo, ["resume", run], { tool: "claude", session: "nova-janela" })

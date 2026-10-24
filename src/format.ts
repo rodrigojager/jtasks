@@ -54,6 +54,24 @@ export function formatRunsList(runs: { run: RunFile; tasks?: TasksFile }[]): str
   return runs.map((r) => runLine(r.run, r.tasks)).join("\n")
 }
 
+/**
+ * The execution protocol (section 12), injected into the system prompt while a run is bound to the session.
+ * `spawn` names how the host opens a subagent.
+ */
+export function protocolText(run: string, summary: string, spawn: string): string {
+  return [
+    `goal-tasks: execução ligada ${run} · ${summary}`,
+    "Protocolo:",
+    "1. Chame tasks next.",
+    `2. Para cada tarefa devolvida, abra um subagente (${spawn}) com o perfil indicado, todos na mesma resposta (paralelo). ` +
+      `O prompt leva só: --run ${run} --task <id>, título, critérios, posse (os arquivos que pode tocar), caminho do ticket, e ` +
+      '"chame tasks start <id> no começo; se precisar de outro arquivo, tasks claim <id> <arquivo>; não rode git; ' +
+      'no fim, tasks done <id> --evidence com a evidência, ou tasks fail <id> --error".',
+    '3. Quando terminarem, chame tasks status. "restam 0" → objetivo cumprido, com essa saída como evidência. "pausada" → pare. Senão volte ao passo 1.',
+    "4. Nunca edite tasks.json, tickets ou o git à mão; só pela ferramenta tasks.",
+  ].join("\n")
+}
+
 export function bullet(lines: string[]): string {
   return lines.map((l) => `- ${l}`).join("\n")
 }

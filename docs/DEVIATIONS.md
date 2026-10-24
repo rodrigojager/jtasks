@@ -75,3 +75,22 @@ que não chegou ao `release` (janela morta, posse perdida) também conta. A fras
 **No lugar:** `start` faz `attempts+1`; `release`, `resume` e posse perdida comparam com `maxAttempts` e viram
 `failed` quando chega; `retry` zera a contagem (o histórico fica no `log.jsonl`). `resume --keep-owners` não libera
 nenhuma tarefa, nem as sem travas.
+
+## 7. OpenCode: a API real do plugin 2.1.3 (ticket 12)
+
+**O plano (seção 15):** ferramenta por `ctx.tool.register`; ligação em `ctx.storage` com `session.family`; perfis
+garantidos por `agent.transform` (efeito `agent-config` no ledger); guarda por "um hook de permissão".
+
+**O que a API tem:** `ctx.tool.transform(editor => editor.add(...))` registra ferramentas (não há
+`tool.register`); `session.family` só existe na TUI (`context.data.session.family`), no servidor há
+`session.get` com `parentID`; o editor de `agent.transform` tem `list/get/update/remove/default`, sem `add`: um
+plugin não cria agentes; e o hook de permissão é `ctx.permission.hook("evaluate")`, com `action` (`edit` para
+edit/write/patch, `shell` para comandos) e `resources`.
+
+**No lugar:** a ferramenta é registrada por `tool.transform`; a ligação é guardada por sessão raiz
+(`binding/<raiz>`), achada subindo os `parentID`; a sessão filha que fez `start`/`claim` fica ligada à tarefa
+(`task/<sessão>`) para a guarda. Os perfis apontam agentes que já existem no `opencode.json`: a chamada
+`subagent` de uma tarefa (`--task <id>` no prompt) recebe o agente do perfil (`tool.hook("execute.before")`),
+perfil desconhecido recusa a chamada, e um perfil com `opencode.model` dá esse modelo ao agente por
+`agent.transform`, só durante a sessão. Como nada é gravado na configuração, não há efeito `agent-config` no
+ledger. A guarda decide no `permission.hook("evaluate")` pela regra do núcleo (`src/guard.ts`).

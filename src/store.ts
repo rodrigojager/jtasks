@@ -53,6 +53,11 @@ export async function readJson<T>(host: Host, file: string): Promise<T | undefin
   }
 }
 
+/** A deep copy of plain JSON data (structuredClone is not in every host the core runs in). */
+export function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 export function stringify(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`
 }
@@ -122,7 +127,7 @@ export async function mutateTasks<R>(host: Host, dir: string, change: (tasks: Ta
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir)
     if (!tasks) throw new Error(`execução sem tasks.json: ${dir}`)
-    const copy = structuredClone(tasks)
+    const copy = clone(tasks)
     const result = await change(copy)
     return { tasks: await writeTasks(host, dir, copy, tasks.revision), result }
   })

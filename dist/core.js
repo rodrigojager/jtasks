@@ -790,6 +790,9 @@ async function readJson(host, file) {
     throw new Error(`${file} não é JSON válido: ${error.message}`);
   }
 }
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 function stringify(value) {
   return `${JSON.stringify(value, null, 2)}
 `;
@@ -840,7 +843,7 @@ async function mutateTasks(host, dir, change) {
     const tasks = await readTasks(host, dir);
     if (!tasks)
       throw new Error(`execução sem tasks.json: ${dir}`);
-    const copy = structuredClone(tasks);
+    const copy = clone(tasks);
     const result = await change(copy);
     return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
   });
@@ -908,6 +911,17 @@ function formatRunsList(runs) {
   if (runs.length === 0)
     return "nenhuma execução neste repositório (crie uma com tasks plan)";
   return runs.map((r) => runLine(r.run, r.tasks)).join(`
+`);
+}
+function protocolText(run, summary, spawn) {
+  return [
+    `goal-tasks: execução ligada ${run} · ${summary}`,
+    "Protocolo:",
+    "1. Chame tasks next.",
+    `2. Para cada tarefa devolvida, abra um subagente (${spawn}) com o perfil indicado, todos na mesma resposta (paralelo). ` + `O prompt leva só: --run ${run} --task <id>, título, critérios, posse (os arquivos que pode tocar), caminho do ticket, e ` + '"chame tasks start <id> no começo; se precisar de outro arquivo, tasks claim <id> <arquivo>; não rode git; ' + 'no fim, tasks done <id> --evidence com a evidência, ou tasks fail <id> --error".',
+    '3. Quando terminarem, chame tasks status. "restam 0" → objetivo cumprido, com essa saída como evidência. "pausada" → pare. Senão volte ao passo 1.',
+    "4. Nunca edite tasks.json, tickets ou o git à mão; só pela ferramenta tasks."
+  ].join(`
 `);
 }
 function bullet(lines) {
@@ -1876,7 +1890,7 @@ function remember(ctx, state, task, resident) {
 async function markLost(ctx, first, id) {
   const changed = await withLock(ctx.host, first.dir, async () => {
     const state = await reload(ctx, first);
-    const copy = structuredClone(state.tasks);
+    const copy = clone(state.tasks);
     const task = copy.tasks.find((t) => t.id === id);
     if (!task || task.status !== "in_progress")
       return false;
@@ -2010,7 +2024,7 @@ defineAction("start", async (ctx, args) => {
       if (spawned.out)
         hold.out = spawned.out;
     }
-    const changed = structuredClone(state.tasks);
+    const changed = clone(state.tasks);
     const t = changed.tasks.find((x) => x.id === task.id);
     t.status = "in_progress";
     t.attempts += 1;
@@ -2180,7 +2194,7 @@ async function transition(ctx, args, action, change) {
   return withLock(ctx.host, first.dir, async () => {
     const state = await reload(ctx, first);
     const original = findTask(state, id);
-    const copy = structuredClone(state.tasks);
+    const copy = clone(state.tasks);
     const task = copy.tasks.find((t) => t.id === original.id);
     const from = task.status;
     const extra = await change(task, state) ?? {};
@@ -2271,7 +2285,7 @@ defineAction("claim", async (ctx, args) => {
   try {
     const done = await withLock(ctx.host, first.dir, async () => {
       const state = await reload(ctx, first);
-      const copy = structuredClone(state.tasks);
+      const copy = clone(state.tasks);
       const t = copy.tasks.find((x) => x.id === task.id);
       if (t.status !== "in_progress")
         throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`);
@@ -2440,7 +2454,7 @@ defineAction("retry", async (ctx, args) => {
     const first = await resolveRun(ctx, args);
     const reopened = await withLock(ctx.host, first.dir, async () => {
       const state = await reload(ctx, first);
-      const copy = structuredClone(state.tasks);
+      const copy = clone(state.tasks);
       const ids = [];
       for (const task of copy.tasks)
         if (task.status === "failed") {
@@ -2512,7 +2526,7 @@ defineAction("resume", async (ctx, args) => {
       run.status = counts(state2.tasks.tasks).remaining === 0 ? "done" : "active";
     if (ctx.session && !run.sessions.some((s2) => s2.tool === ctx.tool && s2.id === ctx.session))
       run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }];
-    const copy = structuredClone(state2.tasks);
+    const copy = clone(state2.tasks);
     for (const task of copy.tasks) {
       if (task.status !== "in_progress")
         continue;
@@ -2969,6 +2983,150 @@ async function removeFound(ctx, path, yes) {
   await recordGlobalEffect(host, { run: "gc", type: "dir", repo: found.owner ?? dirname(path), path, undo: { kind: "none" } });
   return ok(`${found.type} removida: ${path} (${how}); registrado no ledger global`, { removed: path, type: found.type });
 }
+// src/guard.ts
+var ALLOW = { allow: true };
+function repoRelative(ctx, path) {
+  const abs = isAbsolute(path) ? normalize(path) : join(ctx.cwd, path);
+  return relativeInside(ctx.root, abs, caseInsensitive(ctx.platform));
+}
+function owned(ctx, rel) {
+  const t = ctx.task;
+  if (t.exclusive)
+    return true;
+  const insensitive = caseInsensitive(ctx.platform);
+  const p = insensitive ? rel.toLowerCase() : rel;
+  return [...t.files, ...t.claimed ?? []].some((f) => {
+    const o = insensitive ? f.toLowerCase() : f;
+    return o === "." || covers(o, p);
+  });
+}
+var TOOL_FILES = `${SCRATCH}/`;
+function checkEdit(ctx, path) {
+  const rel = repoRelative(ctx, slash(path));
+  if (rel === undefined)
+    return ALLOW;
+  const lower = caseInsensitive(ctx.platform) ? rel.toLowerCase() : rel;
+  if (lower.startsWith(TOOL_FILES) || lower === SCRATCH)
+    return { allow: false, reason: `${rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão` };
+  if (!ctx.task || owned(ctx, rel))
+    return ALLOW;
+  return { allow: false, reason: `fora da posse de ${ctx.task.id}: ${rel}; use tasks claim ${ctx.task.id} ${rel}` };
+}
+var GIT_MUTATORS = new Set([
+  "add",
+  "am",
+  "apply",
+  "branch",
+  "checkout",
+  "cherry-pick",
+  "clean",
+  "commit",
+  "merge",
+  "mv",
+  "pull",
+  "push",
+  "rebase",
+  "reset",
+  "restore",
+  "revert",
+  "rm",
+  "stash",
+  "switch",
+  "tag",
+  "worktree"
+]);
+var WRITERS = new Set(["rm", "mv", "cp", "del", "erase", "rmdir", "rd", "move", "copy", "touch", "tee", "truncate", "mkdir", "ni", "new-item", "remove-item", "set-content", "out-file"]);
+function shellSegments(command) {
+  const segments = [];
+  let words = [];
+  let cur = "";
+  let quote = null;
+  const push = () => {
+    if (cur)
+      words.push(cur);
+    cur = "";
+  };
+  const end = () => {
+    push();
+    if (words.length)
+      segments.push(words);
+    words = [];
+  };
+  for (let i = 0;i < command.length; i++) {
+    const c = command[i];
+    if (quote) {
+      if (c === quote)
+        quote = null;
+      else
+        cur += c;
+      continue;
+    }
+    if (c === '"' || c === "'")
+      quote = c;
+    else if (c === `
+` || c === ";")
+      end();
+    else if (c === "&" || c === "|") {
+      if (command[i + 1] === c)
+        i++;
+      end();
+    } else if (c === ">") {
+      push();
+      if (command[i + 1] === ">")
+        i++;
+      words.push(">");
+    } else if (/\s/.test(c))
+      push();
+    else
+      cur += c;
+  }
+  end();
+  return segments;
+}
+function gitSubcommand(words) {
+  for (let i = 1;i < words.length; i++) {
+    const w = words[i];
+    if (w === "-C" || w === "-c" || w === "--git-dir" || w === "--work-tree") {
+      i++;
+      continue;
+    }
+    if (w.startsWith("-"))
+      continue;
+    return w.toLowerCase();
+  }
+  return;
+}
+function writtenPaths(words) {
+  const out = [];
+  for (let i = 0;i < words.length; i++)
+    if (words[i] === ">" && words[i + 1])
+      out.push(words[i + 1]);
+  const plain = words.filter((w, i) => w !== ">" && words[i - 1] !== ">");
+  const name = (plain[0] ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
+  const operands = plain.slice(1).filter((w) => !w.startsWith("-"));
+  if (WRITERS.has(name))
+    out.push(...operands);
+  else if (name === "sed" && plain.some((w) => w === "-i" || w.startsWith("-i") || w === "--in-place"))
+    out.push(...operands.slice(1));
+  return out.filter((p) => p !== "/dev/null" && p.toLowerCase() !== "nul" && p !== "$null");
+}
+function checkShell(ctx, command) {
+  for (const words of shellSegments(command)) {
+    const exe = (words[0] ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
+    if (exe === "git") {
+      const sub = gitSubcommand(words);
+      if (sub && GIT_MUTATORS.has(sub) && ctx.task)
+        return { allow: false, reason: `subagente não roda git ${sub}: o commit é feito por tasks done ${ctx.task.id}` };
+      continue;
+    }
+    for (const p of writtenPaths(words)) {
+      const verdict = checkEdit(ctx, p);
+      if (!verdict.allow)
+        return verdict;
+    }
+  }
+  return ALLOW;
+}
 export {
   yymmdd,
   writeTickets,
@@ -2999,6 +3157,7 @@ export {
   slugify,
   slash,
   shortHead,
+  shellSegments,
   setEffectState,
   serializeKey,
   serializeEntry,
@@ -3012,6 +3171,7 @@ export {
   resolveRun,
   requireRepo,
   repoRoot,
+  repoRelative,
   renderTicket,
   removeExcludeLine,
   reload,
@@ -3027,6 +3187,7 @@ export {
   readJsonArg,
   readJson,
   readEffects,
+  protocolText,
   progressLine,
   progress,
   possession,
@@ -3081,7 +3242,10 @@ export {
   conflicts,
   commitReachable,
   commitExists,
+  clone,
   classify,
+  checkShell,
+  checkEdit,
   chainText,
   caseInsensitive,
   canonical,
