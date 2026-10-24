@@ -20,3 +20,4 @@ export * from "./gc.js";
 export * from "./guard.js";
 export * from "./view.js";
 export * from "./i18n.js";
+export * from "./doctor.js";

@@ -149,6 +149,7 @@ export function createModHost(port: Port, cwd: string): Host {
   return {
     platform,
     cwd: () => cwd,
+    runtime: 'claude-code mod',
     env: (name) => env[name],
     now: () => new Date(),
     random: () => Math.random(),

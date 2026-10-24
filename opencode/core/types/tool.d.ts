@@ -8,6 +8,8 @@ export interface ToolContext {
     /** Where the command runs: the repository or a folder inside it. */
     cwd: string;
     tool: ToolName;
+    /** The folder the tool was installed from (the CLI's repository): where `doctor --fix` copies agents and skills from. */
+    packageRoot?: string;
     /** The language the host asks for (its own setting); `--lang` and GOAL_TASKS_LANG win over it. */
     lang?: string;
     /** Session id of the mod or the plugin; absent in the CLI. */

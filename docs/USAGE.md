@@ -11,8 +11,31 @@ Windows first: jlock was validated on Windows, and so was this.
 
 ## Install
 
-- **CLI:** needs [bun](https://bun.sh), `git` and `jlock` in `PATH`. From a clone: `bun install`, then
-  `bun D:/goal-tasks/cli/tasks.ts <action>` (or `bun link` for a `tasks` command).
+From a clone, with [bun](https://bun.sh) and `git`: `bun install`, `bun link` (a `tasks` command; or
+`bun D:/goal-tasks/cli/tasks.ts <action>`), then:
+
+```
+tasks doctor               # is this machine ready? eight checks, each with what to do
+tasks doctor --fix         # what it would install (writes nothing)
+tasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skills
+```
+
+`tasks doctor` checks, in this order: the version (goal-tasks and the runtime); `git`; `jlock` (in `PATH`, at least
+0.1.0, 0.1.1 for `--release-on-eof`, and its own `jlock doctor --json`); `GOAL_TASKS_HOME` (a writable folder, the
+global ledger); OpenCode (the agents `implement`, `implement-deep`, `review` in `~/.config/opencode/agents/`, the
+project's `.opencode/agents/` or `opencode.json`, and whether the plugin is configured); Claude Code (found, and
+whether the mod is installed; informative); the skills `to-tickets` and `goal-tasks` of every agent installed
+(Claude Code, OpenCode, Codex); and the language with where it came from. Exit 0 with no failure (warnings do not
+change it), 20 with one; `--json` gives `{ result, checks: [{ name, status, detail, fix }], summary }`.
+
+`--fix --yes` installs jlock through its official installer (which puts it in its own folder and adds that to the
+user's `PATH`, as it does when you run it by hand), and copies the three OpenCode agents and the skills from this
+repository. A file that already exists is never replaced (it is reported). Each file it creates is an effect in the
+global ledger (`tasks ledger --all-projects`, ids `g-…`), and `tasks undo <g-id>` removes it. It never installs the
+mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs `--fix`; in the mod and the plugin
+`doctor` only diagnoses. `GOAL_TASKS_USER_HOME` makes it look and install somewhere else than the user's home.
+
+- **CLI:** the `tasks` command above (it needs `jlock` in `PATH`; `tasks doctor --fix --yes` installs it).
 - **Claude Code mod:** `claude --plugin-dir D:/goal-tasks/claude` for one session, or add the repository as a
   marketplace and install `goal-tasks`. The tool is `mcp__goal-tasks__tasks`; the pane opens with `/jtasks`
   (Claude Code has its own `/tasks`). See [`claude/README.md`](../claude/README.md).
@@ -83,6 +106,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | ledger | `ledger [--all-projects]` | every effect the tool created, and its state |
 | | `undo <e-id> \| --task <id> \| --run <run> [--force]` | undoes newest first (revert, branch, exclude line, folder) |
 | | `effects --check` | compares the ledger with disk and git: what disappeared, what was left |
+| machine | `doctor [--json] [--fix [--yes]]` | is this machine ready? `--fix --yes` installs what is missing, in the global ledger |
 | cleanup | `clean <run>\|--all [--yes]` | lists the active effects; with `--yes` removes the run's folder |
 | | `archive <run>` | moves the run to `GOAL_TASKS_HOME/archive/<repo>/<run>` |
 | | `gc --scan <root> [--depth 4]` | read-only report: worktrees (orphan or not), runs, archived runs |
@@ -109,6 +133,7 @@ queue.
 | Variable | Default | Use |
 |---|---|---|
 | `GOAL_TASKS_HOME` | `%USERPROFILE%\.goal-tasks` | global ledger index and archived runs |
+| `GOAL_TASKS_USER_HOME` | the user's home | where `tasks doctor` looks for and installs agents and skills |
 | `GOAL_TASKS_RUN` | unset | the CLI's bound run |
 | `GOAL_TASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
 | `JLOCK_BIN` | `jlock` | the jlock executable |

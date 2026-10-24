@@ -17,6 +17,8 @@ export interface ToolContext {
   /** Where the command runs: the repository or a folder inside it. */
   cwd: string
   tool: ToolName
+  /** The folder the tool was installed from (the CLI's repository): where `doctor --fix` copies agents and skills from. */
+  packageRoot?: string
   /** The language the host asks for (its own setting); `--lang` and GOAL_TASKS_LANG win over it. */
   lang?: string
   /** Session id of the mod or the plugin; absent in the CLI. */
@@ -90,6 +92,9 @@ const BOOLEAN_FLAGS = new Set([
   "agent-ended",
 ])
 
+/** Flags that take a value when one follows, and are a plain flag otherwise. */
+const OPTIONAL_VALUE = new Set(["fix"])
+
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = []
   const options: Record<string, string | true> = {}
@@ -112,6 +117,11 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       else if (BOOLEAN_FLAGS.has(name)) options[name] = true
       else {
         const value = argv[i + 1]
+        // `--fix` takes a task id in `plan --fix <id>` and nothing in `doctor --fix`.
+        if (OPTIONAL_VALUE.has(name) && (value === undefined || value.startsWith("--"))) {
+          options[name] = true
+          continue
+        }
         if (value === undefined) throw new ToolError(tr("args.needs_value", { name }), 2)
         options[name] = value
         i++

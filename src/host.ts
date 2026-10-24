@@ -54,6 +54,8 @@ export interface DirEntry {
 
 export interface Host {
   readonly platform: string
+  /** What runs the tool, for `tasks doctor` (`bun 1.3.14`, `claude-code mod`). */
+  readonly runtime?: string
   cwd(): string
   env(name: string): string | undefined
   now(): Date

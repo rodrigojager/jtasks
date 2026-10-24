@@ -113,6 +113,7 @@ class ChildResident implements Resident {
 export function createNodeHost(): Host {
   return {
     platform: process.platform,
+    runtime: typeof Bun !== "undefined" ? `bun ${Bun.version}` : `node ${process.version}`,
     cwd: () => process.cwd(),
     env: (name) => process.env[name],
     now: () => new Date(),

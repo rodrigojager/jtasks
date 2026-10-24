@@ -164,6 +164,46 @@ var en_default = {
   "clean.deleted": "deleted: {target}",
   "clean.effects": "effects still active (they stay; undo each with the command beside it, if you want):",
   "clean.which": "say which: tasks clean <run> [--yes] (or --all)",
+  "doctor.claude_absent": "Claude Code not found (nothing to check)",
+  "doctor.claude_mod_absent": "the goal-tasks mod is not installed (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "the goal-tasks mod is installed",
+  "doctor.confirm": "nothing was installed; confirm with tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: already there with other content, kept",
+  "doctor.file_installed": "{file}: installed ({id})",
+  "doctor.file_same": "{file}: already there",
+  "doctor.fix": "fix: {fix}",
+  "doctor.fix_cli_only": "doctor --fix runs in the CLI: run tasks doctor --fix --yes in a terminal",
+  "doctor.fixed": "installed:",
+  "doctor.git_fix": "install git (https://git-scm.com) and open a new terminal",
+  "doctor.git_missing": "git not found in PATH",
+  "doctor.home_absent": "{home}: not there yet (created on first use)",
+  "doctor.home_fix": "point GOAL_TASKS_HOME at a folder you can write, or unset it",
+  "doctor.home_not_dir": "{home} is not a folder",
+  "doctor.home_not_writable": "{home} is not writable: {message}",
+  "doctor.home_ok": "{home}: a writable folder; global ledger with {n} effect(s)",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json did not answer JSON",
+  "doctor.jlock_install_failed": "the jlock installer exited with {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes installs it, or see https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock installed at {file} ({id}); open a new terminal if it is not in PATH yet",
+  "doctor.jlock_installed_somewhere": "jlock installed (where its installer said); open a new terminal",
+  "doctor.jlock_missing": "jlock not found ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof needs jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} is too old (at least {minimum})",
+  "doctor.nothing_to_fix": "nothing to install",
+  "doctor.opencode_absent": "OpenCode not found (nothing to check)",
+  "doctor.opencode_agents_missing": "agents missing: {agents}; {plugin}",
+  "doctor.opencode_ok": "the agents implement, implement-deep and review are there; {plugin}",
+  "doctor.opencode_plugin_absent": "the goal-tasks plugin is not in its configuration (see opencode/README.md)",
+  "doctor.opencode_plugin_listed": "the goal-tasks plugin is in its configuration",
+  "doctor.package_missing": "the package has no {file}",
+  "doctor.skills_missing": "skills missing: {list}",
+  "doctor.skills_no_agents": "no Claude Code, OpenCode or Codex folder in this home (nothing to check)",
+  "doctor.skills_ok": "to-tickets and goal-tasks are there for {agents}",
+  "doctor.step_copy": "copy {file}",
+  "doctor.step_jlock": "install jlock with its official installer",
+  "doctor.summary": "ok: {ok}, warnings: {warn}, failures: {fail}",
+  "doctor.would": "would install:",
   "done.claimed": "claimed during the task: {files}; update the plan if other tasks touch them too",
   "done.detached": "a detached HEAD",
   "done.done": "{id} done: {what}; {released}",
@@ -234,6 +274,7 @@ var en_default = {
   "help.archive": "archive <run>                         moves the run to GOAL_TASKS_HOME/archive (resume brings it)",
   "help.claim": "claim <id> <file…> [--timeout 60s]    asks for one more file; waits in jlock's queue",
   "help.clean": "clean <run>|--all [--yes]             deletes the run's folder (listing the active effects first)",
+  "help.doctor": "doctor [--fix [--yes]]                is this machine ready? --fix --yes installs what is missing",
   "help.done": 'done <id> --evidence "…"              checks git and ownership; commits the ownership; done',
   "help.effects": "effects --check                       compares the ledger with the disk and git",
   "help.exec": "exec -- <command…>                    runs it; serialize commands one at a time on the machine",
@@ -436,11 +477,13 @@ var en_default = {
   "undo.dir_removed": "{id}: folder {dir} removed",
   "undo.dirty": "{id}: the tree has unsaved changes ({files}); commit or discard them before the undo",
   "undo.exclude_shared": "{id}: other runs still use the line {line} of the exclude ({runs}); use --force to take it out anyway",
+  "undo.file_removed": "{id}: {file} removed",
   "undo.line_absent": "{id}: the line was no longer in {path}",
   "undo.line_removed": "{id}: line removed in {path}",
   "undo.no_branch": "{id}: the branch {branch} no longer existed",
   "undo.no_commit": "{id}: the commit {ref} no longer exists (see tasks effects --check)",
   "undo.no_effect": "no active effect {id} in run {run} (see tasks ledger)",
+  "undo.no_global": "no active global effect {id} (see tasks ledger --all-projects)",
   "undo.none": "{id}: there is no automatic undo for {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} did not apply cleanly: {message}",
   "undo.reverted": "{id}: revert of {ref} → commit {head}",
@@ -501,6 +544,46 @@ var pt_BR_default = {
   "clean.deleted": "apagado: {target}",
   "clean.effects": "efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):",
   "clean.which": "diga qual: tasks clean <run> [--yes] (ou --all)",
+  "doctor.claude_absent": "Claude Code não encontrado (nada a conferir)",
+  "doctor.claude_mod_absent": "o mod goal-tasks não está instalado (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "o mod goal-tasks está instalado",
+  "doctor.confirm": "nada foi instalado; confirme com tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: já existe com outro conteúdo, mantido",
+  "doctor.file_installed": "{file}: instalado ({id})",
+  "doctor.file_same": "{file}: já existia",
+  "doctor.fix": "como resolver: {fix}",
+  "doctor.fix_cli_only": "o doctor --fix roda no CLI: rode tasks doctor --fix --yes num terminal",
+  "doctor.fixed": "instalado:",
+  "doctor.git_fix": "instale o git (https://git-scm.com) e abra um terminal novo",
+  "doctor.git_missing": "git não encontrado no PATH",
+  "doctor.home_absent": "{home}: ainda não existe (criada no primeiro uso)",
+  "doctor.home_fix": "aponte GOAL_TASKS_HOME para uma pasta gravável, ou remova a variável",
+  "doctor.home_not_dir": "{home} não é uma pasta",
+  "doctor.home_not_writable": "{home} não aceita escrita: {message}",
+  "doctor.home_ok": "{home}: pasta gravável; ledger global com {n} efeito(s)",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json não respondeu JSON",
+  "doctor.jlock_install_failed": "o instalador do jlock saiu com {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes o instala, ou veja https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock instalado em {file} ({id}); abra um terminal novo se ainda não estiver no PATH",
+  "doctor.jlock_installed_somewhere": "jlock instalado (onde o instalador disse); abra um terminal novo",
+  "doctor.jlock_missing": "jlock não encontrado ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof precisa do jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} é antigo demais (mínimo {minimum})",
+  "doctor.nothing_to_fix": "nada a instalar",
+  "doctor.opencode_absent": "OpenCode não encontrado (nada a conferir)",
+  "doctor.opencode_agents_missing": "faltam os agentes: {agents}; {plugin}",
+  "doctor.opencode_ok": "os agentes implement, implement-deep e review existem; {plugin}",
+  "doctor.opencode_plugin_absent": "o plugin goal-tasks não está na configuração (veja opencode/README.md)",
+  "doctor.opencode_plugin_listed": "o plugin goal-tasks está na configuração",
+  "doctor.package_missing": "o pacote não tem {file}",
+  "doctor.skills_missing": "faltam as skills: {list}",
+  "doctor.skills_no_agents": "nenhuma pasta do Claude Code, OpenCode ou Codex nesta casa (nada a conferir)",
+  "doctor.skills_ok": "to-tickets e goal-tasks existem para {agents}",
+  "doctor.step_copy": "copiar {file}",
+  "doctor.step_jlock": "instalar o jlock pelo instalador oficial",
+  "doctor.summary": "ok: {ok}, avisos: {warn}, falhas: {fail}",
+  "doctor.would": "instalaria:",
   "done.claimed": "reclamados durante a tarefa: {files}; atualize o plano se outras tarefas também os tocam",
   "done.detached": "HEAD destacado",
   "done.done": "{id} feita: {what}; {released}",
@@ -571,6 +654,7 @@ var pt_BR_default = {
   "help.archive": "archive <run>                         move a execução para GOAL_TASKS_HOME/archive (resume a traz)",
   "help.claim": "claim <id> <arquivo…> [--timeout 60s]  pede mais um arquivo; espera na fila do jlock",
   "help.clean": "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",
+  "help.doctor": "doctor [--fix [--yes]]                a máquina está pronta? --fix --yes instala o que falta",
   "help.done": 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
   "help.effects": "effects --check                       compara o ledger com o disco e o git",
   "help.exec": "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina",
@@ -773,11 +857,13 @@ var pt_BR_default = {
   "undo.dir_removed": "{id}: pasta {dir} removida",
   "undo.dirty": "{id}: a árvore tem mudanças não salvas ({files}); commite ou descarte antes do undo",
   "undo.exclude_shared": "{id}: outras execuções ainda usam a linha {line} do exclude ({runs}); use --force para tirar mesmo assim",
+  "undo.file_removed": "{id}: {file} removido",
   "undo.line_absent": "{id}: a linha já não estava em {path}",
   "undo.line_removed": "{id}: linha removida em {path}",
   "undo.no_branch": "{id}: o branch {branch} já não existia",
   "undo.no_commit": "{id}: o commit {ref} não existe mais (veja tasks effects --check)",
   "undo.no_effect": "não há efeito ativo {id} na execução {run} (veja tasks ledger)",
+  "undo.no_global": "não há efeito global ativo {id} (veja tasks ledger --all-projects)",
   "undo.none": "{id}: não há desfazer automático para {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} não aplicou limpo: {message}",
   "undo.reverted": "{id}: revert de {ref} → commit {head}",
@@ -838,6 +924,46 @@ var es_default = {
   "clean.deleted": "borrado: {target}",
   "clean.effects": "efectos aún activos (se quedan; deshaz cada uno con el comando de al lado, si quieres):",
   "clean.which": "di cuál: tasks clean <run> [--yes] (o --all)",
+  "doctor.claude_absent": "Claude Code no encontrado (nada que comprobar)",
+  "doctor.claude_mod_absent": "el mod goal-tasks no está instalado (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "el mod goal-tasks está instalado",
+  "doctor.confirm": "no se instaló nada; confirma con tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: ya existe con otro contenido, se conserva",
+  "doctor.file_installed": "{file}: instalado ({id})",
+  "doctor.file_same": "{file}: ya existe",
+  "doctor.fix": "cómo resolverlo: {fix}",
+  "doctor.fix_cli_only": "doctor --fix se ejecuta en el CLI: ejecuta tasks doctor --fix --yes en una terminal",
+  "doctor.fixed": "instalado:",
+  "doctor.git_fix": "instala git (https://git-scm.com) y abre una terminal nueva",
+  "doctor.git_missing": "git no encontrado en el PATH",
+  "doctor.home_absent": "{home}: aún no existe (se crea en el primer uso)",
+  "doctor.home_fix": "apunta GOAL_TASKS_HOME a una carpeta con permiso de escritura, o elimina la variable",
+  "doctor.home_not_dir": "{home} no es una carpeta",
+  "doctor.home_not_writable": "{home} no admite escritura: {message}",
+  "doctor.home_ok": "{home}: carpeta con escritura; ledger global con {n} efecto(s)",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json no respondió JSON",
+  "doctor.jlock_install_failed": "el instalador de jlock salió con {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes lo instala, o ver https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock instalado en {file} ({id}); abre una terminal nueva si aún no está en el PATH",
+  "doctor.jlock_installed_somewhere": "jlock instalado (donde indicó su instalador); abre una terminal nueva",
+  "doctor.jlock_missing": "jlock no encontrado ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof necesita jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} es demasiado antiguo (mínimo {minimum})",
+  "doctor.nothing_to_fix": "nada que instalar",
+  "doctor.opencode_absent": "OpenCode no encontrado (nada que comprobar)",
+  "doctor.opencode_agents_missing": "faltan los agentes: {agents}; {plugin}",
+  "doctor.opencode_ok": "los agentes implement, implement-deep y review existen; {plugin}",
+  "doctor.opencode_plugin_absent": "el plugin goal-tasks no está en su configuración (ver opencode/README.md)",
+  "doctor.opencode_plugin_listed": "el plugin goal-tasks está en su configuración",
+  "doctor.package_missing": "el paquete no tiene {file}",
+  "doctor.skills_missing": "faltan las skills: {list}",
+  "doctor.skills_no_agents": "ninguna carpeta de Claude Code, OpenCode o Codex en este home (nada que comprobar)",
+  "doctor.skills_ok": "to-tickets y goal-tasks existen para {agents}",
+  "doctor.step_copy": "copiar {file}",
+  "doctor.step_jlock": "instalar jlock con su instalador oficial",
+  "doctor.summary": "ok: {ok}, avisos: {warn}, fallos: {fail}",
+  "doctor.would": "se instalaría:",
   "done.claimed": "pedidos durante la tarea: {files}; actualiza el plan si otras tareas también los tocan",
   "done.detached": "un HEAD separado",
   "done.done": "{id} hecha: {what}; {released}",
@@ -908,6 +1034,7 @@ var es_default = {
   "help.archive": "archive <run>                         la mueve a GOAL_TASKS_HOME/archive (resume la devuelve)",
   "help.claim": "claim <id> <archivo…> [--timeout 60s]  pide un archivo más; espera en la cola de jlock",
   "help.clean": "clean <run>|--all [--yes]             borra su carpeta (lista antes los efectos activos)",
+  "help.doctor": "doctor [--fix [--yes]]                ¿está lista la máquina? --fix --yes instala lo que falta",
   "help.done": 'done <id> --evidence "…"              comprueba git y posesión; commit de la posesión; hecha',
   "help.effects": "effects --check                       compara el ledger con el disco y git",
   "help.exec": "exec -- <comando…>                    lo ejecuta; los de serialize, uno a la vez en la máquina",
@@ -1110,11 +1237,13 @@ var es_default = {
   "undo.dir_removed": "{id}: carpeta {dir} eliminada",
   "undo.dirty": "{id}: el árbol tiene cambios sin guardar ({files}); haz commit o descártalos antes del undo",
   "undo.exclude_shared": "{id}: otras ejecuciones aún usan la línea {line} del exclude ({runs}); usa --force para quitarla de todos modos",
+  "undo.file_removed": "{id}: {file} eliminado",
   "undo.line_absent": "{id}: la línea ya no estaba en {path}",
   "undo.line_removed": "{id}: línea eliminada en {path}",
   "undo.no_branch": "{id}: la rama {branch} ya no existía",
   "undo.no_commit": "{id}: el commit {ref} ya no existe (ver tasks effects --check)",
   "undo.no_effect": "no hay efecto activo {id} en la ejecución {run} (ver tasks ledger)",
+  "undo.no_global": "no hay efecto global activo {id} (ver tasks ledger --all-projects)",
   "undo.none": "{id}: no hay deshacer automático para {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} no se aplicó limpiamente: {message}",
   "undo.reverted": "{id}: revert de {ref} → commit {head}",
@@ -1175,6 +1304,46 @@ var fr_default = {
   "clean.deleted": "supprimé: {target}",
   "clean.effects": "effets encore actifs (ils restent; annulez chacun avec la commande à côté, si vous voulez):",
   "clean.which": "précisez laquelle: tasks clean <run> [--yes] (ou --all)",
+  "doctor.claude_absent": "Claude Code introuvable (rien à vérifier)",
+  "doctor.claude_mod_absent": "le mod goal-tasks n'est pas installé (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "le mod goal-tasks est installé",
+  "doctor.confirm": "rien n'a été installé; confirmez avec tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: déjà présent avec un autre contenu, conservé",
+  "doctor.file_installed": "{file}: installé ({id})",
+  "doctor.file_same": "{file}: déjà présent",
+  "doctor.fix": "solution: {fix}",
+  "doctor.fix_cli_only": "doctor --fix s'exécute dans le CLI: lancez tasks doctor --fix --yes dans un terminal",
+  "doctor.fixed": "installé:",
+  "doctor.git_fix": "installez git (https://git-scm.com) et ouvrez un nouveau terminal",
+  "doctor.git_missing": "git introuvable dans le PATH",
+  "doctor.home_absent": "{home}: n'existe pas encore (créé à la première utilisation)",
+  "doctor.home_fix": "faites pointer GOAL_TASKS_HOME vers un dossier accessible en écriture, ou supprimez la variable",
+  "doctor.home_not_dir": "{home} n'est pas un dossier",
+  "doctor.home_not_writable": "{home} n'est pas accessible en écriture: {message}",
+  "doctor.home_ok": "{home}: dossier accessible en écriture; ledger global avec {n} effet(s)",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json n'a pas répondu en JSON",
+  "doctor.jlock_install_failed": "l'installeur de jlock est sorti avec {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes l'installe, ou voir https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock installé dans {file} ({id}); ouvrez un nouveau terminal s'il n'est pas encore dans le PATH",
+  "doctor.jlock_installed_somewhere": "jlock installé (là où son installeur l'a indiqué); ouvrez un nouveau terminal",
+  "doctor.jlock_missing": "jlock introuvable ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof demande jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} est trop ancien (au moins {minimum})",
+  "doctor.nothing_to_fix": "rien à installer",
+  "doctor.opencode_absent": "OpenCode introuvable (rien à vérifier)",
+  "doctor.opencode_agents_missing": "agents manquants: {agents}; {plugin}",
+  "doctor.opencode_ok": "les agents implement, implement-deep et review sont présents; {plugin}",
+  "doctor.opencode_plugin_absent": "le plugin goal-tasks n'est pas dans sa configuration (voir opencode/README.md)",
+  "doctor.opencode_plugin_listed": "le plugin goal-tasks est dans sa configuration",
+  "doctor.package_missing": "le paquet n'a pas de {file}",
+  "doctor.skills_missing": "skills manquantes: {list}",
+  "doctor.skills_no_agents": "aucun dossier de Claude Code, OpenCode ou Codex dans ce dossier personnel (rien à vérifier)",
+  "doctor.skills_ok": "to-tickets et goal-tasks sont présentes pour {agents}",
+  "doctor.step_copy": "copier {file}",
+  "doctor.step_jlock": "installer jlock avec son installeur officiel",
+  "doctor.summary": "ok: {ok}, avertissements: {warn}, échecs: {fail}",
+  "doctor.would": "installerait:",
   "done.claimed": "demandés pendant la tâche: {files}; mettez à jour le plan si d'autres tâches les touchent aussi",
   "done.detached": "un HEAD détaché",
   "done.done": "{id} terminée: {what}; {released}",
@@ -1245,6 +1414,7 @@ var fr_default = {
   "help.archive": "archive <run>                         la déplace vers GOAL_TASKS_HOME/archive (resume la ramène)",
   "help.claim": "claim <id> <fichier…> [--timeout 60s]  demande un fichier de plus; attend dans la file de jlock",
   "help.clean": "clean <run>|--all [--yes]             supprime son dossier (liste d'abord les effets actifs)",
+  "help.doctor": "doctor [--fix [--yes]]                machine prête? --fix --yes installe ce qui manque",
   "help.done": 'done <id> --evidence "…"              vérifie git et possession; commite la possession; terminée',
   "help.effects": "effects --check                       compare le ledger avec le disque et git",
   "help.exec": "exec -- <commande…>                   la lance; celles de serialize, une à la fois sur la machine",
@@ -1447,11 +1617,13 @@ var fr_default = {
   "undo.dir_removed": "{id}: dossier {dir} supprimé",
   "undo.dirty": "{id}: l'arbre a des changements non enregistrés ({files}); commitez-les ou abandonnez-les avant l'undo",
   "undo.exclude_shared": "{id}: d'autres exécutions utilisent encore la ligne {line} de l'exclude ({runs}); utilisez --force pour la retirer quand même",
+  "undo.file_removed": "{id}: {file} supprimé",
   "undo.line_absent": "{id}: la ligne n'était plus dans {path}",
   "undo.line_removed": "{id}: ligne retirée de {path}",
   "undo.no_branch": "{id}: la branche {branch} n'existait plus",
   "undo.no_commit": "{id}: le commit {ref} n'existe plus (voir tasks effects --check)",
   "undo.no_effect": "aucun effet actif {id} dans l'exécution {run} (voir tasks ledger)",
+  "undo.no_global": "aucun effet global actif {id} (voir tasks ledger --all-projects)",
   "undo.none": "{id}: pas d'annulation automatique pour {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} ne s'est pas appliqué proprement: {message}",
   "undo.reverted": "{id}: revert de {ref} → commit {head}",
@@ -1512,6 +1684,46 @@ var de_default = {
   "clean.deleted": "gelöscht: {target}",
   "clean.effects": "noch aktive Effekte (sie bleiben; mach jeden bei Bedarf mit dem Befehl daneben rückgängig):",
   "clean.which": "sag, welchen: tasks clean <run> [--yes] (oder --all)",
+  "doctor.claude_absent": "Claude Code nicht gefunden (nichts zu prüfen)",
+  "doctor.claude_mod_absent": "der goal-tasks-Mod ist nicht installiert (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "der goal-tasks-Mod ist installiert",
+  "doctor.confirm": "nichts wurde installiert; bestätige mit tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: existiert bereits mit anderem Inhalt, beibehalten",
+  "doctor.file_installed": "{file}: installiert ({id})",
+  "doctor.file_same": "{file}: bereits vorhanden",
+  "doctor.fix": "Abhilfe: {fix}",
+  "doctor.fix_cli_only": "doctor --fix läuft im CLI: führe tasks doctor --fix --yes in einem Terminal aus",
+  "doctor.fixed": "installiert:",
+  "doctor.git_fix": "installiere git (https://git-scm.com) und öffne ein neues Terminal",
+  "doctor.git_missing": "git nicht im PATH gefunden",
+  "doctor.home_absent": "{home}: existiert noch nicht (wird bei der ersten Nutzung angelegt)",
+  "doctor.home_fix": "lass GOAL_TASKS_HOME auf einen beschreibbaren Ordner zeigen oder entferne die Variable",
+  "doctor.home_not_dir": "{home} ist kein Ordner",
+  "doctor.home_not_writable": "{home} ist nicht beschreibbar: {message}",
+  "doctor.home_ok": "{home}: beschreibbarer Ordner; globales Ledger mit {n} Effekt(en)",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json antwortete nicht mit JSON",
+  "doctor.jlock_install_failed": "der jlock-Installer endete mit {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes installiert es, oder siehe https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock installiert in {file} ({id}); öffne ein neues Terminal, falls es noch nicht im PATH ist",
+  "doctor.jlock_installed_somewhere": "jlock installiert (dort, wo sein Installer es angab); öffne ein neues Terminal",
+  "doctor.jlock_missing": "jlock nicht gefunden ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof braucht jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} ist zu alt (mindestens {minimum})",
+  "doctor.nothing_to_fix": "nichts zu installieren",
+  "doctor.opencode_absent": "OpenCode nicht gefunden (nichts zu prüfen)",
+  "doctor.opencode_agents_missing": "fehlende Agenten: {agents}; {plugin}",
+  "doctor.opencode_ok": "die Agenten implement, implement-deep und review sind vorhanden; {plugin}",
+  "doctor.opencode_plugin_absent": "das goal-tasks-Plugin steht nicht in seiner Konfiguration (siehe opencode/README.md)",
+  "doctor.opencode_plugin_listed": "das goal-tasks-Plugin steht in seiner Konfiguration",
+  "doctor.package_missing": "dem Paket fehlt {file}",
+  "doctor.skills_missing": "fehlende Skills: {list}",
+  "doctor.skills_no_agents": "kein Ordner von Claude Code, OpenCode oder Codex in diesem Home-Verzeichnis (nichts zu prüfen)",
+  "doctor.skills_ok": "to-tickets und goal-tasks sind für {agents} vorhanden",
+  "doctor.step_copy": "{file} kopieren",
+  "doctor.step_jlock": "jlock mit seinem offiziellen Installer installieren",
+  "doctor.summary": "ok: {ok}, Warnungen: {warn}, Fehler: {fail}",
+  "doctor.would": "würde installieren:",
   "done.claimed": "während der Aufgabe angefordert: {files}; aktualisiere den Plan, wenn andere Aufgaben sie auch berühren",
   "done.detached": "ein losgelöster HEAD",
   "done.done": "{id} erledigt: {what}; {released}",
@@ -1582,6 +1794,7 @@ var de_default = {
   "help.archive": "archive <run>                         verschiebt nach GOAL_TASKS_HOME/archive (resume holt zurück)",
   "help.claim": "claim <id> <datei…> [--timeout 60s]   fordert eine Datei mehr an; wartet in jlocks Warteschlange",
   "help.clean": "clean <run>|--all [--yes]             löscht den Ordner des Laufs (listet erst aktive Effekte)",
+  "help.doctor": "doctor [--fix [--yes]]                ist der Rechner bereit? --fix --yes installiert, was fehlt",
   "help.done": 'done <id> --evidence "…"              prüft git und Besitz; committet den Besitz; erledigt',
   "help.effects": "effects --check                       vergleicht das Ledger mit Festplatte und git",
   "help.exec": "exec -- <befehl…>                     führt ihn aus; serialize-Befehle einzeln auf dem Rechner",
@@ -1784,11 +1997,13 @@ var de_default = {
   "undo.dir_removed": "{id}: Ordner {dir} entfernt",
   "undo.dirty": "{id}: der Arbeitsbaum hat ungespeicherte Änderungen ({files}); committe oder verwirf sie vor dem undo",
   "undo.exclude_shared": "{id}: andere Läufe nutzen noch die Zeile {line} des exclude ({runs}); nutze --force, um sie trotzdem zu entfernen",
+  "undo.file_removed": "{id}: {file} entfernt",
   "undo.line_absent": "{id}: die Zeile stand nicht mehr in {path}",
   "undo.line_removed": "{id}: Zeile in {path} entfernt",
   "undo.no_branch": "{id}: der Branch {branch} existierte nicht mehr",
   "undo.no_commit": "{id}: der Commit {ref} existiert nicht mehr (siehe tasks effects --check)",
   "undo.no_effect": "kein aktiver Effekt {id} in Lauf {run} (siehe tasks ledger)",
+  "undo.no_global": "kein aktiver globaler Effekt {id} (siehe tasks ledger --all-projects)",
   "undo.none": "{id}: kein automatisches Rückgängigmachen für {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} ließ sich nicht sauber anwenden: {message}",
   "undo.reverted": "{id}: Revert von {ref} → Commit {head}",
@@ -1849,6 +2064,46 @@ var it_default = {
   "clean.deleted": "eliminato: {target}",
   "clean.effects": "effetti ancora attivi (restano; annulla ciascuno con il comando accanto, se vuoi):",
   "clean.which": "indica quale: tasks clean <run> [--yes] (o --all)",
+  "doctor.claude_absent": "Claude Code non trovato (niente da verificare)",
+  "doctor.claude_mod_absent": "il mod goal-tasks non è installato (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "il mod goal-tasks è installato",
+  "doctor.confirm": "nulla è stato installato; conferma con tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: esiste già con un altro contenuto, mantenuto",
+  "doctor.file_installed": "{file}: installato ({id})",
+  "doctor.file_same": "{file}: già presente",
+  "doctor.fix": "soluzione: {fix}",
+  "doctor.fix_cli_only": "doctor --fix funziona nel CLI: esegui tasks doctor --fix --yes in un terminale",
+  "doctor.fixed": "installato:",
+  "doctor.git_fix": "installa git (https://git-scm.com) e apri un nuovo terminale",
+  "doctor.git_missing": "git non trovato nel PATH",
+  "doctor.home_absent": "{home}: non esiste ancora (creata al primo uso)",
+  "doctor.home_fix": "punta GOAL_TASKS_HOME a una cartella scrivibile, o rimuovi la variabile",
+  "doctor.home_not_dir": "{home} non è una cartella",
+  "doctor.home_not_writable": "{home} non è scrivibile: {message}",
+  "doctor.home_ok": "{home}: cartella scrivibile; ledger globale con effetti: {n}",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json non ha risposto in JSON",
+  "doctor.jlock_install_failed": "l'installer di jlock è uscito con {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes lo installa, o vedi https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock installato in {file} ({id}); apri un nuovo terminale se non è ancora nel PATH",
+  "doctor.jlock_installed_somewhere": "jlock installato (dove ha indicato il suo installer); apri un nuovo terminale",
+  "doctor.jlock_missing": "jlock non trovato ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof richiede jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} è troppo vecchio (minimo {minimum})",
+  "doctor.nothing_to_fix": "niente da installare",
+  "doctor.opencode_absent": "OpenCode non trovato (niente da verificare)",
+  "doctor.opencode_agents_missing": "agenti mancanti: {agents}; {plugin}",
+  "doctor.opencode_ok": "gli agenti implement, implement-deep e review ci sono; {plugin}",
+  "doctor.opencode_plugin_absent": "il plugin goal-tasks non è nella sua configurazione (vedi opencode/README.md)",
+  "doctor.opencode_plugin_listed": "il plugin goal-tasks è nella sua configurazione",
+  "doctor.package_missing": "il pacchetto non ha {file}",
+  "doctor.skills_missing": "skill mancanti: {list}",
+  "doctor.skills_no_agents": "nessuna cartella di Claude Code, OpenCode o Codex in questa home (niente da verificare)",
+  "doctor.skills_ok": "to-tickets e goal-tasks ci sono per {agents}",
+  "doctor.step_copy": "copiare {file}",
+  "doctor.step_jlock": "installare jlock con il suo installer ufficiale",
+  "doctor.summary": "ok: {ok}, avvisi: {warn}, errori: {fail}",
+  "doctor.would": "installerebbe:",
   "done.claimed": "ottenuti durante l'attività: {files}; aggiorna il piano se li toccano anche altre attività",
   "done.detached": "un HEAD staccato",
   "done.done": "{id} completata: {what}; {released}",
@@ -1919,6 +2174,7 @@ var it_default = {
   "help.archive": "archive <run>                         la sposta in GOAL_TASKS_HOME/archive (resume la riporta)",
   "help.claim": "claim <id> <file…> [--timeout 60s]    chiede un altro file; attende nella coda di jlock",
   "help.clean": "clean <run>|--all [--yes]             elimina la cartella (elencando prima gli effetti attivi)",
+  "help.doctor": "doctor [--fix [--yes]]                la macchina è pronta? --fix --yes installa ciò che manca",
   "help.done": 'done <id> --evidence "…"              verifica git e possesso; commit del possesso; done',
   "help.effects": "effects --check                       confronta il ledger con il disco e git",
   "help.exec": "exec -- <comando…>                    lo esegue; i comandi serialize uno alla volta sulla macchina",
@@ -2121,11 +2377,13 @@ var it_default = {
   "undo.dir_removed": "{id}: cartella {dir} rimossa",
   "undo.dirty": "{id}: l'albero ha modifiche non salvate ({files}); fai commit o scartale prima dell'undo",
   "undo.exclude_shared": "{id}: altre esecuzioni usano ancora la riga {line} di exclude ({runs}); usa --force per toglierla comunque",
+  "undo.file_removed": "{id}: {file} rimosso",
   "undo.line_absent": "{id}: la riga non era più in {path}",
   "undo.line_removed": "{id}: riga rimossa in {path}",
   "undo.no_branch": "{id}: il branch {branch} non esisteva più",
   "undo.no_commit": "{id}: il commit {ref} non esiste più (vedi tasks effects --check)",
   "undo.no_effect": "nessun effetto attivo {id} nell'esecuzione {run} (vedi tasks ledger)",
+  "undo.no_global": "nessun effetto globale attivo {id} (vedi tasks ledger --all-projects)",
   "undo.none": "{id}: non c'è annullamento automatico per {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} non si è applicato in modo pulito: {message}",
   "undo.reverted": "{id}: revert di {ref} → commit {head}",
@@ -2186,6 +2444,46 @@ var zh_CN_default = {
   "clean.deleted": "已删除：{target}",
   "clean.effects": "仍生效的副作用（会保留；如需撤销，运行各自旁边的命令）：",
   "clean.which": "请指明：tasks clean <run> [--yes]（或 --all）",
+  "doctor.claude_absent": "未找到 Claude Code（无需检查）",
+  "doctor.claude_mod_absent": "goal-tasks mod 未安装（claude --plugin-dir <goal-tasks>/claude）",
+  "doctor.claude_mod_installed": "goal-tasks mod 已安装",
+  "doctor.confirm": "未安装任何内容；用 tasks doctor --fix --yes 确认",
+  "doctor.file_differs": "{file}：已存在但内容不同，已保留",
+  "doctor.file_installed": "{file}：已安装（{id}）",
+  "doctor.file_same": "{file}：已存在",
+  "doctor.fix": "修复：{fix}",
+  "doctor.fix_cli_only": "doctor --fix 只在 CLI 中运行：在终端中运行 tasks doctor --fix --yes",
+  "doctor.fixed": "已安装：",
+  "doctor.git_fix": "安装 git（https://git-scm.com）并打开新终端",
+  "doctor.git_missing": "PATH 中找不到 git",
+  "doctor.home_absent": "{home}：尚不存在（首次使用时创建）",
+  "doctor.home_fix": "将 GOAL_TASKS_HOME 指向可写的文件夹，或取消设置",
+  "doctor.home_not_dir": "{home} 不是文件夹",
+  "doctor.home_not_writable": "{home} 不可写：{message}",
+  "doctor.home_ok": "{home}：可写的文件夹；全局 ledger 有 {n} 个副作用",
+  "doctor.jlock_doctor_unreadable": "jlock {version}；jlock doctor --json 的回答不是 JSON",
+  "doctor.jlock_install_failed": "jlock 安装程序以 {code} 退出：{message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes 会安装它，或见 https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock 已安装到 {file}（{id}）；如果它还不在 PATH 中，请打开新终端",
+  "doctor.jlock_installed_somewhere": "jlock 已安装（位置以其安装程序的输出为准）；请打开新终端",
+  "doctor.jlock_missing": "找不到 jlock（{bin}）",
+  "doctor.jlock_no_eof": "hold --release-on-eof 需要 jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}；jlock doctor：{n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} 太旧（至少需要 {minimum}）",
+  "doctor.nothing_to_fix": "无需安装",
+  "doctor.opencode_absent": "未找到 OpenCode（无需检查）",
+  "doctor.opencode_agents_missing": "缺少智能体：{agents}；{plugin}",
+  "doctor.opencode_ok": "智能体 implement、implement-deep 和 review 都已存在；{plugin}",
+  "doctor.opencode_plugin_absent": "goal-tasks 插件不在其配置中（见 opencode/README.md）",
+  "doctor.opencode_plugin_listed": "goal-tasks 插件已在其配置中",
+  "doctor.package_missing": "软件包中没有 {file}",
+  "doctor.skills_missing": "缺少 skill：{list}",
+  "doctor.skills_no_agents": "此主目录中没有 Claude Code、OpenCode 或 Codex 的文件夹（无需检查）",
+  "doctor.skills_ok": "{agents} 已有 to-tickets 和 goal-tasks",
+  "doctor.step_copy": "复制 {file}",
+  "doctor.step_jlock": "用官方安装程序安装 jlock",
+  "doctor.summary": "ok：{ok}，警告：{warn}，失败：{fail}",
+  "doctor.would": "将会安装：",
   "done.claimed": "任务期间 claim 的文件：{files}；如果其他任务也涉及它们，请更新计划",
   "done.detached": "分离的 HEAD",
   "done.done": "{id} 已完成：{what}；{released}",
@@ -2256,6 +2554,7 @@ var zh_CN_default = {
   "help.archive": "archive <run>                         将运行移到 GOAL_TASKS_HOME/archive（resume 取回）",
   "help.claim": "claim <id> <文件…> [--timeout 60s]    再申请一个文件；在 jlock 的队列中等待",
   "help.clean": "clean <run>|--all [--yes]             删除运行的文件夹（先列出生效的副作用）",
+  "help.doctor": "doctor [--fix [--yes]]                本机是否就绪？--fix --yes 安装缺少的部分",
   "help.done": 'done <id> --evidence "…"              检查 git 和所有权；提交所有权内的文件；完成',
   "help.effects": "effects --check                       对照磁盘和 git 检查 ledger",
   "help.exec": "exec -- <命令…>                       运行命令；serialize 中的命令在本机逐个运行",
@@ -2458,11 +2757,13 @@ var zh_CN_default = {
   "undo.dir_removed": "{id}：文件夹 {dir} 已删除",
   "undo.dirty": "{id}：工作区有未保存的修改（{files}）；undo 之前请提交或丢弃",
   "undo.exclude_shared": "{id}：其他运行仍在使用 exclude 中的第 {line} 行（{runs}）；用 --force 强制移除",
+  "undo.file_removed": "{id}：{file} 已删除",
   "undo.line_absent": "{id}：该行已不在 {path} 中",
   "undo.line_removed": "{id}：已从 {path} 删除该行",
   "undo.no_branch": "{id}：分支 {branch} 已不存在",
   "undo.no_commit": "{id}：提交 {ref} 已不存在（见 tasks effects --check）",
   "undo.no_effect": "运行 {run} 中没有生效的副作用 {id}（见 tasks ledger）",
+  "undo.no_global": "没有生效的全局副作用 {id}（见 tasks ledger --all-projects）",
   "undo.none": "{id}：{type}（{kind}）没有自动撤销",
   "undo.revert_failed": "{id}：git revert {ref} 未能干净地应用：{message}",
   "undo.reverted": "{id}：revert {ref} → 提交 {head}",
@@ -2523,6 +2824,46 @@ var ja_default = {
   "clean.deleted": "削除した: {target}",
   "clean.effects": "まだ有効な副作用（残る。取り消すなら各行の横のコマンドで）:",
   "clean.which": "どれか指定する: tasks clean <run> [--yes]（または --all）",
+  "doctor.claude_absent": "Claude Code が見つからない（確認対象なし）",
+  "doctor.claude_mod_absent": "goal-tasks の mod がインストールされていない（claude --plugin-dir <goal-tasks>/claude）",
+  "doctor.claude_mod_installed": "goal-tasks の mod はインストール済み",
+  "doctor.confirm": "何もインストールしていない。tasks doctor --fix --yes で確定する",
+  "doctor.file_differs": "{file}: 別の内容ですでにある。そのまま残した",
+  "doctor.file_installed": "{file}: インストールした（{id}）",
+  "doctor.file_same": "{file}: すでにある",
+  "doctor.fix": "対処: {fix}",
+  "doctor.fix_cli_only": "doctor --fix は CLI で動く: ターミナルで tasks doctor --fix --yes を実行する",
+  "doctor.fixed": "インストールした:",
+  "doctor.git_fix": "git をインストールし（https://git-scm.com）、新しいターミナルを開く",
+  "doctor.git_missing": "PATH に git が見つからない",
+  "doctor.home_absent": "{home}: まだない（初回使用時に作成）",
+  "doctor.home_fix": "GOAL_TASKS_HOME を書き込めるフォルダに向けるか、設定を外す",
+  "doctor.home_not_dir": "{home} はフォルダではない",
+  "doctor.home_not_writable": "{home} に書き込めない: {message}",
+  "doctor.home_ok": "{home}: 書き込めるフォルダ。グローバル ledger に副作用 {n} 件",
+  "doctor.jlock_doctor_unreadable": "jlock {version}。jlock doctor --json が JSON を返さなかった",
+  "doctor.jlock_install_failed": "jlock のインストーラーが {code} で終了: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes でインストールする。または https://github.com/rodrigojager/jlock を参照",
+  "doctor.jlock_installed": "jlock を {file} にインストールした（{id}）。まだ PATH になければ新しいターミナルを開く",
+  "doctor.jlock_installed_somewhere": "jlock をインストールした（場所はインストーラーの表示どおり）。新しいターミナルを開く",
+  "doctor.jlock_missing": "jlock が見つからない（{bin}）",
+  "doctor.jlock_no_eof": "hold --release-on-eof には jlock {minimum} が必要",
+  "doctor.jlock_ok": "jlock {version}。jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} は古すぎる（{minimum} 以上が必要）",
+  "doctor.nothing_to_fix": "インストールするものはない",
+  "doctor.opencode_absent": "OpenCode が見つからない（確認対象なし）",
+  "doctor.opencode_agents_missing": "足りないエージェント: {agents}。{plugin}",
+  "doctor.opencode_ok": "エージェント implement、implement-deep、review がある。{plugin}",
+  "doctor.opencode_plugin_absent": "goal-tasks プラグインが設定にない（opencode/README.md を参照）",
+  "doctor.opencode_plugin_listed": "goal-tasks プラグインは設定にある",
+  "doctor.package_missing": "パッケージに {file} がない",
+  "doctor.skills_missing": "足りないスキル: {list}",
+  "doctor.skills_no_agents": "このホームに Claude Code、OpenCode、Codex のフォルダがない（確認対象なし）",
+  "doctor.skills_ok": "{agents} に to-tickets と goal-tasks がある",
+  "doctor.step_copy": "{file} をコピー",
+  "doctor.step_jlock": "公式インストーラーで jlock をインストール",
+  "doctor.summary": "ok: {ok}、警告: {warn}、失敗: {fail}",
+  "doctor.would": "インストール予定:",
   "done.claimed": "タスク中に claim したファイル: {files}。他のタスクも触れるなら計画を更新すること",
   "done.detached": "detached HEAD",
   "done.done": "{id} 完了: {what}。{released}",
@@ -2593,6 +2934,7 @@ var ja_default = {
   "help.archive": "archive <run>                         実行を GOAL_TASKS_HOME/archive へ移す（resume で戻す）",
   "help.claim": "claim <id> <ファイル…> [--timeout 60s]    ファイルを 1 つ追加で求める。jlock のキューで待つ",
   "help.clean": "clean <run>|--all [--yes]             実行のフォルダを削除（先に有効な副作用を一覧）",
+  "help.doctor": "doctor [--fix [--yes]]                このマシンは準備済みか? --fix --yes で不足分をインストール",
   "help.done": 'done <id> --evidence "…"              git と所有権を確認し、所有権をコミット。完了',
   "help.effects": "effects --check                       ledger をディスクおよび git と照合する",
   "help.exec": "exec -- <コマンド…>                   実行する。serialize のコマンドはマシン上で 1 つずつ",
@@ -2795,11 +3137,13 @@ var ja_default = {
   "undo.dir_removed": "{id}: フォルダ {dir} を削除",
   "undo.dirty": "{id}: ツリーに未保存の変更がある（{files}）。undo の前にコミットするか破棄する",
   "undo.exclude_shared": "{id}: 他の実行がまだ exclude の行 {line} を使っている（{runs}）。それでも外すなら --force",
+  "undo.file_removed": "{id}: {file} を削除",
   "undo.line_absent": "{id}: その行はもう {path} になかった",
   "undo.line_removed": "{id}: {path} から行を削除",
   "undo.no_branch": "{id}: ブランチ {branch} はもう存在しなかった",
   "undo.no_commit": "{id}: コミット {ref} はもう存在しない（tasks effects --check を参照）",
   "undo.no_effect": "実行 {run} に有効な副作用 {id} はない（tasks ledger を参照）",
+  "undo.no_global": "有効なグローバル副作用 {id} はない（tasks ledger --all-projects を参照）",
   "undo.none": "{id}: {type}（{kind}）には自動の取り消しがない",
   "undo.revert_failed": "{id}: git revert {ref} がきれいに適用できなかった: {message}",
   "undo.reverted": "{id}: {ref} を revert → コミット {head}",
@@ -2860,6 +3204,46 @@ var ru_default = {
   "clean.deleted": "удалено: {target}",
   "clean.effects": "эффекты ещё активны (остаются; при желании отмените каждый командой рядом с ним):",
   "clean.which": "укажите какой: tasks clean <run> [--yes] (или --all)",
+  "doctor.claude_absent": "Claude Code не найден (проверять нечего)",
+  "doctor.claude_mod_absent": "мод goal-tasks не установлен (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "мод goal-tasks установлен",
+  "doctor.confirm": "ничего не установлено; подтвердите через tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: уже есть с другим содержимым, оставлен",
+  "doctor.file_installed": "{file}: установлен ({id})",
+  "doctor.file_same": "{file}: уже есть",
+  "doctor.fix": "как исправить: {fix}",
+  "doctor.fix_cli_only": "doctor --fix работает в CLI: выполните tasks doctor --fix --yes в терминале",
+  "doctor.fixed": "установлено:",
+  "doctor.git_fix": "установите git (https://git-scm.com) и откройте новый терминал",
+  "doctor.git_missing": "git не найден в PATH",
+  "doctor.home_absent": "{home}: ещё не существует (создаётся при первом использовании)",
+  "doctor.home_fix": "укажите в GOAL_TASKS_HOME папку с правом записи или удалите переменную",
+  "doctor.home_not_dir": "{home} — не папка",
+  "doctor.home_not_writable": "{home} недоступна для записи: {message}",
+  "doctor.home_ok": "{home}: папка доступна для записи; глобальный реестр, эффектов: {n}",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json ответил не в JSON",
+  "doctor.jlock_install_failed": "установщик jlock завершился с кодом {code}: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes установит его, или см. https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock установлен в {file} ({id}); откройте новый терминал, если его ещё нет в PATH",
+  "doctor.jlock_installed_somewhere": "jlock установлен (туда, куда указал его установщик); откройте новый терминал",
+  "doctor.jlock_missing": "jlock не найден ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof требует jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} слишком старый (нужен минимум {minimum})",
+  "doctor.nothing_to_fix": "устанавливать нечего",
+  "doctor.opencode_absent": "OpenCode не найден (проверять нечего)",
+  "doctor.opencode_agents_missing": "нет агентов: {agents}; {plugin}",
+  "doctor.opencode_ok": "агенты implement, implement-deep и review на месте; {plugin}",
+  "doctor.opencode_plugin_absent": "плагина goal-tasks нет в его конфигурации (см. opencode/README.md)",
+  "doctor.opencode_plugin_listed": "плагин goal-tasks есть в его конфигурации",
+  "doctor.package_missing": "в пакете нет {file}",
+  "doctor.skills_missing": "нет навыков: {list}",
+  "doctor.skills_no_agents": "в этой домашней папке нет папок Claude Code, OpenCode или Codex (проверять нечего)",
+  "doctor.skills_ok": "to-tickets и goal-tasks на месте для {agents}",
+  "doctor.step_copy": "скопировать {file}",
+  "doctor.step_jlock": "установить jlock официальным установщиком",
+  "doctor.summary": "ok: {ok}, предупреждений: {warn}, сбоев: {fail}",
+  "doctor.would": "будет установлено:",
   "done.claimed": "получены во время задачи: {files}; обновите план, если их трогают и другие задачи",
   "done.detached": "отсоединённый HEAD",
   "done.done": "{id} выполнена: {what}; {released}",
@@ -2930,6 +3314,7 @@ var ru_default = {
   "help.archive": "archive <run>                         переносит прогон в GOAL_TASKS_HOME/archive (resume вернёт)",
   "help.claim": "claim <id> <файл…> [--timeout 60s]    просит ещё один файл; ждёт в очереди jlock",
   "help.clean": "clean <run>|--all [--yes]             удаляет папку прогона (сперва список активных эффектов)",
+  "help.doctor": "doctor [--fix [--yes]]                машина готова? --fix --yes устанавливает недостающее",
   "help.done": 'done <id> --evidence "…"              проверяет git и владение; коммитит владение; done',
   "help.effects": "effects --check                       сверяет реестр с диском и git",
   "help.exec": "exec -- <команда…>                    запускает; команды serialize — по одной на машине",
@@ -3132,11 +3517,13 @@ var ru_default = {
   "undo.dir_removed": "{id}: папка {dir} удалена",
   "undo.dirty": "{id}: в дереве несохранённые изменения ({files}); закоммитьте или отбросьте их до undo",
   "undo.exclude_shared": "{id}: другие прогоны ещё используют строку {line} в exclude ({runs}); используйте --force, чтобы всё равно убрать её",
+  "undo.file_removed": "{id}: {file} удалён",
   "undo.line_absent": "{id}: строки уже не было в {path}",
   "undo.line_removed": "{id}: строка удалена из {path}",
   "undo.no_branch": "{id}: ветки {branch} уже не было",
   "undo.no_commit": "{id}: коммита {ref} больше нет (см. tasks effects --check)",
   "undo.no_effect": "нет активного эффекта {id} в прогоне {run} (см. tasks ledger)",
+  "undo.no_global": "нет активного глобального эффекта {id} (см. tasks ledger --all-projects)",
   "undo.none": "{id}: нет автоматической отмены для {type} ({kind})",
   "undo.revert_failed": "{id}: git revert {ref} не применился чисто: {message}",
   "undo.reverted": "{id}: revert {ref} → коммит {head}",
@@ -3197,6 +3584,46 @@ var ar_default = {
   "clean.deleted": "حُذف: {target}",
   "clean.effects": "آثار لا تزال نشطة (تبقى؛ تراجع عن كل منها بالأمر المجاور له إن أردت):",
   "clean.which": "حدّد أيّها: tasks clean <run> [--yes] (أو --all)",
+  "doctor.claude_absent": "لم يُعثر على Claude Code (لا شيء للفحص)",
+  "doctor.claude_mod_absent": "التعديل goal-tasks غير مثبّت (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "التعديل goal-tasks مثبّت",
+  "doctor.confirm": "لم يُثبَّت شيء؛ أكّد بالأمر tasks doctor --fix --yes",
+  "doctor.file_differs": "{file}: موجود بالفعل بمحتوى آخر، أُبقي عليه",
+  "doctor.file_installed": "{file}: ثُبّت ({id})",
+  "doctor.file_same": "{file}: موجود بالفعل",
+  "doctor.fix": "الحل: {fix}",
+  "doctor.fix_cli_only": "يعمل doctor --fix في CLI: شغّل tasks doctor --fix --yes في طرفية",
+  "doctor.fixed": "ثُبّت:",
+  "doctor.git_fix": "ثبّت git (https://git-scm.com) وافتح طرفية جديدة",
+  "doctor.git_missing": "لم يُعثر على git في PATH",
+  "doctor.home_absent": "{home}: غير موجود بعد (يُنشأ عند أول استخدام)",
+  "doctor.home_fix": "وجّه GOAL_TASKS_HOME إلى مجلد قابل للكتابة، أو احذف المتغير",
+  "doctor.home_not_dir": "{home} ليس مجلدًا",
+  "doctor.home_not_writable": "{home} غير قابل للكتابة: {message}",
+  "doctor.home_ok": "{home}: مجلد قابل للكتابة؛ السجل العام، الآثار: {n}",
+  "doctor.jlock_doctor_unreadable": "jlock {version}؛ لم يُجب jlock doctor --json بصيغة JSON",
+  "doctor.jlock_install_failed": "خرج مثبّت jlock بالرمز {code}: {message}",
+  "doctor.jlock_install_fix": "يثبّته tasks doctor --fix --yes، أو انظر https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "ثُبّت jlock في {file} ({id})؛ افتح طرفية جديدة إن لم يكن في PATH بعد",
+  "doctor.jlock_installed_somewhere": "ثُبّت jlock (حيث أشار مثبّته)؛ افتح طرفية جديدة",
+  "doctor.jlock_missing": "لم يُعثر على jlock ({bin})",
+  "doctor.jlock_no_eof": "يحتاج hold --release-on-eof إلى jlock {minimum}",
+  "doctor.jlock_ok": "jlock {version}؛ jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} قديم جدًا (الحد الأدنى {minimum})",
+  "doctor.nothing_to_fix": "لا شيء لتثبيته",
+  "doctor.opencode_absent": "لم يُعثر على OpenCode (لا شيء للفحص)",
+  "doctor.opencode_agents_missing": "وكلاء ناقصون: {agents}؛ {plugin}",
+  "doctor.opencode_ok": "الوكلاء implement و implement-deep و review موجودون؛ {plugin}",
+  "doctor.opencode_plugin_absent": "الإضافة goal-tasks ليست في إعداداته (انظر opencode/README.md)",
+  "doctor.opencode_plugin_listed": "الإضافة goal-tasks موجودة في إعداداته",
+  "doctor.package_missing": "الحزمة ليس فيها {file}",
+  "doctor.skills_missing": "مهارات ناقصة: {list}",
+  "doctor.skills_no_agents": "لا مجلد لـ Claude Code أو OpenCode أو Codex في مجلد المستخدم هذا (لا شيء للفحص)",
+  "doctor.skills_ok": "to-tickets و goal-tasks موجودتان لـ {agents}",
+  "doctor.step_copy": "نسخ {file}",
+  "doctor.step_jlock": "تثبيت jlock بمثبّته الرسمي",
+  "doctor.summary": "ok: {ok}، التحذيرات: {warn}، الإخفاقات: {fail}",
+  "doctor.would": "سيُثبَّت:",
   "done.claimed": "طُلبت أثناء المهمة: {files}؛ حدّث الخطة إن كانت مهام أخرى تمسّها أيضًا",
   "done.detached": "HEAD منفصل",
   "done.done": "أُنجزت {id}: {what}؛ {released}",
@@ -3267,6 +3694,7 @@ var ar_default = {
   "help.archive": "archive <run>                         ينقل التشغيل إلى GOAL_TASKS_HOME/archive (يعيده resume)",
   "help.claim": "claim <id> <file…> [--timeout 60s]    يطلب ملفًا آخر؛ ينتظر في طابور jlock",
   "help.clean": "clean <run>|--all [--yes]             يحذف مجلد التشغيل (يسرد الآثار النشطة أولًا)",
+  "help.doctor": "doctor [--fix [--yes]]                هل الجهاز جاهز؟ --fix --yes يثبّت ما ينقص",
   "help.done": 'done <id> --evidence "…"              يفحص git والملكية؛ يودِع الملكية؛ done',
   "help.effects": "effects --check                       يقارن السجل بالقرص و git",
   "help.exec": "exec -- <command…>                    يشغّله؛ أوامر serialize واحدًا تلو الآخر على الجهاز",
@@ -3469,11 +3897,13 @@ var ar_default = {
   "undo.dir_removed": "{id}: أُزيل المجلد {dir}",
   "undo.dirty": "{id}: في الشجرة تغييرات غير محفوظة ({files})؛ أودِعها أو تخلّص منها قبل undo",
   "undo.exclude_shared": "{id}: تشغيلات أخرى لا تزال تستخدم السطر {line} من exclude ({runs})؛ استخدم --force لإزالته رغم ذلك",
+  "undo.file_removed": "{id}: أُزيل {file}",
   "undo.line_absent": "{id}: لم يعد السطر موجودًا في {path}",
   "undo.line_removed": "{id}: أُزيل السطر من {path}",
   "undo.no_branch": "{id}: الفرع {branch} لم يعد موجودًا",
   "undo.no_commit": "{id}: الإيداع {ref} لم يعد موجودًا (انظر tasks effects --check)",
   "undo.no_effect": "لا أثر نشط {id} في التشغيل {run} (انظر tasks ledger)",
+  "undo.no_global": "لا أثر عام نشط {id} (انظر tasks ledger --all-projects)",
   "undo.none": "{id}: لا تراجع تلقائي لـ {type} ({kind})",
   "undo.revert_failed": "{id}: لم يُطبَّق git revert {ref} بنظافة: {message}",
   "undo.reverted": "{id}: revert لـ {ref} → الإيداع {head}",
@@ -3534,6 +3964,46 @@ var hi_default = {
   "clean.deleted": "हटाया गया: {target}",
   "clean.effects": "अब भी सक्रिय प्रभाव (ये बने रहते हैं; चाहें तो हर एक को बगल वाली कमांड से पूर्ववत करें):",
   "clean.which": "बताएँ कौन सा: tasks clean <run> [--yes] (या --all)",
+  "doctor.claude_absent": "Claude Code नहीं मिला (जाँचने को कुछ नहीं)",
+  "doctor.claude_mod_absent": "goal-tasks mod इंस्टॉल नहीं है (claude --plugin-dir <goal-tasks>/claude)",
+  "doctor.claude_mod_installed": "goal-tasks mod इंस्टॉल है",
+  "doctor.confirm": "कुछ इंस्टॉल नहीं हुआ; tasks doctor --fix --yes से पुष्टि करें",
+  "doctor.file_differs": "{file}: पहले से दूसरी सामग्री के साथ है, रखा गया",
+  "doctor.file_installed": "{file}: इंस्टॉल किया गया ({id})",
+  "doctor.file_same": "{file}: पहले से है",
+  "doctor.fix": "समाधान: {fix}",
+  "doctor.fix_cli_only": "doctor --fix CLI में चलता है: टर्मिनल में tasks doctor --fix --yes चलाएँ",
+  "doctor.fixed": "इंस्टॉल किया गया:",
+  "doctor.git_fix": "git इंस्टॉल करें (https://git-scm.com) और नया टर्मिनल खोलें",
+  "doctor.git_missing": "PATH में git नहीं मिला",
+  "doctor.home_absent": "{home}: अभी मौजूद नहीं (पहले उपयोग पर बनेगा)",
+  "doctor.home_fix": "GOAL_TASKS_HOME को किसी लिखने योग्य फ़ोल्डर पर सेट करें, या उसे हटा दें",
+  "doctor.home_not_dir": "{home} फ़ोल्डर नहीं है",
+  "doctor.home_not_writable": "{home} में लिखा नहीं जा सकता: {message}",
+  "doctor.home_ok": "{home}: लिखने योग्य फ़ोल्डर; वैश्विक ledger में {n} प्रभाव",
+  "doctor.jlock_doctor_unreadable": "jlock {version}; jlock doctor --json का उत्तर JSON नहीं था",
+  "doctor.jlock_install_failed": "jlock इंस्टॉलर {code} से निकला: {message}",
+  "doctor.jlock_install_fix": "tasks doctor --fix --yes इसे इंस्टॉल करता है, या देखें https://github.com/rodrigojager/jlock",
+  "doctor.jlock_installed": "jlock {file} में इंस्टॉल हुआ ({id}); अगर यह अभी PATH में नहीं है तो नया टर्मिनल खोलें",
+  "doctor.jlock_installed_somewhere": "jlock इंस्टॉल हुआ (जहाँ उसके इंस्टॉलर ने बताया); नया टर्मिनल खोलें",
+  "doctor.jlock_missing": "jlock नहीं मिला ({bin})",
+  "doctor.jlock_no_eof": "hold --release-on-eof को jlock {minimum} चाहिए",
+  "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
+  "doctor.jlock_old": "jlock {version} बहुत पुराना है (कम से कम {minimum})",
+  "doctor.nothing_to_fix": "इंस्टॉल करने को कुछ नहीं",
+  "doctor.opencode_absent": "OpenCode नहीं मिला (जाँचने को कुछ नहीं)",
+  "doctor.opencode_agents_missing": "एजेंट गायब: {agents}; {plugin}",
+  "doctor.opencode_ok": "एजेंट implement, implement-deep और review मौजूद हैं; {plugin}",
+  "doctor.opencode_plugin_absent": "goal-tasks प्लगइन उसकी कॉन्फ़िगरेशन में नहीं है (देखें opencode/README.md)",
+  "doctor.opencode_plugin_listed": "goal-tasks प्लगइन उसकी कॉन्फ़िगरेशन में है",
+  "doctor.package_missing": "पैकेज में {file} नहीं है",
+  "doctor.skills_missing": "स्किल गायब: {list}",
+  "doctor.skills_no_agents": "इस होम में Claude Code, OpenCode या Codex का कोई फ़ोल्डर नहीं (जाँचने को कुछ नहीं)",
+  "doctor.skills_ok": "{agents} के लिए to-tickets और goal-tasks मौजूद हैं",
+  "doctor.step_copy": "{file} कॉपी करें",
+  "doctor.step_jlock": "jlock को उसके आधिकारिक इंस्टॉलर से इंस्टॉल करें",
+  "doctor.summary": "ok: {ok}, चेतावनियाँ: {warn}, विफल: {fail}",
+  "doctor.would": "इंस्टॉल किया जाएगा:",
   "done.claimed": "कार्य के दौरान claim की गईं: {files}; अगर दूसरे कार्य भी इन्हें छूते हैं तो योजना अपडेट करें",
   "done.detached": "एक detached HEAD",
   "done.done": "{id} पूरा: {what}; {released}",
@@ -3604,6 +4074,7 @@ var hi_default = {
   "help.archive": "archive <run>                         रन GOAL_TASKS_HOME/archive में भेजता है (resume लौटाता है)",
   "help.claim": "claim <id> <file…> [--timeout 60s]    एक और फ़ाइल माँगता है; jlock की कतार में रुकता है",
   "help.clean": "clean <run>|--all [--yes]             रन का फ़ोल्डर हटाता है (पहले सक्रिय प्रभाव दिखाता है)",
+  "help.doctor": "doctor [--fix [--yes]]                मशीन तैयार है? --fix --yes जो नहीं है उसे इंस्टॉल करता है",
   "help.done": 'done <id> --evidence "…"              git और स्वामित्व जाँचता है; स्वामित्व commit करता है; पूरा',
   "help.effects": "effects --check                       ledger की तुलना डिस्क और git से करता है",
   "help.exec": "exec -- <command…>                    चलाता है; serialize वाली कमांड मशीन पर एक-एक करके",
@@ -3806,11 +4277,13 @@ var hi_default = {
   "undo.dir_removed": "{id}: फ़ोल्डर {dir} हटाया गया",
   "undo.dirty": "{id}: ट्री में बिना सहेजे बदलाव हैं ({files}); undo से पहले उन्हें commit करें या हटा दें",
   "undo.exclude_shared": "{id}: दूसरे रन अब भी exclude की पंक्ति {line} इस्तेमाल करते हैं ({runs}); फिर भी हटाने के लिए --force",
+  "undo.file_removed": "{id}: {file} हटाया गया",
   "undo.line_absent": "{id}: पंक्ति अब {path} में नहीं थी",
   "undo.line_removed": "{id}: {path} से पंक्ति हटाई गई",
   "undo.no_branch": "{id}: ब्रांच {branch} अब मौजूद नहीं थी",
   "undo.no_commit": "{id}: commit {ref} अब मौजूद नहीं (देखें tasks effects --check)",
   "undo.no_effect": "रन {run} में कोई सक्रिय प्रभाव {id} नहीं (देखें tasks ledger)",
+  "undo.no_global": "कोई सक्रिय वैश्विक प्रभाव {id} नहीं (देखें tasks ledger --all-projects)",
   "undo.none": "{id}: {type} ({kind}) के लिए कोई स्वचालित पूर्ववत नहीं है",
   "undo.revert_failed": "{id}: git revert {ref} साफ़ लागू नहीं हुआ: {message}",
   "undo.reverted": "{id}: {ref} का revert → commit {head}",
@@ -4401,6 +4874,7 @@ var BOOLEAN_FLAGS = new Set([
   "add",
   "agent-ended"
 ]);
+var OPTIONAL_VALUE = new Set(["fix"]);
 function parseArgs(argv) {
   const positionals = [];
   const options = {};
@@ -4425,6 +4899,10 @@ function parseArgs(argv) {
         options[name] = true;
       else {
         const value = argv[i + 1];
+        if (OPTIONAL_VALUE.has(name) && (value === undefined || value.startsWith("--"))) {
+          options[name] = true;
+          continue;
+        }
         if (value === undefined)
           throw new ToolError(tr("args.needs_value", { name }), 2);
         options[name] = value;
@@ -6593,9 +7071,25 @@ ${tr("undo.stopped", { message: error.message })}`, error.code, { undone: done }
   }
   return done;
 }
+async function undoGlobal(ctx, id) {
+  const { host } = ctx;
+  const e = (await readEffects(host, globalLedger(host))).find((x) => x.id === id && x.state === "active");
+  if (!e)
+    throw new ToolError(tr("undo.no_global", { id }));
+  if (e.undo.kind !== "remove-file" || !e.path)
+    throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }));
+  await host.remove(e.path);
+  const parent = dirname(e.path);
+  if (!(await host.list(parent)).length)
+    await host.remove(parent, { recursive: true }).catch(() => {});
+  await setEffectState(host, goalTasksHome(host), e.run, e.id, "undone");
+  return ok(tr("undo.file_removed", { id: e.id, file: e.path }), { undone: [e.id] });
+}
 defineAction("undo", async (ctx, args) => {
   const force = !!args.options.force;
   const id = args.positionals[0];
+  if (id?.startsWith("g-"))
+    return undoGlobal(ctx, id);
   const taskId = typeof args.options.task === "string" ? args.options.task : undefined;
   const insensitive = caseInsensitive(ctx.host.platform);
   if (!id && !taskId) {
@@ -7164,6 +7658,251 @@ async function loadView(host, root, run, tool) {
 async function loadRunsView(host, root) {
   return runsView(await listRuns(host, root));
 }
+// src/doctor.ts
+var OPENCODE_AGENTS = ["implement", "implement-deep", "review"];
+var SKILLS = ["to-tickets", "goal-tasks"];
+var SKILL_FILES = { "to-tickets": ["SKILL.md", "schema.json", "example-plan.json"], "goal-tasks": ["SKILL.md"] };
+function userHome(host) {
+  return (host.env("GOAL_TASKS_USER_HOME") || host.env("USERPROFILE") || host.env("HOME") || ".").replace(/\\/g, "/");
+}
+function skillHosts(host) {
+  const home = userHome(host);
+  return [
+    { host: "claude-code", present: join(home, ".claude"), dir: join(home, ".claude/skills") },
+    { host: "opencode", present: join(home, ".config/opencode"), dir: join(home, ".config/opencode/skills") },
+    { host: "codex", present: join(home, ".codex"), dir: join(home, ".agents/skills") }
+  ];
+}
+var isDir = async (host, path) => (await host.stat(path))?.kind === "dir";
+var isFile = async (host, path) => (await host.stat(path))?.kind === "file";
+async function checkVersion(host) {
+  const runtime = host.runtime ? ` · ${host.runtime}` : "";
+  return { name: "version", status: "ok", detail: `goal-tasks ${VERSION}${runtime}` };
+}
+async function checkGit(host) {
+  const r = await host.run(["git", "--version"], { timeoutMs: 15000 });
+  if (r.code !== 0)
+    return { name: "git", status: "fail", detail: tr("doctor.git_missing"), fix: tr("doctor.git_fix") };
+  return { name: "git", status: "ok", detail: r.stdout.trim() };
+}
+async function checkJlock(host) {
+  const bin = jlockBin(host);
+  const r = await host.run([bin, "--version"], { timeoutMs: 15000, env: jlockEnv() });
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(r.stdout);
+  if (r.code !== 0 || !m)
+    return { name: "jlock", status: "fail", detail: tr("doctor.jlock_missing", { bin }), fix: tr("doctor.jlock_install_fix"), fixable: true };
+  const version = `${m[1]}.${m[2]}.${m[3]}`;
+  if (!versionAtLeast(version, MIN_JLOCK))
+    return { name: "jlock", status: "fail", detail: tr("doctor.jlock_old", { version, minimum: MIN_JLOCK }), fix: "jlock update" };
+  const d = await host.run([bin, "doctor", "--json"], { timeoutMs: 30000, env: jlockEnv() });
+  let checks = [];
+  try {
+    checks = JSON.parse(d.stdout).checks ?? [];
+  } catch {
+    return { name: "jlock", status: "warn", detail: tr("doctor.jlock_doctor_unreadable", { version }), fix: "jlock doctor" };
+  }
+  const bad = checks.filter((c) => c.status !== "ok");
+  const failed = bad.some((c) => c.status === "fail");
+  const oldForEof = !versionAtLeast(version, EOF_JLOCK);
+  const parts = [tr("doctor.jlock_ok", { version, n: checks.length - bad.length, total: checks.length })];
+  for (const c of bad)
+    parts.push(`${c.status} ${c.name}: ${c.detail}`);
+  if (oldForEof)
+    parts.push(tr("doctor.jlock_no_eof", { minimum: EOF_JLOCK }));
+  const fixes = bad.map((c) => c.fix).filter((f) => !!f);
+  if (oldForEof)
+    fixes.push("jlock update");
+  const status2 = failed ? "fail" : bad.length || oldForEof ? "warn" : "ok";
+  return status2 === "ok" ? { name: "jlock", status: status2, detail: parts.join("; ") } : { name: "jlock", status: status2, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" };
+}
+async function checkHome(host) {
+  const home = goalTasksHome(host);
+  const stat = await host.stat(home);
+  if (!stat)
+    return { name: "home", status: "ok", detail: tr("doctor.home_absent", { home }) };
+  if (stat.kind !== "dir")
+    return { name: "home", status: "fail", detail: tr("doctor.home_not_dir", { home }), fix: tr("doctor.home_fix") };
+  const probe = join(home, `.doctor-${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e6).toString(36)}.tmp`);
+  try {
+    await host.writeText(probe, `doctor
+`);
+  } catch (error) {
+    return { name: "home", status: "fail", detail: tr("doctor.home_not_writable", { home, message: error.message }), fix: tr("doctor.home_fix") };
+  } finally {
+    await host.remove(probe).catch(() => {});
+  }
+  const effects = await readEffects(host, globalLedger(host));
+  return { name: "home", status: "ok", detail: tr("doctor.home_ok", { home, n: effects.length }) };
+}
+async function checkOpenCode(host, cwd) {
+  const config = join(userHome(host), ".config/opencode");
+  if (!await isDir(host, config))
+    return { name: "opencode", status: "ok", detail: tr("doctor.opencode_absent") };
+  const configText = [
+    await host.readText(join(config, "opencode.json")) ?? "",
+    await host.readText(join(config, "opencode.jsonc")) ?? ""
+  ].join(`
+`);
+  const missing = [];
+  for (const agent of OPENCODE_AGENTS) {
+    const found = await isFile(host, join(config, "agents", `${agent}.md`)) || await isFile(host, join(cwd, ".opencode/agents", `${agent}.md`)) || new RegExp(`"${agent}"\\s*:`).test(configText);
+    if (!found)
+      missing.push(agent);
+  }
+  const plugin = /goal-tasks/.test(configText) ? tr("doctor.opencode_plugin_listed") : tr("doctor.opencode_plugin_absent");
+  if (missing.length)
+    return { name: "opencode", status: "warn", detail: tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "tasks doctor --fix --yes" };
+  return { name: "opencode", status: "ok", detail: tr("doctor.opencode_ok", { plugin }) };
+}
+async function checkClaude(host) {
+  const r = await host.run(["claude", "--version"], { timeoutMs: 20000 });
+  if (r.code !== 0)
+    return { name: "claude", status: "ok", detail: tr("doctor.claude_absent") };
+  const plugins = await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json")) ?? "";
+  const mod = /goal-tasks/.test(plugins) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent");
+  return { name: "claude", status: "ok", detail: `${r.stdout.trim().split(`
+`)[0]}; ${mod}` };
+}
+async function missingSkills(host) {
+  const out = [];
+  for (const h of skillHosts(host)) {
+    if (!await isDir(host, h.present))
+      continue;
+    for (const skill of SKILLS)
+      if (!await isFile(host, join(h.dir, skill, "SKILL.md")))
+        out.push({ host: h.host, skill, dir: join(h.dir, skill) });
+  }
+  return out;
+}
+async function checkSkills(host) {
+  const present = [];
+  for (const h of skillHosts(host))
+    if (await isDir(host, h.present))
+      present.push(h.host);
+  if (!present.length)
+    return { name: "skills", status: "ok", detail: tr("doctor.skills_no_agents") };
+  const missing = await missingSkills(host);
+  if (missing.length)
+    return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "tasks doctor --fix --yes" };
+  return { name: "skills", status: "ok", detail: tr("doctor.skills_ok", { agents: present.join(", ") }) };
+}
+function checkLanguage(host, lang2) {
+  const choice = choose({ lang: lang2, env: (name) => host.env(name), system: systemLocale() });
+  return { name: "language", status: "ok", detail: `${choice.tag} (${choice.source})` };
+}
+async function runChecks(ctx, lang2) {
+  const { host } = ctx;
+  return [
+    await checkVersion(host),
+    await checkGit(host),
+    await checkJlock(host),
+    await checkHome(host),
+    await checkOpenCode(host, ctx.cwd),
+    await checkClaude(host),
+    await checkSkills(host),
+    checkLanguage(host, lang2)
+  ];
+}
+function checksText(checks) {
+  const width2 = Math.max(...checks.map((c) => c.name.length));
+  const lines = [];
+  for (const c of checks) {
+    lines.push(`${c.status.padEnd(5)} ${c.name.padEnd(width2)}  ${c.detail}`);
+    if (c.fix)
+      lines.push(`${" ".repeat(width2 + 8)}${tr("doctor.fix", { fix: c.fix })}`);
+  }
+  const n = (s) => checks.filter((c) => c.status === s).length;
+  lines.push("", tr("doctor.summary", { ok: n("ok"), warn: n("warn"), fail: n("fail") }));
+  return lines.join(`
+`);
+}
+async function installFile(host, from, to) {
+  const text = await host.readText(from);
+  if (text === undefined)
+    throw new ToolError(tr("doctor.package_missing", { file: from }));
+  const current2 = await host.readText(to);
+  if (current2 !== undefined)
+    return current2 === text ? tr("doctor.file_same", { file: to }) : tr("doctor.file_differs", { file: to });
+  await host.writeText(to, text);
+  const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, undo: { kind: "remove-file" } });
+  return tr("doctor.file_installed", { file: to, id: e.id });
+}
+async function fixSteps(ctx, checks) {
+  const { host } = ctx;
+  const pkg = ctx.packageRoot;
+  const steps = [];
+  const jlock = checks.find((c) => c.name === "jlock");
+  if (jlock?.fixable)
+    steps.push({ what: tr("doctor.step_jlock"), run: () => installJlock(ctx) });
+  const opencode = join(userHome(host), ".config/opencode");
+  if (checks.find((c) => c.name === "opencode")?.status === "warn")
+    for (const agent of OPENCODE_AGENTS) {
+      const to = join(opencode, "agents", `${agent}.md`);
+      if (!await isFile(host, to))
+        steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "opencode/agents", `${agent}.md`), to) });
+    }
+  for (const m of await missingSkills(host))
+    for (const name of SKILL_FILES[m.skill] ?? ["SKILL.md"]) {
+      const to = join(m.dir, name);
+      steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "skills", m.host, m.skill, name), to) });
+    }
+  return steps;
+}
+async function installJlock(ctx) {
+  const { host } = ctx;
+  const own = host.env("GOAL_TASKS_JLOCK_INSTALLER");
+  const base = "https://raw.githubusercontent.com/rodrigojager/jlock/main";
+  const argv = own ? ["bun", own] : host.platform === "win32" ? ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `irm ${base}/install.ps1 | iex`] : ["sh", "-c", `curl -fsSL ${base}/install.sh | sh`];
+  const dir = host.env("JLOCK_INSTALL_DIR");
+  const r = await host.run(argv, dir ? { timeoutMs: 5 * 60000, env: { JLOCK_INSTALL_DIR: dir } } : { timeoutMs: 5 * 60000 });
+  if (r.code !== 0)
+    throw new ToolError(tr("doctor.jlock_install_failed", { code: r.code, message: (r.stderr || r.stdout).trim().slice(0, 400) }));
+  const installed = jlockInstallPath(host);
+  if (installed && await isFile(host, installed)) {
+    const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(installed), path: installed, undo: { kind: "remove-file" } });
+    return tr("doctor.jlock_installed", { file: installed, id: e.id });
+  }
+  return tr("doctor.jlock_installed_somewhere");
+}
+function jlockInstallPath(host) {
+  const dir = host.env("JLOCK_INSTALL_DIR");
+  const exe = host.platform === "win32" ? "jlock.exe" : "jlock";
+  if (dir)
+    return join(dir.replace(/\\/g, "/"), exe);
+  if (host.platform === "win32") {
+    const local = host.env("LOCALAPPDATA");
+    return local ? join(local.replace(/\\/g, "/"), "Programs/jlock", exe) : undefined;
+  }
+  return join(userHome(host), ".local/bin", exe);
+}
+async function doctor(ctx, args) {
+  const lang2 = typeof args.options.lang === "string" ? args.options.lang : ctx.lang;
+  const checks = await runChecks(ctx, lang2);
+  const summary = { ok: 0, warn: 0, fail: 0 };
+  for (const c of checks)
+    summary[c.status]++;
+  const data = { result: summary.fail ? "error" : "ok", checks, summary };
+  const text = checksText(checks);
+  if (!args.options.fix)
+    return { ok: summary.fail === 0, code: summary.fail ? 20 : 0, text, data };
+  if (ctx.tool !== "cli" || !ctx.packageRoot)
+    throw new ToolError(tr("doctor.fix_cli_only"));
+  const steps = await fixSteps(ctx, checks);
+  if (!steps.length)
+    return ok(`${text}
+
+${tr("doctor.nothing_to_fix")}`, { ...data, fixed: [] });
+  if (!args.options.yes)
+    return ok([text, "", tr("doctor.would"), ...steps.map((s) => `  ${s.what}`), tr("doctor.confirm")].join(`
+`), { ...data, planned: steps.map((s) => s.what) });
+  const done = [];
+  for (const s of steps)
+    done.push(await s.run());
+  const after = await runChecks(ctx, lang2);
+  return ok([tr("doctor.fixed"), ...done.map((d) => `  ${d}`), "", checksText(after)].join(`
+`), { ...data, fixed: done, after });
+}
+defineAction("doctor", doctor, "help.doctor");
 export {
   yymmdd,
   writeTickets,
@@ -7179,6 +7918,7 @@ export {
   validatePlan,
   validateGraph,
   validateBatch,
+  userHome,
   unarchive,
   tr,
   toTask,
@@ -7200,6 +7940,7 @@ export {
   splitChanges,
   slugify,
   slash,
+  skillHosts,
   shortHead,
   shellSegments,
   setEffectState,
@@ -7214,6 +7955,7 @@ export {
   runLine,
   runId,
   runDir,
+  runChecks,
   resolveRun,
   resolve,
   requireRepo,
@@ -7263,6 +8005,7 @@ export {
   jlockReleaseKeys,
   jlockRelease,
   jlockList,
+  jlockInstallPath,
   jlockEnv,
   jlockBin,
   isNameKey,
@@ -7302,7 +8045,9 @@ export {
   clone,
   classify,
   choose,
+  checksText,
   checkShell,
+  checkJlock,
   checkEdit,
   chainText,
   caseInsensitive,
@@ -7327,7 +8072,10 @@ export {
   VERSION,
   ToolError,
   StaleRevisionError,
+  SKILL_FILES,
+  SKILLS,
   SCRATCH,
+  OPENCODE_AGENTS,
   MIN_JLOCK,
   JLOCK,
   EOF_JLOCK,

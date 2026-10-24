@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 // The `tasks` CLI: the core's tool on the terminal, with the Node host.
 
+import { join } from "node:path"
 import { runTool } from "../src/index.ts"
 import { createNodeHost } from "../src/node-host.ts"
 
@@ -14,6 +15,8 @@ const result = await runTool(
     cwd: process.cwd(),
     tool: "cli",
     holdMode: "detach",
+    // Where `doctor --fix` copies the OpenCode agents and the skills from.
+    packageRoot: join(import.meta.dir, "..").replace(/\\/g, "/"),
     boundRun: process.env.GOAL_TASKS_RUN || undefined,
     stdin: async () => await new Response(Bun.stdin.stream()).text(),
   },

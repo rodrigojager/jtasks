@@ -6,7 +6,7 @@ import { join, slash } from "./paths.ts"
 import { atomicWrite, goalTasksHome } from "./store.ts"
 import { tr } from "./i18n.ts"
 
-export type EffectType = "exclude" | "branch" | "commit" | "worktree" | "junction" | "dir" | "archive" | "agent-config"
+export type EffectType = "exclude" | "branch" | "commit" | "worktree" | "junction" | "dir" | "archive" | "agent-config" | "install"
 export type UndoKind =
   | "remove-line"
   | "git-branch-delete"
@@ -14,6 +14,7 @@ export type UndoKind =
   | "rmdir"
   | "unarchive"
   | "agent-config-remove"
+  | "remove-file"
   | "none"
 export type EffectState = "active" | "undone" | "gone"
 

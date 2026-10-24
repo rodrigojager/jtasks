@@ -42,12 +42,12 @@ import { unarchive } from "./housekeeping.ts"
 import { slugify } from "./ids.ts"
 import { canonical, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
-import { caseInsensitive, join } from "./paths.ts"
+import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
 import { DEFAULT_HOLD_TTL, type Hold, type Task, type TasksFile } from "./schema.ts"
-import { appendLog, clone, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
+import { appendLog, clone, goalTasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
-import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext } from "./tool.ts"
+import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { normalizeFileEntry } from "./validate.ts"
 import { tr } from "./i18n.ts"
 
@@ -1073,11 +1073,25 @@ async function undoMany(ctx: ToolContext, root: string, effects: Effect[], force
   return done
 }
 
+/** A global effect (`g-…`, an install by `doctor --fix`): removes the file it installed (and its folder, when empty). */
+async function undoGlobal(ctx: ToolContext, id: string): Promise<ToolResult> {
+  const { host } = ctx
+  const e = (await readEffects(host, globalLedger(host))).find((x) => x.id === id && x.state === "active")
+  if (!e) throw new ToolError(tr("undo.no_global", { id }))
+  if (e.undo.kind !== "remove-file" || !e.path) throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }))
+  await host.remove(e.path)
+  const parent = dirname(e.path)
+  if (!(await host.list(parent)).length) await host.remove(parent, { recursive: true }).catch(() => {})
+  await setEffectState(host, goalTasksHome(host), e.run, e.id, "undone")
+  return ok(tr("undo.file_removed", { id: e.id, file: e.path }), { undone: [e.id] })
+}
+
 defineAction(
   "undo",
   async (ctx, args) => {
     const force = !!args.options.force
     const id = args.positionals[0]
+    if (id?.startsWith("g-")) return undoGlobal(ctx, id)
     const taskId = typeof args.options.task === "string" ? args.options.task : undefined
     const insensitive = caseInsensitive(ctx.host.platform)
     if (!id && !taskId) {
