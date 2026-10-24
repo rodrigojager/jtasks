@@ -1,6 +1,6 @@
 // The run's actions: next, start, status (this ticket) and, later, done/skip/fail/release/retry/claim/pause/resume.
 
-import { assess, blockerText, ownerOf, selectReady, taskKeys, type RunState } from "./frontier.ts"
+import { assess, blockerText, ownerOf, selectReady, taskKeys, waitingOf, waitingText, type RunState } from "./frontier.ts"
 import { counts, progressLine } from "./format.ts"
 import { currentBranch, gitOk, requireRepo, shortHead, status as gitStatus } from "./git.ts"
 import type { Resident } from "./host.ts"
@@ -10,11 +10,13 @@ import {
   holdArgv,
   jlockList,
   jlockRelease,
+  jlockReleaseKeys,
   startHold,
+  type JlockAnswer,
   type Identity,
   type JlockLock,
 } from "./jlock.ts"
-import { covers, normalizeKey } from "./keys.ts"
+import { canonical, covers, normalizeKey } from "./keys.ts"
 import { recordEffect } from "./ledger.ts"
 import { caseInsensitive, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
@@ -22,6 +24,7 @@ import type { Hold, Task, TasksFile } from "./schema.ts"
 import { appendLog, listRuns, readRun, readTasks, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext } from "./tool.ts"
+import { normalizeFileEntry } from "./validate.ts"
 
 // ── The run of a command ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -166,6 +169,8 @@ defineAction(
       .filter((a) => a.blockers.length)
       .map((a) => `${a.task.id} ${a.blockers.map((b) => blockerText(b, state, platform)).join(" · ")}`)
     if (why.length) lines.push(`bloqueadas: ${why.join(" | ")}`)
+    const waiting = waitingOf(state, locks)
+    if (waiting.size) lines.push(`aguardando: ${[...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ")}`)
     return ok(lines.join("\n"), {
       run: state.run.id,
       ready: items,
@@ -231,7 +236,7 @@ defineAction(
         const written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision)
         await writeTicket(ctx.host, state.dir, written, task.id)
       } catch (error) {
-        if (resident) await releaseHoldsOf(ctx, state.run.id, task.id, resident)
+        if (resident) await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys)
         throw error
       }
       if (resident) remember(ctx, state.run.id, task.id, resident)
@@ -251,8 +256,9 @@ defineAction(
   "start <id>                            em andamento; trava a posse (jlock hold --no-wait)",
 )
 
-async function releaseHoldsOf(ctx: ToolContext, run: string, task: string, resident: Resident) {
-  if (!(await resident.send("release\n"))) await jlockRelease(ctx.host, run, ownerOf(run, task)).catch(() => {})
+/** Gives back one hold only (its own keys): a start or claim that could not be recorded. */
+async function releaseHoldsOf(ctx: ToolContext, run: string, task: string, resident: Resident, keys: string[]) {
+  if (!(await resident.send("release\n"))) await jlockReleaseKeys(ctx.host, keys, ownerOf(run, task)).catch(() => {})
   await Promise.race([resident.exited, ctx.host.sleep(3000)])
   await resident.stop()
 }
@@ -267,7 +273,11 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   const lines = [progressLine(state.tasks.tasks)]
   if (state.run.status === "paused") lines.push("pausada: não inicie tarefas")
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress")
+  const byKey = new Map([...repoLocks, ...groupLocks].map((l) => [l.key, l]))
+  const waiting = waitingOf(state, [...byKey.values()])
   if (running.length) lines.push(`em andamento: ${running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ")}`)
+  if (waiting.size)
+    lines.push(`aguardando: ${[...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ")}`)
   if (ready.length) lines.push(`prontas: ${ready.map((t) => t.id).join(", ")}`)
   const blocked = assessments.filter((a) => a.blockers.length)
   if (blocked.length)
@@ -292,7 +302,7 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
       run: state.run.id,
       status: state.run.status,
       counts: counts(state.tasks.tasks),
-      inProgress: running.map((t) => ({ id: t.id, owner: t.owner })),
+      inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null })),
       ready: ready.map((t) => t.id),
       blocked: blocked.map((a) => ({ id: a.task.id, reasons: a.blockers.map((b) => blockerText(b, state, platform)) })),
       locks,
@@ -442,6 +452,110 @@ async function giveBack(ctx: ToolContext, run: string, task: string): Promise<st
     return `a posse não foi devolvida (${(error as Error).message}); use jlock release --group ${run} --owner ${ownerOf(run, task)}`
   }
 }
+
+// ── claim ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** `60s`, `2m`, `500ms`, `90` (seconds). */
+export function parseDuration(raw: string): number {
+  const m = /^(\d+(?:\.\d+)?)(ms|s|m|h)?$/.exec(raw.trim())
+  if (!m) throw new ToolError(`duração inválida: ${raw} (use 30s, 2m, 500ms)`, 2)
+  const n = Number(m[1])
+  const unit = m[2] ?? "s"
+  return Math.round(unit === "ms" ? n : unit === "s" ? n * 1000 : unit === "m" ? n * 60_000 : n * 3_600_000)
+}
+
+/** jlock's deadlock chain with our owners shortened (`gt:<run>/T04` → `T04`). */
+export function chainText(chain: string, run: string): string {
+  return chain.replace(/gt:([^\s/]+)\/([^\s)]+)/g, (_, r: string, t: string) => (r === run ? t : `${r}/${t}`))
+}
+
+defineAction(
+  "claim",
+  async (ctx, args) => {
+    const first = await resolveRun(ctx, args)
+    const task = findTask(first, taskIdArg(args))
+    const raw = args.positionals.slice(1)
+    if (!raw.length) throw new ToolError(`falta o arquivo: tasks claim ${task.id} <arquivo…>`, 2)
+    if (task.status !== "in_progress") throw new ToolError(`${task.id} não está em andamento (está ${task.status}): claim só durante a tarefa`)
+    const platform = ctx.host.platform
+    const files: string[] = []
+    const errors: string[] = []
+    for (const r of raw) {
+      const entry = normalizeFileEntry(r)
+      if (entry.error) errors.push(entry.error)
+      else if (entry.path && !files.includes(entry.path)) files.push(entry.path)
+    }
+    if (errors.length) throw new ToolError(`claim recusado: ${errors.join("; ")}`)
+    const current = taskKeys(first.root, task, platform)
+    const wanted = files.filter((f) => {
+      const key = normalizeKey(f, first.root, platform)
+      return !current.some((k) => covers(k, key))
+    })
+    if (!wanted.length) return ok(`${task.id} já tem ${files.join(", ")} na posse: nada a fazer`, { task: task.id, granted: [] })
+    const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)))
+    const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s")
+    const argv = holdArgv(ctx.host, keys, identity(ctx, first, task), { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) })
+    const began = ctx.host.now().getTime()
+    const spawned = await spawnHold(ctx, first, task, argv)
+    const outcome = await startHold(ctx.host, spawned.resident, timeoutMs + 15_000)
+    const waited = ((ctx.host.now().getTime() - began) / 1000).toFixed(1)
+    const a = outcome.answer
+    const holderOf = (h: JlockAnswer["holder"]) => (typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : "?")
+
+    if (a.result === "timeout") {
+      const key = a.failed ?? a.key ?? keys[0]!
+      const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, first.root, platform)})` : ""
+      await log(ctx, first, { action: "claim-timeout", task: task.id, keys, waitedSec: Number(waited) })
+      throw new ToolError(
+        `${task.id} esperou ${waited} s por ${describeKey(key, first.root, platform)}: continua em uso por ${holderOf(a.holder)}${via}, ` +
+          `posição ${a.position ?? "?"} na fila. Opções: pedir de novo (tasks claim ${task.id} ${wanted.join(" ")} --timeout 5m), ` +
+          `fazer a parte que não depende desse arquivo, ou tasks fail ${task.id} --error "…"`,
+        1,
+        { result: "timeout", key, holder: holderOf(a.holder), position: a.position, via: a.via },
+      )
+    }
+    if (a.result === "deadlock") {
+      await log(ctx, first, { action: "claim-deadlock", task: task.id, keys, chain: a.chain })
+      throw new ToolError(
+        `claim recusado: fecharia um ciclo de espera (deadlock): ${chainText(a.chain ?? "", first.run.id)}. ` +
+          `Quem pediu por último cede: ${task.id} — faça outra parte, ou libere com tasks release ${task.id}`,
+        1,
+        { result: "deadlock", chain: a.chain, yield: task.id },
+      )
+    }
+    if (a.result !== "granted") throw new ToolError(`jlock respondeu ${a.result} ao claim de ${task.id}`)
+
+    const resident = spawned.resident
+    try {
+      const done = await withLock(ctx.host, first.dir, async () => {
+        const state = await reload(ctx, first)
+        const copy = structuredClone(state.tasks)
+        const t = copy.tasks.find((x) => x.id === task.id)!
+        if (t.status !== "in_progress") throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`)
+        t.claimed = [...(t.claimed ?? []), ...wanted.filter((f) => !(t.claimed ?? []).includes(f))]
+        const hold: Hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" }
+        if (resident.pid !== undefined) hold.pid = resident.pid
+        if (spawned.out) hold.out = spawned.out
+        t.holds = [...(t.holds ?? []), hold]
+        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+        await writeTicket(ctx.host, state.dir, tasks, task.id)
+        await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited) })
+        return t
+      })
+      remember(ctx, first.run.id, task.id, resident)
+      return ok(`${task.id} recebeu ${wanted.join(", ")} (esperou ${waited} s); posse: ${possession(done).join(", ")}`, {
+        task: task.id,
+        granted: wanted,
+        keys,
+        waitedSec: Number(waited),
+      })
+    } catch (error) {
+      await releaseHoldsOf(ctx, first.run.id, task.id, resident, keys).catch(() => {})
+      throw error
+    }
+  },
+  "claim <id> <arquivo…> [--timeout 60s]  pede mais um arquivo; espera na fila do jlock",
+)
 
 // ── done ──────────────────────────────────────────────────────────────────────────────────────────────────────
 

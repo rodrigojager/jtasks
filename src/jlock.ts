@@ -109,6 +109,13 @@ export async function jlockRelease(host: Host, group: string, owner: string): Pr
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] }
 }
 
+/** `jlock release <keys…> --owner <owner>`: gives back some keys only (a claim that could not be recorded). */
+export async function jlockReleaseKeys(host: Host, keys: string[], owner: string): Promise<ReleaseOutcome> {
+  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"])
+  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER) throw failure(r.code, r.stdout, r.stderr, "release")
+  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] }
+}
+
 export interface Identity {
   owner: string
   group: string

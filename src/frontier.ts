@@ -1,9 +1,9 @@
 // The frontier (section 4): a task is ready when it is pending, its dependencies are done or skipped, the run is
 // not paused and its ownership is free in jlock (by the hierarchy rule, applied locally to `jlock list`).
 
-import { canonical, conflicts, normalizeKey, ALL } from "./keys.ts"
+import { canonical, conflicts, covers, normalizeKey, ALL } from "./keys.ts"
 import { describeKey, describeOwner, type JlockLock } from "./jlock.ts"
-import type { RunFile, Task, TasksFile } from "./schema.ts"
+import type { RunFile, Task, TasksFile, WaitingFor } from "./schema.ts"
 
 export interface RunState {
   root: string
@@ -78,6 +78,40 @@ export function selectReady(state: RunState, assessments: Assessment[], platform
     if (a.task.exclusive) break
   }
   return chosen
+}
+
+/**
+ * In-progress tasks waiting in a jlock queue (a `claim` that was not granted yet), read off `jlock list`: the
+ * queued key, who holds what blocks it (the key itself, a folder above or a path inside), and the position.
+ */
+export function waitingOf(state: RunState, locks: JlockLock[]): Map<string, WaitingFor> {
+  const out = new Map<string, WaitingFor>()
+  const held = locks.filter((l) => l.holder && l.holder.stale !== true)
+  for (const task of state.tasks.tasks) {
+    if (task.status !== "in_progress") continue
+    const owner = ownerOf(state.run.id, task.id)
+    for (const lock of locks) {
+      const entry = lock.queue.find((q) => q.owner === owner)
+      if (!entry) continue
+      const blocking = lock.holder && lock.holder.owner !== owner ? lock : held.find((h) => h.holder!.owner !== owner && conflicts(lock.key, h.key))
+      out.set(task.id, {
+        key: lock.key,
+        holder: blocking?.holder?.owner ?? "?",
+        position: entry.position,
+        via: blocking?.key ?? lock.key,
+      })
+      break
+    }
+  }
+  return out
+}
+
+/** `⏳ T01: types.ts · posição 1`; `⏳ T01: src/` when a folder above blocks; the file inside otherwise. */
+export function waitingText(w: WaitingFor, state: RunState, platform: string): string {
+  const asked = describeKey(w.key, state.root, platform)
+  const via = describeKey(w.via, state.root, platform)
+  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : `${via} (dentro de ${asked})`
+  return `⏳ ${describeOwner(w.holder, state.run.id)}: ${shown} · posição ${w.position}`
 }
 
 /** ⛔ T04 · 🔒 T02: src/types.ts (via src) · pausada */
