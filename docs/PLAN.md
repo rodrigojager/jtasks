@@ -13,6 +13,10 @@ posse mantida viva por um `jlock hold` por tarefa; convenção de identidade nas
 jlock; `serialize` pelo `jlock run`; guarda de edição pela `tasks.json`; Windows primeiro. A seção 20 lista os
 comandos exatos. Nenhuma mudança no jlock.
 
+Revisão 5.1, 24/10/2026: o plano pode ser montado em lotes, num rascunho, para não depender de o modelo escrever o
+JSON inteiro numa resposta só (limite de tokens de saída) nem reenviar tudo para corrigir uma tarefa. Marcado com
+**[rev. 5.1]** nas seções 2, 3, 6 e 17.
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -66,6 +70,7 @@ projeto/
 ├─ .scratch/goal-tasks/                 ← só desenvolvimento (excluído do git em .git/info/exclude)
 │   └─ runs/
 │       ├─ cursory-261023-k7f2/          ← uma execução (run-id = slug-data-4 aleatórios)
+│       │   ├─ draft.json               ← [rev. 5.1] só enquanto o plano é montado em lotes; some no --commit
 │       │   ├─ run.json                 ← meta: objetivo, status, política, sessões ligadas
 │       │   ├─ tasks.json               ← a lista (fonte da verdade), com a posse de cada tarefa
 │       │   ├─ tickets/NN-slug.md       ← gerados a partir do tasks.json (leitura humana)
@@ -106,6 +111,19 @@ sem Node e sem `node_modules`, e a cópia final do OpenCode também.
   pasta). O modelo corrige e chama de novo. Nada é gravado até passar.
 - Ao passar, grava `tasks.json` e gera `tickets/NN-slug.md` (com uma seção Files). O ticket é visão; o JSON é a
   verdade.
+- **Em lotes [rev. 5.1].** Um plano grande não precisa caber numa resposta do modelo:
+  `tasks plan --draft` abre um rascunho (`draft.json`, ainda não é execução, não aparece no painel);
+  `tasks plan --add <json>` acrescenta um lote e valida só o que dá para validar dentro dele (esquema, ids, perfis,
+  padrões em `files`), devolvendo os erros daquele lote; `tasks plan --fix <id> <json>` substitui uma tarefa sem
+  reenviar as outras; `tasks plan --show` devolve o resumo do rascunho (ids, títulos, dependências, posse) para o
+  modelo conferir sem reler tudo; `tasks plan --commit` roda a validação completa sobre o conjunto (dependências
+  entre lotes, ciclos, conflitos de posse) e, se passar, grava o `tasks.json`, gera os tickets e apaga o rascunho.
+  A validação final é uma só e continua determinística. O `tasks plan <json>` de uma chamada só continua valendo
+  (equivale a `--draft`, `--add`, `--commit`). A skill usa lotes de até ~20 tarefas.
+- **Um único `tasks.json` por execução [rev. 5.1]**, e é ele que as interfaces mostram: o painel lê `tasks.json`
+  (lista, estados, progresso, commits), `run.json` (nome, pausa) e `jlock list --json` (motivos de espera), sem
+  nunca escrever; confere a cada 2 s se mudaram e redesenha. Como só a ferramenta grava, e de forma atômica, o painel
+  nunca vê um arquivo pela metade.
 
 Tickets antigos: `tasks import <dir> --check` relata o que leu e o que faltou (os de hoje não têm posse: a
 importação marca essas tarefas como `exclusive`, isto é, nunca em paralelo, até alguém declarar os arquivos). Onde a
@@ -299,6 +317,7 @@ a execução ligada à sessão.
 | Grupo | Ação | O que faz |
 |---|---|---|
 | plano | `plan` | cria a execução a partir do JSON validado (inclusive conflito de posse); gera os tickets; cria o branch; liga à sessão; exclui `.scratch/` do git localmente (efeito no ledger) |
+| | `plan --draft` / `--add <json>` / `--fix <id> <json>` / `--show` / `--commit` | **[rev. 5.1]** o mesmo, em lotes: rascunho, lote validado, correção de uma tarefa, resumo, validação completa e gravação |
 | | `import <dir> [--check\|--yes]` | tickets Markdown antigos → nova execução (tarefas sem posse viram `exclusive`) |
 | | `validate <json\|dir>` | valida sem gravar |
 | execução | `runs` | lista as execuções do projeto com status e progresso |
@@ -540,6 +559,10 @@ motivo.
   arquivo em uso → `waiting` com `holder`/`position`/`via`; `claim` que fecharia ciclo → recusado com `chain`;
   `done` com trava perdida → recusado; `serialize` roda dois comandos em sequência pelo `jlock run`; `plan` recusa
   `src/*.ts` e aceita `src/**`.
+- **Plano em lotes [rev. 5.1]:** três lotes com dependência cruzada passam no `--commit`; ciclo entre lotes e
+  conflito de posse entre lotes só aparecem no `--commit`, com a mensagem exata; `--fix` corrige uma tarefa e o
+  `--commit` passa; o rascunho não aparece em `runs` nem no painel e some depois do `--commit`; `plan <json>` numa
+  chamada só dá o mesmo `tasks.json` que os lotes.
 - **Git** (repositório temporário em `D:\claude-cache`): branch da execução, commit só da posse, `done` recusado
   com arquivo fora da posse, `undo` de commit (revert) e de branch; e, para a política opcional, worktree, merge
   limpo, conflito, remoção, `remove-pending`, `gc --scan` achando uma órfã fabricada e não tocando nela sem `--yes`.
