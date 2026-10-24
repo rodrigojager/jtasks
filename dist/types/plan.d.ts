@@ -27,6 +27,7 @@ export interface Draft {
     profiles?: Record<string, Profile>;
     serialize?: string[];
     maxAttempts?: number;
+    holdTtl?: string;
     branch?: "run" | "current";
     tasks: PlanTask[];
 }

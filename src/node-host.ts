@@ -2,7 +2,6 @@
 // separately from `core.js`, so that the core stays free of `node:*` for the Claude Code mod.
 
 import { spawn as spawnChild, type ChildProcess } from "node:child_process"
-import { openSync, closeSync, readFileSync } from "node:fs"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import type { DirEntry, FileStat, Host, Resident, RunOptions, RunResult, SpawnOptions } from "./host.ts"
@@ -34,10 +33,7 @@ class ChildResident implements Resident {
   readonly exited: Promise<number>
   readonly pid?: number
 
-  constructor(
-    private readonly child: ChildProcess,
-    private readonly logFile?: string,
-  ) {
+  constructor(private readonly child: ChildProcess) {
     this.pid = child.pid
     this.exited = new Promise((resolve) => {
       child.on("error", () => {
@@ -64,7 +60,6 @@ class ChildResident implements Resident {
   }
 
   private finish() {
-    if (this.logFile) this.readLog()
     if (this.partial.trim()) this.out.push(this.partial.trim())
     this.partial = ""
     this.done = true
@@ -77,29 +72,15 @@ class ChildResident implements Resident {
     for (const w of waiters) w()
   }
 
-  private readLog() {
-    if (!this.logFile) return
-    try {
-      const text = readFileSync(this.logFile, "utf8")
-      const lines = text.split("\n")
-      this.partial = lines.pop() ?? ""
-      this.out.length = 0
-      for (const line of lines) this.out.push(line.replace(/\r$/, ""))
-    } catch {
-      // Not written yet.
-    }
-  }
-
   async firstLine(timeoutMs = 30_000): Promise<string | undefined> {
     const deadline = Date.now() + timeoutMs
     for (;;) {
-      if (this.logFile && !this.done) this.readLog()
       if (this.out.length > 0) return this.out[0]
       if (this.done) return undefined
       const left = deadline - Date.now()
       if (left <= 0) return undefined
       await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, Math.min(left, this.logFile ? 40 : 1000))
+        const timer = setTimeout(resolve, Math.min(left, 1000))
         this.waiters.push(() => {
           clearTimeout(timer)
           resolve()
@@ -109,7 +90,6 @@ class ChildResident implements Resident {
   }
 
   lines(): string[] {
-    if (this.logFile && !this.done) this.readLog()
     return [...this.out]
   }
 
@@ -117,6 +97,10 @@ class ChildResident implements Resident {
     const stdin = this.child.stdin
     if (!stdin || stdin.destroyed || this.done) return false
     return new Promise((resolve) => stdin.write(text, (error) => resolve(!error)))
+  }
+
+  async closeInput(): Promise<void> {
+    this.child.stdin?.end()
   }
 
   async stop(): Promise<void> {
@@ -219,24 +203,6 @@ export function createNodeHost(): Host {
     },
     async spawn(argv, options: SpawnOptions = {}): Promise<Resident> {
       const [cmd, ...args] = argv
-      if (options.detached) {
-        if (!options.logFile) throw new Error("detached spawn needs a logFile")
-        await fs.mkdir(path.dirname(options.logFile), { recursive: true })
-        const fd = openSync(options.logFile, "w")
-        try {
-          const child = spawnChild(cmd!, args, {
-            cwd: options.cwd,
-            env: { ...process.env, ...options.env },
-            windowsHide: true,
-            detached: true,
-            stdio: ["ignore", fd, fd],
-          })
-          child.unref()
-          return new ChildResident(child, options.logFile)
-        } finally {
-          closeSync(fd)
-        }
-      }
       const child = spawnChild(cmd!, args, {
         cwd: options.cwd,
         env: { ...process.env, ...options.env },

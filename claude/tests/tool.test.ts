@@ -78,33 +78,20 @@ test('the protocol section is in the system prompt only while a run is bound', a
   expect(section.text).toContain('ferramenta Agent')
 })
 
-test('start holds the ownership with a jlock hold through $.process.spawn; done releases it and the hold ends', async ($, on) => {
+test('start takes the ownership with jlock hold --detach --ttl through $.process.run; done gives it back with jlock release', async ($, on) => {
   const m = installMachine(on, ROOT)
   installSession(on, ROOT)
-  const spawned: string[] = []
-  let ended = false
-  // A fake `jlock hold`: granted, then alive until its lock is released (as the real one, which then exits 14).
-  on('process.spawn', async function* (_$, e) {
-    spawned.push(e.argv.join(' '))
-    const owner = e.argv[e.argv.indexOf('--owner') + 1]!
-    m.locks.push({ key: 'd:/work/repo/src/a.ts', owner, group: e.argv[e.argv.indexOf('--group') + 1]! })
-    yield { stream: 'stdout' as const, text: `${JSON.stringify({ result: 'granted', owner, keys: ['d:/work/repo/src/a.ts'] })}\n` }
-    try {
-      while (m.locks.some((l) => l.owner === owner)) await new Promise<void>((r) => setTimeout(() => r(), 10))
-    } finally {
-      ended = true
-    }
-    return { value: { code: 14, signal: null } }
-  })
   await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
   const run = /execução (\S+) criada/.exec(await call($, 'plan', { tasks: [{ id: 'T01', title: 'Base', files: ['src/a.ts'] }] }))![1]!
 
   expect(await call($, 'start T01')).toContain(`T01 em andamento (tentativa 1): posse travada no jlock (1 chave(s), dono gt:${run}/T01)`)
-  expect(spawned).toEqual([
-    `jlock hold d:/work/repo/src/a.ts --owner gt:${run}/T01 --group ${run} --intent Base --meta task=T01 --meta run=${run} --meta tool=claude --meta session=session-1 --no-wait --json`,
-  ])
+  // One call, the answer in hand; jlock's own keeper holds the lock until `release` or the run's ttl.
+  expect(m.commands).toContain(
+    `jlock hold d:/work/repo/src/a.ts --owner gt:${run}/T01 --group ${run} --intent Base --meta task=T01 --meta run=${run} --meta tool=claude --meta session=session-1 --no-wait --ttl 2h --detach --json`,
+  )
+  expect(m.locks.map((l) => [l.key, l.owner])).toEqual([['d:/work/repo/src/a.ts', `gt:${run}/T01`]])
   expect(await call($, 'status')).toContain(`travas ativas (jlock --group ${run}): src/a.ts → T01`)
   expect(await call($, 'done T01 --evidence ok')).toContain('T01 feita: nenhuma mudança na posse, sem commit; posse devolvida')
   expect(m.releases).toEqual([`gt:${run}/T01`])
-  expect(ended).toBe(true)
+  expect(m.locks).toEqual([])
 })

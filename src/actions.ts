@@ -20,7 +20,13 @@ import type { Resident } from "./host.ts"
 import {
   describeKey,
   describeOwner,
+  detachedHold,
   holdArgv,
+  jlockVersion,
+  MIN_JLOCK,
+  versionAtLeast,
+  type HoldMode,
+  type HoldOutcome,
   JLOCK,
   jlockBin,
   jlockList,
@@ -37,7 +43,7 @@ import { canonical, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
 import { caseInsensitive, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
-import type { Hold, Task, TasksFile } from "./schema.ts"
+import { DEFAULT_HOLD_TTL, type Hold, type Task, type TasksFile } from "./schema.ts"
 import { appendLog, clone, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext } from "./tool.ts"
@@ -143,18 +149,37 @@ export function identity(ctx: ToolContext, state: RunState, task: Task): Identit
   return { owner: ownerOf(state.run.id, task.id), group: state.run.id, intent: task.title, meta }
 }
 
-/** Spawns a hold: attached in a long-lived host, detached (output to a file of the run) in the CLI. */
-export async function spawnHold(ctx: ToolContext, state: RunState, task: Task, argv: string[]): Promise<{ resident: Resident; out?: string }> {
-  if (ctx.residents) return { resident: await ctx.host.spawn(argv, { cwd: state.root }) }
-  const out = `holds/${task.id}-${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 1296).toString(36)}.out`
-  const resident = await ctx.host.spawn(argv, { cwd: state.root, detached: true, logFile: join(state.dir, out) })
-  return { resident, out }
+/** The mode this host holds locks in (plan section 4): what the host says, else `eof` with residents, `detach` without. */
+export function holdModeOf(ctx: ToolContext): HoldMode {
+  return ctx.holdMode ?? (ctx.residents ? "eof" : "detach")
+}
+
+/**
+ * Takes keys for a task with a `jlock hold` and the run's ttl: `--detach` (one call, jlock's keeper holds the lock,
+ * no resident) or `--release-on-eof` (a resident this host keeps alive with its standard input open). Refuses a
+ * jlock older than the tool works with.
+ */
+export async function acquireHold(
+  ctx: ToolContext,
+  state: RunState,
+  task: Task,
+  keys: string[],
+  wait: { noWait: true } | { timeoutSec: number },
+  timeoutMs: number,
+): Promise<HoldOutcome> {
+  const version = await jlockVersion(ctx.host)
+  if (!versionAtLeast(version, MIN_JLOCK)) throw new ToolError(`jlock ${version} é antigo demais (mínimo ${MIN_JLOCK}): atualize com jlock update`)
+  const mode = holdModeOf(ctx)
+  const argv = holdArgv(ctx.host, keys, identity(ctx, state, task), wait, { mode, ttl: state.run.holdTtl ?? DEFAULT_HOLD_TTL })
+  if (mode === "detach") return detachedHold(ctx.host, argv, state.root, timeoutMs)
+  const resident = await ctx.host.spawn(argv, { cwd: state.root })
+  return startHold(ctx.host, resident, timeoutMs)
 }
 
 /**
  * Gives a task's ownership back: `release` on the standard input of each hold this host keeps, then
- * `jlock release --group <run> --owner gt:<run>/<task>` for holds of other processes (the CLI's detached ones,
- * or another window's). A hold told this way ends with 0; one released from outside ends with 14 by itself.
+ * `jlock release --group <run> --owner gt:<run>/<task>` for the others (jlock's own keepers of `--detach`, or
+ * another window's holds). A hold told this way ends with 0; one released from outside ends with 14 by itself.
  */
 export async function releaseHolds(ctx: ToolContext, run: string, task: string): Promise<string[]> {
   const key = residentKey(run, task)
@@ -246,9 +271,7 @@ defineAction(
       let hold: Hold | undefined
       let resident: Resident | undefined
       if (keys.length) {
-        const argv = holdArgv(ctx.host, keys, identity(ctx, state, task), { noWait: true })
-        const spawned = await spawnHold(ctx, state, task, argv)
-        const outcome = await startHold(ctx.host, spawned.resident, 15_000)
+        const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15_000)
         if (outcome.answer.result !== "granted") {
           const a = outcome.answer
           const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : "outro dono"
@@ -260,10 +283,9 @@ defineAction(
             { result: a.result, key, holder: a.holder, position: a.position, via: a.via },
           )
         }
-        resident = spawned.resident
+        resident = outcome.resident
         hold = { keys, startedAt: now, kind: "start" }
-        if (resident.pid !== undefined) hold.pid = resident.pid
-        if (spawned.out) hold.out = spawned.out
+        if (resident?.pid !== undefined) hold.pid = resident.pid
       }
       const changed = clone(state.tasks)
       const t = changed.tasks.find((x) => x.id === task.id)!
@@ -278,7 +300,7 @@ defineAction(
         const written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision)
         await writeTicket(ctx.host, state.dir, written, task.id)
       } catch (error) {
-        if (resident) await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys)
+        if (keys.length) await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys)
         throw error
       }
       if (resident) remember(ctx, state, task.id, resident)
@@ -299,8 +321,9 @@ defineAction(
 )
 
 /** Gives back one hold only (its own keys): a start or claim that could not be recorded. */
-async function releaseHoldsOf(ctx: ToolContext, run: string, task: string, resident: Resident, keys: string[]) {
-  if (!(await resident.send("release\n"))) await jlockReleaseKeys(ctx.host, keys, ownerOf(run, task)).catch(() => {})
+async function releaseHoldsOf(ctx: ToolContext, run: string, task: string, resident: Resident | undefined, keys: string[]) {
+  if (!resident || !(await resident.send("release\n"))) await jlockReleaseKeys(ctx.host, keys, ownerOf(run, task)).catch(() => {})
+  if (!resident) return
   await Promise.race([resident.exited, ctx.host.sleep(3000)])
   await resident.stop()
 }
@@ -546,10 +569,8 @@ defineAction(
     if (!wanted.length) return ok(`${task.id} já tem ${files.join(", ")} na posse: nada a fazer`, { task: task.id, granted: [] })
     const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)))
     const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s")
-    const argv = holdArgv(ctx.host, keys, identity(ctx, first, task), { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) })
     const began = ctx.host.now().getTime()
-    const spawned = await spawnHold(ctx, first, task, argv)
-    const outcome = await startHold(ctx.host, spawned.resident, timeoutMs + 15_000)
+    const outcome = await acquireHold(ctx, first, task, keys, { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) }, timeoutMs + 15_000)
     const waited = ((ctx.host.now().getTime() - began) / 1000).toFixed(1)
     const a = outcome.answer
     const holderOf = (h: JlockAnswer["holder"]) => (typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : "?")
@@ -577,7 +598,7 @@ defineAction(
     }
     if (a.result !== "granted") throw new ToolError(`jlock respondeu ${a.result} ao claim de ${task.id}`)
 
-    const resident = spawned.resident
+    const resident = outcome.resident
     try {
       const done = await withLock(ctx.host, first.dir, async () => {
         const state = await reload(ctx, first)
@@ -586,15 +607,14 @@ defineAction(
         if (t.status !== "in_progress") throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`)
         t.claimed = [...(t.claimed ?? []), ...wanted.filter((f) => !(t.claimed ?? []).includes(f))]
         const hold: Hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" }
-        if (resident.pid !== undefined) hold.pid = resident.pid
-        if (spawned.out) hold.out = spawned.out
+        if (resident?.pid !== undefined) hold.pid = resident.pid
         t.holds = [...(t.holds ?? []), hold]
         const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
         await writeTicket(ctx.host, state.dir, tasks, task.id)
         await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited) })
         return t
       })
-      remember(ctx, first, task.id, resident)
+      if (resident) remember(ctx, first, task.id, resident)
       return ok(`${task.id} recebeu ${wanted.join(", ")} (esperou ${waited} s); posse: ${possession(done).join(", ")}`, {
         task: task.id,
         granted: wanted,

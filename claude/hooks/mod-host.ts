@@ -1,7 +1,7 @@
 // The core's Host made of the mod's $, through a Port: files through $.fs; what $.fs lacks (rename, remove, an
-// empty folder, an exclusive folder) through $.process.run; processes through $.process.run, and a `jlock hold`
-// through $.process.spawn, whose loop keeps the child alive (leaving it ends the child). There is no stdin after
-// start: a hold is given back by `jlock release` and then its loop is ended (docs/DEVIATIONS.md).
+// empty folder, an exclusive folder) through $.process.run; processes through $.process.run, the `jlock hold
+// --detach` of a task included (one call; jlock's own keeper holds the lock until `jlock release` or the run's ttl,
+// so a reload of the mod loses nothing). $.process.spawn stays for long-running children (docs/DEVIATIONS.md).
 // The Port is built in session.start out of closures spelled `$.noun.call(...)`, since $ itself is never passed.
 
 import type { FsEntry, FsStat, ProcessRunInit, ProcessRunResult, ProcessSpawnRequest } from 'claude-code'
@@ -37,6 +37,9 @@ export function platformOf(cwd: string): string {
 const win = (p: string) => p.replace(/\//g, '\\')
 
 class SpawnedResident implements Resident {
+  /** $.process.spawn closes standard input at the start: nothing to close later. */
+  async closeInput(): Promise<void> {}
+
   private readonly out: string[] = []
   private partial = ''
   private done = false

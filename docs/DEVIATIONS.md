@@ -21,8 +21,8 @@ código próprio para destacá-lo, e o `done` o encerrava com `jlock release`.
 até o `done`.
 
 **O que fazer:** o jlock ganhou `hold --detach` nativo (uma chamada, resposta na mão, o próprio jlock segura a
-trava) e `--ttl`. O ticket 21 troca o código próprio por `--detach --ttl` no CLI e no mod; o plano (rev. 5.2, seções
-4 e 20) já diz isso.
+trava) e `--ttl`. Feito no ticket 21: o CLI e o mod usam `--detach --ttl`, o código próprio de destacar foi removido; o
+plano (rev. 5.2, seções 4 e 20) diz isso.
 
 ## 2. No Windows, uma trava pode ficar presa se a janela cair (ticket 04) — resolvido por J18 (jlock) e 21
 
@@ -32,7 +32,7 @@ entrada padrão e, no Windows, encerrar um processo não encerra os filhos: o `h
 **Consequência:** se o OpenCode ou o Claude Code fechassem de forma abrupta, a trava ficava até alguém soltar à mão
 com `jlock release`; outras tarefas que precisassem do arquivo esperavam.
 
-**O que fazer:** três casos, três respostas. A janela inteira cair: o jlock ganha `hold --release-on-eof` (ticket 18
+**O que fazer (feito nos tickets 18 do jlock, 21 e 22):** três casos, três respostas. A janela inteira cair: o jlock ganha `hold --release-on-eof` (ticket 18
 do jlock), e o plugin do OpenCode, que fica aberto, usa isso; a trava some no instante em que o cano fecha. O CLI
 (que termina a cada comando) e o mod (cuja API fecha a entrada padrão na partida): `--detach --ttl`, e a trava expira
 sozinha no prazo (`holdTtl`, 2 h por padrão). Uma tarefa que morre com a janela viva: o mod já devolvia a tarefa à

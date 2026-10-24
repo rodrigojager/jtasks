@@ -1,6 +1,8 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import type { Host, Resident } from "../core/core.js"
+import { createNodeHost } from "../core/node-host.js"
 import { PLUGIN_ID, TOOL_NAME } from "../server.ts"
 import { cleanupTemp, fakeHost, makeRepo, sh, writeFiles } from "./fake-host.ts"
 
@@ -167,5 +169,34 @@ describe("OpenCode plugin", () => {
     h.addSession("s3")
     const resumed = await h.call("s3", `resume ${run}`)
     expect(resumed.text.split("\n")).toContain(line)
+  })
+
+  test("--release-on-eof: closing the hold's standard input (the window dying) frees the lock at once; status sees the loss", async () => {
+    const repo = makeRepo()
+    const base = createNodeHost()
+    const seen: Resident[] = []
+    const host: Host = {
+      ...base,
+      spawn: async (argv, options) => {
+        const r = await base.spawn(argv, options)
+        seen.push(r)
+        return r
+      },
+    }
+    const h = await fakeHost(repo, host)
+    if (h.cleanup) cleanups.push(h.cleanup)
+    const planned = await h.call("s1", "plan", plan)
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    h.addSession("c1", "s1")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    expect(seen).toHaveLength(1)
+    expect(seen[0]!.lines()[0]).toContain('"result":"granted"')
+    const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks
+    expect(locks().map((l) => l.holder?.owner)).toEqual([`gt:${run}/T01`])
+    // The host dies: its end of the pipe closes, the hold reads the end of its input and lets go.
+    await seen[0]!.closeInput()
+    expect(await seen[0]!.exited).toBe(0)
+    expect(locks()).toEqual([])
+    expect((await h.call("s1", "status")).text).toContain("posse perdida: T01 (sem travas no jlock")
   })
 })

@@ -13,15 +13,12 @@ export interface RunResult {
 export interface SpawnOptions {
     cwd?: string;
     env?: Record<string, string>;
-    /**
-     * Outlive the calling process: the child is detached, its standard input closed and its output written to
-     * `logFile`. Used by the CLI, whose process ends right after the command; a long-lived host keeps the child
-     * attached and talks to it through standard input.
-     */
-    detached?: boolean;
-    logFile?: string;
 }
-/** A process that keeps running after it is started (a `jlock hold`). */
+/**
+ * A process that keeps running after it is started: a `jlock hold --release-on-eof` in a long-lived host, which
+ * keeps its standard input open so that the host dying frees the lock at once. The CLI and the mod use
+ * `hold --detach` through `run` instead, and keep no resident.
+ */
 export interface Resident {
     /** Informative only: never used to stop a process from another window. */
     readonly pid?: number;
@@ -29,8 +26,10 @@ export interface Resident {
     firstLine(timeoutMs?: number): Promise<string | undefined>;
     /** Every line written to standard output so far (the first included). */
     lines(): string[];
-    /** Writes to standard input; `false` when the host cannot (a detached child, or a host without stdin pipes). */
+    /** Writes to standard input; `false` when the host cannot (a host without stdin pipes). */
     send(text: string): Promise<boolean>;
+    /** Closes standard input: a `hold --release-on-eof` takes it as `release`. */
+    closeInput(): Promise<void>;
     /** Resolves with the exit code once the process ends. */
     readonly exited: Promise<number>;
     /** Ends our own child. */

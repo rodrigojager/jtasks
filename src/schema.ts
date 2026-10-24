@@ -15,8 +15,6 @@ export interface Hold {
   keys: string[]
   startedAt: string
   kind: "start" | "claim"
-  /** Where a detached hold writes its output (relative to the run folder). */
-  out?: string
 }
 
 export interface WaitingFor {
@@ -92,6 +90,8 @@ export interface RunFile {
   worktrees: { policy: "none" }
   serialize: string[]
   maxAttempts: number
+  /** How long a task's locks live if nobody gives them back (`--ttl` of every hold), e.g. `2h`. */
+  holdTtl: string
   sessions: Session[]
 }
 
@@ -115,6 +115,7 @@ export interface PlanInput {
   profiles?: Record<string, Profile>
   serialize?: string[]
   maxAttempts?: number
+  holdTtl?: string
   branch?: "run" | "current"
   tasks: PlanTask[]
 }
@@ -127,3 +128,6 @@ export const DEFAULT_PROFILES: Record<string, Profile> = {
 
 export const DEFAULT_PROFILE = "implement"
 export const DEFAULT_MAX_ATTEMPTS = 2
+/** The `--ttl` of every hold: the lock expires by itself after this long if nobody gives it back. */
+export const DEFAULT_HOLD_TTL = "2h"
+export const DURATION = /^\d+(ms|s|m|h|d)$/

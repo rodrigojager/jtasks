@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
-import { existsSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Resident } from "../src/host.ts"
 import type { TasksFile } from "../src/schema.ts"
@@ -40,7 +40,7 @@ describe("next / start / status with the real jlock", () => {
     expect((next.data as { ready: { id: string }[] }).ready.map((t) => t.id)).toEqual(["T01", "T02"])
     expect(next.text).toContain("bloqueadas: T03 ⛔ T01, T02 | T04 ⛔ T03")
 
-    // The CLI form: holds are detached and outlive the command.
+    // The CLI form: `jlock hold --detach`, so jlock's keeper outlives the command and carries the run's ttl.
     const p = Bun.spawnSync(["bun", CLI, "start", "T01"], { cwd: repo, env: process.env })
     expect(p.exitCode).toBe(0)
     expect(p.stdout.toString()).toContain(`T01 em andamento (tentativa 1): posse travada no jlock (1 chave(s), dono gt:${run}/T01)`)
@@ -56,7 +56,7 @@ describe("next / start / status with the real jlock", () => {
     expect(t1).toMatchObject({ status: "in_progress", attempts: 1, owner: "cli" })
     expect(t1.holds).toHaveLength(1)
     expect(t1.holds![0]).toMatchObject({ kind: "start", keys: [expect.stringMatching(/src\/a\.ts$/)] })
-    expect(existsSync(join(dir, t1.holds![0]!.out!))).toBe(true)
+    expect(locks.map((l) => (l.holder as { ttl_secs?: number } | null)?.ttl_secs)).toEqual([7200, 7200])
     expect(readFileSync(join(dir, "tickets/01-base.md"), "utf8")).toContain("**Status:** in_progress")
 
     const status = await tasksOk(repo, ["status"])

@@ -3,10 +3,10 @@
 
 import { relConflicts } from "./keys.ts"
 import { caseInsensitive, isAbsolute, normalize, slash } from "./paths.ts"
-import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile } from "./schema.ts"
+import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION } from "./schema.ts"
 
 const TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"])
-const PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "branch", "tasks"])
+const PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"])
 const GLOB = /[*?[\]{}]/
 
 export interface ValidateOptions {
@@ -89,6 +89,10 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (typeof obj.maxAttempts === "number" && Number.isInteger(obj.maxAttempts) && obj.maxAttempts >= 1)
       plan.maxAttempts = obj.maxAttempts
     else errors.push(`"maxAttempts" deve ser um inteiro maior que zero`)
+  }
+  if (obj.holdTtl !== undefined) {
+    if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl)) plan.holdTtl = obj.holdTtl
+    else errors.push(`"holdTtl" deve ser uma duração como 30m, 2h ou 1d`)
   }
   if (obj.branch !== undefined) {
     if (obj.branch === "run" || obj.branch === "current") plan.branch = obj.branch

@@ -123,26 +123,95 @@ export interface Identity {
   meta: Record<string, string>
 }
 
-export function holdArgv(host: Host, keys: string[], id: Identity, wait: { noWait: true } | { timeoutSec: number }): string[] {
+/**
+ * How a host keeps a task's locks (plan section 4): `detach` is `jlock hold --detach`, one call that answers and
+ * returns while jlock's own keeper holds the lock until `jlock release` or the ttl (the CLI, the mod); `eof` is
+ * `jlock hold --release-on-eof` kept alive by the host with its standard input open, so the host dying frees the
+ * lock at once (the plugin; needs jlock 0.1.1).
+ */
+export type HoldMode = "detach" | "eof"
+
+/** The oldest jlock the tool works with, and the first one with `hold --release-on-eof`. */
+export const MIN_JLOCK = "0.1.0"
+export const EOF_JLOCK = "0.1.1"
+
+const versions = new Map<string, Promise<string>>()
+
+/** `jlock --version` once per process (per executable), as `X.Y.Z`. */
+export function jlockVersion(host: Host): Promise<string> {
+  const bin = jlockBin(host)
+  let pending = versions.get(bin)
+  if (!pending) {
+    pending = host.run([bin, "--version"]).then((r) => {
+      const m = /(\d+)\.(\d+)\.(\d+)/.exec(`${r.stdout}\n${r.stderr}`)
+      if (r.code === 127 || !m) {
+        versions.delete(bin)
+        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || "jlock --version não respondeu a versão", "--version")
+      }
+      return `${m[1]}.${m[2]}.${m[3]}`
+    })
+    versions.set(bin, pending)
+  }
+  return pending
+}
+
+export function versionAtLeast(version: string, minimum: string): boolean {
+  const a = version.split(".").map(Number)
+  const b = minimum.split(".").map(Number)
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0)
+  }
+  return true
+}
+
+/** The mode a long-lived host should use: `eof` when the installed jlock has `--release-on-eof`. */
+export async function holdModeFor(host: Host): Promise<HoldMode> {
+  return versionAtLeast(await jlockVersion(host), EOF_JLOCK) ? "eof" : "detach"
+}
+
+export function holdArgv(
+  host: Host,
+  keys: string[],
+  id: Identity,
+  wait: { noWait: true } | { timeoutSec: number },
+  hold: { mode: HoldMode; ttl: string },
+): string[] {
   const argv = [jlockBin(host), "hold", ...keys, "--owner", id.owner, "--group", id.group, "--intent", id.intent]
   for (const [k, v] of Object.entries(id.meta)) argv.push("--meta", `${k}=${v}`)
   if ("noWait" in wait) argv.push("--no-wait")
   else argv.push("--timeout", `${wait.timeoutSec}s`)
-  argv.push("--json")
+  argv.push("--ttl", hold.ttl, hold.mode === "detach" ? "--detach" : "--release-on-eof", "--json")
   return argv
 }
 
 export interface HoldOutcome {
   /** The first answer: `granted`, `queued`, `timeout`, `deadlock`. */
   answer: JlockAnswer
-  /** Exit code once known (the hold keeps running when granted). */
+  /** Exit code once known (an `eof` hold keeps running when granted). */
   code?: number
-  resident: Resident
+  /** The hold process this host keeps (`eof` mode); absent with `--detach`, where jlock's keeper holds the lock. */
+  resident?: Resident
 }
 
 /**
- * Starts a `jlock hold` and waits for its first line. Granted → the process stays alive renewing the lock. Any
- * other answer → the process has ended (or is ending) with jlock's code.
+ * `jlock hold --detach`: one call that answers like `hold` and returns, jlock's own keeper holding the lock until
+ * `jlock release`, the ttl or `unlock --force`. `timeoutMs` bounds the call (a `claim` waits up to its timeout).
+ */
+export async function detachedHold(host: Host, argv: string[], cwd: string, timeoutMs: number): Promise<HoldOutcome> {
+  const r = await host.run(argv, { cwd, timeoutMs })
+  const answer = parseAnswer(r.stdout)
+  if (!answer) {
+    if (r.code === 127) throw failure(127, r.stdout, r.stderr, "hold")
+    throw new ToolError(`jlock hold respondeu algo que não é JSON (saída ${r.code}): ${(r.stdout || r.stderr).slice(0, 200)}`)
+  }
+  if (answer.result === "error") throw failure(r.code, r.stdout, r.stderr, "hold")
+  return { answer, code: r.code }
+}
+
+/**
+ * A `jlock hold --release-on-eof` this host keeps: waits for its first line. Granted → the process stays alive
+ * renewing the lock while the host holds its standard input. Any other answer → the process has ended (or is
+ * ending) with jlock's code.
  */
 export async function startHold(host: Host, resident: Resident, firstLineTimeoutMs: number): Promise<HoldOutcome> {
   const line = await resident.firstLine(firstLineTimeoutMs)

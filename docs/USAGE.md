@@ -44,7 +44,8 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
   the other). `exclusive: true` holds `*` and runs alone.
 - Without `profiles`: `implement`, `implement-deep`, `review` (the OpenCode agents of the same names come with
-  the plugin, `opencode/agents/`; a profile may name any agent you already have). `maxAttempts` (default 2), `branch` (`"run"`: commit on
+  the plugin, `opencode/agents/`; a profile may name any agent you already have). `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
+  themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 
 The full schema is [`skills/to-tickets/schema.json`](../skills/to-tickets/schema.json); the `to-tickets` skill
@@ -92,8 +93,14 @@ code through.
 
 Owner `gt:<run>/<task>`, group `<run>`, intent = the task's title, meta `task`, `run`, `tool`, `session`. So
 `jlock list --group <run> --json` is the run's locks and `jlock list --under <repo> --json` everything locked in the
-repository. The CLI's holds are detached and given back with `jlock release --group <run> --owner <owner>`; the mod
-and the plugin keep theirs attached ([`DEVIATIONS.md`](DEVIATIONS.md) 1, 2, 9).
+repository. Every hold carries the run's `holdTtl` (`--ttl`), the safety net when nobody gives a lock back. How a
+host holds them: the CLI and the mod use `jlock hold --detach` (one call, the answer in hand; jlock's own keeper
+holds the lock until `tasks done`/`skip`/`fail`/`release`, which run `jlock release --group <run> --owner <owner>`,
+or until the ttl); the OpenCode plugin, which stays open, uses `jlock hold --release-on-eof` with the hold's
+standard input open, so OpenCode dying frees its locks at once (jlock 0.1.1 or newer; an older jlock gets
+`--detach`). The tool needs jlock 0.1.0 at least and checks `jlock --version` once per process. A lock that
+expired or was broken shows up in `tasks status` as `posse perdida`; `tasks resume` gives the task back to the
+queue.
 
 ## Variables
 

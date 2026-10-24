@@ -23,7 +23,7 @@ const FULL_NAME = 'mcp__goal-tasks__tasks'
 /** Actions that may name another run than the bound one (they create, bind or only list). */
 const ANY_RUN = new Set(['plan', 'resume', 'import', 'runs', 'ledger', 'gc', 'help', 'version', 'validate', 'clean', 'archive', 'undo'])
 
-/** The holds this session keeps alive (lost with a reload: their loops end with the module, and so do the children). */
+/** Residents this session keeps (none for holds: the mod uses `jlock hold --detach`, so a reload loses nothing). */
 const residents = new Map<string, Resident[]>()
 
 /** Set at session.start: the closures over $ the rest of the module works through. */
@@ -51,7 +51,7 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
   if (bound && asked && asked !== bound.run && !ANY_RUN.has(parsed.action))
     return { ok: false, code: 1, text: `esta sessão está ligada à execução ${bound.run}; --run ${asked} é recusado` }
   const cwd = await p.cwd()
-  const ctx: ToolContext = { host: createModHost(p, cwd), cwd, tool: 'claude', session: await p.sessionId(), residents }
+  const ctx: ToolContext = { host: createModHost(p, cwd), cwd, tool: 'claude', session: await p.sessionId(), residents, holdMode: 'detach' }
   if (bound) ctx.boundRun = bound.run
   if (agentId) ctx.agent = agentId
   if (json !== undefined) ctx.json = json

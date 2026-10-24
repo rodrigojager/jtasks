@@ -121,9 +121,11 @@ var DEFAULT_PROFILES = {
 };
 var DEFAULT_PROFILE = "implement";
 var DEFAULT_MAX_ATTEMPTS = 2;
+var DEFAULT_HOLD_TTL = "2h";
+var DURATION = /^\d+(ms|s|m|h|d)$/;
 // src/validate.ts
 var TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "branch", "tasks"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"]);
 var GLOB = /[*?[\]{}]/;
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
@@ -203,6 +205,12 @@ function readPlan(raw) {
       plan.maxAttempts = obj.maxAttempts;
     else
       errors.push(`"maxAttempts" deve ser um inteiro maior que zero`);
+  }
+  if (obj.holdTtl !== undefined) {
+    if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl))
+      plan.holdTtl = obj.holdTtl;
+    else
+      errors.push(`"holdTtl" deve ser uma duração como 30m, 2h ou 1d`);
   }
   if (obj.branch !== undefined) {
     if (obj.branch === "run" || obj.branch === "current")
@@ -1152,6 +1160,7 @@ async function createRun(ctx, plan, options = {}) {
     worktrees: { policy: "none" },
     serialize: plan.serialize ?? [],
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+    holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : []
   };
   const tasks = {
@@ -1277,6 +1286,8 @@ function draftPlan(draft) {
     plan.serialize = draft.serialize;
   if (draft.maxAttempts !== undefined)
     plan.maxAttempts = draft.maxAttempts;
+  if (draft.holdTtl !== undefined)
+    plan.holdTtl = draft.holdTtl;
   if (draft.branch !== undefined)
     plan.branch = draft.branch;
   return plan;
@@ -1347,7 +1358,7 @@ async function draftAdd(ctx, args) {
     if (errors.length > 0)
       return refused("lote recusado, o rascunho não mudou.", errors);
     const next = { ...current, tasks: [...current.tasks, ...batch.tasks] };
-    for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "branch"])
+    for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx, dir, next);
@@ -1546,7 +1557,39 @@ async function jlockReleaseKeys(host, keys, owner) {
     throw failure(r.code, r.stdout, r.stderr, "release");
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
 }
-function holdArgv(host, keys, id, wait) {
+var MIN_JLOCK = "0.1.0";
+var EOF_JLOCK = "0.1.1";
+var versions = new Map;
+function jlockVersion(host) {
+  const bin = jlockBin(host);
+  let pending = versions.get(bin);
+  if (!pending) {
+    pending = host.run([bin, "--version"]).then((r) => {
+      const m = /(\d+)\.(\d+)\.(\d+)/.exec(`${r.stdout}
+${r.stderr}`);
+      if (r.code === 127 || !m) {
+        versions.delete(bin);
+        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || "jlock --version não respondeu a versão", "--version");
+      }
+      return `${m[1]}.${m[2]}.${m[3]}`;
+    });
+    versions.set(bin, pending);
+  }
+  return pending;
+}
+function versionAtLeast(version, minimum) {
+  const a = version.split(".").map(Number);
+  const b = minimum.split(".").map(Number);
+  for (let i = 0;i < 3; i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0))
+      return (a[i] ?? 0) > (b[i] ?? 0);
+  }
+  return true;
+}
+async function holdModeFor(host) {
+  return versionAtLeast(await jlockVersion(host), EOF_JLOCK) ? "eof" : "detach";
+}
+function holdArgv(host, keys, id, wait, hold) {
   const argv = [jlockBin(host), "hold", ...keys, "--owner", id.owner, "--group", id.group, "--intent", id.intent];
   for (const [k, v] of Object.entries(id.meta))
     argv.push("--meta", `${k}=${v}`);
@@ -1554,8 +1597,20 @@ function holdArgv(host, keys, id, wait) {
     argv.push("--no-wait");
   else
     argv.push("--timeout", `${wait.timeoutSec}s`);
-  argv.push("--json");
+  argv.push("--ttl", hold.ttl, hold.mode === "detach" ? "--detach" : "--release-on-eof", "--json");
   return argv;
+}
+async function detachedHold(host, argv, cwd, timeoutMs) {
+  const r = await host.run(argv, { cwd, timeoutMs });
+  const answer = parseAnswer(r.stdout);
+  if (!answer) {
+    if (r.code === 127)
+      throw failure(127, r.stdout, r.stderr, "hold");
+    throw new ToolError(`jlock hold respondeu algo que não é JSON (saída ${r.code}): ${(r.stdout || r.stderr).slice(0, 200)}`);
+  }
+  if (answer.result === "error")
+    throw failure(r.code, r.stdout, r.stderr, "hold");
+  return { answer, code: r.code };
 }
 async function startHold(host, resident, firstLineTimeoutMs) {
   const line = await resident.firstLine(firstLineTimeoutMs);
@@ -1913,12 +1968,19 @@ function identity(ctx, state, task) {
     meta.session = ctx.session;
   return { owner: ownerOf(state.run.id, task.id), group: state.run.id, intent: task.title, meta };
 }
-async function spawnHold(ctx, state, task, argv) {
-  if (ctx.residents)
-    return { resident: await ctx.host.spawn(argv, { cwd: state.root }) };
-  const out = `holds/${task.id}-${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 1296).toString(36)}.out`;
-  const resident = await ctx.host.spawn(argv, { cwd: state.root, detached: true, logFile: join(state.dir, out) });
-  return { resident, out };
+function holdModeOf(ctx) {
+  return ctx.holdMode ?? (ctx.residents ? "eof" : "detach");
+}
+async function acquireHold(ctx, state, task, keys, wait, timeoutMs) {
+  const version = await jlockVersion(ctx.host);
+  if (!versionAtLeast(version, MIN_JLOCK))
+    throw new ToolError(`jlock ${version} é antigo demais (mínimo ${MIN_JLOCK}): atualize com jlock update`);
+  const mode = holdModeOf(ctx);
+  const argv = holdArgv(ctx.host, keys, identity(ctx, state, task), wait, { mode, ttl: state.run.holdTtl ?? DEFAULT_HOLD_TTL });
+  if (mode === "detach")
+    return detachedHold(ctx.host, argv, state.root, timeoutMs);
+  const resident = await ctx.host.spawn(argv, { cwd: state.root });
+  return startHold(ctx.host, resident, timeoutMs);
 }
 async function releaseHolds(ctx, run, task) {
   const key = residentKey(run, task);
@@ -2008,9 +2070,7 @@ defineAction("start", async (ctx, args) => {
     let hold;
     let resident;
     if (keys.length) {
-      const argv = holdArgv(ctx.host, keys, identity(ctx, state, task), { noWait: true });
-      const spawned = await spawnHold(ctx, state, task, argv);
-      const outcome = await startHold(ctx.host, spawned.resident, 15000);
+      const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15000);
       if (outcome.answer.result !== "granted") {
         const a = outcome.answer;
         const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : "outro dono";
@@ -2018,12 +2078,10 @@ defineAction("start", async (ctx, args) => {
         const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : "";
         throw new ToolError(`${task.id} não estava pronta: ${describeKey(key, state.root, ctx.host.platform)} em uso por ${holder}${via}; nada foi gravado`, 1, { result: a.result, key, holder: a.holder, position: a.position, via: a.via });
       }
-      resident = spawned.resident;
+      resident = outcome.resident;
       hold = { keys, startedAt: now, kind: "start" };
-      if (resident.pid !== undefined)
+      if (resident?.pid !== undefined)
         hold.pid = resident.pid;
-      if (spawned.out)
-        hold.out = spawned.out;
     }
     const changed = clone(state.tasks);
     const t = changed.tasks.find((x) => x.id === task.id);
@@ -2038,7 +2096,7 @@ defineAction("start", async (ctx, args) => {
       const written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision);
       await writeTicket(ctx.host, state.dir, written, task.id);
     } catch (error) {
-      if (resident)
+      if (keys.length)
         await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys);
       throw error;
     }
@@ -2056,9 +2114,11 @@ defineAction("start", async (ctx, args) => {
   });
 }, "start <id>                            em andamento; trava a posse (jlock hold --no-wait)");
 async function releaseHoldsOf(ctx, run, task, resident, keys) {
-  if (!await resident.send(`release
+  if (!resident || !await resident.send(`release
 `))
     await jlockReleaseKeys(ctx.host, keys, ownerOf(run, task)).catch(() => {});
+  if (!resident)
+    return;
   await Promise.race([resident.exited, ctx.host.sleep(3000)]);
   await resident.stop();
 }
@@ -2263,10 +2323,8 @@ defineAction("claim", async (ctx, args) => {
     return ok(`${task.id} já tem ${files.join(", ")} na posse: nada a fazer`, { task: task.id, granted: [] });
   const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)));
   const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s");
-  const argv = holdArgv(ctx.host, keys, identity(ctx, first, task), { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) });
   const began = ctx.host.now().getTime();
-  const spawned = await spawnHold(ctx, first, task, argv);
-  const outcome = await startHold(ctx.host, spawned.resident, timeoutMs + 15000);
+  const outcome = await acquireHold(ctx, first, task, keys, { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) }, timeoutMs + 15000);
   const waited = ((ctx.host.now().getTime() - began) / 1000).toFixed(1);
   const a = outcome.answer;
   const holderOf = (h) => typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : "?";
@@ -2282,7 +2340,7 @@ defineAction("claim", async (ctx, args) => {
   }
   if (a.result !== "granted")
     throw new ToolError(`jlock respondeu ${a.result} ao claim de ${task.id}`);
-  const resident = spawned.resident;
+  const resident = outcome.resident;
   try {
     const done = await withLock(ctx.host, first.dir, async () => {
       const state = await reload(ctx, first);
@@ -2292,17 +2350,16 @@ defineAction("claim", async (ctx, args) => {
         throw new ToolError(`${task.id} deixou de estar em andamento enquanto esperava (está ${t.status})`);
       t.claimed = [...t.claimed ?? [], ...wanted.filter((f) => !(t.claimed ?? []).includes(f))];
       const hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" };
-      if (resident.pid !== undefined)
+      if (resident?.pid !== undefined)
         hold.pid = resident.pid;
-      if (spawned.out)
-        hold.out = spawned.out;
       t.holds = [...t.holds ?? [], hold];
       const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
       await writeTicket(ctx.host, state.dir, tasks, task.id);
       await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited) });
       return t;
     });
-    remember(ctx, first, task.id, resident);
+    if (resident)
+      remember(ctx, first, task.id, resident);
     return ok(`${task.id} recebeu ${wanted.join(", ")} (esperou ${waited} s); posse: ${possession(done).join(", ")}`, {
       task: task.id,
       granted: wanted,
@@ -3283,6 +3340,7 @@ export {
   waitingText,
   waitingOf,
   viewLines,
+  versionAtLeast,
   validatePlan,
   validateGraph,
   validateBatch,
@@ -3301,7 +3359,6 @@ export {
   startHold,
   splitCommand,
   splitChanges,
-  spawnHold,
   slugify,
   slash,
   shortHead,
@@ -3360,6 +3417,7 @@ export {
   listDrafts,
   lineText,
   join,
+  jlockVersion,
   jlockReleaseKeys,
   jlockRelease,
   jlockList,
@@ -3368,6 +3426,8 @@ export {
   isMerged,
   isAbsolute,
   identity,
+  holdModeOf,
+  holdModeFor,
   holdArgv,
   headerText,
   hasExcludeLine,
@@ -3384,6 +3444,7 @@ export {
   effectLine,
   draftSummary,
   dirname,
+  detachedHold,
   describeOwner,
   describeKey,
   defineAction,
@@ -3417,13 +3478,18 @@ export {
   addUsage,
   addExcludeLine,
   actorOf,
+  acquireHold,
   VERSION,
   ToolError,
   StaleRevisionError,
   SCRATCH,
+  MIN_JLOCK,
   JLOCK,
+  EOF_JLOCK,
+  DURATION,
   DEFAULT_PROFILES,
   DEFAULT_PROFILE,
   DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_HOLD_TTL,
   ALL
 };

@@ -4,6 +4,7 @@
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import type { Host } from "../core/core.js"
 import { createServerPlugin } from "../server.ts"
 
 type Hook = (event: any) => Promise<void> | void
@@ -60,7 +61,7 @@ export interface Agent {
   model?: unknown
 }
 
-export async function fakeHost(directory: string) {
+export async function fakeHost(directory: string, host?: Host) {
   const storage = new Map<string, unknown>()
   const sessions = new Map<string, { id: string; parentID?: string; location: { directory: string } }>()
   const hooks = new Map<string, Hook>()
@@ -120,7 +121,7 @@ export async function fakeHost(directory: string) {
       },
     },
   }
-  const plugin = createServerPlugin()
+  const plugin = createServerPlugin(host ? { host } : {})
   const cleanup = (await plugin.setup(ctx as never)) as (() => Promise<void>) | undefined
 
   const addSession = (id: string, parentID?: string) => sessions.set(id, { id, ...(parentID ? { parentID } : {}), location: { directory } })

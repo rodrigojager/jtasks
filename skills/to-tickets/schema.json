@@ -21,6 +21,7 @@
           "description": "Commands that must run one at a time on the machine (e.g. \"bun test\"); they run through jlock run."
         },
         "maxAttempts": { "type": "integer", "minimum": 1, "description": "Attempts before a task fails (default 2)." },
+        "holdTtl": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h|d)$", "description": "How long a task's locks live if nobody gives them back, e.g. 2h (the default): the ttl of every jlock hold." },
         "branch": { "enum": ["run", "current"], "description": "Commit on gt/<run> (default) or on the current branch." },
         "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
       },

@@ -12,8 +12,6 @@ export interface Hold {
     keys: string[];
     startedAt: string;
     kind: "start" | "claim";
-    /** Where a detached hold writes its output (relative to the run folder). */
-    out?: string;
 }
 export interface WaitingFor {
     key: string;
@@ -91,6 +89,8 @@ export interface RunFile {
     };
     serialize: string[];
     maxAttempts: number;
+    /** How long a task's locks live if nobody gives them back (`--ttl` of every hold), e.g. `2h`. */
+    holdTtl: string;
     sessions: Session[];
 }
 /** One task as the planner writes it. */
@@ -115,9 +115,13 @@ export interface PlanInput {
     profiles?: Record<string, Profile>;
     serialize?: string[];
     maxAttempts?: number;
+    holdTtl?: string;
     branch?: "run" | "current";
     tasks: PlanTask[];
 }
 export declare const DEFAULT_PROFILES: Record<string, Profile>;
 export declare const DEFAULT_PROFILE = "implement";
 export declare const DEFAULT_MAX_ATTEMPTS = 2;
+/** The `--ttl` of every hold: the lock expires by itself after this long if nobody gives it back. */
+export declare const DEFAULT_HOLD_TTL = "2h";
+export declare const DURATION: RegExp;

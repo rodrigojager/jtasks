@@ -4,7 +4,7 @@
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { parseArgs, readTasks, runDir, runTool, splitCommand, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { holdModeFor, parseArgs, readTasks, runDir, runTool, splitCommand, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
@@ -46,6 +46,9 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
     async setup(ctx) {
       const host = options.host ?? createNodeHost()
       const residents = new Map<string, Resident[]>()
+      // `jlock hold --release-on-eof` kept alive with its standard input open (OpenCode dying frees the locks at
+      // once); an older jlock gets `--detach` and the ttl.
+      const holdMode = await holdModeFor(host).catch(() => "detach" as const)
       const bindings = new Bindings(ctx.storage as unknown as StorageLike, ctx.session as never)
       const fallbackDir = ctx.location.directory as string
       let agentModels: { dispose(): Promise<void> } | undefined
@@ -82,6 +85,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           tool: "opencode",
           session: await bindings.root(sessionID),
           residents,
+          holdMode,
         }
         if (run) tctx.boundRun = run.run
         if (child) tctx.agent = sessionID

@@ -3,6 +3,7 @@
 // optional structured `json`, and gets back `{ ok, code, text, data }`.
 
 import type { Host, Resident } from "./host.ts"
+import type { HoldMode } from "./jlock.ts"
 import { isAbsolute, join } from "./paths.ts"
 import type { ToolName } from "./schema.ts"
 import { readTicketsDir } from "./tickets.ts"
@@ -31,6 +32,12 @@ export interface ToolContext {
    * after each command: holds are then detached and given back with `jlock release --group --owner`.
    */
   residents?: Map<string, Resident[]>
+  /**
+   * How this host holds a task's locks: `detach` (the CLI and the mod: `jlock hold --detach`, one call, the jlock
+   * keeper outlives the process) or `eof` (the plugin: `jlock hold --release-on-eof` kept alive with its standard
+   * input open, so the host dying frees the lock at once). Absent: `eof` when `residents` is given, else `detach`.
+   */
+  holdMode?: HoldMode
   /** Called when a hold of this host ends by itself (14: the lock was taken away). Set by long-lived hosts. */
   onHoldExit?: (run: string, task: string, code: number) => void
 }

@@ -13,6 +13,7 @@ const result = await runTool(
     host,
     cwd: process.cwd(),
     tool: "cli",
+    holdMode: "detach",
     boundRun: process.env.GOAL_TASKS_RUN || undefined,
     stdin: async () => await new Response(Bun.stdin.stream()).text(),
   },

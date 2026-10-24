@@ -68,21 +68,46 @@ export interface Identity {
     intent: string;
     meta: Record<string, string>;
 }
+/**
+ * How a host keeps a task's locks (plan section 4): `detach` is `jlock hold --detach`, one call that answers and
+ * returns while jlock's own keeper holds the lock until `jlock release` or the ttl (the CLI, the mod); `eof` is
+ * `jlock hold --release-on-eof` kept alive by the host with its standard input open, so the host dying frees the
+ * lock at once (the plugin; needs jlock 0.1.1).
+ */
+export type HoldMode = "detach" | "eof";
+/** The oldest jlock the tool works with, and the first one with `hold --release-on-eof`. */
+export declare const MIN_JLOCK = "0.1.0";
+export declare const EOF_JLOCK = "0.1.1";
+/** `jlock --version` once per process (per executable), as `X.Y.Z`. */
+export declare function jlockVersion(host: Host): Promise<string>;
+export declare function versionAtLeast(version: string, minimum: string): boolean;
+/** The mode a long-lived host should use: `eof` when the installed jlock has `--release-on-eof`. */
+export declare function holdModeFor(host: Host): Promise<HoldMode>;
 export declare function holdArgv(host: Host, keys: string[], id: Identity, wait: {
     noWait: true;
 } | {
     timeoutSec: number;
+}, hold: {
+    mode: HoldMode;
+    ttl: string;
 }): string[];
 export interface HoldOutcome {
     /** The first answer: `granted`, `queued`, `timeout`, `deadlock`. */
     answer: JlockAnswer;
-    /** Exit code once known (the hold keeps running when granted). */
+    /** Exit code once known (an `eof` hold keeps running when granted). */
     code?: number;
-    resident: Resident;
+    /** The hold process this host keeps (`eof` mode); absent with `--detach`, where jlock's keeper holds the lock. */
+    resident?: Resident;
 }
 /**
- * Starts a `jlock hold` and waits for its first line. Granted → the process stays alive renewing the lock. Any
- * other answer → the process has ended (or is ending) with jlock's code.
+ * `jlock hold --detach`: one call that answers like `hold` and returns, jlock's own keeper holding the lock until
+ * `jlock release`, the ttl or `unlock --force`. `timeoutMs` bounds the call (a `claim` waits up to its timeout).
+ */
+export declare function detachedHold(host: Host, argv: string[], cwd: string, timeoutMs: number): Promise<HoldOutcome>;
+/**
+ * A `jlock hold --release-on-eof` this host keeps: waits for its first line. Granted → the process stays alive
+ * renewing the lock while the host holds its standard input. Any other answer → the process has ended (or is
+ * ending) with jlock's code.
  */
 export declare function startHold(host: Host, resident: Resident, firstLineTimeoutMs: number): Promise<HoldOutcome>;
 /** How the panel and the answers name a lock's owner (section 4): `T05`, `auth-261024-p0q9/T03`, or another program. */

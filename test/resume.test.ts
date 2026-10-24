@@ -70,7 +70,7 @@ describe("pause", () => {
 describe("resume after a dead window", () => {
   test("the window dies with its holds; the lock expires and resume releases the task, keeping one whose locks live", async () => {
     const { repo, run, dir } = await newRun()
-    // T02 is held by the CLI (a detached hold that lives on): resume must keep it.
+    // T02 is held by the CLI (`hold --detach`: jlock's keeper lives on): resume must keep it.
     await tasksOk(repo, ["start", "T02"])
     const win = Bun.spawn(["bun", join(REPO_ROOT, "test/window.ts"), repo, "T01"], { stdout: "pipe", env: process.env })
     windows.push(win.pid)
@@ -162,5 +162,18 @@ appendFileSync(file, "end " + id + " " + Date.now() + "\\n")
     const failing = await tasks(repo, ["exec", "--", "git", "nao-existe"])
     expect(failing.ok).toBe(false)
     expect(failing.code).toBe(1)
+  })
+})
+
+describe("the ttl of the run's holds", () => {
+  test("a hold whose ttl runs out is a lost ownership: status says so and resume gives the task back", async () => {
+    const { repo, run, dir } = await newRun({ holdTtl: "1s" })
+    await tasksOk(repo, ["start", "T01"])
+    expect(jlockListJson("--group", run).map((l) => (l.holder as { ttl_secs?: number } | null)?.ttl_secs)).toEqual([1])
+    await until(() => (jlockListJson("--group", run).some((l) => l.holder?.owner === `gt:${run}/T01` && !(l.holder as { stale?: boolean }).stale) ? undefined : true))
+    expect((await tasksOk(repo, ["status"])).text).toContain("posse perdida: T01 (sem travas no jlock")
+    const r = await tasksOk(repo, ["resume", run])
+    expect(r.text).toContain("T01 liberada (sem travas no jlock) → pending")
+    expect(tasksFile(dir).tasks[0]!.status).toBe("pending")
   })
 })

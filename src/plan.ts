@@ -6,6 +6,7 @@ import { runId } from "./ids.ts"
 import { recordEffect } from "./ledger.ts"
 import { basename, isAbsolute, join } from "./paths.ts"
 import {
+  DEFAULT_HOLD_TTL,
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_PROFILE,
   DEFAULT_PROFILES,
@@ -92,6 +93,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     worktrees: { policy: "none" },
     serialize: plan.serialize ?? [],
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+    holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : [],
   }
   const tasks: TasksFile = {
@@ -178,6 +180,7 @@ export interface Draft {
   profiles?: Record<string, Profile>
   serialize?: string[]
   maxAttempts?: number
+  holdTtl?: string
   branch?: "run" | "current"
   tasks: PlanTask[]
 }
@@ -223,6 +226,7 @@ function draftPlan(draft: Draft): PlanInput {
   if (draft.profiles !== undefined) plan.profiles = draft.profiles
   if (draft.serialize !== undefined) plan.serialize = draft.serialize
   if (draft.maxAttempts !== undefined) plan.maxAttempts = draft.maxAttempts
+  if (draft.holdTtl !== undefined) plan.holdTtl = draft.holdTtl
   if (draft.branch !== undefined) plan.branch = draft.branch
   return plan
 }
@@ -297,7 +301,7 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const errors = [...read.errors, ...batch.errors, ...earlier]
     if (errors.length > 0) return refused("lote recusado, o rascunho não mudou.", errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
-    for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "branch"] as const)
+    for (const key of ["feature", "objective", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || "nenhuma"

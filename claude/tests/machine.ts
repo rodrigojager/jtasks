@@ -94,6 +94,16 @@ export function installMachine(on: On, root: string): Machine {
     return ok('')
   }
   const jlock = (args: readonly string[]) => {
+    if (args[0] === '--version') return ok('jlock 0.1.1\n')
+    if (args[0] === 'hold') {
+      // `hold --detach`: answers granted and returns; the (pretend) keeper is the lock in `locks`.
+      if (!args.includes('--detach')) return fail('fake jlock: hold without --detach would never return here')
+      const keys = args.slice(1, args.findIndex((a, i) => i > 0 && a.startsWith('--')))
+      const owner = args[args.indexOf('--owner') + 1]!
+      const group = args[args.indexOf('--group') + 1]!
+      for (const key of keys) locks.push({ key, owner, group })
+      return ok(`${JSON.stringify({ result: 'granted', owner, keys })}\n`)
+    }
     if (args[0] === 'list') {
       const group = args.includes('--group') ? args[args.indexOf('--group') + 1] : undefined
       const shown = locks.filter((l) => !group || l.group === group)
