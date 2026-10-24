@@ -6,12 +6,12 @@ const TOOL = 'mcp__goal-tasks__tasks'
 const PLAN = {
   serialize: ['bun test'],
   profiles: {
-    impl: { claude: { model: 'sonnet', effort: 'medium', role: 'backend-developer' } },
-    deep: { claude: { model: 'opus', effort: 'high' } },
+    implement: { claude: { model: 'sonnet', effort: 'medium', role: 'backend-developer' } },
+    'implement-deep': { claude: { model: 'opus', effort: 'high' } },
   },
   tasks: [
     { id: 'T01', title: 'Base', files: ['src/a.ts'] },
-    { id: 'T02', title: 'Profunda', files: ['src/b.ts'], profile: 'deep' },
+    { id: 'T02', title: 'Profunda', files: ['src/b.ts'], profile: 'implement-deep' },
   ],
 }
 
@@ -40,7 +40,7 @@ test("a task's subagent runs on its profile's model, with the role and effort in
   const { run, spawned } = await scene($, on)
   const a = await $.agent.spawn({ prompt: `--run ${run} --task T01 Faça a base.`, description: 'T01', subagentType: 'general-purpose' } as never)
   expect(a.model).toBe('sonnet')
-  expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.\n\n(Perfil impl: esforço medium.)`)
+  expect(spawned[0]!.prompt).toBe(`--role backend-developer --run ${run} --task T01 Faça a base.\n\n(Perfil implement: esforço medium.)`)
   const b = await $.agent.spawn({ prompt: `--run ${run} --task T02 Funda.`, description: 'T02', subagentType: 'general-purpose' } as never)
   expect(b.model).toBe('opus')
   // A subagent of no task is left alone.
@@ -55,7 +55,7 @@ test('an unknown profile or task refuses the spawn', async ($, on) => {
   tasks.tasks[1].profile = 'nope'
   machine.write(file, JSON.stringify(tasks))
   const bad = await $.agent.spawn({ prompt: `--run ${run} --task T02 x`, description: 'T02', subagentType: 'general-purpose' } as never)
-  expect(bad.deny).toBe('goal-tasks: perfil desconhecido "nope" (perfis: impl, deep)')
+  expect(bad.deny).toBe('goal-tasks: perfil desconhecido "nope" (perfis: implement, implement-deep)')
   const none = await $.agent.spawn({ prompt: `--run ${run} --task T09 x`, description: 'T09', subagentType: 'general-purpose' } as never)
   expect(none.deny).toBe(`goal-tasks: a execução ${run} não tem a tarefa T09`)
 })

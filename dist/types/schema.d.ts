@@ -119,5 +119,5 @@ export interface PlanInput {
     tasks: PlanTask[];
 }
 export declare const DEFAULT_PROFILES: Record<string, Profile>;
-export declare const DEFAULT_PROFILE = "impl";
+export declare const DEFAULT_PROFILE = "implement";
 export declare const DEFAULT_MAX_ATTEMPTS = 2;

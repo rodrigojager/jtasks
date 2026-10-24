@@ -20,7 +20,7 @@ describe("tickets", () => {
         "",
         "**Status:** pending",
         "",
-        "**Profile:** impl",
+        "**Profile:** implement",
         "",
         "**Files:** `src/a.ts`, `src/b`",
         "",

@@ -17,12 +17,12 @@ afterAll(async () => {
 const plan = {
   objective: "Duas fatias em paralelo",
   profiles: {
-    impl: { claude: { model: "sonnet" }, opencode: { agent: "impl", model: { providerID: "anthropic", modelID: "claude-sonnet-5-5" } } },
-    deep: { claude: { model: "opus" }, opencode: { agent: "impl-deep" } },
+    implement: { claude: { model: "sonnet" }, opencode: { agent: "implement", model: { providerID: "anthropic", modelID: "claude-sonnet-5-5" } } },
+    "implement-deep": { claude: { model: "opus" }, opencode: { agent: "implement-deep" } },
   },
   tasks: [
     { id: "T01", title: "Movimento", files: ["src/move.ts"], acceptance: ["move.ts existe"] },
-    { id: "T02", title: "Gravador", files: ["src/recorder"], profile: "deep" },
+    { id: "T02", title: "Gravador", files: ["src/recorder"], profile: "implement-deep" },
     { id: "T03", title: "Junta", dependsOn: ["T01", "T02"], files: ["src/index.ts"] },
   ],
 }
@@ -51,7 +51,7 @@ describe("OpenCode plugin", () => {
     expect(planned.ok).toBe(true)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
     // The profile's model reached the agent the profile names.
-    expect(h.agents.get("impl")!.model).toEqual({ providerID: "anthropic", id: "claude-sonnet-5-5" })
+    expect(h.agents.get("implement")!.model).toEqual({ providerID: "anthropic", id: "claude-sonnet-5-5" })
 
     const system = await h.request("s1")
     expect(system).toHaveLength(2)
@@ -66,8 +66,8 @@ describe("OpenCode plugin", () => {
       h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 Movimento. Chame tasks start T01…` }),
       h.subagent("s1", { agent: "build", description: "T02", prompt: `--run ${run} --task T02 Gravador. Chame tasks start T02…` }),
     ])
-    expect(a.agent).toBe("impl")
-    expect(b.agent).toBe("impl-deep")
+    expect(a.agent).toBe("implement")
+    expect(b.agent).toBe("implement-deep")
 
     // OpenCode creates the child sessions; the two subagents work in parallel.
     h.addSession("c1", "s1")
@@ -151,5 +151,21 @@ describe("OpenCode plugin", () => {
     expect(await h.request("s2")).toEqual([{ type: "text", text: "base" }])
     await h.call("s2", `resume ${run}`)
     expect((await h.request("s2"))[1]!.text).toContain(`execução ligada ${run}`)
+  })
+
+  test("a profile naming an agent that does not exist is warned about after plan and resume; existing agents are not", async () => {
+    const { h } = await setup()
+    const ok = await h.call("s1", "plan", plan)
+    expect(ok.text).not.toContain("aponta o agente")
+    h.addSession("s2")
+    const ghost = { ...plan, profiles: { ...plan.profiles, implement: { opencode: { agent: "ghost" } } } }
+    const planned = await h.call("s2", "plan", ghost)
+    expect(planned.ok).toBe(true)
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const line = 'aviso: o perfil "implement" aponta o agente "ghost", que não existe: instale os agentes do goal-tasks com tasks doctor --fix, ou aponte um agente seu no plano'
+    expect(planned.text.split("\n")).toContain(line)
+    h.addSession("s3")
+    const resumed = await h.call("s3", `resume ${run}`)
+    expect(resumed.text.split("\n")).toContain(line)
   })
 })

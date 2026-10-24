@@ -17,7 +17,7 @@ const good = {
   tasks: [
     { id: "T01", title: "Base", files: ["src/humanizer/trajectory.ts", "tests/humanizer/**"], acceptance: ["passa"] },
     { id: "T02", title: "Gerador", dependsOn: ["T01"], files: ["src/recorder/**"] },
-    { id: "T03", title: "Paridade", dependsOn: ["T01"], files: ["src/humanizer/parity"], profile: "deep" },
+    { id: "T03", title: "Paridade", dependsOn: ["T01"], files: ["src/humanizer/parity"], profile: "implement-deep" },
     { id: "T04", title: "Integração", dependsOn: ["T02", "T03"], exclusive: true, profile: "review" },
   ],
 }
@@ -53,14 +53,14 @@ describe("validatePlan", () => {
       ]),
     ).toEqual([
       "id repetido: T01",
-      `T01: perfil desconhecido "fast" (perfis: impl, deep, review)`,
+      `T01: perfil desconhecido "fast" (perfis: implement, implement-deep, review)`,
       "T01 depende de T09, que não existe",
     ])
   })
 
   test("a plan's own profiles replace the defaults", () => {
-    const plan = { profiles: { fast: { claude: { model: "haiku" } } }, tasks: [{ id: "T01", title: "a", profile: "impl" }] }
-    expect(errorsOf(plan)).toEqual([`T01: perfil desconhecido "impl" (perfis: fast)`])
+    const plan = { profiles: { fast: { claude: { model: "haiku" } } }, tasks: [{ id: "T01", title: "a", profile: "implement" }] }
+    expect(errorsOf(plan)).toEqual([`T01: perfil desconhecido "implement" (perfis: fast)`])
   })
 
   test("cycles come with their path", () => {

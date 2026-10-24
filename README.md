@@ -11,8 +11,8 @@ queue, heartbeat recovery and deadlock detection, developed first as the prerequ
 ```
 $ tasks next
 prontas (2) em demo-261024-ubv5; podem rodar em paralelo:
-T01 · Núcleo · perfil impl · posse: src/core.ts
-T02 · Tela · perfil impl · posse: src/ui
+T01 · Núcleo · perfil implement · posse: src/core.ts
+T02 · Tela · perfil implement · posse: src/ui
 $ tasks done T01 --evidence "core.ts exporta soma"
 T01 feita: commit b510db2 (T01: Núcleo); posse devolvida
 feitas 1/3 (33%) · 1 em andamento · restam 2

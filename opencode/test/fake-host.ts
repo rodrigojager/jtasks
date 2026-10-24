@@ -65,7 +65,7 @@ export async function fakeHost(directory: string) {
   const sessions = new Map<string, { id: string; parentID?: string; location: { directory: string } }>()
   const hooks = new Map<string, Hook>()
   const tools: any[] = []
-  const agents = new Map<string, Agent>(["build", "impl", "impl-deep", "review"].map((id) => [id, { id }]))
+  const agents = new Map<string, Agent>(["build", "implement", "implement-deep", "review"].map((id) => [id, { id }]))
   const registration = { dispose: async () => {} }
   const rpcImpls = new Map<string, Record<string, (input: unknown, context: unknown) => Promise<unknown>>>()
   const rpcListeners = new Map<string, ((event: { data: unknown }) => void)[]>()

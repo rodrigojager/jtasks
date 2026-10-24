@@ -115,11 +115,11 @@ function relConflicts(a, b, insensitive) {
 }
 // src/schema.ts
 var DEFAULT_PROFILES = {
-  impl: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "impl" } },
-  deep: { claude: { model: "opus", effort: "high" }, opencode: { agent: "impl-deep" } },
+  implement: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "implement" } },
+  "implement-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "implement-deep" } },
   review: { claude: { model: "sonnet", effort: "high", role: "code-reviewer" }, opencode: { agent: "review" } }
 };
-var DEFAULT_PROFILE = "impl";
+var DEFAULT_PROFILE = "implement";
 var DEFAULT_MAX_ATTEMPTS = 2;
 // src/validate.ts
 var TASK_FIELDS = new Set(["id", "title", "what", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);

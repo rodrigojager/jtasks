@@ -120,10 +120,10 @@ export interface PlanInput {
 }
 
 export const DEFAULT_PROFILES: Record<string, Profile> = {
-  impl: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "impl" } },
-  deep: { claude: { model: "opus", effort: "high" }, opencode: { agent: "impl-deep" } },
+  implement: { claude: { model: "sonnet", effort: "medium", role: "backend-developer" }, opencode: { agent: "implement" } },
+  "implement-deep": { claude: { model: "opus", effort: "high" }, opencode: { agent: "implement-deep" } },
   review: { claude: { model: "sonnet", effort: "high", role: "code-reviewer" }, opencode: { agent: "review" } },
 }
 
-export const DEFAULT_PROFILE = "impl"
+export const DEFAULT_PROFILE = "implement"
 export const DEFAULT_MAX_ATTEMPTS = 2

@@ -30,11 +30,11 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   "feature": "login-por-email",
   "objective": "Login por link mágico",
   "serialize": ["bun test"],
-  "profiles": { "impl": { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "impl" } } },
+  "profiles": { "implement": { "claude": { "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "implement" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
     { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"] },
-    { "id": "T03", "title": "Integração", "dependsOn": ["T02"], "exclusive": true, "profile": "impl" }
+    { "id": "T03", "title": "Integração", "dependsOn": ["T02"], "exclusive": true, "profile": "implement" }
   ]
 }
 ```
@@ -43,7 +43,8 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
   the other). `exclusive: true` holds `*` and runs alone.
-- Without `profiles`: `impl`, `deep`, `review`. `maxAttempts` (default 2), `branch` (`"run"`: commit on
+- Without `profiles`: `implement`, `implement-deep`, `review` (the OpenCode agents of the same names come with
+  the plugin, `opencode/agents/`; a profile may name any agent you already have). `maxAttempts` (default 2), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 
 The full schema is [`skills/to-tickets/schema.json`](../skills/to-tickets/schema.json); the `to-tickets` skill

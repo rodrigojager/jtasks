@@ -20,9 +20,18 @@ Point a configuration file at this folder; nothing here touches your OpenCode co
 ```
 
 OpenCode loads the folder's `server.ts`; the package also exports `./tui` (`tui.tsx`, the sidebar section) and
-`./rpc` (`goal-tasks.state`, the data the section reads). The agents named by the profiles (`impl`, `impl-deep`, `review` by
-default) are your own agents in `opencode.json`; a profile with `opencode.model` gives that agent the model for
-the session (see `docs/DEVIATIONS.md`).
+`./rpc` (`goal-tasks.state`, the data the section reads).
+
+## Agents
+
+A task's profile names the OpenCode agent its `subagent` call must use (`opencode.agent`). The default profiles name
+`implement`, `implement-deep` and `review`, and the package brings those three agents ready in `agents/`
+(`mode: subagent`, the task protocol in the body: `tasks start` first, `tasks claim` for one more file, never git,
+`tasks done` with evidence or `tasks fail`). A plugin cannot create agents, so they have to be installed where
+OpenCode reads them: `tasks doctor --fix --yes` copies them to `~/.config/opencode/agents/` (recorded in the global
+ledger, undone by `tasks undo`), or copy them yourself. A profile may name any agent you already have instead; a
+profile with `opencode.model` gives that agent the model for the session (see `docs/DEVIATIONS.md`). After
+`plan --commit` and `resume`, the tool warns about a profile whose agent does not exist; the run is created anyway.
 
 ## The sidebar section
 

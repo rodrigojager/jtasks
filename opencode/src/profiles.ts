@@ -37,6 +37,21 @@ export interface AgentEditorLike {
   update(id: string, update: (agent: { model?: unknown }) => void): void
 }
 
+/** The profiles whose agent the editor does not know, as `[profile, agent]` pairs (the plan is created anyway). */
+export function missingAgents(editor: Pick<AgentEditorLike, "get">, profiles: Record<string, Profile>): [string, string][] {
+  const missing: [string, string][] = []
+  for (const [name, profile] of Object.entries(profiles)) {
+    const agent = profile.opencode?.agent
+    if (agent && !editor.get(agent)) missing.push([name, agent])
+  }
+  return missing
+}
+
+/** The warning line for a profile whose agent does not exist. */
+export function agentMissingLine(profile: string, agent: string): string {
+  return `aviso: o perfil "${profile}" aponta o agente "${agent}", que não existe: instale os agentes do goal-tasks com tasks doctor --fix, ou aponte um agente seu no plano`
+}
+
 /** Gives each agent named by a profile the profile's model, when the profile has one and the agent exists. */
 export function applyProfileModels(editor: AgentEditorLike, profiles: Record<string, Profile>): string[] {
   const changed: string[] = []

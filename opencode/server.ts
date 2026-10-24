@@ -4,12 +4,12 @@
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { parseArgs, readTasks, runDir, runTool, splitCommand, VERSION, type Host, type ToolContext, type ToolResult } from "./core/core.js"
+import { parseArgs, readTasks, runDir, runTool, splitCommand, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
 import { judge } from "./src/guard.ts"
-import { agentFor, applyProfileModels, SUBAGENT_TOOLS } from "./src/profiles.ts"
+import { agentFor, agentMissingLine, applyProfileModels, missingAgents, SUBAGENT_TOOLS } from "./src/profiles.ts"
 import { TasksRpc } from "./src/rpc.ts"
 import { viewFor } from "./src/view.ts"
 
@@ -50,9 +50,16 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       const fallbackDir = ctx.location.directory as string
       let agentModels: { dispose(): Promise<void> } | undefined
 
-      const applyModels = async (profiles: Record<string, never>) => {
+      // Applies the profiles' models to their agents; answers the profiles whose agent does not exist (the editor is
+      // the host's view of the agents; a host that applies the transform later answers nothing here).
+      const applyModels = async (profiles: Record<string, Profile>): Promise<[string, string][]> => {
         await agentModels?.dispose()
-        agentModels = await ctx.agent.transform((editor) => void applyProfileModels(editor as never, profiles))
+        let missing: [string, string][] = []
+        agentModels = await ctx.agent.transform((editor) => {
+          applyProfileModels(editor as never, profiles)
+          missing = missingAgents(editor as never, profiles)
+        })
+        return missing
       }
 
       const call = async (sessionID: string, command: string, json: unknown): Promise<ToolResult> => {
@@ -86,7 +93,10 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           const root = dir ? dir.replace(/\/\.scratch\/goal-tasks\/runs\/[^/]+$/, "") : (run?.root ?? tctx.cwd)
           await bindings.bind(sessionID, { run: result.bind, root })
           const tasks = await readTasks(host, runDir(root, result.bind)).catch(() => undefined)
-          if (tasks) await applyModels(tasks.profiles as never)
+          if (tasks) {
+            const missing = await applyModels(tasks.profiles)
+            if (missing.length) result.text += `\n${missing.map(([p, a]) => agentMissingLine(p, a)).join("\n")}`
+          }
         }
         const id = parsed.positionals[0]
         const boundRun = result.bind ?? run?.run
