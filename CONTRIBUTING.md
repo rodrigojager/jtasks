@@ -47,3 +47,17 @@ names (`tasks.json`, `run.json`), task and run ids, and result codes of the JSON
 |---|---|---|
 | `en` | English | complete (reference) |
 | `pt-BR` | Português (Brasil) | complete |
+| `es` | Español | complete |
+| `fr` | Français | complete |
+| `de` | Deutsch | complete |
+| `it` | Italiano | complete |
+| `zh-CN` | 简体中文 | complete, native review pending |
+| `ja` | 日本語 | complete, native review pending |
+| `ru` | Русский | complete, native review pending |
+| `ar` | العربية | complete, native review pending |
+| `hi` | हिन्दी | complete, native review pending |
+
+The five marked "native review pending" were written without a native speaker and may sound stiff or strange. If
+you speak one of them, a review is the most useful contribution you can make: open an issue with the sentence as it
+is and your suggestion, or a pull request that changes only the JSON file. Arabic is printed as plain text in the
+terminal (no bidirectional control characters), as jlock does.

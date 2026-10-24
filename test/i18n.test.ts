@@ -106,7 +106,21 @@ describe("the same command in two languages", () => {
     expect(new Set(seen)).toEqual(new Set(["list en", "list pt-BR"]))
   })
 
-  test("help and help <action> in both languages, every line within 100 columns", async () => {
+  test("help next in each of the eleven languages: exit 0, no raw key, within 100 columns (wide characters count two)", async () => {
+    const repo = makeRepo()
+    expect(tags()).toEqual(["en", "pt-BR", "es", "fr", "de", "it", "zh-CN", "ja", "ru", "ar", "hi"])
+    const seen = new Set<string>()
+    for (const lang of tags()) {
+      const r = await tasksOk(repo, ["help", "next", "--lang", lang])
+      expect(r.code).toBe(0)
+      expect(r.text, lang).not.toMatch(/\bhelp\.[a-z]/)
+      for (const line of r.text.split("\n")) expect(width(line), `${lang}: ${line}`).toBeLessThanOrEqual(100)
+      seen.add(r.text)
+    }
+    expect(seen.size).toBe(tags().length)
+  })
+
+  test("help and help <action> in every language, every line within 100 columns", async () => {
     const repo = makeRepo()
     for (const lang of tags()) {
       const all = await tasksOk(repo, ["help", "--lang", lang])

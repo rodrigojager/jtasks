@@ -5,13 +5,34 @@
 
 import en from "../locales/en.json"
 import ptBR from "../locales/pt-BR.json"
+import es from "../locales/es.json"
+import fr from "../locales/fr.json"
+import de from "../locales/de.json"
+import it from "../locales/it.json"
+import zhCN from "../locales/zh-CN.json"
+import ja from "../locales/ja.json"
+import ru from "../locales/ru.json"
+import ar from "../locales/ar.json"
+import hi from "../locales/hi.json"
 
 type Catalog = Record<string, unknown>
 
-/** Every catalog, by tag. English first: it is the reference. Other tags reach a catalog through `resolve`. */
+/**
+ * Every catalog, by tag, the same eleven as jlock. English first: it is the reference. Other tags reach a catalog
+ * through `resolve` (`es-MX` → `es`, `zh-TW` → `zh-CN`, `pt-PT` → `pt-BR`).
+ */
 export const CATALOGS: readonly (readonly [string, Catalog])[] = [
   ["en", en],
   ["pt-BR", ptBR],
+  ["es", es],
+  ["fr", fr],
+  ["de", de],
+  ["it", it],
+  ["zh-CN", zhCN],
+  ["ja", ja],
+  ["ru", ru],
+  ["ar", ar],
+  ["hi", hi],
 ]
 
 let current = "en"

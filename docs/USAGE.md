@@ -118,7 +118,8 @@ queue.
 
 The answers, the help, the pane and the sidebar speak the language chosen by, in order: `--lang <tag>` on the
 command, `GOAL_TASKS_LANG`, `JLOCK_LANG` (so one variable sets both tools), the system's language, and English.
-Available: `en`, `pt-BR` (more in [`CONTRIBUTING.md`](../CONTRIBUTING.md)). A tag resolves like jlock's: `pt` and
+Available, the same eleven as jlock: `en`, `pt-BR`, `es`, `fr`, `de`, `it`, `zh-CN`, `ja`, `ru`, `ar`, `hi`
+(their status is in [`CONTRIBUTING.md`](../CONTRIBUTING.md)). A tag resolves like jlock's: `pt` and
 `pt_PT.UTF-8` give `pt-BR`, `en-US` gives `en`; an unknown `--lang` answers in English with a warning on the first
 line. Every `jlock` the tool starts gets `JLOCK_LANG` with the same tag, so the jlock messages it quotes match.
 
