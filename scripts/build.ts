@@ -2,8 +2,9 @@
 // - dist/core.js: the core (src/index.ts), ESM, no `node:*`, for every form including the Claude Code mod;
 // - dist/node-host.js: the Node host, for the CLI and the OpenCode plugin;
 // - dist/types/*.d.ts with dist/core.d.ts and dist/node-host.d.ts: the declarations for the two bundles;
-// - the copies the packages ship: opencode/core/ and claude/core/ (core, node host, types), and the to-tickets
-//   skill inside the mod (claude/skills/to-tickets/, copied as is from skills/to-tickets/).
+// - the copies the packages ship: opencode/core/ and claude/core/ (core, node host, types);
+// - the skills of every agent, skills/<agent>/<skill>/, from one source each in skills/source/<skill>/ (the same
+//   text, the host's way of calling the tool), and the Claude Code ones again inside the mod (claude/skills/).
 // `bun scripts/build.ts --check` only reports which generated files differ from a fresh build.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -66,11 +67,80 @@ export async function buildAll(): Promise<Bundle[]> {
     ...types,
   ]
   const copies = (prefix: string) => dist.map((b) => ({ out: b.out.replace(/^dist\//, `${prefix}/`), text: b.text }))
-  const skill = readdirSync(join(root, "skills/to-tickets")).sort().map((name) => ({
-    out: `claude/skills/to-tickets/${name}`,
-    text: readFileSync(join(root, "skills/to-tickets", name), "utf8").replace(/\r\n/g, "\n"),
-  }))
-  return [...dist, ...copies("opencode/core"), ...copies("claude/core"), ...skill]
+  return [...dist, ...copies("opencode/core"), ...copies("claude/core"), ...skills()]
+}
+
+/** How each agent calls the tool and opens subagents: what fills the `{{…}}` of the skills' sources (plan section 23). */
+export const HOSTS: Record<string, { calling: string; spawn: string; after: string; frontmatter: Record<string, string> }> = {
+  "claude-code": {
+    calling:
+      "In Claude Code with the goal-tasks mod, every `tasks …` command below goes through the `mcp__goal-tasks__tasks` " +
+      'tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", ' +
+      '"json": [ ... ] }`). Without the mod, run the same commands in the shell, with the JSON in a file you write ' +
+      "first (`tasks plan --add @batch1.json`) or on standard input (`-`).",
+    spawn:
+      "open a subagent with the Agent tool, all of them in the same response so they run in parallel. Its prompt " +
+      "starts with `--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and " +
+      "asks it to follow step 3. With the mod, the task's profile sets the subagent's model. Without subagents, do the " +
+      "tasks yourself, one at a time.",
+    after:
+      "the protocol the mod injects into the prompt (`tasks next`, one subagent per ready task, `tasks status` until " +
+      "nothing is left); without the mod, the `goal-tasks` skill.",
+    frontmatter: { "to-tickets": "disable-model-invocation: true\n" },
+  },
+  opencode: {
+    calling:
+      "In OpenCode with the goal-tasks plugin, every `tasks …` command below goes through the `tasks` tool: `command` " +
+      'is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). ' +
+      "Without the plugin, run the same commands in the shell, with the JSON in a file you write first " +
+      "(`tasks plan --add @batch1.json`) or on standard input (`-`).",
+    spawn:
+      "call the `subagent` tool, all of them in the same response so they run in parallel. Its prompt starts with " +
+      "`--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to " +
+      "follow step 3. With the plugin, the call gets the agent of the task's profile. Without subagents, do the tasks " +
+      "yourself, one at a time.",
+    after:
+      "the protocol the plugin injects into each request (`tasks next`, one subagent per ready task, `tasks status` " +
+      "until nothing is left); without the plugin, the `goal-tasks` skill.",
+    frontmatter: {},
+  },
+  codex: {
+    calling:
+      "Run every `tasks …` command below in the shell (`tasks` is the goal-tasks CLI). JSON goes in a file you write " +
+      "first (`tasks plan --add @batch1.json`) or on standard input (`-`).",
+    spawn:
+      "work on it yourself, one task at a time; if your setup runs several agents, give each one a task instead, with " +
+      "a first message that starts with `--run <run> --task <id>` and asks it to follow step 3.",
+    after: "the `goal-tasks` skill (`tasks next`, the tasks, `tasks status` until nothing is left).",
+    frontmatter: {},
+  },
+}
+
+function fillSkill(text: string, host: string, skill: string): string {
+  const h = HOSTS[host]!
+  const out = text
+    .replace("{{FRONTMATTER}}", h.frontmatter[skill] ?? "")
+    .replace("{{CALLING}}", h.calling)
+    .replace("{{SPAWN}}", h.spawn)
+    .replace("{{AFTER}}", h.after)
+  const left = /\{\{\w+\}\}/.exec(out)
+  if (left) throw new Error(`skills/source/${skill}/SKILL.md: ${left[0]} has no value for ${host}`)
+  return out
+}
+
+/** skills/<agent>/<skill>/ for every agent, and the Claude Code ones inside the mod. */
+function skills(): Bundle[] {
+  const out: Bundle[] = []
+  const source = join(root, "skills/source")
+  for (const skill of readdirSync(source).sort())
+    for (const host of Object.keys(HOSTS))
+      for (const name of readdirSync(join(source, skill)).sort()) {
+        const raw = readFileSync(join(source, skill, name), "utf8").replace(/\r\n/g, "\n")
+        const text = name === "SKILL.md" ? fillSkill(raw, host, skill) : raw
+        out.push({ out: `skills/${host}/${skill}/${name}`, text })
+        if (host === "claude-code") out.push({ out: `claude/skills/${skill}/${name}`, text })
+      }
+  return out
 }
 
 /** The generated files that differ from disk. */
@@ -100,6 +170,6 @@ if (import.meta.main) {
       mkdirSync(dirname(join(root, b.out)), { recursive: true })
       writeFileSync(join(root, b.out), b.text)
     }
-    console.log(`wrote ${all.length} files (dist/, opencode/core/, claude/core/, claude/skills/)`)
+    console.log(`wrote ${all.length} files (dist/, opencode/core/, claude/core/, skills/<agent>/, claude/skills/)`)
   }
 }

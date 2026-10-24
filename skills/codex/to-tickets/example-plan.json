@@ -1,0 +1,48 @@
+{
+  "feature": "login-por-email",
+  "objective": "Login por link mágico enviado por email",
+  "serialize": ["bun test"],
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Separar os tipos de sessão do módulo de rotas",
+      "what": "Prefatoração: os tipos de sessão saem de src/routes.ts para src/session/types.ts, sem mudar comportamento.",
+      "files": ["src/routes.ts", "src/session/types.ts"],
+      "acceptance": ["bun test passa sem mudança nos testes", "src/routes.ts não declara mais tipos de sessão"],
+      "boundary": "Nenhuma rota nova."
+    },
+    {
+      "id": "T02",
+      "title": "Gerar e guardar o token do link",
+      "what": "POST /login/email gera um token de uso único com validade de 15 minutos e o guarda.",
+      "dependsOn": ["T01"],
+      "files": ["src/session/token.ts", "src/routes/login.ts", "tests/session/token.test.ts"],
+      "acceptance": ["token expira em 15 minutos", "token usado duas vezes é recusado"]
+    },
+    {
+      "id": "T03",
+      "title": "Enviar o email com o link",
+      "what": "O link com o token é enviado pelo serviço de email configurado.",
+      "dependsOn": ["T01"],
+      "files": ["src/mail/**", "tests/mail"],
+      "acceptance": ["o email contém o link com o token", "falha do serviço vira erro 503"]
+    },
+    {
+      "id": "T04",
+      "title": "Abrir a sessão pelo link",
+      "what": "GET /login/email/:token abre a sessão e redireciona para a página inicial.",
+      "dependsOn": ["T02", "T03"],
+      "files": ["src/routes/login-callback.ts", "tests/routes/login-callback.test.ts"],
+      "acceptance": ["link válido abre a sessão", "link vencido mostra a página de erro"],
+      "profile": "implement-deep"
+    },
+    {
+      "id": "T05",
+      "title": "Integração: suíte completa",
+      "dependsOn": ["T04"],
+      "exclusive": true,
+      "profile": "review",
+      "acceptance": ["bun test inteiro passa"]
+    }
+  ]
+}

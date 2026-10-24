@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/goal-tasks/skills/to-tickets/schema.json",
+  "title": "goal-tasks plan",
+  "description": "The plan (or one batch of it) that `tasks plan` / `tasks plan --add` takes: a list of tasks, or an object with `tasks`.",
+  "oneOf": [
+    { "type": "array", "items": { "$ref": "#/$defs/task" } },
+    {
+      "type": "object",
+      "properties": {
+        "feature": { "type": "string", "description": "Short slug of the feature (names the run)." },
+        "objective": { "type": "string", "description": "One line: what the run achieves." },
+        "profiles": {
+          "type": "object",
+          "description": "Agent profiles by name; without it: implement, implement-deep, review.",
+          "additionalProperties": { "$ref": "#/$defs/profile" }
+        },
+        "serialize": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands that must run one at a time on the machine (e.g. \"bun test\"); they run through jlock run."
+        },
+        "maxAttempts": { "type": "integer", "minimum": 1, "description": "Attempts before a task fails (default 2)." },
+        "holdTtl": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h|d)$", "description": "How long a task's locks live if nobody gives them back, e.g. 2h (the default): the ttl of every jlock hold." },
+        "branch": { "enum": ["run", "current"], "description": "Commit on gt/<run> (default) or on the current branch." },
+        "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
+      },
+      "required": ["tasks"],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "task": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Stable id, e.g. T04." },
+        "title": { "type": "string" },
+        "what": { "type": "string", "description": "What to build: the end-to-end behaviour, from the user's side." },
+        "dependsOn": { "type": "array", "items": { "type": "string" }, "description": "Ids of the tasks that block this one." },
+        "files": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },
+          "description": "Files and folders it owns, relative to the repository; a folder owns everything inside; dir/** is the folder; no other patterns."
+        },
+        "acceptance": { "type": "array", "items": { "type": "string" }, "description": "Acceptance criteria." },
+        "profile": { "type": "string", "description": "Name of a profile (default implement)." },
+        "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
+        "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." }
+      },
+      "required": ["id", "title"],
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "claude": {
+          "type": "object",
+          "properties": { "model": { "type": "string" }, "effort": { "type": "string" }, "role": { "type": "string" } },
+          "additionalProperties": false
+        },
+        "opencode": {
+          "type": "object",
+          "properties": {
+            "agent": { "type": "string" },
+            "model": {
+              "type": "object",
+              "properties": { "providerID": { "type": "string" }, "modelID": { "type": "string" }, "variant": { "type": "string" } },
+              "required": ["providerID", "modelID"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

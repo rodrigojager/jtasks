@@ -18,7 +18,7 @@ onze idiomas, `tasks doctor`, skills por agente, READMEs, teste real do mod), ma
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/tasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem
 velhas), `opencode/` (plugin), `claude/` (mod; tipos em `vendor/claude-code.d.ts`, `tsconfig.claude.json`),
-`skills/to-tickets/` (cópia no mod pelo build). Verificação: `bun test`, `cd opencode && bun test`,
+`skills/<agente>/<skill>/` (gerados de `skills/source/` pelo build, que também copia os do Claude Code para o mod). Verificação: `bun test`, `cd opencode && bun test`,
 `claude plugin validate claude`, `claude plugin test claude`, `bun run typecheck`, `bun scripts/demo.ts`.
 
 ## Relação com o jlock

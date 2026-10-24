@@ -1,7 +1,6 @@
 ---
 name: to-tickets
 description: Break a plan, spec, or the current conversation into tracer-bullet tasks, each with its blocking edges and the files it owns, and hand them to the goal-tasks `tasks` tool in batches (it validates, writes tasks.json and generates the tickets).
-disable-model-invocation: true
 ---
 
 # To Tickets
@@ -76,6 +75,8 @@ Iterate until the user approves the breakdown.
 
 ### 5. Hand the plan to the `tasks` tool, in batches
 
+In OpenCode with the goal-tasks plugin, every `tasks …` command below goes through the `tasks` tool: `command` is the command line without `tasks`, and JSON goes in `json` (`{ "command": "plan --add", "json": [ ... ] }`). Without the plugin, run the same commands in the shell, with the JSON in a file you write first (`tasks plan --add @batch1.json`) or on standard input (`-`).
+
 Turn the approved breakdown into JSON (schema in `schema.json` beside this file; a small example in
 `example-plan.json`) and deliver it through the tool, in batches of up to ~20 tasks, so no single answer has to hold
 the whole plan:
@@ -97,5 +98,4 @@ file, as the message says. Then `--commit` again.
 A small plan can also go in one call: `tasks plan` with the whole plan as `json`.
 
 **Never edit `tasks.json`, the tickets, `run.json` or the git history by hand**: every change goes through the tool.
-After the plan, the execution follows the protocol the tool injects (`tasks next`, one subagent per ready task,
-`tasks status` until "restam 0").
+After the plan, the execution follows the protocol the plugin injects into each request (`tasks next`, one subagent per ready task, `tasks status` until nothing is left); without the plugin, the `goal-tasks` skill.

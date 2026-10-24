@@ -48,8 +48,10 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 
-The full schema is [`skills/to-tickets/schema.json`](../skills/to-tickets/schema.json); the `to-tickets` skill
-(`skills/to-tickets/SKILL.md`, a copy travels in the mod) turns a conversation into this plan and delivers it.
+The full schema is [`schema.json`](../skills/claude-code/to-tickets/schema.json), beside the `to-tickets` skill,
+which turns a conversation into this plan and delivers it. The skills (`to-tickets` to plan, `goal-tasks` to carry a
+run out) exist for Claude Code, OpenCode and Codex; where they go and how to install them: [`skills/README.md`](../skills/README.md)
+(the mod carries its own copy).
 
 ## Actions
 
