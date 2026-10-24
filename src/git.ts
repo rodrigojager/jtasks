@@ -97,3 +97,19 @@ export async function status(host: Host, root: string): Promise<StatusEntry[]> {
 export async function shortHead(host: Host, root: string): Promise<string> {
   return (await gitOk(host, root, ["rev-parse", "--short", "HEAD"])).trim()
 }
+
+export async function commitExists(host: Host, root: string, ref: string): Promise<boolean> {
+  return (await git(host, root, ["cat-file", "-e", `${ref}^{commit}`])).code === 0
+}
+
+/** True when every commit of `branch` is already in `base`. */
+export async function isMerged(host: Host, root: string, branch: string, base: string): Promise<boolean> {
+  return (await git(host, root, ["merge-base", "--is-ancestor", branch, base])).code === 0
+}
+
+/** True when some branch still contains the commit (an object left after its branch was deleted does not count). */
+export async function commitReachable(host: Host, root: string, ref: string): Promise<boolean> {
+  if (!(await commitExists(host, root, ref))) return false
+  const r = await git(host, root, ["branch", "--all", "--contains", ref, "--format=%(refname)"])
+  return r.code === 0 && r.stdout.trim() !== ""
+}

@@ -826,6 +826,18 @@ async function status(host, root) {
 async function shortHead(host, root) {
   return (await gitOk(host, root, ["rev-parse", "--short", "HEAD"])).trim();
 }
+async function commitExists(host, root, ref) {
+  return (await git(host, root, ["cat-file", "-e", `${ref}^{commit}`])).code === 0;
+}
+async function isMerged(host, root, branch, base) {
+  return (await git(host, root, ["merge-base", "--is-ancestor", branch, base])).code === 0;
+}
+async function commitReachable(host, root, ref) {
+  if (!await commitExists(host, root, ref))
+    return false;
+  const r = await git(host, root, ["branch", "--all", "--contains", ref, "--format=%(refname)"]);
+  return r.code === 0 && r.stdout.trim() !== "";
+}
 // src/ledger.ts
 function globalLedger(host) {
   return join(goalTasksHome(host), "ledger.jsonl");
@@ -874,6 +886,16 @@ async function setEffectState(host, runDir2, run, id, state) {
     if (changed)
       await atomicWrite(host, file, serialize(effects));
   }
+}
+async function effectsOf(host, scope, insensitive) {
+  const norm = (p) => slash(insensitive ? p.toLowerCase() : p).replace(/\/+$/, "");
+  const all = await readEffects(host, globalLedger(host));
+  return all.filter((e) => (!scope.repo || norm(e.repo) === norm(scope.repo)) && (!scope.run || e.run === scope.run));
+}
+function effectLine(e) {
+  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` (revert de ${e.reverts})` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` (de ${e.from})` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
+  const when = e.at.replace("T", " ").slice(0, 16);
+  return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`;
 }
 // src/tickets.ts
 function ticketFileName(task, index) {
@@ -2295,6 +2317,200 @@ defineAction("exec", async (ctx, args) => {
   return { ok: r.code === 0, code: r.code, text: `${output}${output ? `
 ` : ""}[${how}; saiu com ${r.code}]`, data: { code: r.code, serialized: !!entry } };
 }, "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina");
+defineAction("ledger", async (ctx, args) => {
+  const insensitive = caseInsensitive(ctx.host.platform);
+  if (args.options["all-projects"]) {
+    const all = await readEffects(ctx.host, globalLedger(ctx.host));
+    const active2 = all.filter((e) => e.state === "active").length;
+    const lines2 = [`ledger global (${globalLedger(ctx.host)}): ${all.length} efeito(s), ${active2} ativo(s)`];
+    for (const repo of [...new Set(all.map((e) => e.repo))]) {
+      lines2.push(`${repo}:`);
+      for (const e of all.filter((x) => x.repo === repo))
+        lines2.push(`  ${effectLine(e)}`);
+    }
+    return ok(lines2.join(`
+`), { effects: all });
+  }
+  const root = await requireRepo(ctx.host, ctx.cwd);
+  const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
+  const effects = await effectsOf(ctx.host, { repo: root, run }, insensitive);
+  const active = effects.filter((e) => e.state === "active").length;
+  const scope = run ? `da execução ${run}` : `do repositório ${root}`;
+  const lines = [`ledger ${scope}: ${effects.length} efeito(s), ${active} ativo(s)`, ...effects.map(effectLine)];
+  return ok(lines.join(`
+`), { effects });
+}, "ledger [--all-projects]               tudo o que a ferramenta criou: tipo, ref, execução, tarefa, estado");
+function dirtyFiles(entries) {
+  return entries.map((e) => e.path).filter((p) => !p.startsWith(`${SCRATCH}/`) && p !== SCRATCH);
+}
+async function undoEffect(ctx, root, e, force) {
+  const { host } = ctx;
+  const dir = runDir(root, e.run);
+  switch (e.undo.kind) {
+    case "git-revert": {
+      const ref = e.undo.ref ?? e.ref;
+      const dirty = dirtyFiles(await status(host, root));
+      if (dirty.length)
+        throw new ToolError(`${e.id}: a árvore tem mudanças não salvas (${dirty.join(", ")}); commite ou descarte antes do undo`);
+      if (!await commitExists(host, root, ref))
+        throw new ToolError(`${e.id}: o commit ${ref} não existe mais (veja tasks effects --check)`);
+      const r = await git(host, root, ["revert", "--no-edit", ref]);
+      if (r.code !== 0) {
+        await git(host, root, ["revert", "--abort"]);
+        throw new ToolError(`${e.id}: git revert ${ref} não aplicou limpo: ${(r.stderr || r.stdout).trim()}`);
+      }
+      const head = await shortHead(host, root);
+      const branch = await currentBranch(host, root) ?? "HEAD";
+      const effect = { run: e.run, type: "commit", repo: root, ref: head, branch, undo: { kind: "git-revert", ref: head }, reverts: e.id };
+      if (e.task)
+        effect.task = e.task;
+      await recordEffect(host, dir, effect);
+      return `${e.id}: revert de ${ref} → commit ${head}`;
+    }
+    case "git-branch-delete": {
+      const branch = e.ref;
+      if (!await branchExists(host, root, branch))
+        return `${e.id}: o branch ${branch} já não existia`;
+      const base = e.from ?? "main";
+      if (!force && !await isMerged(host, root, branch, base))
+        throw new ToolError(`${e.id}: o branch ${branch} tem commits que não estão em ${base}; integre-os (git merge) ou use --force`);
+      if (await currentBranch(host, root) === branch) {
+        const dirty = dirtyFiles(await status(host, root));
+        if (dirty.length)
+          throw new ToolError(`${e.id}: ${branch} está em uso com mudanças não salvas (${dirty.join(", ")})`);
+        await gitOk(host, root, ["switch", "-q", base]);
+      }
+      await gitOk(host, root, ["branch", "-D", branch]);
+      return `${e.id}: branch ${branch} removido (checkout em ${base})`;
+    }
+    case "remove-line": {
+      const others = (await host.list(runsDir(root))).filter((d) => d.kind === "dir" && d.name !== e.run);
+      if (others.length && !force)
+        throw new ToolError(`${e.id}: outras execuções ainda usam a linha ${e.line} do exclude (${others.map((d) => d.name).join(", ")}); use --force para tirar mesmo assim`);
+      const removed = await removeExcludeLine(host, root, e.line ?? ".scratch/");
+      return `${e.id}: ${removed ? "linha removida" : "a linha já não estava"} em ${e.path}`;
+    }
+    case "rmdir": {
+      const target = e.path ?? dir;
+      const tasks = await readTasks(host, target).catch(() => {
+        return;
+      });
+      const running = tasks?.tasks.filter((t) => t.status === "in_progress").map((t) => t.id) ?? [];
+      if (running.length)
+        throw new ToolError(`${e.id}: a execução tem tarefas em andamento (${running.join(", ")}); libere-as antes`);
+      await host.remove(target, { recursive: true });
+      return `${e.id}: pasta ${target} removida`;
+    }
+    default:
+      throw new ToolError(`${e.id}: não há desfazer automático para ${e.type} (${e.undo.kind})`);
+  }
+}
+async function undoMany(ctx, root, effects, force) {
+  const done = [];
+  for (const e of [...effects].sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id))) {
+    try {
+      done.push(await undoEffect(ctx, root, e, force));
+    } catch (error) {
+      if (error instanceof ToolError && done.length)
+        throw new ToolError(`${done.join(`
+`)}
+parou em: ${error.message}`, error.code, { undone: done });
+      throw error;
+    }
+    await setEffectState(ctx.host, runDir(root, e.run), e.run, e.id, "undone");
+  }
+  return done;
+}
+defineAction("undo", async (ctx, args) => {
+  const force = !!args.options.force;
+  const id = args.positionals[0];
+  const taskId = typeof args.options.task === "string" ? args.options.task : undefined;
+  const insensitive = caseInsensitive(ctx.host.platform);
+  if (!id && !taskId) {
+    const runId2 = typeof args.options.run === "string" ? args.options.run : undefined;
+    if (!runId2)
+      throw new ToolError("diga o que desfazer: tasks undo <e-id> | --task <id> | --run <run>", 2);
+    const root = await requireRepo(ctx.host, ctx.cwd);
+    const effects2 = (await effectsOf(ctx.host, { repo: root, run: runId2 }, insensitive)).filter((e) => e.state === "active");
+    if (!effects2.length)
+      return ok(`a execução ${runId2} não tem efeitos ativos`, { undone: [] });
+    const done2 = await undoMany(ctx, root, effects2, force);
+    return ok(`execução ${runId2} desfeita:
+${done2.join(`
+`)}`, { undone: done2 });
+  }
+  const state = await resolveRun(ctx, args);
+  const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active");
+  if (id) {
+    const e = all.find((x) => x.id === id);
+    if (!e)
+      throw new ToolError(`não há efeito ativo ${id} na execução ${state.run.id} (veja tasks ledger)`);
+    const done2 = await undoMany(ctx, state.root, [e], force);
+    return ok(done2.join(`
+`), { undone: done2 });
+  }
+  const task = findTask(state, taskId);
+  if (task.status === "in_progress")
+    throw new ToolError(`${task.id} está em andamento: libere-a (tasks release ${task.id}) antes do undo`);
+  const effects = all.filter((e) => e.task === task.id && !e.reverts);
+  if (!effects.length)
+    throw new ToolError(`${task.id} não tem efeitos ativos para desfazer`);
+  const done = await undoMany(ctx, state.root, effects, force);
+  const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
+    if (x.status === "done") {
+      x.status = "pending";
+      x.commit = null;
+      delete x.evidence;
+      delete x.finishedAt;
+      delete x.startedAt;
+      for (const a of x.acceptance)
+        a.done = false;
+    }
+    return { undone: done };
+  });
+  return ok(`${done.join(`
+`)}
+${task.id} → ${t.task.status}
+${progressLine(t.tasks.tasks)}`, { undone: done, task: task.id, status: t.task.status });
+}, "undo <e-id> | --task <id> | --run <run> [--force]   desfaz na ordem inversa (revert, branch, exclude, pasta)");
+defineAction("effects", async (ctx, args) => {
+  if (!args.options.check)
+    throw new ToolError("use tasks effects --check", 2);
+  const { host } = ctx;
+  const root = await requireRepo(host, ctx.cwd);
+  const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
+  const effects = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter((e) => e.state === "active");
+  const gone = [];
+  const leftovers = [];
+  for (const e of effects) {
+    let present = true;
+    if (e.type === "branch")
+      present = await branchExists(host, root, e.ref);
+    else if (e.type === "commit")
+      present = await commitReachable(host, root, e.ref);
+    else if (e.type === "exclude")
+      present = await hasExcludeLine(host, root, e.line ?? ".scratch/");
+    else if (e.type === "dir")
+      present = !!await host.stat(e.path);
+    else if (e.type === "archive")
+      present = !!await host.stat(e.to);
+    if (!present) {
+      await setEffectState(host, runDir(root, e.run), e.run, e.id, "gone");
+      gone.push(effectLine({ ...e, state: "gone" }));
+    } else if (e.type !== "dir" && e.type !== "archive" && !await host.stat(runDir(root, e.run)))
+      leftovers.push(effectLine(e));
+  }
+  const lines = [`${effects.length} efeito(s) ativo(s) conferido(s) com o disco e o git`];
+  lines.push(gone.length ? `sumiram por fora (marcados gone):
+${gone.map((l) => `  ${l}`).join(`
+`)}` : "nada sumiu por fora");
+  if (leftovers.length)
+    lines.push(`ficaram de execuções já removidas:
+${leftovers.map((l) => `  ${l}`).join(`
+`)}`);
+  return ok(lines.join(`
+`), { checked: effects.length, gone, leftovers });
+}, "effects --check                       compara o ledger com o disco e o git (o que sumiu, o que ficou)");
 export {
   yymmdd,
   writeTickets,
@@ -2371,6 +2587,7 @@ export {
   jlockList,
   jlockBin,
   isNameKey,
+  isMerged,
   isAbsolute,
   identity,
   holdArgv,
@@ -2383,6 +2600,8 @@ export {
   firstConflict,
   findTask,
   excludeFile,
+  effectsOf,
+  effectLine,
   draftSummary,
   dirname,
   describeOwner,
@@ -2394,6 +2613,8 @@ export {
   covers,
   counts,
   conflicts,
+  commitReachable,
+  commitExists,
   chainText,
   caseInsensitive,
   canonical,

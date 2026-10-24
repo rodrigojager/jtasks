@@ -2,7 +2,7 @@
 // `ledger.jsonl` per run and a global index in `<GOAL_TASKS_HOME>/ledger.jsonl`.
 
 import type { Host } from "./host.ts"
-import { join } from "./paths.ts"
+import { join, slash } from "./paths.ts"
 import { atomicWrite, goalTasksHome } from "./store.ts"
 
 export type EffectType = "exclude" | "branch" | "commit" | "worktree" | "junction" | "dir" | "archive" | "agent-config"
@@ -88,4 +88,26 @@ export async function setEffectState(host: Host, runDir: string, run: string, id
       }
     if (changed) await atomicWrite(host, file, serialize(effects))
   }
+}
+
+/** Every effect of the repository (from the global index), of one run, or of every project. */
+export async function effectsOf(host: Host, scope: { repo?: string; run?: string }, insensitive: boolean): Promise<Effect[]> {
+  const norm = (p: string) => slash(insensitive ? p.toLowerCase() : p).replace(/\/+$/, "")
+  const all = await readEffects(host, globalLedger(host))
+  return all.filter((e) => (!scope.repo || norm(e.repo) === norm(scope.repo)) && (!scope.run || e.run === scope.run))
+}
+
+export function effectLine(e: Effect): string {
+  const what =
+    e.type === "commit"
+      ? `${e.ref}${e.reverts ? ` (revert de ${e.reverts})` : ""}`
+      : e.type === "branch"
+        ? `${e.ref}${e.from ? ` (de ${e.from})` : ""}`
+        : e.type === "exclude"
+          ? `${e.path}: ${e.line}`
+          : e.type === "archive"
+            ? `${e.path} → ${e.to}`
+            : (e.path ?? e.ref ?? "")
+  const when = e.at.replace("T", " ").slice(0, 16)
+  return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`
 }
