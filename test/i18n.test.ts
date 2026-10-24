@@ -1,9 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { afterAll, describe, expect, test } from "bun:test"
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { choose, resolve, select, tags, tr, width } from "../src/i18n.ts"
 import type { Host } from "../src/host.ts"
-import { host, makeRepo, REPO_ROOT, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, REPO_ROOT, tasks, tasksOk } from "./helpers.ts"
+
+afterAll(cleanupTemp)
 
 const LOCALES = join(REPO_ROOT, "locales")
 

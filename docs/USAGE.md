@@ -1,11 +1,9 @@
 # goal-tasks usage
 
-`tasks` is a deterministic task list for coding agents: a plan is validated once, each task declares the files it
-owns, agents run in parallel on the same checkout, and the tool (not the model) holds the ownership in
-[jlock](https://github.com/rodrigojager/jlock), records every transition, commits one task at a time and keeps a
-ledger of everything it creates. The same tool has three forms: the CLI, the Claude Code mod (`claude/`) and the
-OpenCode plugin (`opencode/`). The design is in [`PLAN.md`](PLAN.md) (Portuguese); departures from it are in
-[`DEVIATIONS.md`](DEVIATIONS.md). Answers come in your language (see [Languages](#languages)).
+The reference of every command. What goal-tasks is and why it exists: the [README](../README.md). The design is in
+[`PLAN.md`](PLAN.md) (Portuguese); departures from it are in [`DEVIATIONS.md`](DEVIATIONS.md); the skills for each
+agent are in [`skills/README.md`](../skills/README.md). The same commands work in the CLI, the Claude Code mod
+(`claude/`) and the OpenCode plugin (`opencode/`). Answers come in your language (see [Languages](#languages)).
 
 Windows first: jlock was validated on Windows, and so was this.
 
