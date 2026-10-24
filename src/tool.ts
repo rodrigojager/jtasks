@@ -2,7 +2,7 @@
 // input into an argument list (the CLI's own argv, or the tool's `command` string split like a shell would) plus an
 // optional structured `json`, and gets back `{ ok, code, text, data }`.
 
-import type { Host } from "./host.ts"
+import type { Host, Resident } from "./host.ts"
 import { isAbsolute, join } from "./paths.ts"
 import type { ToolName } from "./schema.ts"
 import { validatePlan } from "./validate.ts"
@@ -22,6 +22,16 @@ export interface ToolContext {
   json?: unknown
   /** Standard input of the CLI, for a `-` argument. */
   stdin?: () => Promise<string>
+  /** The subagent calling, when the host knows it (owner becomes `<tool>:<session>/agent:<id>`). */
+  agent?: string
+  /**
+   * The `jlock hold` processes this host keeps alive, by `<run>/<task>`. Present in a long-lived host (plugin, mod,
+   * tests): holds stay attached and are told to stop through standard input. Absent in the CLI, whose process ends
+   * after each command: holds are then detached and given back with `jlock release --group --owner`.
+   */
+  residents?: Map<string, Resident[]>
+  /** Called when a hold of this host ends by itself (14: the lock was taken away). Set by long-lived hosts. */
+  onHoldExit?: (run: string, task: string, code: number) => void
 }
 
 export interface ToolResult {

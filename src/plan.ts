@@ -22,7 +22,8 @@ import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, ty
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
 
 export function actorOf(ctx: ToolContext): string {
-  return ctx.session ? `${ctx.tool}:${ctx.session}` : ctx.tool
+  const base = ctx.session ? `${ctx.tool}:${ctx.session}` : ctx.tool
+  return ctx.agent ? `${base}/agent:${ctx.agent}` : base
 }
 
 export function toTask(p: PlanTask, profiles: Record<string, Profile>): Task {

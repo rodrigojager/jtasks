@@ -79,6 +79,26 @@ export async function tasks(cwd: string, argv: string[], extra: Partial<ToolCont
   return runTool(context(cwd, extra), argv)
 }
 
+/** A `jlock hold` of our own (another program holding a key); stop it with `.stop()` or a `release` line. */
+export async function foreignHold(keys: string[], owner: string, group?: string) {
+  const argv = ["jlock", "hold", ...keys, "--owner", owner, "--json"]
+  if (group) argv.push("--group", group)
+  const r = await host.spawn(argv)
+  const first = await r.firstLine(10_000)
+  if (!first?.includes('"granted"')) throw new Error(`foreign hold not granted: ${first}`)
+  return r
+}
+
+/** Releases every lock of a run's group (the CLI's detached holds then end by themselves with 14). */
+export function releaseGroup(run: string) {
+  Bun.spawnSync(["jlock", "release", "--group", run, "--any-owner", "--json"], { env: process.env })
+}
+
+export function jlockListJson(...args: string[]): { key: string; holder: { owner: string } | null; queue: { owner: string; position: number }[] }[] {
+  const p = Bun.spawnSync(["jlock", "list", "--json", ...args], { env: process.env })
+  return JSON.parse(p.stdout.toString()).locks
+}
+
 /** Like `tasks`, but fails the test with the tool's text when the result is not ok. */
 export async function tasksOk(cwd: string, argv: string[], extra: Partial<ToolContext> = {}): Promise<ToolResult> {
   const r = await tasks(cwd, argv, extra)
