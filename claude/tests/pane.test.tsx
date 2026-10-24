@@ -38,12 +38,12 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect((await ui.find({ key: 'toggle' }))?.text).toBe(`▾ Tasks · ${run}`)
-    expect((await ui.find({ type: 'Text', text: /0% · 0\/2/ }))?.text).toBe('██████████ 0% · 0/2')
-    // The bar as the opencode-hud paints it: the done part in the interactive hue, the rest a dim track.
-    const runs = (await ui.findAll({ type: 'Text' })).filter((t) => t.props.color !== undefined && /█/.test(t.text))
-    expect(runs.map((t) => [t.text, t.props.color])).toEqual([['██████████', 'subtle']])
-    expect((await ui.find({ type: 'Text', text: /T01/ }))?.text).toMatch(/^☐ T01 Base/)
-    expect((await ui.find({ type: 'Text', text: /T02/ }))?.text).toContain('⛔ T01')
+    expect((await ui.find({ type: 'Text', text: /0% · 0\/2/ }))?.text).toBe('░░░░░░░░░░ 0% · 0/2')
+    const labels = await ui.findAll({ type: 'Text', text: /T[12] -/ })
+    expect(labels.map((t) => t.text)).toEqual(['○ T1 - Base', 'T1 - Base', '○ T2 - Junta', 'T2 - Junta'])
+    const pendingLabels = (await ui.findAll({ type: 'Text' })).filter((t) => t.text === 'T1 - Base' || t.text === 'T2 - Junta')
+    expect(pendingLabels.map((t) => t.props.dimColor)).toEqual([true, true])
+    expect((await ui.findAll({ type: 'Text' })).filter((t) => t.text === '○').map((t) => t.props.dimColor)).toEqual([true, true])
     await ui.unmount()
   }
 
@@ -54,13 +54,13 @@ test('binding a run opens the pane; it draws the checklist on terminal and deskt
   machine.write(file, JSON.stringify(tasks))
   await clock.advance(2000)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect((await ui.find({ type: 'Text', text: /T01/ }))?.text).toMatch(/^☑ T01 Base\s+9f1c2ab$/)
-  expect((await ui.find({ type: 'Text', text: /50% · 1\/2/ }))?.text).toBe('██████████ 50% · 1/2')
+  const doneRow = (await ui.findAll({ type: 'Text' })).find((t) => t.text === 'T1 - Base')
+  expect(doneRow?.text).toBe('T1 - Base')
+  expect(doneRow?.props.strikethrough).toBe(true)
+  expect((await ui.findAll({ type: 'Text' })).some((t) => t.text === '✓' && t.props.color === 'green')).toBe(true)
+  expect((await ui.find({ type: 'Text', text: /50% · 1\/2/ }))?.text).toBe('█████░░░░░ 50% · 1/2')
   const half = (await ui.findAll({ type: 'Text' })).filter((t) => t.props.color !== undefined && /█/.test(t.text))
-  expect(half.map((t) => [t.text, t.props.color])).toEqual([
-    ['█████', 'suggestion'],
-    ['█████', 'subtle'],
-  ])
+  expect(half.map((t) => [t.text, t.props.color])).toEqual([['█████', 'suggestion']])
 
   // The header button folds the pane to one line, and the choice is stored.
   await ui.press({ key: 'toggle' })
@@ -86,6 +86,29 @@ test('/jtasks opens and closes the pane; with no bound run it lists the runs', a
   expect(panes).toEqual(['open tasks', 'close tasks'])
 })
 
+test('the running mark animates while the pane is open and stays still when idle', async ($, on) => {
+  const { clock } = engine(on)
+  await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+  const run = await plan($)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const frames = ['✻', '✶', '✳', '✢', '·']
+  const mark = async () => (await ui.findAll({ type: 'Text' })).find((text) => frames.includes(text.text))?.text
+
+  const idleMark = await mark()
+  await clock.advance(120)
+  expect(await mark()).toBe(idleMark)
+
+  await $.tool.call({ tool: TOOL, command: 'start T01' })
+  const runningMark = await mark()
+  expect(frames).toContain(runningMark)
+  await clock.advance(120)
+  const nextMark = await mark()
+  expect(nextMark).not.toBe(runningMark)
+  expect((await ui.findAll({ type: 'Text' })).some((text) => text.text === nextMark && text.props.color === 'claude')).toBe(true)
+  await ui.unmount()
+  expect(run).toBeTruthy()
+})
+
 test('a view an earlier version stored is declined', async ($, on) => {
   engine(on)
   on('state.get', (_$, e, next) => (e.key === 'view' ? ({ value: { value: { kind: 'run', lines: 'old shape' }, version: 1 } } as never) : next(e)))
@@ -108,7 +131,7 @@ test('the same pane in English: GOAL_TASKS_LANG=en for the session', async ($, o
   const run = await plan($)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect((await ui.find({ key: 'toggle' }))?.text).toBe(`▾ Tasks · ${run}`)
-  expect((await ui.find({ type: 'Text', text: /T02/ }))?.text).toContain('⛔ T01')
+  expect((await ui.find({ type: 'Text', text: /T2 - Junta/ }))?.text).toBe('○ T2 - Junta')
   await ui.press({ key: 'toggle' })
   expect((await ui.find({ key: 'toggle' }))?.text).toBe('▸ Tasks 0/2 · 0%')
   await ui.unmount()

@@ -9,7 +9,7 @@ import { parseArgs, runTool, select, splitCommand, systemLocale, tr, type Reside
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
-import { BAR_COLOR, computeView, isLive, PANE, PANE_TITLE, paneLines, TRACK_COLOR } from './pane.tsx'
+import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
 
@@ -31,6 +31,7 @@ let port: Port | undefined
 /** Set at session.start: recomputes the pane's view now (a closure over that hook's $). */
 let refresh: ((force: boolean) => Promise<void>) | undefined
 let paneOpen = false
+let spinnerFrame = 0
 
 function needPort(): Port {
   if (!port) throw new Error(tr('mod.no_session'))
@@ -117,6 +118,12 @@ export const register: Register = (on) => {
       await update($, viewAtom, () => view)
     }
     $.clock.every(2000, () => void refresh?.(false).catch(() => undefined))
+    $.clock.every(120, async () => {
+      const view = await read($, viewAtom)
+      if (!paneOpen || !view || !paneRows(view).some((row) => row.state === 'running')) return
+      spinnerFrame = (spinnerFrame + 1) % SPINNER_FRAMES.length
+      await update($, viewAtom, () => view)
+    })
     if (await port.getRun()) {
       paneOpen = (await $.ui.open({ id: PANE, title: PANE_TITLE })).isPlaced
       await refresh(true)
@@ -146,7 +153,7 @@ export const register: Register = (on) => {
     const view = await read($, viewAtom)
     const collapsed = await read($, collapsedAtom)
     if (!view) return <Text dimColor>{tr('view.loading')}</Text>
-    const { header, summary, body } = paneLines(view, collapsed, e.props.bodyColumns ?? 60)
+    const { header } = paneLines(view, collapsed, e.props.bodyColumns ?? 60)
     const toggle = async () => {
       const folded = !collapsed
       await update($, collapsedAtom, () => folded)
@@ -157,19 +164,22 @@ export const register: Register = (on) => {
         <Button key="toggle" plain onPress={toggle}>
           {header}
         </Button>
-        {summary ? (
-          <Text key="summary">
-            <Text color={BAR_COLOR}>{summary.full}</Text>
-            <Text color={BAR_COLOR} backgroundColor={TRACK_COLOR}>
-              {summary.partial}
-            </Text>
-            <Text color={TRACK_COLOR}>{summary.empty}</Text>
-            {` ${summary.tail}`}
-          </Text>
-        ) : null}
-        {body.map((line) => (
-          <Text>{line}</Text>
-        ))}
+        {!collapsed && view.kind === 'runs' ? paneLines(view, false, e.props.bodyColumns ?? 60).body.map((line) => <Text>{line}</Text>) : null}
+        {!collapsed && view.kind === 'run' ? (() => {
+          const bar = hudBar(view.percent, view.done, view.total)
+          const rows = paneRows(view)
+          return <Box flexDirection="column">
+            <Box key="summary" marginBottom={1}>
+              <Text><Text color={BAR_COLOR}>{bar.filled}</Text><Text dimColor>{bar.empty}</Text><Text color={BAR_COLOR}>{` ${bar.text}`}</Text></Text>
+            </Box>
+            {rows.map((row, index) => <Box key={`row-${index}`} flexDirection="column" marginBottom={index < rows.length - 1 ? 1 : 0}>
+              <Text>
+                <Text color={row.state === 'done' ? 'green' : row.state === 'running' ? 'claude' : undefined} dimColor={row.state === 'pending'}>{row.state === 'done' ? '✓' : row.state === 'running' ? SPINNER_FRAMES[spinnerFrame] : row.state === 'pending' ? '○' : row.state === 'failed' ? '✗' : '–'}</Text>
+                {' '}<Text color={row.state === 'running' ? 'claude' : undefined} dimColor={row.state === 'pending'} strikethrough={row.state === 'done'}>{row.label}</Text>
+              </Text>
+            </Box>)}
+          </Box>
+        })() : null}
       </Box>
     )
   })
