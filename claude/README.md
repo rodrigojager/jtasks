@@ -26,6 +26,26 @@ another with `--lang <tag>` (`{ "command": "status --lang en" }`). The tool's de
 system prompt are English, for the model; `--json` data is the same in every language. Set the variable before
 starting Claude Code, for example `GOAL_TASKS_LANG=en claude --plugin-dir D:/goal-tasks/claude`.
 
+## Tasks pane
+
+The Tasks pane shows the bound run's progress in a claude-hud-style bar, then one row per task. For example:
+
+```text
+Tasks  [v]
+██████░░░░ 60% · 3/5
+
+[✓] T1 - Base
+
+[✻] T2 - Pane model
+
+[ ] T3 - Pane documentation
+```
+
+The filled and dim cells show progress; the percentage and `done/total` count follow the bar. A green check marks a
+completed task, whose label is struck through. The orange spinner (shown here as `✻`) marks the currently running
+task. Upcoming tasks are dim. There is a blank line between task rows. Use the header button to fold or unfold the
+pane, or toggle it with `/jtasks`.
+
 ## Check it
 
 ```
