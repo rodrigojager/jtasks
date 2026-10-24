@@ -69,6 +69,8 @@ export interface Host {
   rename(from: string, to: string): Promise<void>
   remove(path: string, options?: { recursive?: boolean }): Promise<void>
   mkdir(path: string): Promise<void>
+  /** Creates one folder (its parent must exist); `false` when it already exists. The core's short write lock. */
+  mkdirExclusive(path: string): Promise<boolean>
   /** `[]` when the folder does not exist. */
   list(path: string): Promise<DirEntry[]>
   /** `undefined` when the path does not exist. Links are not followed. */

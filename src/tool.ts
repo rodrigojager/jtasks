@@ -160,23 +160,29 @@ function parseJson(text: string, what: string): unknown {
 type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>
 
 const actions = new Map<string, Action>()
+const usages: string[] = []
 
-/** Adds an action to the tool; later tickets register theirs. */
-export function defineAction(name: string, fn: Action) {
+/** Adds an action to the tool, with its line in `tasks help`. */
+export function defineAction(name: string, fn: Action, usage?: string) {
   actions.set(name, fn)
+  if (usage) usages.push(usage)
 }
 
 export function ok(text: string, data?: unknown, extra: Partial<ToolResult> = {}): ToolResult {
   return { ok: true, code: 0, text, data, ...extra }
 }
 
-const HELP = `tasks ${VERSION}: lista de tarefas com dependências e posse de arquivos (jlock)
-
-plano      validate <json|@arquivo>      valida sem gravar
-execução   (os próximos tickets acrescentam as ações)
-geral      help · version · --json em qualquer ação`
-
-defineAction("help", async () => ok(HELP))
+defineAction("help", async () =>
+  ok(
+    [
+      `tasks ${VERSION}: lista de tarefas com dependências e posse de arquivos (jlock)`,
+      "",
+      ...usages.map((u) => `  ${u}`),
+      "",
+      "  --json em qualquer ação: a resposta em JSON; --run <id> escolhe a execução",
+    ].join("\n"),
+  ),
+)
 defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }))
 
 defineAction("validate", async (ctx, args) => {
@@ -185,7 +191,7 @@ defineAction("validate", async (ctx, args) => {
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${errors.length} erro(s):\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
   return ok(`ok: ${plan.tasks.length} tarefa(s), nenhum erro`, { errors: [], tasks: plan.tasks.length })
-})
+}, "validate <json|@arquivo>              valida um plano sem gravar")
 
 /** Runs one command of the tool. Never throws: errors come back as `{ ok: false }`. */
 export async function runTool(ctx: ToolContext, argv: readonly string[]): Promise<ToolResult> {

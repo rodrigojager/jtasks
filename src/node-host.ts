@@ -160,6 +160,15 @@ export function createNodeHost(): Host {
     async mkdir(dir) {
       await fs.mkdir(dir, { recursive: true })
     },
+    async mkdirExclusive(dir) {
+      try {
+        await fs.mkdir(dir)
+        return true
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "EEXIST") return false
+        throw error
+      }
+    },
     async list(dir): Promise<DirEntry[]> {
       try {
         const entries = await fs.readdir(dir, { withFileTypes: true })

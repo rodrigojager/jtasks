@@ -159,6 +159,16 @@ function createNodeHost() {
     async mkdir(dir) {
       await fs.mkdir(dir, { recursive: true });
     },
+    async mkdirExclusive(dir) {
+      try {
+        await fs.mkdir(dir);
+        return true;
+      } catch (error) {
+        if (error.code === "EEXIST")
+          return false;
+        throw error;
+      }
+    },
     async list(dir) {
       try {
         const entries = await fs.readdir(dir, { withFileTypes: true });

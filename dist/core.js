@@ -505,18 +505,23 @@ function parseJson(text, what) {
   }
 }
 var actions = new Map;
-function defineAction(name, fn) {
+var usages = [];
+function defineAction(name, fn, usage) {
   actions.set(name, fn);
+  if (usage)
+    usages.push(usage);
 }
 function ok(text, data, extra = {}) {
   return { ok: true, code: 0, text, data, ...extra };
 }
-var HELP = `tasks ${VERSION}: lista de tarefas com dependências e posse de arquivos (jlock)
-
-plano      validate <json|@arquivo>      valida sem gravar
-execução   (os próximos tickets acrescentam as ações)
-geral      help · version · --json em qualquer ação`;
-defineAction("help", async () => ok(HELP));
+defineAction("help", async () => ok([
+  `tasks ${VERSION}: lista de tarefas com dependências e posse de arquivos (jlock)`,
+  "",
+  ...usages.map((u) => `  ${u}`),
+  "",
+  "  --json em qualquer ação: a resposta em JSON; --run <id> escolhe a execução"
+].join(`
+`)));
 defineAction("version", async () => ok(`tasks ${VERSION}`, { version: VERSION }));
 defineAction("validate", async (ctx, args) => {
   const raw = await readJsonArg(ctx, args.positionals[0]);
@@ -526,7 +531,7 @@ defineAction("validate", async (ctx, args) => {
 ${errors.map((e) => `- ${e}`).join(`
 `)}`, data: { errors } };
   return ok(`ok: ${plan.tasks.length} tarefa(s), nenhum erro`, { errors: [], tasks: plan.tasks.length });
-});
+}, "validate <json|@arquivo>              valida um plano sem gravar");
 async function runTool(ctx, argv) {
   try {
     const args = parseArgs(argv);
@@ -543,36 +548,622 @@ async function runTool(ctx, argv) {
     return { ok: false, code: 1, text: `erro: ${message}`, data: { error: message } };
   }
 }
+// src/ids.ts
+function slugify(text, max = 24) {
+  const s = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const cut = s.slice(0, max).replace(/-+$/, "");
+  return cut || "run";
+}
+function yymmdd(date) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(date.getFullYear() % 100)}${p(date.getMonth() + 1)}${p(date.getDate())}`;
+}
+var ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+function runId(slug, date, random) {
+  let tail = "";
+  for (let i = 0;i < 4; i++)
+    tail += ALPHABET[Math.floor(random() * ALPHABET.length)];
+  return `${slugify(slug)}-${yymmdd(date)}-${tail}`;
+}
+function ticketNumber(id, index) {
+  const m = /^[A-Za-z]*0*(\d+)$/.exec(id);
+  const n = m ? Number(m[1]) : index + 1;
+  return String(n).padStart(2, "0");
+}
+// src/store.ts
+var SCRATCH = ".scratch/goal-tasks";
+function runsDir(root) {
+  return join(root, SCRATCH, "runs");
+}
+function runDir(root, run) {
+  return join(runsDir(root), run);
+}
+function goalTasksHome(host) {
+  const own = host.env("GOAL_TASKS_HOME");
+  if (own)
+    return own.replace(/\\/g, "/");
+  const home = host.env("USERPROFILE") ?? host.env("HOME") ?? ".";
+  return join(home, ".goal-tasks");
+}
+
+class StaleRevisionError extends Error {
+  expected;
+  found;
+  constructor(expected, found) {
+    super(`tasks.json mudou enquanto esta ação rodava (revisão ${expected} → ${found}); leia de novo e repita`);
+    this.expected = expected;
+    this.found = found;
+  }
+}
+async function atomicWrite(host, file, text) {
+  const tmp = `${file}.${Math.floor(host.random() * 1e9).toString(36)}.tmp`;
+  await host.writeText(tmp, text);
+  try {
+    await host.rename(tmp, file);
+  } catch (error) {
+    await host.remove(tmp).catch(() => {});
+    throw error;
+  }
+}
+async function readJson(host, file) {
+  const text = await host.readText(file);
+  if (text === undefined)
+    return;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${file} não é JSON válido: ${error.message}`);
+  }
+}
+function stringify(value) {
+  return `${JSON.stringify(value, null, 2)}
+`;
+}
+async function readRun(host, dir) {
+  return readJson(host, join(dir, "run.json"));
+}
+async function readTasks(host, dir) {
+  return readJson(host, join(dir, "tasks.json"));
+}
+async function writeRun(host, dir, run) {
+  await atomicWrite(host, join(dir, "run.json"), stringify(run));
+}
+async function writeTasks(host, dir, tasks, expected) {
+  const current = await readTasks(host, dir);
+  const found = current?.revision ?? 0;
+  if (found !== expected)
+    throw new StaleRevisionError(expected, found);
+  const next = { ...tasks, revision: expected + 1 };
+  await atomicWrite(host, join(dir, "tasks.json"), stringify(next));
+  return next;
+}
+var LOCK_STALE_MS = 1e4;
+var LOCK_WAIT_MS = 20000;
+async function withLock(host, dir, fn) {
+  const lock = join(dir, ".write.lock");
+  const deadline = host.now().getTime() + LOCK_WAIT_MS;
+  for (;; ) {
+    if (await host.mkdirExclusive(lock))
+      break;
+    const stat = await host.stat(lock);
+    if (stat && host.now().getTime() - stat.mtimeMs > LOCK_STALE_MS) {
+      await host.remove(lock, { recursive: true }).catch(() => {});
+      continue;
+    }
+    if (host.now().getTime() > deadline)
+      throw new Error(`a execução está travada para escrita há mais de ${LOCK_WAIT_MS / 1000} s: ${lock}`);
+    await host.sleep(15 + Math.floor(host.random() * 35));
+  }
+  try {
+    return await fn();
+  } finally {
+    await host.remove(lock, { recursive: true }).catch(() => {});
+  }
+}
+async function mutateTasks(host, dir, change) {
+  return withLock(host, dir, async () => {
+    const tasks = await readTasks(host, dir);
+    if (!tasks)
+      throw new Error(`execução sem tasks.json: ${dir}`);
+    const copy = structuredClone(tasks);
+    const result = await change(copy);
+    return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
+  });
+}
+async function listRuns(host, root) {
+  const out = [];
+  for (const entry of await host.list(runsDir(root))) {
+    if (entry.kind !== "dir")
+      continue;
+    const dir = join(runsDir(root), entry.name);
+    const run = await readRun(host, dir).catch(() => {
+      return;
+    });
+    if (!run)
+      continue;
+    out.push({ dir, run, tasks: await readTasks(host, dir).catch(() => {
+      return;
+    }) });
+  }
+  return out.sort((a, b) => a.run.created.localeCompare(b.run.created) || a.run.id.localeCompare(b.run.id));
+}
+async function appendLog(host, dir, entry) {
+  await host.appendText(join(dir, "log.jsonl"), `${JSON.stringify(entry)}
+`);
+}
+// src/format.ts
+function counts(tasks) {
+  const c = { total: tasks.length, done: 0, skipped: 0, failed: 0, inProgress: 0, pending: 0 };
+  for (const t of tasks) {
+    if (t.status === "done")
+      c.done++;
+    else if (t.status === "skipped")
+      c.skipped++;
+    else if (t.status === "failed")
+      c.failed++;
+    else if (t.status === "in_progress")
+      c.inProgress++;
+    else
+      c.pending++;
+  }
+  return { ...c, remaining: c.total - c.done - c.skipped, percent: progress(c.done, c.total) };
+}
+function progress(done, total) {
+  return total === 0 ? 0 : Math.floor(done / total * 100);
+}
+var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function progressLine(tasks) {
+  const c = counts(tasks);
+  const parts = [`feitas ${c.done}/${c.total} (${c.percent}%)`];
+  if (c.skipped)
+    parts.push(plural(c.skipped, "pulada", "puladas"));
+  if (c.failed)
+    parts.push(plural(c.failed, "falha", "falhas"));
+  if (c.inProgress)
+    parts.push(`${c.inProgress} em andamento`);
+  parts.push(`restam ${c.remaining}`);
+  return parts.join(" · ");
+}
+function runLine(run, tasks) {
+  const c = tasks ? counts(tasks.tasks) : undefined;
+  const prog = c ? `${c.done}/${c.total} (${c.percent}%)` : "sem tasks.json";
+  return `${run.id} · ${run.status} · ${prog} · ${run.objective || run.feature}`;
+}
+function formatRunsList(runs) {
+  if (runs.length === 0)
+    return "nenhuma execução neste repositório (crie uma com tasks plan)";
+  return runs.map((r) => runLine(r.run, r.tasks)).join(`
+`);
+}
+function bullet(lines) {
+  return lines.map((l) => `- ${l}`).join(`
+`);
+}
+// src/git.ts
+async function git(host, cwd, args, stdin) {
+  return host.run(["git", ...args], { cwd, stdin, env: { GIT_TERMINAL_PROMPT: "0", GIT_EDITOR: "true" } });
+}
+async function gitOk(host, cwd, args, stdin) {
+  const r = await git(host, cwd, args, stdin);
+  if (r.code !== 0)
+    throw new ToolError(`git ${args[0]} falhou: ${(r.stderr || r.stdout).trim()}`);
+  return r.stdout;
+}
+async function repoRoot(host, cwd) {
+  const r = await git(host, cwd, ["rev-parse", "--show-toplevel"]);
+  if (r.code !== 0)
+    return;
+  return slash(r.stdout.trim());
+}
+async function requireRepo(host, cwd) {
+  const root = await repoRoot(host, cwd);
+  if (!root)
+    throw new ToolError(`não é um repositório git: ${cwd} (o goal-tasks faz um commit por tarefa)`);
+  return root;
+}
+async function currentBranch(host, root) {
+  const r = await git(host, root, ["symbolic-ref", "--short", "-q", "HEAD"]);
+  const name = r.stdout.trim();
+  return r.code === 0 && name ? name : undefined;
+}
+async function branchExists(host, root, branch) {
+  const r = await git(host, root, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`]);
+  return r.code === 0;
+}
+async function excludeFile(host, root) {
+  const p = slash((await gitOk(host, root, ["rev-parse", "--git-path", "info/exclude"])).trim());
+  return isAbsolute(p) ? p : join(root, p);
+}
+async function hasExcludeLine(host, root, line) {
+  const text = await host.readText(await excludeFile(host, root)) ?? "";
+  return text.split(/\r?\n/).some((l) => l.trim() === line);
+}
+async function addExcludeLine(host, root, line) {
+  const file = await excludeFile(host, root);
+  const text = await host.readText(file) ?? "";
+  if (text.split(/\r?\n/).some((l) => l.trim() === line))
+    return false;
+  const sep = text === "" || text.endsWith(`
+`) ? "" : `
+`;
+  await host.writeText(file, `${text}${sep}${line}
+`);
+  return true;
+}
+async function removeExcludeLine(host, root, line) {
+  const file = await excludeFile(host, root);
+  const text = await host.readText(file);
+  if (text === undefined)
+    return false;
+  const lines = text.split(/\r?\n/);
+  const kept = lines.filter((l) => l.trim() !== line);
+  if (kept.length === lines.length)
+    return false;
+  await host.writeText(file, kept.join(`
+`));
+  return true;
+}
+async function status(host, root) {
+  const out = await gitOk(host, root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]);
+  const parts = out.split("\x00").filter((p) => p !== "");
+  const entries = [];
+  for (let i = 0;i < parts.length; i++) {
+    const part = parts[i];
+    const code = part.slice(0, 2);
+    entries.push({ code, path: part.slice(3) });
+    if (code.startsWith("R") || code.startsWith("C")) {
+      const from = parts[++i];
+      if (from)
+        entries.push({ code, path: from });
+    }
+  }
+  return entries;
+}
+async function shortHead(host, root) {
+  return (await gitOk(host, root, ["rev-parse", "--short", "HEAD"])).trim();
+}
+// src/ledger.ts
+function globalLedger(host) {
+  return join(goalTasksHome(host), "ledger.jsonl");
+}
+async function readEffects(host, file) {
+  const text = await host.readText(file);
+  if (!text)
+    return [];
+  const out = [];
+  for (const line of text.split(`
+`)) {
+    if (!line.trim())
+      continue;
+    try {
+      out.push(JSON.parse(line));
+    } catch {}
+  }
+  return out;
+}
+function serialize(effects) {
+  return effects.map((e) => `${JSON.stringify(e)}
+`).join("");
+}
+async function recordEffect(host, runDir2, effect) {
+  const file = join(runDir2, "ledger.jsonl");
+  const existing = await readEffects(host, file);
+  const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
+  const full = { id: `e-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
+  await host.appendText(file, `${JSON.stringify(full)}
+`);
+  await host.appendText(globalLedger(host), `${JSON.stringify(full)}
+`);
+  return full;
+}
+async function setEffectState(host, runDir2, run, id, state) {
+  const at = host.now().toISOString();
+  for (const file of [join(runDir2, "ledger.jsonl"), globalLedger(host)]) {
+    const effects = await readEffects(host, file);
+    let changed = false;
+    for (const e of effects)
+      if (e.id === id && e.run === run && e.state !== state) {
+        e.state = state;
+        e.changedAt = at;
+        changed = true;
+      }
+    if (changed)
+      await atomicWrite(host, file, serialize(effects));
+  }
+}
+// src/tickets.ts
+function ticketFileName(task, index) {
+  return `${ticketNumber(task.id, index)}-${slugify(task.title, 40)}.md`;
+}
+function numbers(tasks) {
+  return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]));
+}
+function renderTicket(task, index, all) {
+  const nums = numbers(all);
+  const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
+  const files = task.exclusive ? "(exclusive: roda sozinha)" : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : "(nenhum)";
+  const claimed = task.claimed?.length ? `
+
+**Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : "";
+  const lines = [
+    `# ${ticketNumber(task.id, index)}: ${task.title}`,
+    "",
+    `**What to build:** ${task.what?.trim() || task.title}`,
+    "",
+    `**Blocked by:** ${blocked}`,
+    "",
+    `**Status:** ${task.status}`,
+    "",
+    `**Profile:** ${task.profile}`,
+    "",
+    `**Files:** ${files}${claimed}`,
+    ""
+  ];
+  for (const a of task.acceptance)
+    lines.push(`- [${a.done ? "x" : " "}] ${a.text}`);
+  if (task.acceptance.length)
+    lines.push("");
+  if (task.commit)
+    lines.push(`**Commit:** ${task.commit}`, "");
+  if (task.evidence)
+    lines.push(`**Evidence:** ${task.evidence}`, "");
+  if (task.reason)
+    lines.push(`**Reason:** ${task.reason}`, "");
+  if (task.error)
+    lines.push(`**Error:** ${task.error}`, "");
+  if (task.boundary)
+    lines.push(`**Scope boundary:** ${task.boundary}`, "");
+  return lines.join(`
+`);
+}
+async function writeTickets(host, runDir2, tasks) {
+  const dir = join(runDir2, "tickets");
+  const names = tasks.tasks.map((t, i) => ticketFileName(t, i));
+  await host.mkdir(dir);
+  for (let i = 0;i < tasks.tasks.length; i++)
+    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks));
+  for (const entry of await host.list(dir))
+    if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name))
+      await host.remove(join(dir, entry.name));
+  return names.map((n) => join(dir, n));
+}
+async function writeTicket(host, runDir2, tasks, id) {
+  const index = tasks.tasks.findIndex((t) => t.id === id);
+  if (index < 0)
+    return;
+  const task = tasks.tasks[index];
+  await host.writeText(join(runDir2, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks));
+}
+function ticketPath(runDir2, tasks, id) {
+  const index = tasks.findIndex((t) => t.id === id);
+  return index < 0 ? undefined : join(runDir2, "tickets", ticketFileName(tasks[index], index));
+}
+// src/plan.ts
+function actorOf(ctx) {
+  return ctx.session ? `${ctx.tool}:${ctx.session}` : ctx.tool;
+}
+function toTask(p, profiles) {
+  const fallback = DEFAULT_PROFILE in profiles ? DEFAULT_PROFILE : Object.keys(profiles)[0] ?? DEFAULT_PROFILE;
+  const task = {
+    id: p.id,
+    title: p.title.trim(),
+    status: "pending",
+    dependsOn: [...p.dependsOn ?? []],
+    profile: p.profile ?? fallback,
+    files: [...p.files ?? []],
+    acceptance: (p.acceptance ?? []).map((a) => typeof a === "string" ? { text: a, done: false } : { text: a.text, done: !!a.done }),
+    attempts: 0,
+    owner: null
+  };
+  if (p.what)
+    task.what = p.what;
+  if (p.exclusive)
+    task.exclusive = true;
+  if (p.boundary)
+    task.boundary = p.boundary;
+  return task;
+}
+async function createRun(ctx, plan, options = {}) {
+  const { host } = ctx;
+  const root = await requireRepo(host, ctx.cwd);
+  const base = await currentBranch(host, root);
+  const useRunBranch = plan.branch !== "current";
+  if (!base)
+    throw new ToolError('HEAD está destacado: mude para um branch antes do plan (ou use "branch": "current")');
+  const head = await git(host, root, ["rev-parse", "--verify", "-q", "HEAD"]);
+  if (useRunBranch && head.code !== 0)
+    throw new ToolError("o repositório ainda não tem commits: faça o primeiro commit antes do plan (o branch da execução parte dele)");
+  const now = host.now();
+  let id = options.id;
+  if (!id) {
+    const slug = options.name || plan.feature || plan.objective || "run";
+    do
+      id = runId(slug, now, () => host.random());
+    while (await host.stat(runDir(root, id)));
+  }
+  const dir = runDir(root, id);
+  const branch = useRunBranch ? `gt/${id}` : base;
+  if (useRunBranch && await branchExists(host, root, branch))
+    throw new ToolError(`o branch ${branch} já existe`);
+  const profiles = plan.profiles ?? DEFAULT_PROFILES;
+  const run = {
+    version: 1,
+    id,
+    feature: plan.feature ?? id.replace(/-\d{6}-[a-z0-9]{4}$/, ""),
+    objective: plan.objective ?? "",
+    status: "active",
+    created: now.toISOString(),
+    repo: { root, baseBranch: base, branch },
+    worktrees: { policy: "none" },
+    serialize: plan.serialize ?? [],
+    maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+    sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : []
+  };
+  const tasks = {
+    version: 1,
+    run: id,
+    revision: 1,
+    profiles,
+    tasks: plan.tasks.map((t) => toTask(t, profiles))
+  };
+  const existed = !!await host.stat(dir);
+  const undo = [];
+  try {
+    const addedExclude = !await hasExcludeLine(host, root, ".scratch/");
+    await host.mkdir(dir);
+    if (!existed)
+      undo.push(() => host.remove(dir, { recursive: true }));
+    if (addedExclude) {
+      await addExcludeLine(host, root, ".scratch/");
+      undo.push(() => removeExcludeLine(host, root, ".scratch/"));
+    }
+    await atomicWrite(host, join(dir, "run.json"), stringify(run));
+    await atomicWrite(host, join(dir, "tasks.json"), stringify(tasks));
+    const tickets = await writeTickets(host, dir, tasks);
+    if (useRunBranch) {
+      await gitOk(host, root, ["switch", "-q", "-c", branch]);
+      undo.push(async () => {
+        await git(host, root, ["switch", "-q", base]);
+        await git(host, root, ["branch", "-D", branch]);
+      });
+    }
+    if (!existed)
+      await recordEffect(host, dir, { run: id, type: "dir", repo: root, path: dir, undo: { kind: "rmdir" } });
+    if (addedExclude)
+      await recordEffect(host, dir, {
+        run: id,
+        type: "exclude",
+        repo: root,
+        path: ".git/info/exclude",
+        line: ".scratch/",
+        undo: { kind: "remove-line" }
+      });
+    if (useRunBranch)
+      await recordEffect(host, dir, { run: id, type: "branch", repo: root, ref: branch, from: base, undo: { kind: "git-branch-delete" } });
+    await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "plan", tasks: tasks.tasks.length });
+    return { run, tasks, dir, tickets };
+  } catch (error) {
+    for (const step of undo.reverse())
+      await step().catch(() => {});
+    throw error;
+  }
+}
+function createdText(created) {
+  const { run, tasks, tickets } = created;
+  const branch = run.repo.branch === run.repo.baseBranch ? `branch atual (${run.repo.branch})` : `branch ${run.repo.branch}`;
+  return [
+    `execução ${run.id} criada: ${tasks.tasks.length} tarefa(s), ${branch}`,
+    `tickets: ${tickets.length} em ${join(created.dir, "tickets")}`,
+    `próximo passo: tasks next`
+  ].join(`
+`);
+}
+async function planFromJson(ctx, raw, options = {}) {
+  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
+  if (errors.length > 0)
+    return {
+      ok: false,
+      code: 1,
+      text: `plano recusado, nada foi gravado. ${errors.length} erro(s):
+${errors.map((e) => `- ${e}`).join(`
+`)}`,
+      data: { errors }
+    };
+  const created = await createRun(ctx, plan, options);
+  return ok(createdText(created), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch }, { bind: created.run.id });
+}
+defineAction("plan", async (ctx, args) => {
+  const raw = await readJsonArg(ctx, args.positionals[0]);
+  const name = typeof args.options.name === "string" ? args.options.name : undefined;
+  return planFromJson(ctx, raw, { name });
+}, "plan <json|@arquivo> [--name slug]    cria a execução (tasks.json, tickets, branch gt/<run>)");
+defineAction("runs", async (ctx) => {
+  const root = await requireRepo(ctx.host, ctx.cwd);
+  const runs = await listRuns(ctx.host, root);
+  return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) });
+}, "runs                                  execuções do repositório, com status e progresso");
 export {
+  yymmdd,
+  writeTickets,
+  writeTicket,
+  writeTasks,
+  writeRun,
+  withLock,
   validatePlan,
   validateGraph,
   validateBatch,
+  toTask,
+  ticketPath,
+  ticketNumber,
+  ticketFileName,
+  stringify,
+  status,
   splitCommand,
+  slugify,
   slash,
+  shortHead,
+  setEffectState,
+  runsDir,
   runTool,
+  runLine,
+  runId,
+  runDir,
+  requireRepo,
+  repoRoot,
+  renderTicket,
+  removeExcludeLine,
   relativeInside,
   relConflicts,
+  recordEffect,
+  readTasks,
+  readRun,
   readPlan,
   readJsonArg,
+  readJson,
+  readEffects,
+  progressLine,
+  progress,
+  planFromJson,
   parseArgs,
   ok,
   normalizeKey,
   normalizeFileEntry,
   normalize,
+  mutateTasks,
+  listRuns,
   join,
   isNameKey,
   isAbsolute,
+  hasExcludeLine,
+  goalTasksHome,
+  globalLedger,
+  gitOk,
+  git,
+  formatRunsList,
   firstConflict,
+  excludeFile,
   dirname,
   defineAction,
+  currentBranch,
+  createdText,
+  createRun,
   covers,
+  counts,
   conflicts,
   caseInsensitive,
   canonical,
+  bullet,
+  branchExists,
   basename,
+  atomicWrite,
+  appendLog,
   ancestors,
+  addExcludeLine,
+  actorOf,
   VERSION,
   ToolError,
+  StaleRevisionError,
+  SCRATCH,
   DEFAULT_PROFILES,
   DEFAULT_PROFILE,
   DEFAULT_MAX_ATTEMPTS,
