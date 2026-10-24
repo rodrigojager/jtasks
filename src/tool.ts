@@ -65,6 +65,7 @@ const BOOLEAN_FLAGS = new Set([
   "all-projects",
   "force",
   "help",
+  "add",
 ])
 
 export function parseArgs(argv: readonly string[]): ParsedArgs {
@@ -161,6 +162,11 @@ type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>
 
 const actions = new Map<string, Action>()
 const usages: string[] = []
+
+/** A line in `tasks help` that belongs to no action of its own (variants of one). */
+export function addUsage(usage: string) {
+  usages.push(usage)
+}
 
 /** Adds an action to the tool, with its line in `tasks help`. */
 export function defineAction(name: string, fn: Action, usage?: string) {
