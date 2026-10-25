@@ -96,6 +96,8 @@ export interface RunFile {
   maxAttempts: number
   /** How long a task's locks live if nobody gives them back (`--ttl` of every hold), e.g. `2h`. */
   holdTtl: string
+  /** False: the host does not reopen the loop when the orchestrator stops with ready tasks (`jtasks keepalive off`). */
+  keepalive?: boolean
   sessions: Session[]
 }
 
@@ -123,6 +125,8 @@ export interface PlanInput {
   serialize?: string[]
   maxAttempts?: number
   holdTtl?: string
+  /** False creates the run with the keepalive off. */
+  keepalive?: boolean
   branch?: "run" | "current"
   tasks: PlanTask[]
 }

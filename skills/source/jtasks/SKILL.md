@@ -38,7 +38,16 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
      the ownership's changes and gives the locks back. If the task cannot be finished:
      `jtasks fail <id> --error "<why>"`. If it is not needed any more: `jtasks skip <id> --reason "<why>"`.
 4. When they finish, `jtasks status`. It ends with the count of tasks left; when nothing is left ("0 left", or the
-   same phrase in the tool's language) the run is done. If it says the run is paused, stop. Otherwise go back to 1.
+   same phrase in the tool's language) the run is done. If it says the run is paused, stop. Otherwise go back to 1:
+   never end your turn with a task ready and nothing running.
+5. If something depends on the user (an account, a credential, a decision the plan does not cover), call
+   `jtasks pause`, then ask them; `jtasks unpause` when they answer. Pausing is the way to stop and ask: it also
+   stops the host from reopening the loop.
+
+## When your turn ends
+
+{{KEEPALIVE}} `jtasks keepalive off` turns it off for the run (`jtasks keepalive on` turns it back on and forgets the
+messages already sent); `jtasks status` says when it is off or has given up.
 
 ## When something is in the way
 
@@ -56,7 +65,8 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
 - **Without /goal**: repeat the loop yourself until `jtasks status` says nothing is left. Report the final status line
   to the user as the evidence.
 - **With /goal**: set the goal to "every task of run `<id>` is done or skipped", with the output of `jtasks status`
-  as the evidence. Each turn, run one pass of the loop.
+  as the evidence. Each turn, run one pass of the loop. The goal does not notice a turn that ends with a task ready
+  and nothing running; the section above says who reopens the loop then.
 - **Resuming** in another window or session: `jtasks resume <run>`, then the loop again.
 
 ## Exit codes

@@ -22,6 +22,8 @@ export interface RunView {
     remaining: number;
     percent: number;
     lines: ViewLine[];
+    /** The keepalive gave up on the run as it stands (`view.stalled`): shown under the tasks. */
+    notice?: string;
 }
 export interface RunsView {
     kind: "runs";

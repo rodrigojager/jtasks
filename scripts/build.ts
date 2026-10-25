@@ -73,7 +73,7 @@ export async function buildAll(): Promise<Bundle[]> {
 }
 
 /** How each agent calls the tool and opens subagents: what fills the `{{…}}` of the skills' sources (plan section 23). */
-export const HOSTS: Record<string, { calling: string; spawn: string; after: string; frontmatter: Record<string, string> }> = {
+export const HOSTS: Record<string, { calling: string; spawn: string; after: string; keepalive: string; frontmatter: Record<string, string> }> = {
   "claude-code": {
     calling:
       "In Claude Code with the jtasks mod, every `jtasks …` command below goes through the `mcp__jtasks__jtasks` " +
@@ -88,6 +88,12 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
     after:
       "the protocol the mod injects into the prompt (`jtasks next`, one subagent per ready task, `jtasks status` until " +
       "nothing is left); without the mod, the `jtasks` skill.",
+    keepalive:
+      "With the mod, when your turn ends while the run is not paused, has a ready task (or one in progress that nobody " +
+      "works on) and no subagent is running, the mod sends you a message that starts with `jtasks: run <id> is idle`. " +
+      "It is read from `tasks.json` at that moment, not from the conversation (which a compaction may have left " +
+      "stale): answer it with `jtasks next` and the subagents, not with text. After two such messages with no " +
+      "progress it stops and tells the user. It never fires after the user interrupts a turn, until the run moves.",
     frontmatter: { "to-jtasks": "disable-model-invocation: true\n" },
   },
   opencode: {
@@ -104,6 +110,13 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
     after:
       "the protocol the plugin injects into each request (`jtasks next`, one subagent per ready task, `jtasks status` " +
       "until nothing is left); without the plugin, the `jtasks` skill.",
+    keepalive:
+      "With the plugin, when the session goes idle while the run is not paused, has a ready task (or one in progress " +
+      "that nobody works on) and no subagent is running, the plugin sends it a message that starts with " +
+      "`jtasks: run <id> is idle`. It is read from `tasks.json` at that moment, not from the conversation (which a " +
+      "compaction may have left stale): answer it with `jtasks next` and the subagents, not with text. After two such " +
+      "messages with no progress it stops and shows a notice in the sidebar. It never fires after an interrupted turn, " +
+      "until the run moves.",
     frontmatter: {},
   },
   codex: {
@@ -114,6 +127,10 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "work on it yourself, one task at a time; if your setup runs several agents, give each one a task instead, with " +
       "a first message that starts with `--run <run> --task <id>` and asks it to follow step 3.",
     after: "the `jtasks` skill (`jtasks next`, the tasks, `jtasks status` until nothing is left).",
+    keepalive:
+      "Here there is no mod or plugin, so nothing reopens the loop when your turn ends: the loop depends on you alone. " +
+      "Until `jtasks status` says nothing is left (or the run is paused), do not end your turn while a task is ready; " +
+      "after a compaction, call `jtasks status` before trusting what the summary says is still running.",
     frontmatter: {},
   },
 }
@@ -125,6 +142,7 @@ function fillSkill(text: string, host: string, skill: string): string {
     .replace("{{CALLING}}", h.calling)
     .replace("{{SPAWN}}", h.spawn)
     .replace("{{AFTER}}", h.after)
+    .replace("{{KEEPALIVE}}", h.keepalive)
   const left = /\{\{\w+\}\}/.exec(out)
   if (left) throw new Error(`skills/source/${skill}/SKILL.md: ${left[0]} has no value for ${host}`)
   return out

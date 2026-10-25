@@ -71,6 +71,8 @@ export function protocolText(run: string, summary: string, spawn: string): strin
       'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
+    "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " +
+      'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
   ].join("\n")
 }
 

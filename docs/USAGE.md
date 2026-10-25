@@ -101,7 +101,8 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `import <dir> [--check\|--yes]` | Markdown tickets → run (a ticket without Files becomes `exclusive`) |
 | run | `runs` | the runs of the repository, with status and progress |
 | | `status` | `feitas F/T (P%) · … · restam N`, waits, ready and blocked tasks, active locks |
-| | `pause` / `unpause` | paused: `start` refused |
+| | `pause` / `unpause` | paused: `start` refused, and the keepalive stays quiet |
+| | `keepalive on\|off` | the host reopens the loop when the orchestrator stops with ready tasks (default on; see [With `/goal`](#with-goal)) |
 | | `resume <run> [--keep-owners] [--from-archive]` | binds the session, leaves pause, releases in-progress tasks whose locks are gone |
 | task | `next [limit]` | the ready tasks (can run in parallel): profile, criteria, ownership, ticket |
 | | `start <id>` | in progress; holds the ownership (`jlock hold --no-wait`) |
@@ -146,6 +147,7 @@ queue.
 | `JTASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
 | `JTASKS_NO_JLOCK_INSTALL` | unset | `1`: never install a missing jlock by itself |
+| `JTASKS_KEEPALIVE_TRIES` | `2` | keepalive messages with no progress before the host gives up and tells the person (`0`: give up at once) |
 | `JLOCK_HOME`, `JLOCK_HEARTBEAT_MS`, `JLOCK_STALE_MS` | jlock's | passed through to jlock (only tests change them) |
 
 ## Languages
@@ -179,7 +181,35 @@ Retomar      em qualquer janela: jtasks resume <run> → /goal de novo
 While a run is bound, the mod and the plugin inject the execution protocol: `jtasks next`; one subagent per ready task
 (all in one response), whose prompt carries `--run <run> --task <id>`, and which calls `jtasks start`, `jtasks claim`
 when it needs another file, never git, and `jtasks done` with evidence (or `jtasks fail`); then `jtasks status` until
-"restam 0".
+"restam 0". When something depends on the person, the orchestrator calls `jtasks pause` and asks.
+
+**Keepalive.** The goal does not notice a turn that ends with a task ready and nothing running (after a compaction,
+say, the summary still thinks a finished task is running). So when the orchestrator's turn ends, the mod and the
+plugin ask the core: if the run is not paused, has a ready task (or one in progress that nobody works on), has
+`keepalive` on and no subagent of the session is alive, they send the session a message themselves:
+
+```
+jtasks: run fase-4-261025-2byp is idle · done 7/9 · 2 left · ready: T08 · no subagent is running.
+This is a fact read from tasks.json now, not from the conversation's summary. Continue the protocol now: call jtasks
+next and open the subagents. If something depends on the person, call jtasks pause and ask them.
+```
+
+- Claude Code: on `turn.complete` of the main loop with `reason: "answer"`, in an interactive session; live agents
+  from `$.agent.list()`; the message goes through `$.prompt.submit` and is checked again just before it enters (a
+  subagent that started meanwhile drops it). A draft in the prompt box makes it wait until the box is empty.
+- OpenCode: on `session.idle` of the root session after an execution that succeeded; live agents are the child
+  sessions still running or holding a task; the message is a `session.synthetic` queued on the root session.
+- Never after a turn the person interrupted (quiet until the run moves). After an API error or a refusal (an OpenCode
+  execution that failed) nothing is sent, since it could fail the same way: the person is told at once instead.
+- The same progress (done, skipped, failed, in progress) twice more than `JTASKS_KEEPALIVE_TRIES` times: the host
+  gives up and tells the person in their language (Claude Code: a toast, a notification, the status line and a line
+  in the pane; OpenCode: a line in the sidebar and a toast), and stays quiet until the run moves.
+- What it sent lives in the run's `keepalive.json` and in `log.jsonl` (`keepalive-nudge`, `keepalive-stalled`);
+  `jtasks status` shows `retomada: desligada` or the last message or give-up. `jtasks keepalive off` turns it off for
+  the run, `jtasks keepalive on` back on (forgetting a give-up, not a count in progress); a plan with
+  `"keepalive": false` starts off. A real `unpause` (or a `resume` that leaves a pause) starts the count over; on a run
+  that was not paused they change nothing, so a model that answers the message with them cannot loop it.
+- Codex (the CLI alone) has no keepalive: the loop depends on the model.
 
 ## Demonstration and tests
 

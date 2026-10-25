@@ -37,6 +37,8 @@ export type PaneView =
       remaining: number
       percent: number
       lines: PaneLine[]
+      /** The keepalive gave up on the run as it stands: one line under the tasks. */
+      notice?: string
     }
   | { kind: 'runs'; runs: { id: string; status: string; done: number; total: number; percent: number }[] }
 

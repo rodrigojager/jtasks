@@ -96,6 +96,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     serialize: plan.serialize ?? [],
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
+    keepalive: plan.keepalive !== false,
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : [],
   }
   const tasks: TasksFile = {
@@ -184,6 +185,7 @@ export interface Draft {
   serialize?: string[]
   maxAttempts?: number
   holdTtl?: string
+  keepalive?: boolean
   branch?: "run" | "current"
   tasks: PlanTask[]
 }
@@ -231,6 +233,7 @@ function draftPlan(draft: Draft): PlanInput {
   if (draft.serialize !== undefined) plan.serialize = draft.serialize
   if (draft.maxAttempts !== undefined) plan.maxAttempts = draft.maxAttempts
   if (draft.holdTtl !== undefined) plan.holdTtl = draft.holdTtl
+  if (draft.keepalive !== undefined) plan.keepalive = draft.keepalive
   if (draft.branch !== undefined) plan.branch = draft.branch
   return plan
 }
@@ -307,7 +310,7 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const errors = [...read.errors, ...batch.errors, ...earlier]
     if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"] as const)
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")

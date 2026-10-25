@@ -23,6 +23,7 @@
         },
         "maxAttempts": { "type": "integer", "minimum": 1, "description": "Attempts before a task fails (default 2)." },
         "holdTtl": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h|d)$", "description": "How long a task's locks live if nobody gives them back, e.g. 2h (the default): the ttl of every jlock hold." },
+        "keepalive": { "type": "boolean", "description": "False creates the run with the keepalive off: the host does not reopen the loop when the orchestrator stops with ready tasks (default true)." },
         "branch": { "enum": ["run", "current"], "description": "Commit on gt/<run> (default) or on the current branch." },
         "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
       },

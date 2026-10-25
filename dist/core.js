@@ -297,6 +297,7 @@ var en_default = {
   "help.plan.show": "  plan --show                           a summary of the draft",
   "help.release": "release <id>                          in progress → pending (at maxAttempts, failed)",
   "help.resume": "resume <run> [--keep-owners]          binds the session, unpauses, releases tasks without locks",
+  "help.keepalive": "keepalive on|off                      the host reopens an idle loop that has ready tasks",
   "help.retry": "retry <id> | --all-failed             skipped or failed → pending",
   "help.runs": "runs                                  the repository's runs, with status and progress",
   "help.skip": 'skip <id> --reason "…"                skipped (frees the tasks that depend on it)',
@@ -367,6 +368,12 @@ var en_default = {
   "path.not_a_folder": "not a folder: {path}",
   "pause.done": "run {run} paused: start refused, do not start tasks",
   "pause.running": "the ones in progress finish: {list}",
+  "keepalive.usage": "use: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "run {run}: keepalive on (the host reopens the loop when the orchestrator stops with ready tasks and nothing running)",
+  "keepalive.off": "run {run}: keepalive off (only the model keeps the loop going)",
+  "keepalive.stalled": "run {run} is stopped with {what} to do and nothing running; {tries} message(s) without progress, the host gave up (jtasks keepalive on watches it again)",
+  "keepalive.error": "the run {run} stopped on an error with {what} to do and nothing running; after an error the host sends nothing (send a message to go on)",
+  "keepalive.dropped": "jtasks: keepalive message no longer needed (the run moved on)",
   "plan.absolute_path": "{path}: use paths relative to the repository",
   "plan.branch": '"branch" must be "run" or "current"',
   "plan.branch_exists": "the branch {branch} already exists",
@@ -378,6 +385,7 @@ var en_default = {
   "plan.duplicate_id": "duplicate id: {id}",
   "plan.empty_path": 'empty path in "files"',
   "plan.hold_ttl": '"holdTtl" must be a duration such as 30m, 2h or 1d',
+  "plan.keepalive": '"keepalive" must be true or false',
   "plan.max_attempts": '"maxAttempts" must be an integer above zero',
   "plan.missing_dependency": "{id} depends on {dep}, which does not exist",
   "plan.must_be_text": '"{field}" must be text',
@@ -461,6 +469,11 @@ var en_default = {
   "status.lost_task": "{id} (no locks in jlock: jtasks resume or jtasks release {id})",
   "status.no_locks": "active locks: none",
   "status.paused": "paused: do not start tasks",
+  "status.keepalive_off": "keepalive: off",
+  "status.keepalive_stalled": "keepalive gave up: {what} to do, nothing running, {tries} message(s) without progress (jtasks keepalive on watches it again)",
+  "status.keepalive_error": "keepalive stopped after an error: {what} to do, nothing running (send a message to go on)",
+  "status.keepalive_held": "keepalive: quiet after an interruption, until the run moves",
+  "status.keepalive_nudged": "keepalive: reopened the loop at {at} (message {tries} of {max})",
   "status.queue": "({n} in the queue: {owners})",
   "status.ready": "ready: {list}",
   "status.running": "in progress: {list}",
@@ -504,7 +517,8 @@ var en_default = {
   "view.lost": "ownership lost",
   "view.no_run": "no bound run",
   "view.no_runs": "no run (jtasks plan)",
-  "view.paused": "paused"
+  "view.paused": "paused",
+  "view.stalled": "⚠ stopped: {what} to do, nothing running"
 };
 // locales/pt-BR.json
 var pt_BR_default = {
@@ -680,6 +694,7 @@ var pt_BR_default = {
   "help.plan.show": "  plan --show                           resumo do rascunho",
   "help.release": "release <id>                          em andamento → pendente (no maxAttempts, falha)",
   "help.resume": "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
+  "help.keepalive": "keepalive on|off                      o host reabre o laço parado com tarefas prontas",
   "help.retry": "retry <id> | --all-failed             pulada ou falha → pendente",
   "help.runs": "runs                                  execuções do repositório, com status e progresso",
   "help.skip": 'skip <id> --reason "…"                pulada (libera as dependentes)',
@@ -750,6 +765,12 @@ var pt_BR_default = {
   "path.not_a_folder": "não é uma pasta: {path}",
   "pause.done": "execução {run} pausada: start recusado, não inicie tarefas",
   "pause.running": "as em andamento terminam: {list}",
+  "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "execução {run}: retomada ligada (o host reabre o laço quando o orquestrador para com tarefas prontas e nada rodando)",
+  "keepalive.off": "execução {run}: retomada desligada (só o modelo mantém o laço andando)",
+  "keepalive.stalled": "a execução {run} está parada com {what} por fazer e nada rodando; {tries} mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)",
+  "keepalive.error": "a execução {run} parou num erro com {what} por fazer e nada rodando; depois de um erro o host não manda nada (mande uma mensagem para seguir)",
+  "keepalive.dropped": "jtasks: a mensagem de retomada não é mais necessária (a execução andou)",
   "plan.absolute_path": "{path}: use caminhos relativos ao repositório",
   "plan.branch": '"branch" deve ser "run" ou "current"',
   "plan.branch_exists": "o branch {branch} já existe",
@@ -761,6 +782,7 @@ var pt_BR_default = {
   "plan.duplicate_id": "id repetido: {id}",
   "plan.empty_path": 'caminho vazio em "files"',
   "plan.hold_ttl": '"holdTtl" deve ser uma duração como 30m, 2h ou 1d',
+  "plan.keepalive": '"keepalive" deve ser true ou false',
   "plan.max_attempts": '"maxAttempts" deve ser um inteiro maior que zero',
   "plan.missing_dependency": "{id} depende de {dep}, que não existe",
   "plan.must_be_text": '"{field}" deve ser texto',
@@ -844,6 +866,11 @@ var pt_BR_default = {
   "status.lost_task": "{id} (sem travas no jlock: jtasks resume ou jtasks release {id})",
   "status.no_locks": "travas ativas: nenhuma",
   "status.paused": "pausada: não inicie tarefas",
+  "status.keepalive_off": "retomada: desligada",
+  "status.keepalive_stalled": "retomada desistiu: {what} por fazer, nada rodando, {tries} mensagem(ns) sem progresso (jtasks keepalive on volta a vigiar)",
+  "status.keepalive_error": "retomada parada depois de um erro: {what} por fazer, nada rodando (mande uma mensagem para seguir)",
+  "status.keepalive_held": "retomada: em silêncio depois de uma interrupção, até a execução andar",
+  "status.keepalive_nudged": "retomada: reabriu o laço em {at} (mensagem {tries} de {max})",
   "status.queue": "({n} na fila: {owners})",
   "status.ready": "prontas: {list}",
   "status.running": "em andamento: {list}",
@@ -887,7 +914,8 @@ var pt_BR_default = {
   "view.lost": "posse perdida",
   "view.no_run": "sem execução ligada",
   "view.no_runs": "nenhuma execução (jtasks plan)",
-  "view.paused": "pausada"
+  "view.paused": "pausada",
+  "view.stalled": "⚠ parada: {what} por fazer, nada rodando"
 };
 // locales/es.json
 var es_default = {
@@ -1063,6 +1091,7 @@ var es_default = {
   "help.plan.show": "  plan --show                         un resumen del borrador",
   "help.release": "release <id>                          en curso → pendiente (en maxAttempts, fallida)",
   "help.resume": "resume <run> [--keep-owners]          liga la sesión, quita la pausa, libera tareas sin bloqueos",
+  "help.keepalive": "keepalive on|off                      el host reabre el ciclo parado con tareas listas",
   "help.retry": "retry <id> | --all-failed             omitida o fallida → pendiente",
   "help.runs": "runs                                  las ejecuciones del repositorio, con estado y progreso",
   "help.skip": 'skip <id> --reason "…"                omitida (libera las tareas que dependen de ella)',
@@ -1133,6 +1162,12 @@ var es_default = {
   "path.not_a_folder": "no es una carpeta: {path}",
   "pause.done": "ejecución {run} en pausa: start rechazado, no inicies tareas",
   "pause.running": "las que están en curso terminan: {list}",
+  "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "ejecución {run}: reanudación activada (el host reabre el ciclo cuando el orquestador se detiene con tareas listas y nada en marcha)",
+  "keepalive.off": "ejecución {run}: reanudación desactivada (solo el modelo mantiene el ciclo en marcha)",
+  "keepalive.stalled": "la ejecución {run} está detenida con {what} por hacer y nada en marcha; {tries} mensaje(s) sin progreso, el host se rindió (jtasks keepalive on vuelve a vigilarla)",
+  "keepalive.error": "la ejecución {run} se detuvo por un error con {what} por hacer y nada en marcha; tras un error el host no envía nada (envía un mensaje para seguir)",
+  "keepalive.dropped": "jtasks: el mensaje de reanudación ya no hace falta (la ejecución avanzó)",
   "plan.absolute_path": "{path}: usa rutas relativas al repositorio",
   "plan.branch": '"branch" debe ser "run" o "current"',
   "plan.branch_exists": "la rama {branch} ya existe",
@@ -1144,6 +1179,7 @@ var es_default = {
   "plan.duplicate_id": "id duplicado: {id}",
   "plan.empty_path": 'ruta vacía en "files"',
   "plan.hold_ttl": '"holdTtl" debe ser una duración como 30m, 2h o 1d',
+  "plan.keepalive": '"keepalive" debe ser true o false',
   "plan.max_attempts": '"maxAttempts" debe ser un entero mayor que cero',
   "plan.missing_dependency": "{id} depende de {dep}, que no existe",
   "plan.must_be_text": '"{field}" debe ser texto',
@@ -1227,6 +1263,11 @@ var es_default = {
   "status.lost_task": "{id} (sin bloqueos en jlock: jtasks resume o jtasks release {id})",
   "status.no_locks": "bloqueos activos: ninguno",
   "status.paused": "en pausa: no inicies tareas",
+  "status.keepalive_off": "reanudación: desactivada",
+  "status.keepalive_stalled": "la reanudación se rindió: {what} por hacer, nada en marcha, {tries} mensaje(s) sin progreso (jtasks keepalive on vuelve a vigilarla)",
+  "status.keepalive_error": "reanudación detenida tras un error: {what} por hacer, nada en marcha (envía un mensaje para seguir)",
+  "status.keepalive_held": "reanudación: en silencio tras una interrupción, hasta que la ejecución avance",
+  "status.keepalive_nudged": "reanudación: reabrió el ciclo a las {at} (mensaje {tries} de {max})",
   "status.queue": "({n} en la cola: {owners})",
   "status.ready": "listas: {list}",
   "status.running": "en curso: {list}",
@@ -1270,7 +1311,8 @@ var es_default = {
   "view.lost": "posesión perdida",
   "view.no_run": "sin ejecución ligada",
   "view.no_runs": "ninguna ejecución (jtasks plan)",
-  "view.paused": "en pausa"
+  "view.paused": "en pausa",
+  "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha"
 };
 // locales/fr.json
 var fr_default = {
@@ -1446,6 +1488,7 @@ var fr_default = {
   "help.plan.show": "  plan --show                         un résumé du brouillon",
   "help.release": "release <id>                          en cours → en attente (à maxAttempts, en échec)",
   "help.resume": "resume <run> [--keep-owners]          lie la session, sort de pause, libère les tâches sans verrou",
+  "help.keepalive": "keepalive on|off                      l'hôte relance la boucle arrêtée avec des tâches prêtes",
   "help.retry": "retry <id> | --all-failed             ignorée ou en échec → en attente",
   "help.runs": "runs                                  les exécutions du dépôt, avec état et progression",
   "help.skip": 'skip <id> --reason "…"                ignorée (libère les tâches qui en dépendent)',
@@ -1516,6 +1559,12 @@ var fr_default = {
   "path.not_a_folder": "pas un dossier: {path}",
   "pause.done": "exécution {run} en pause: start refusé, ne démarrez pas de tâches",
   "pause.running": "celles en cours se terminent: {list}",
+  "keepalive.usage": "usage : jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "exécution {run} : relance activée (l'hôte relance la boucle quand l'orchestrateur s'arrête avec des tâches prêtes et rien en cours)",
+  "keepalive.off": "exécution {run} : relance désactivée (seul le modèle fait avancer la boucle)",
+  "keepalive.stalled": "l'exécution {run} est arrêtée avec {what} à faire et rien en cours ; {tries} message(s) sans progrès, l'hôte abandonne (jtasks keepalive on la surveille à nouveau)",
+  "keepalive.error": "l'exécution {run} s'est arrêtée sur une erreur avec {what} à faire et rien en cours ; après une erreur l'hôte n'envoie rien (envoyez un message pour continuer)",
+  "keepalive.dropped": "jtasks : le message de relance n'est plus nécessaire (l'exécution a avancé)",
   "plan.absolute_path": "{path}: utilisez des chemins relatifs au dépôt",
   "plan.branch": '"branch" doit valoir "run" ou "current"',
   "plan.branch_exists": "la branche {branch} existe déjà",
@@ -1527,6 +1576,7 @@ var fr_default = {
   "plan.duplicate_id": "id en double: {id}",
   "plan.empty_path": 'chemin vide dans "files"',
   "plan.hold_ttl": '"holdTtl" doit être une durée comme 30m, 2h ou 1d',
+  "plan.keepalive": '"keepalive" doit valoir true ou false',
   "plan.max_attempts": '"maxAttempts" doit être un entier supérieur à zéro',
   "plan.missing_dependency": "{id} dépend de {dep}, qui n'existe pas",
   "plan.must_be_text": '"{field}" doit être du texte',
@@ -1610,6 +1660,11 @@ var fr_default = {
   "status.lost_task": "{id} (aucun verrou dans jlock: jtasks resume ou jtasks release {id})",
   "status.no_locks": "verrous actifs: aucun",
   "status.paused": "en pause: ne démarrez pas de tâches",
+  "status.keepalive_off": "relance : désactivée",
+  "status.keepalive_stalled": "relance abandonnée : {what} à faire, rien en cours, {tries} message(s) sans progrès (jtasks keepalive on la surveille à nouveau)",
+  "status.keepalive_error": "relance arrêtée après une erreur : {what} à faire, rien en cours (envoyez un message pour continuer)",
+  "status.keepalive_held": "relance : en silence après une interruption, jusqu'à ce que l'exécution avance",
+  "status.keepalive_nudged": "relance : boucle relancée à {at} (message {tries} sur {max})",
   "status.queue": "({n} dans la file d'attente: {owners})",
   "status.ready": "prêtes: {list}",
   "status.running": "en cours: {list}",
@@ -1653,7 +1708,8 @@ var fr_default = {
   "view.lost": "possession perdue",
   "view.no_run": "aucune exécution liée",
   "view.no_runs": "aucune exécution (jtasks plan)",
-  "view.paused": "en pause"
+  "view.paused": "en pause",
+  "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours"
 };
 // locales/de.json
 var de_default = {
@@ -1829,6 +1885,7 @@ var de_default = {
   "help.plan.show": "  plan --show                         eine Zusammenfassung des Entwurfs",
   "help.release": "release <id>                          in Arbeit → ausstehend (bei maxAttempts fehlgeschlagen)",
   "help.resume": "resume <run> [--keep-owners]          bindet Sitzung, hebt Pause auf, gibt sperrlose Aufgaben frei",
+  "help.keepalive": "keepalive on|off                      Host öffnet die stehende Schleife mit bereiten Aufgaben neu",
   "help.retry": "retry <id> | --all-failed             übersprungen oder fehlgeschlagen → ausstehend",
   "help.runs": "runs                                  die Läufe des Repositorys, mit Status und Fortschritt",
   "help.skip": 'skip <id> --reason "…"                übersprungen (gibt die abhängigen Aufgaben frei)',
@@ -1899,6 +1956,12 @@ var de_default = {
   "path.not_a_folder": "kein Ordner: {path}",
   "pause.done": "Lauf {run} pausiert: start abgelehnt, starte keine Aufgaben",
   "pause.running": "die laufenden werden fertig: {list}",
+  "keepalive.usage": "Aufruf: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "Lauf {run}: Wiederaufnahme an (der Host öffnet die Schleife wieder, wenn der Orchestrator mit bereiten Aufgaben stoppt und nichts läuft)",
+  "keepalive.off": "Lauf {run}: Wiederaufnahme aus (nur das Modell hält die Schleife in Gang)",
+  "keepalive.stalled": "Lauf {run} steht mit {what} offen und nichts läuft; {tries} Nachricht(en) ohne Fortschritt, der Host gibt auf (jtasks keepalive on beobachtet ihn wieder)",
+  "keepalive.error": "Lauf {run} hat bei einem Fehler angehalten, {what} offen, nichts läuft; nach einem Fehler sendet der Host nichts (schick eine Nachricht, um weiterzumachen)",
+  "keepalive.dropped": "jtasks: die Wiederaufnahme-Nachricht ist nicht mehr nötig (der Lauf ist weitergegangen)",
   "plan.absolute_path": "{path}: nutze Pfade relativ zum Repository",
   "plan.branch": '"branch" muss "run" oder "current" sein',
   "plan.branch_exists": "der Branch {branch} existiert bereits",
@@ -1910,6 +1973,7 @@ var de_default = {
   "plan.duplicate_id": "doppelte id: {id}",
   "plan.empty_path": 'leerer Pfad in "files"',
   "plan.hold_ttl": '"holdTtl" muss eine Dauer wie 30m, 2h oder 1d sein',
+  "plan.keepalive": '"keepalive" muss true oder false sein',
   "plan.max_attempts": '"maxAttempts" muss eine ganze Zahl größer als null sein',
   "plan.missing_dependency": "{id} hängt von {dep} ab, das nicht existiert",
   "plan.must_be_text": '"{field}" muss Text sein',
@@ -1993,6 +2057,11 @@ var de_default = {
   "status.lost_task": "{id} (keine Sperren in jlock: jtasks resume oder jtasks release {id})",
   "status.no_locks": "aktive Sperren: keine",
   "status.paused": "pausiert: starte keine Aufgaben",
+  "status.keepalive_off": "Wiederaufnahme: aus",
+  "status.keepalive_stalled": "Wiederaufnahme aufgegeben: {what} offen, nichts läuft, {tries} Nachricht(en) ohne Fortschritt (jtasks keepalive on beobachtet ihn wieder)",
+  "status.keepalive_error": "Wiederaufnahme nach einem Fehler gestoppt: {what} offen, nichts läuft (schick eine Nachricht, um weiterzumachen)",
+  "status.keepalive_held": "Wiederaufnahme: still nach einer Unterbrechung, bis der Lauf weitergeht",
+  "status.keepalive_nudged": "Wiederaufnahme: Schleife um {at} wieder geöffnet (Nachricht {tries} von {max})",
   "status.queue": "({n} in der Warteschlange: {owners})",
   "status.ready": "bereit: {list}",
   "status.running": "in Arbeit: {list}",
@@ -2036,7 +2105,8 @@ var de_default = {
   "view.lost": "Besitz verloren",
   "view.no_run": "kein gebundener Lauf",
   "view.no_runs": "kein Lauf (jtasks plan)",
-  "view.paused": "pausiert"
+  "view.paused": "pausiert",
+  "view.stalled": "⚠ steht: {what} offen, nichts läuft"
 };
 // locales/it.json
 var it_default = {
@@ -2212,6 +2282,7 @@ var it_default = {
   "help.plan.show": "  plan --show                         un riepilogo della bozza",
   "help.release": "release <id>                          in corso → in sospeso (a maxAttempts, fallita)",
   "help.resume": "resume <run> [--keep-owners]          lega la sessione, riprende, rilascia attività senza blocchi",
+  "help.keepalive": "keepalive on|off                      l'host riapre il ciclo fermo con attività pronte",
   "help.retry": "retry <id> | --all-failed             saltata o fallita → in sospeso",
   "help.runs": "runs                                  le esecuzioni del repository, con stato e avanzamento",
   "help.skip": 'skip <id> --reason "…"                saltata (libera le attività che ne dipendono)',
@@ -2282,6 +2353,12 @@ var it_default = {
   "path.not_a_folder": "non è una cartella: {path}",
   "pause.done": "esecuzione {run} in pausa: start rifiutato, non avviare attività",
   "pause.running": "quelle in corso terminano: {list}",
+  "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "esecuzione {run}: ripresa attiva (l'host riapre il ciclo quando l'orchestratore si ferma con attività pronte e niente in corso)",
+  "keepalive.off": "esecuzione {run}: ripresa disattivata (solo il modello porta avanti il ciclo)",
+  "keepalive.stalled": "l'esecuzione {run} è ferma con {what} da fare e niente in corso; {tries} messaggio/i senza progressi, l'host rinuncia (jtasks keepalive on la sorveglia di nuovo)",
+  "keepalive.error": "l'esecuzione {run} si è fermata per un errore con {what} da fare e niente in corso; dopo un errore l'host non invia nulla (manda un messaggio per proseguire)",
+  "keepalive.dropped": "jtasks: il messaggio di ripresa non serve più (l'esecuzione è andata avanti)",
   "plan.absolute_path": "{path}: usa percorsi relativi al repository",
   "plan.branch": '"branch" deve essere "run" o "current"',
   "plan.branch_exists": "il branch {branch} esiste già",
@@ -2293,6 +2370,7 @@ var it_default = {
   "plan.duplicate_id": "id duplicato: {id}",
   "plan.empty_path": 'percorso vuoto in "files"',
   "plan.hold_ttl": '"holdTtl" deve essere una durata come 30m, 2h o 1d',
+  "plan.keepalive": '"keepalive" deve essere true o false',
   "plan.max_attempts": '"maxAttempts" deve essere un intero maggiore di zero',
   "plan.missing_dependency": "{id} dipende da {dep}, che non esiste",
   "plan.must_be_text": '"{field}" deve essere testo',
@@ -2376,6 +2454,11 @@ var it_default = {
   "status.lost_task": "{id} (nessun blocco in jlock: jtasks resume o jtasks release {id})",
   "status.no_locks": "blocchi attivi: nessuno",
   "status.paused": "in pausa: non avviare attività",
+  "status.keepalive_off": "ripresa: disattivata",
+  "status.keepalive_stalled": "ripresa abbandonata: {what} da fare, niente in corso, {tries} messaggio/i senza progressi (jtasks keepalive on la sorveglia di nuovo)",
+  "status.keepalive_error": "ripresa fermata dopo un errore: {what} da fare, niente in corso (manda un messaggio per proseguire)",
+  "status.keepalive_held": "ripresa: in silenzio dopo un'interruzione, finché l'esecuzione non avanza",
+  "status.keepalive_nudged": "ripresa: ciclo riaperto alle {at} (messaggio {tries} di {max})",
   "status.queue": "({n} in coda: {owners})",
   "status.ready": "pronte: {list}",
   "status.running": "in corso: {list}",
@@ -2419,7 +2502,8 @@ var it_default = {
   "view.lost": "possesso perso",
   "view.no_run": "nessuna esecuzione legata",
   "view.no_runs": "nessuna esecuzione (jtasks plan)",
-  "view.paused": "in pausa"
+  "view.paused": "in pausa",
+  "view.stalled": "⚠ ferma: {what} da fare, niente in corso"
 };
 // locales/zh-CN.json
 var zh_CN_default = {
@@ -2595,6 +2679,7 @@ var zh_CN_default = {
   "help.plan.show": "  plan --show                           草稿摘要",
   "help.release": "release <id>                          进行中 → 待处理（达到 maxAttempts 则失败）",
   "help.resume": "resume <run> [--keep-owners]          绑定会话、取消暂停、释放没有锁的任务",
+  "help.keepalive": "keepalive on|off                      有就绪任务时，宿主会重启停下的循环",
   "help.retry": "retry <id> | --all-failed             已跳过或失败 → 待处理",
   "help.runs": "runs                                  仓库中的运行，含状态和进度",
   "help.skip": 'skip <id> --reason "…"                跳过（解除依赖它的任务的阻塞）',
@@ -2665,6 +2750,12 @@ var zh_CN_default = {
   "path.not_a_folder": "不是文件夹：{path}",
   "pause.done": "运行 {run} 已暂停：start 被拒绝，不要开始任务",
   "pause.running": "进行中的任务会继续完成：{list}",
+  "keepalive.usage": "用法：jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "运行 {run}：自动续跑已开启(编排者在有就绪任务且无任何运行时停下，宿主会重新开启循环)",
+  "keepalive.off": "运行 {run}：自动续跑已关闭(只有模型推动循环)",
+  "keepalive.stalled": "运行 {run} 已停下，还有 {what} 待做且无任何运行；{tries} 条消息没有进展，宿主已放弃(jtasks keepalive on 重新监视)",
+  "keepalive.error": "运行 {run} 因错误停下，还有 {what} 待做且无任何运行；出错后宿主不会发送任何消息(发一条消息即可继续)",
+  "keepalive.dropped": "jtasks：不再需要自动续跑消息(运行已推进)",
   "plan.absolute_path": "{path}：请使用相对于仓库的路径",
   "plan.branch": '"branch" 必须是 "run" 或 "current"',
   "plan.branch_exists": "分支 {branch} 已存在",
@@ -2676,6 +2767,7 @@ var zh_CN_default = {
   "plan.duplicate_id": "重复的 id：{id}",
   "plan.empty_path": '"files" 中有空路径',
   "plan.hold_ttl": '"holdTtl" 必须是时长，如 30m、2h 或 1d',
+  "plan.keepalive": '"keepalive" 必须是 true 或 false',
   "plan.max_attempts": '"maxAttempts" 必须是大于零的整数',
   "plan.missing_dependency": "{id} 依赖不存在的 {dep}",
   "plan.must_be_text": '"{field}" 必须是文本',
@@ -2759,6 +2851,11 @@ var zh_CN_default = {
   "status.lost_task": "{id}（jlock 中没有锁：jtasks resume 或 jtasks release {id}）",
   "status.no_locks": "活动的锁：无",
   "status.paused": "已暂停：不要开始任务",
+  "status.keepalive_off": "自动续跑：关闭",
+  "status.keepalive_stalled": "自动续跑已放弃：{what} 待做，无任何运行，{tries} 条消息没有进展(jtasks keepalive on 重新监视)",
+  "status.keepalive_error": "自动续跑在出错后停止：{what} 待做，无任何运行(发一条消息即可继续)",
+  "status.keepalive_held": "自动续跑：中断后保持安静，直到运行推进",
+  "status.keepalive_nudged": "自动续跑：于 {at} 重新开启循环(第 {tries} 条，共 {max} 条)",
   "status.queue": "（队列中 {n} 个：{owners}）",
   "status.ready": "就绪：{list}",
   "status.running": "进行中：{list}",
@@ -2802,7 +2899,8 @@ var zh_CN_default = {
   "view.lost": "所有权已丢失",
   "view.no_run": "未绑定运行",
   "view.no_runs": "没有运行（jtasks plan）",
-  "view.paused": "已暂停"
+  "view.paused": "已暂停",
+  "view.stalled": "⚠ 已停下：{what} 待做，无任何运行"
 };
 // locales/ja.json
 var ja_default = {
@@ -2978,6 +3076,7 @@ var ja_default = {
   "help.plan.show": "  plan --show                           下書きの概要",
   "help.release": "release <id>                          進行中 → 未着手（maxAttempts に達したら失敗）",
   "help.resume": "resume <run> [--keep-owners]          セッションに結び付け、再開し、ロックのないタスクを解放",
+  "help.keepalive": "keepalive on|off                      準備済みタスクがあれば止まったループをホストが再開",
   "help.retry": "retry <id> | --all-failed             スキップまたは失敗 → 未着手",
   "help.runs": "runs                                  リポジトリの実行一覧（状態と進捗つき）",
   "help.skip": 'skip <id> --reason "…"                スキップ（依存するタスクのブロックを解除）',
@@ -3048,6 +3147,12 @@ var ja_default = {
   "path.not_a_folder": "フォルダではない: {path}",
   "pause.done": "実行 {run} を一時停止: start は拒否、タスクを開始しない",
   "pause.running": "進行中のものは最後まで続く: {list}",
+  "keepalive.usage": "使い方: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "実行 {run}: 自動再開オン(準備済みタスクがあり何も動いていない状態でオーケストレーターが止まると、ホストがループを再開する)",
+  "keepalive.off": "実行 {run}: 自動再開オフ(ループを進めるのはモデルだけ)",
+  "keepalive.stalled": "実行 {run} は {what} が残ったまま停止し、何も動いていません。進捗のないメッセージ {tries} 件でホストは断念しました(jtasks keepalive on で再び監視)",
+  "keepalive.error": "実行 {run} はエラーで止まりました。{what} が残り、何も動いていません。エラーの後、ホストは何も送りません(続けるにはメッセージを送ってください)",
+  "keepalive.dropped": "jtasks: 自動再開のメッセージは不要になりました(実行が進みました)",
   "plan.absolute_path": "{path}: リポジトリからの相対パスを使う",
   "plan.branch": '"branch" は "run" か "current" でなければならない',
   "plan.branch_exists": "ブランチ {branch} はすでに存在する",
@@ -3059,6 +3164,7 @@ var ja_default = {
   "plan.duplicate_id": "重複した id: {id}",
   "plan.empty_path": '"files" に空のパス',
   "plan.hold_ttl": '"holdTtl" は 30m、2h、1d のような時間でなければならない',
+  "plan.keepalive": '"keepalive" は true か false',
   "plan.max_attempts": '"maxAttempts" は 0 より大きい整数でなければならない',
   "plan.missing_dependency": "{id} は存在しない {dep} に依存している",
   "plan.must_be_text": '"{field}" はテキストでなければならない',
@@ -3142,6 +3248,11 @@ var ja_default = {
   "status.lost_task": "{id}（jlock にロックなし: jtasks resume または jtasks release {id}）",
   "status.no_locks": "有効なロック: なし",
   "status.paused": "一時停止中: タスクを開始しない",
+  "status.keepalive_off": "自動再開: オフ",
+  "status.keepalive_stalled": "自動再開を断念: {what} が残り、何も動いていない、進捗のないメッセージ {tries} 件(jtasks keepalive on で再び監視)",
+  "status.keepalive_error": "エラーの後で自動再開は停止: {what} が残り、何も動いていない(続けるにはメッセージを送ってください)",
+  "status.keepalive_held": "自動再開: 中断のあと、実行が進むまで待機中",
+  "status.keepalive_nudged": "自動再開: {at} にループを再開({max} 件中 {tries} 件目のメッセージ)",
   "status.queue": "（キューに {n}: {owners}）",
   "status.ready": "準備完了: {list}",
   "status.running": "進行中: {list}",
@@ -3185,7 +3296,8 @@ var ja_default = {
   "view.lost": "所有権喪失",
   "view.no_run": "結び付いた実行なし",
   "view.no_runs": "実行なし（jtasks plan）",
-  "view.paused": "一時停止中"
+  "view.paused": "一時停止中",
+  "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない"
 };
 // locales/ru.json
 var ru_default = {
@@ -3361,6 +3473,7 @@ var ru_default = {
   "help.plan.show": "  plan --show                         сводка черновика",
   "help.release": "release <id>                          в работе → в ожидании (при maxAttempts — провал)",
   "help.resume": "resume <run> [--keep-owners]          привязка сессии, снятие паузы, сброс задач без блокировок",
+  "help.keepalive": "keepalive on|off                      хост перезапускает простаивающий цикл с готовыми задачами",
   "help.retry": "retry <id> | --all-failed             пропущена или провалена → в ожидании",
   "help.runs": "runs                                  прогоны репозитория со статусом и прогрессом",
   "help.skip": 'skip <id> --reason "…"                пропущена (освобождает зависящие от неё задачи)',
@@ -3431,6 +3544,12 @@ var ru_default = {
   "path.not_a_folder": "не папка: {path}",
   "pause.done": "прогон {run} на паузе: start отклоняется, не начинайте задачи",
   "pause.running": "задачи в работе доделываются: {list}",
+  "keepalive.usage": "использование: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "прогон {run}: автовозобновление включено (хост снова запускает цикл, когда оркестратор останавливается при готовых задачах и ничего не выполняется)",
+  "keepalive.off": "прогон {run}: автовозобновление выключено (цикл держит только модель)",
+  "keepalive.stalled": "прогон {run} стоит, осталось {what}, ничего не выполняется; {tries} сообщ. без прогресса, хост сдался (jtasks keepalive on снова следит за ним)",
+  "keepalive.error": "прогон {run} остановился на ошибке, осталось {what}, ничего не выполняется; после ошибки хост ничего не отправляет (напишите сообщение, чтобы продолжить)",
+  "keepalive.dropped": "jtasks: сообщение автовозобновления больше не нужно (прогон продвинулся)",
   "plan.absolute_path": "{path}: используйте пути относительно репозитория",
   "plan.branch": '"branch" должен быть "run" или "current"',
   "plan.branch_exists": "ветка {branch} уже существует",
@@ -3442,6 +3561,7 @@ var ru_default = {
   "plan.duplicate_id": "повторяющийся id: {id}",
   "plan.empty_path": 'пустой путь в "files"',
   "plan.hold_ttl": '"holdTtl" должен быть длительностью, например 30m, 2h или 1d',
+  "plan.keepalive": '"keepalive" должно быть true или false',
   "plan.max_attempts": '"maxAttempts" должен быть целым числом больше нуля',
   "plan.missing_dependency": "{id} зависит от {dep}, которой нет",
   "plan.must_be_text": '"{field}" должно быть текстом',
@@ -3525,6 +3645,11 @@ var ru_default = {
   "status.lost_task": "{id} (нет блокировок в jlock: jtasks resume или jtasks release {id})",
   "status.no_locks": "активные блокировки: нет",
   "status.paused": "на паузе: не начинайте задачи",
+  "status.keepalive_off": "автовозобновление: выключено",
+  "status.keepalive_stalled": "автовозобновление сдалось: осталось {what}, ничего не выполняется, {tries} сообщ. без прогресса (jtasks keepalive on снова следит за ним)",
+  "status.keepalive_error": "автовозобновление остановлено после ошибки: осталось {what}, ничего не выполняется (напишите сообщение, чтобы продолжить)",
+  "status.keepalive_held": "автовозобновление: молчит после прерывания, пока прогон не продвинется",
+  "status.keepalive_nudged": "автовозобновление: цикл перезапущен в {at} (сообщение {tries} из {max})",
   "status.queue": "(в очереди: {n} — {owners})",
   "status.ready": "готовы: {list}",
   "status.running": "в работе: {list}",
@@ -3568,7 +3693,8 @@ var ru_default = {
   "view.lost": "владение потеряно",
   "view.no_run": "нет привязанного прогона",
   "view.no_runs": "нет прогонов (jtasks plan)",
-  "view.paused": "на паузе"
+  "view.paused": "на паузе",
+  "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется"
 };
 // locales/ar.json
 var ar_default = {
@@ -3744,6 +3870,7 @@ var ar_default = {
   "help.plan.show": "  plan --show                         ملخص المسودة",
   "help.release": "release <id>                          قيد التنفيذ → معلّقة (عند maxAttempts، فاشلة)",
   "help.resume": "resume <run> [--keep-owners]          يربط الجلسة، يلغي الإيقاف، يحرّر المهام بلا أقفال",
+  "help.keepalive": "keepalive on|off                      يعيد المضيف فتح الحلقة المتوقفة ذات المهام الجاهزة",
   "help.retry": "retry <id> | --all-failed             متخطاة أو فاشلة → معلّقة",
   "help.runs": "runs                                  تشغيلات المستودع، مع الحالة والتقدم",
   "help.skip": 'skip <id> --reason "…"                متخطاة (تُطلق المهام المعتمدة عليها)',
@@ -3814,6 +3941,12 @@ var ar_default = {
   "path.not_a_folder": "ليس مجلدًا: {path}",
   "pause.done": "أُوقف التشغيل {run} مؤقتًا: يُرفض start، لا تبدأ مهام",
   "pause.running": "المهام قيد التنفيذ تكمل: {list}",
+  "keepalive.usage": "الاستخدام: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "التشغيل {run}: الاستئناف التلقائي مفعّل (يعيد المضيف فتح الحلقة عندما يتوقف المنسّق ومهام جاهزة باقية ولا شيء يعمل)",
+  "keepalive.off": "التشغيل {run}: الاستئناف التلقائي معطّل (النموذج وحده يُبقي الحلقة دائرة)",
+  "keepalive.stalled": "التشغيل {run} متوقف وما زال {what} ولا شيء يعمل؛ {tries} رسالة بلا تقدّم، وتوقّف المضيف عن المحاولة (jtasks keepalive on يعيد المراقبة)",
+  "keepalive.error": "توقّف التشغيل {run} عند خطأ وما زال {what} ولا شيء يعمل؛ بعد الخطأ لا يرسل المضيف شيئًا (أرسل رسالة للمتابعة)",
+  "keepalive.dropped": "jtasks: لم تعد رسالة الاستئناف لازمة (تقدّم التشغيل)",
   "plan.absolute_path": "{path}: استخدم مسارات نسبية إلى المستودع",
   "plan.branch": 'يجب أن يكون "branch" إما "run" أو "current"',
   "plan.branch_exists": "الفرع {branch} موجود بالفعل",
@@ -3825,6 +3958,7 @@ var ar_default = {
   "plan.duplicate_id": "معرّف مكرر: {id}",
   "plan.empty_path": 'مسار فارغ في "files"',
   "plan.hold_ttl": 'يجب أن يكون "holdTtl" مدة مثل 30m أو 2h أو 1d',
+  "plan.keepalive": 'يجب أن تكون "keepalive" true أو false',
   "plan.max_attempts": 'يجب أن يكون "maxAttempts" عددًا صحيحًا أكبر من صفر',
   "plan.missing_dependency": "{id} تعتمد على {dep}، وهي غير موجودة",
   "plan.must_be_text": 'يجب أن يكون "{field}" نصًا',
@@ -3908,6 +4042,11 @@ var ar_default = {
   "status.lost_task": "{id} (لا أقفال في jlock: jtasks resume أو jtasks release {id})",
   "status.no_locks": "الأقفال النشطة: لا شيء",
   "status.paused": "متوقف مؤقتًا: لا تبدأ مهام",
+  "status.keepalive_off": "الاستئناف التلقائي: معطّل",
+  "status.keepalive_stalled": "توقّف الاستئناف التلقائي: ما زال {what}، لا شيء يعمل، {tries} رسالة بلا تقدّم (jtasks keepalive on يعيد المراقبة)",
+  "status.keepalive_error": "توقّف الاستئناف التلقائي بعد خطأ: ما زال {what}، لا شيء يعمل (أرسل رسالة للمتابعة)",
+  "status.keepalive_held": "الاستئناف التلقائي: صامت بعد مقاطعة، حتى يتقدّم التشغيل",
+  "status.keepalive_nudged": "الاستئناف التلقائي: أُعيد فتح الحلقة في {at} (الرسالة {tries} من {max})",
   "status.queue": "(في الطابور: {n}؛ {owners})",
   "status.ready": "الجاهزة: {list}",
   "status.running": "قيد التنفيذ: {list}",
@@ -3951,7 +4090,8 @@ var ar_default = {
   "view.lost": "فُقدت الملكية",
   "view.no_run": "لا تشغيل مرتبط",
   "view.no_runs": "لا تشغيل (jtasks plan)",
-  "view.paused": "متوقف مؤقتًا"
+  "view.paused": "متوقف مؤقتًا",
+  "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل"
 };
 // locales/hi.json
 var hi_default = {
@@ -4127,6 +4267,7 @@ var hi_default = {
   "help.plan.show": "  plan --show                           ड्राफ़्ट का सारांश",
   "help.release": "release <id>                          प्रगति पर → लंबित (maxAttempts पर, विफल)",
   "help.resume": "resume <run> [--keep-owners]          सत्र बाँधता, विराम हटाता, बिना लॉक वाले कार्य छोड़ता है",
+  "help.keepalive": "keepalive on|off                      तैयार कार्य हों तो होस्ट रुका लूप फिर खोलता है",
   "help.retry": "retry <id> | --all-failed             स्किप या विफल → लंबित",
   "help.runs": "runs                                  रिपॉज़िटरी के रन, स्थिति और प्रगति के साथ",
   "help.skip": 'skip <id> --reason "…"                स्किप (इस पर निर्भर कार्यों को मुक्त करता है)',
@@ -4197,6 +4338,12 @@ var hi_default = {
   "path.not_a_folder": "फ़ोल्डर नहीं: {path}",
   "pause.done": "रन {run} रोका गया: start अस्वीकृत, कार्य शुरू न करें",
   "pause.running": "प्रगति वाले पूरे होंगे: {list}",
+  "keepalive.usage": "उपयोग: jtasks keepalive on|off [--run <id>]",
+  "keepalive.on": "रन {run}: स्वतः पुनरारंभ चालू (तैयार कार्य हों और कुछ न चल रहा हो तब ऑर्केस्ट्रेटर रुके तो होस्ट लूप फिर खोलता है)",
+  "keepalive.off": "रन {run}: स्वतः पुनरारंभ बंद (लूप को केवल मॉडल आगे बढ़ाता है)",
+  "keepalive.stalled": "रन {run} रुका है, {what} बाकी है और कुछ नहीं चल रहा; {tries} संदेश बिना प्रगति के, होस्ट ने हार मानी (jtasks keepalive on फिर निगरानी करता है)",
+  "keepalive.error": "रन {run} एक त्रुटि पर रुक गया, {what} बाकी है और कुछ नहीं चल रहा; त्रुटि के बाद होस्ट कुछ नहीं भेजता (आगे बढ़ने के लिए संदेश भेजें)",
+  "keepalive.dropped": "jtasks: स्वतः पुनरारंभ संदेश की अब ज़रूरत नहीं (रन आगे बढ़ गया)",
   "plan.absolute_path": "{path}: रिपॉज़िटरी के सापेक्ष पथ इस्तेमाल करें",
   "plan.branch": '"branch" "run" या "current" होना चाहिए',
   "plan.branch_exists": "ब्रांच {branch} पहले से मौजूद है",
@@ -4208,6 +4355,7 @@ var hi_default = {
   "plan.duplicate_id": "दोहराया गया id: {id}",
   "plan.empty_path": '"files" में खाली पथ',
   "plan.hold_ttl": '"holdTtl" 30m, 2h या 1d जैसी अवधि होनी चाहिए',
+  "plan.keepalive": '"keepalive" true या false होना चाहिए',
   "plan.max_attempts": '"maxAttempts" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.missing_dependency": "{id} {dep} पर निर्भर है, जो मौजूद नहीं है",
   "plan.must_be_text": '"{field}" टेक्स्ट होना चाहिए',
@@ -4291,6 +4439,11 @@ var hi_default = {
   "status.lost_task": "{id} (jlock में लॉक नहीं: jtasks resume या jtasks release {id})",
   "status.no_locks": "सक्रिय लॉक: कोई नहीं",
   "status.paused": "रुका हुआ: कार्य शुरू न करें",
+  "status.keepalive_off": "स्वतः पुनरारंभ: बंद",
+  "status.keepalive_stalled": "स्वतः पुनरारंभ ने हार मानी: {what} बाकी, कुछ नहीं चल रहा, {tries} संदेश बिना प्रगति के (jtasks keepalive on फिर निगरानी करता है)",
+  "status.keepalive_error": "त्रुटि के बाद स्वतः पुनरारंभ रुका: {what} बाकी, कुछ नहीं चल रहा (आगे बढ़ने के लिए संदेश भेजें)",
+  "status.keepalive_held": "स्वतः पुनरारंभ: रुकावट के बाद शांत, जब तक रन आगे न बढ़े",
+  "status.keepalive_nudged": "स्वतः पुनरारंभ: {at} पर लूप फिर खोला ({max} में से संदेश {tries})",
   "status.queue": "(कतार में {n}: {owners})",
   "status.ready": "तैयार: {list}",
   "status.running": "प्रगति पर: {list}",
@@ -4334,7 +4487,8 @@ var hi_default = {
   "view.lost": "स्वामित्व खोया",
   "view.no_run": "कोई बँधा रन नहीं",
   "view.no_runs": "कोई रन नहीं (jtasks plan)",
-  "view.paused": "रुका हुआ"
+  "view.paused": "रुका हुआ",
+  "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा"
 };
 
 // src/i18n.ts
@@ -4426,7 +4580,7 @@ function width(text) {
 
 // src/validate.ts
 var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "tasks"]);
 var GLOB = /[*?[\]{}]/;
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
@@ -4518,6 +4672,12 @@ function readPlan(raw) {
       plan.holdTtl = obj.holdTtl;
     else
       errors.push(tr("plan.hold_ttl"));
+  }
+  if (obj.keepalive !== undefined) {
+    if (typeof obj.keepalive === "boolean")
+      plan.keepalive = obj.keepalive;
+    else
+      errors.push(tr("plan.keepalive"));
   }
   if (obj.branch !== undefined) {
     if (obj.branch === "run" || obj.branch === "current")
@@ -5434,7 +5594,8 @@ function protocolText(run, summary, spawn) {
     "1. Call jtasks next.",
     `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' + 'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
-    "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool."
+    "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
+    "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.'
   ].join(`
 `);
 }
@@ -5600,6 +5761,7 @@ async function createRun(ctx, plan, options = {}) {
     serialize: plan.serialize ?? [],
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
+    keepalive: plan.keepalive !== false,
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : []
   };
   const tasks = {
@@ -5729,6 +5891,8 @@ function draftPlan(draft) {
     plan.maxAttempts = draft.maxAttempts;
   if (draft.holdTtl !== undefined)
     plan.holdTtl = draft.holdTtl;
+  if (draft.keepalive !== undefined)
+    plan.keepalive = draft.keepalive;
   if (draft.branch !== undefined)
     plan.branch = draft.branch;
   return plan;
@@ -5802,7 +5966,7 @@ async function draftAdd(ctx, args) {
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current, tasks: [...current.tasks, ...batch.tasks] };
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"])
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx, dir, next);
@@ -6201,6 +6365,153 @@ function blockerText(b, state, platform) {
     }
   }
 }
+// src/keepalive.ts
+var DEFAULT_KEEPALIVE_TRIES = 2;
+var KEEPALIVE_FILE = "keepalive.json";
+function progressSignature(tasks) {
+  const c = counts(tasks.tasks);
+  const running = tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id).sort();
+  return `${c.done}/${c.skipped}/${c.failed}|${running.join(",")}`;
+}
+function isOrphan(owner, actor) {
+  if (!owner || owner === "cli" || owner.startsWith("cli/"))
+    return true;
+  if (!actor)
+    return true;
+  return owner === actor || owner.startsWith(`${actor}/`);
+}
+function keepaliveTries(host) {
+  const text = host.env("JTASKS_KEEPALIVE_TRIES")?.trim();
+  const raw = text ? Number(text) : NaN;
+  return Number.isInteger(raw) && raw >= 0 ? raw : DEFAULT_KEEPALIVE_TRIES;
+}
+function keepaliveDecision(input) {
+  const { state } = input;
+  const run = state.run;
+  const c = counts(state.tasks.tasks);
+  if (run.status === "paused")
+    return { action: "none", reason: "paused" };
+  if (run.status === "done" || c.remaining === 0)
+    return { action: "none", reason: "finished" };
+  if (run.keepalive === false)
+    return { action: "none", reason: "off" };
+  if (input.liveAgents > 0)
+    return { action: "none", reason: "agents-running" };
+  const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id);
+  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && isOrphan(t.owner, input.actor)).map((t) => t.id);
+  if (!ready.length && !orphans.length)
+    return { action: "none", reason: "nothing-ready" };
+  const signature = progressSignature(state.tasks);
+  const last = input.last?.signature === signature ? input.last : undefined;
+  if (last?.action === "held")
+    return { action: "none", reason: "held" };
+  if (last?.action === "stalled")
+    return { action: "none", reason: "stalled" };
+  const what = [...ready, ...orphans].join(", ");
+  if (input.cause === "error")
+    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last?.tries ?? 0, ready, orphans, cause: "error" };
+  const tries = (last?.tries ?? 0) + 1;
+  const max = input.maxTries ?? DEFAULT_KEEPALIVE_TRIES;
+  if (tries > max) {
+    return { action: "stalled", notice: tr("keepalive.stalled", { run: run.id, what, tries: max }), signature, tries, ready, orphans };
+  }
+  return { action: "nudge", text: nudgeText(run, state.tasks, ready, orphans), signature, tries, ready, orphans };
+}
+function nudgeText(run, tasks, ready, orphans) {
+  const c = counts(tasks.tasks);
+  const head = [`jtasks: run ${run.id} is idle`, `done ${c.done}/${c.total}`, `${c.remaining} left`];
+  if (ready.length)
+    head.push(`ready: ${ready.join(", ")}`);
+  head.push("no subagent is running");
+  const lines = [head.join(" · ") + "."];
+  for (const id of orphans)
+    lines.push(`${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`);
+  lines.push("This is a fact read from tasks.json now, not from the conversation's summary. Continue the protocol now: call jtasks next and open the subagents. " + "If something depends on the person, call jtasks pause and ask them.");
+  return lines.join(`
+`);
+}
+async function readKeepalive(host, dir) {
+  return readJson(host, join(dir, KEEPALIVE_FILE)).catch(() => {
+    return;
+  });
+}
+async function writeKeepalive(host, dir, memory) {
+  await atomicWrite(host, join(dir, KEEPALIVE_FILE), stringify(memory));
+}
+async function clearKeepalive(host, dir) {
+  await host.remove(join(dir, KEEPALIVE_FILE)).catch(() => {});
+}
+async function rearmKeepalive(host, dir) {
+  const memory = await readKeepalive(host, dir);
+  if (memory && memory.action !== "nudge")
+    await clearKeepalive(host, dir);
+}
+async function checkKeepalive(host, check) {
+  const dir = runDir(check.root, check.run);
+  const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => {
+    return;
+  }), readTasks(host, dir).catch(() => {
+    return;
+  })]);
+  if (!run || !tasks)
+    return { action: "none", reason: "finished" };
+  const state = { root: check.root, dir, run, tasks };
+  const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 });
+  if (quick.action === "none")
+    return quick;
+  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
+  const locks = await (star ? jlockList(host) : jlockList(host, { under: check.root })).catch(() => []);
+  const last = check.fresh ? undefined : await readKeepalive(host, dir);
+  const decision = keepaliveDecision({ state, locks, platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, last, maxTries: keepaliveTries(host), cause: check.cause });
+  if (check.commit && decision.action !== "none") {
+    const at = host.now().toISOString();
+    const memory = { signature: decision.signature, action: decision.action, tries: decision.tries, at, ready: decision.ready, orphans: decision.orphans };
+    if (decision.action === "stalled" && decision.cause)
+      memory.cause = decision.cause;
+    await writeKeepalive(host, dir, memory);
+    const actor = check.actor ?? "host";
+    const cause = decision.action === "stalled" && decision.cause ? { cause: decision.cause } : {};
+    await appendLog(host, dir, { at, actor, action: `keepalive-${decision.action}`, tries: decision.tries, ready: decision.ready, orphans: decision.orphans, ...cause }).catch(() => {});
+  }
+  return decision;
+}
+async function holdKeepalive(host, root, runId) {
+  const dir = runDir(root, runId);
+  const tasks = await readTasks(host, dir).catch(() => {
+    return;
+  });
+  if (!tasks)
+    return;
+  await writeKeepalive(host, dir, { signature: progressSignature(tasks), action: "held", tries: 0, at: host.now().toISOString() });
+}
+function keepaliveStatus(run, tasks, memory, maxTries) {
+  if (run.keepalive === false)
+    return tr("status.keepalive_off");
+  if (!memory || memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
+    return;
+  const what = [...memory.ready ?? [], ...memory.orphans ?? []].join(", ");
+  if (memory.action === "stalled")
+    return tr(memory.cause === "error" ? "status.keepalive_error" : "status.keepalive_stalled", { what, tries: maxTries });
+  if (memory.action === "held")
+    return tr("status.keepalive_held");
+  return tr("status.keepalive_nudged", { at: memory.at, tries: memory.tries, max: maxTries });
+}
+function keepaliveNotice(run, tasks, memory) {
+  if (memory?.action !== "stalled" || run.status !== "active" || run.keepalive === false)
+    return;
+  if (memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
+    return;
+  return tr("view.stalled", { what: [...memory.ready ?? [], ...memory.orphans ?? []].join(", ") });
+}
+async function stalledNotice(host, root, runId) {
+  const dir = runDir(root, runId);
+  const [run, tasks, memory] = await Promise.all([readRun(host, dir).catch(() => {
+    return;
+  }), readTasks(host, dir).catch(() => {
+    return;
+  }), readKeepalive(host, dir)]);
+  return run && tasks ? keepaliveNotice(run, tasks, memory) : undefined;
+}
 // src/housekeeping.ts
 function archiveDir(host, root, run) {
   return join(jtasksHome(host), "archive", slugify(basename(root), 40), run);
@@ -6571,6 +6882,9 @@ async function statusOf(ctx, state) {
   const lines = [progressLine(state.tasks.tasks)];
   if (state.run.status === "paused")
     lines.push(tr("status.paused"));
+  const keepalive = keepaliveStatus(state.run, state.tasks, await readKeepalive(ctx.host, state.dir), keepaliveTries(ctx.host));
+  if (keepalive)
+    lines.push(keepalive);
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress");
   const byKey = new Map([...repoLocks, ...groupLocks].map((l) => [l.key, l]));
   const waiting = waitingOf(state, [...byKey.values()]);
@@ -6614,6 +6928,7 @@ async function statusOf(ctx, state) {
     data: {
       run: state.run.id,
       status: state.run.status,
+      keepalive: state.run.keepalive !== false,
       counts: counts(state.tasks.tasks),
       inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null })),
       ready: ready.map((t) => t.id),
@@ -7002,6 +7317,8 @@ async function setPaused(ctx, args, paused) {
     const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
     if (from !== status)
       await writeRun(ctx.host, state.dir, { ...state.run, status });
+    if (!paused && from === "paused")
+      await clearKeepalive(ctx.host, state.dir);
     await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status });
     return { ...state, run: { ...state.run, status } };
   });
@@ -7059,6 +7376,8 @@ defineAction("resume", async (ctx, args) => {
       await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted });
     }
     await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept });
+    if (state.run.status === "paused")
+      await clearKeepalive(ctx.host, state.dir);
     return { ...state, run, tasks };
   });
   for (const r of released)
@@ -7073,6 +7392,27 @@ defineAction("resume", async (ctx, args) => {
   return ok(lines.join(`
 `), { ...s.data, released, kept }, { bind: state.run.id });
 }, "help.resume");
+defineAction("keepalive", async (ctx, args) => {
+  const wanted = args.positionals[0];
+  if (wanted !== "on" && wanted !== "off")
+    throw new ToolError(tr("keepalive.usage"), 2);
+  const on = wanted === "on";
+  const first = await resolveRun(ctx, args);
+  const state = await withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const from = state.run.keepalive !== false;
+    const run = { ...state.run, keepalive: on };
+    if (from !== on || state.run.keepalive === undefined)
+      await writeRun(ctx.host, state.dir, run);
+    if (on && !from)
+      await clearKeepalive(ctx.host, state.dir);
+    else if (on)
+      await rearmKeepalive(ctx.host, state.dir);
+    await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted });
+    return { ...state, run };
+  });
+  return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on });
+}, "help.keepalive");
 function serializeEntry(serialize, command) {
   const norm = command.trim().replace(/\s+/g, " ");
   return serialize.find((e) => {
@@ -7807,7 +8147,9 @@ async function loadView(host, root, run, tool) {
     return;
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => []);
-  return buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool);
+  const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool);
+  const notice = keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
+  return notice ? { ...view, notice } : view;
 }
 async function loadRunsView(host, root) {
   return runsView(await listRuns(host, root));
@@ -8041,12 +8383,14 @@ export {
   BAR_CELLS,
   CATALOGS,
   DEFAULT_HOLD_TTL,
+  DEFAULT_KEEPALIVE_TRIES,
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_PROFILE,
   DEFAULT_PROFILES,
   DURATION,
   EOF_JLOCK,
   JLOCK,
+  KEEPALIVE_FILE,
   MIN_JLOCK,
   OPENCODE_AGENTS,
   SCRATCH,
@@ -8077,10 +8421,12 @@ export {
   chainText,
   checkEdit,
   checkJlock,
+  checkKeepalive,
   checkShell,
   checksText,
   choose,
   classify,
+  clearKeepalive,
   clone,
   commitExists,
   commitReachable,
@@ -8110,6 +8456,7 @@ export {
   hasExcludeLine,
   headerText,
   holdArgv,
+  holdKeepalive,
   holdModeFor,
   holdModeOf,
   identity,
@@ -8129,6 +8476,10 @@ export {
   jlockVersion,
   join,
   jtasksHome,
+  keepaliveDecision,
+  keepaliveNotice,
+  keepaliveStatus,
+  keepaliveTries,
   lang,
   lineText,
   listDrafts,
@@ -8143,6 +8494,7 @@ export {
   normalize,
   normalizeFileEntry,
   normalizeKey,
+  nudgeText,
   ok,
   ownerOf,
   parseArgs,
@@ -8152,14 +8504,17 @@ export {
   possession,
   progress,
   progressLine,
+  progressSignature,
   protocolText,
   readEffects,
   readJson,
   readJsonArg,
+  readKeepalive,
   readPlan,
   readRun,
   readTasks,
   readTicketsDir,
+  rearmKeepalive,
   recordEffect,
   recordGlobalEffect,
   relConflicts,
@@ -8194,6 +8549,7 @@ export {
   slugify,
   splitChanges,
   splitCommand,
+  stalledNotice,
   startHold,
   status,
   statusOf,
@@ -8221,6 +8577,7 @@ export {
   waitingText,
   width,
   withLock,
+  writeKeepalive,
   writeRun,
   writeTasks,
   writeTicket,

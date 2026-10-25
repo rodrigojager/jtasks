@@ -150,11 +150,19 @@ Claude ruft `jtasks next` auf, öffnet in derselben Antwort einen Subagenten pro
 Modell seines Profils) und ruft `jtasks status` auf, bis nichts mehr offen ist. `/jtasks` öffnet oder schließt den
 Bereich.
 
+Endet ein Zug mit einer bereiten Aufgabe und ohne laufenden Subagenten (etwa nach einer Kompaktierung), schickt
+der Mod Claude eine Nachricht, die die Schleife wieder öffnet; nach zwei ohne Fortschritt hört er auf und sagt dir
+Bescheid. Um absichtlich anzuhalten, ruft Claude `jtasks pause` auf und fragt dich; `jtasks keepalive off`
+schaltet das ab.
+
 ## Mit OpenCode
 
 Mit dem Plugin genauso: `to-jtasks` zum Planen, dann ein Goal. Der `subagent`-Aufruf jeder Aufgabe bekommt den
 Agenten ihres Profils (`execute`, `execute-deep`, `review`, installiert von `jtasks doctor --fix --yes`, oder
 jeden Agenten, den du im Plan nennst). Die Seitenleiste zeigt die Checkliste und den Fortschrittsbalken.
+
+Wird die Sitzung mit einer bereiten Aufgabe und ohne laufende Arbeit untätig, öffnet das Plugin die Schleife
+genauso wieder.
 
 ## Aus einem Terminal oder Codex
 

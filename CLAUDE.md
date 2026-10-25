@@ -13,7 +13,9 @@ Itens 2 a 6 da seção 18 do plano entregues (núcleo + CLI + ledger, plugin do 
 cujos bloqueios estão `done`), `**Status:**` no arquivo, critérios `- [ ]`, um commit por ticket (`NN: <título>`).
 Uso em `docs/USAGE.md`; desvios em `docs/DEVIATIONS.md`. Segunda leva (plano rev. 5.2, seção 18 itens 9 a 15):
 tickets 19 a 30 (nomes completos dos perfis, posse pelo `hold --detach`/`--release-on-eof`, barra no estilo do HUD,
-onze idiomas, `jtasks doctor`, skills por agente, READMEs, teste real do mod), mais o ticket 18 no jlock.
+onze idiomas, `jtasks doctor`, skills por agente, READMEs, teste real do mod), mais o ticket 18 no jlock. Revisão
+5.3 (seção 18 item 16, ticket 44): a retomada do orquestrador ocioso (`src/keepalive.ts`, fim de turno no mod e no
+plugin, `jtasks keepalive on|off`).
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

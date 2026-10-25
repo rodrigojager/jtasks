@@ -151,3 +151,28 @@ processo não enxerga o `PATH` que o instalador mudou.
 com a linha que instala à mão, e o comando segue.
 
 **O que fazer:** nada; o `doctor` continua diagnosticando e instalando agentes e skills.
+
+## 12. A retomada guarda a contagem num arquivo da execução (ticket 44)
+
+**O que mudou:** o plano da retomada guardava a última mensagem (assinatura e tentativas) no estado de cada host:
+`$.state` (uma chave `keepalive`) no Claude Code e `ctx.storage` (`keepalive/<raiz>`) no OpenCode. Ela ficou em
+`keepalive.json`, na pasta da execução, escrita pelo núcleo (`checkKeepalive`). Três outros detalhes: no Claude Code a
+retomada só age em sessão interativa (`isInteractive` do `session.start`; num `-p` ou no SDK, nada); os agentes vivos
+vêm de `$.agent.list()` (qualquer subagente da sessão, não só os de tarefa), com o mapa `agents` como reserva; e a
+mensagem passa de novo pelo hook `prompt.submit` do próprio mod, que a descarta se a execução andou entre o fim do
+turno e a entrega. No OpenCode o gatilho é o `session.idle` da raiz, 300 ms depois, para o fim da execução
+(`session.execution.interrupted`/`failed`) chegar antes; a mensagem é um `session.synthetic` com `delivery: "queue"`.
+
+**Consequência:** a contagem é a mesma nos dois hosts, sobrevive a `/reload-plugins` e a reinícios, e o
+`jtasks status` do terminal sabe se o host desistiu. Duas sessões ligadas à mesma execução compartilham a contagem,
+o que é o certo: o progresso é da execução.
+
+**O que fazer:** nada. `jtasks keepalive on` (ou `unpause`, `resume`) apaga o arquivo; `clean` e `archive` levam a
+pasta inteira.
+
+Dois pontos também saíram diferentes do plano, depois da revisão: depois de erro de API ou recusa (no OpenCode, uma
+execução que falhou) o plano não fazia nada, e a execução ficava parada em silêncio; agora nada é enviado (poderia
+falhar igual), mas a pessoa é avisada na hora, como numa desistência (`keepalive.error`). E `unpause`, `resume` e
+`keepalive on` só zeram a contagem quando de fato saem de uma pausa, de um desligamento ou de uma desistência: o
+modelo os chama, e um modelo que respondesse à mensagem com `resume` faria a contagem voltar a 1 para sempre.
+

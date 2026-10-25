@@ -7,7 +7,7 @@ import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION
 import { tr } from "./i18n.ts"
 
 const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"])
-const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch", "tasks"])
+const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "tasks"])
 const GLOB = /[*?[\]{}]/
 
 export interface ValidateOptions {
@@ -96,6 +96,10 @@ export function readPlan(raw: unknown): ReadPlanResult {
   if (obj.holdTtl !== undefined) {
     if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl)) plan.holdTtl = obj.holdTtl
     else errors.push(tr("plan.hold_ttl"))
+  }
+  if (obj.keepalive !== undefined) {
+    if (typeof obj.keepalive === "boolean") plan.keepalive = obj.keepalive
+    else errors.push(tr("plan.keepalive"))
   }
   if (obj.branch !== undefined) {
     if (obj.branch === "run" || obj.branch === "current") plan.branch = obj.branch

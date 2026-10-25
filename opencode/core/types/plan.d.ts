@@ -29,6 +29,7 @@ export interface Draft {
     serialize?: string[];
     maxAttempts?: number;
     holdTtl?: string;
+    keepalive?: boolean;
     branch?: "run" | "current";
     tasks: PlanTask[];
 }

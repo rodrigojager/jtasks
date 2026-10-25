@@ -41,6 +41,7 @@ export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
     data: {
         run: string;
         status: import("./schema.ts").RunStatus;
+        keepalive: boolean;
         counts: import("./format.ts").Counts;
         inProgress: {
             id: string;

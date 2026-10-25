@@ -151,5 +151,9 @@ file, as the message says. Then `--commit` again.
 
 A small plan can also go in one call: `jtasks plan` with the whole plan as `json`.
 
+The plan may also say `"keepalive": false` (optional; the default is `true`): the run is created with the host's
+keepalive off, so nothing reopens the loop when the orchestrator stops with tasks ready. Leave it out unless the user
+wants to drive every turn by hand; `jtasks keepalive on|off` changes it later.
+
 **Never edit `tasks.json`, the tickets, `run.json` or the git history by hand**: every change goes through the tool.
 After the plan, tell the user what was left out for a person, if anything. The execution follows the protocol the plugin injects into each request (`jtasks next`, one subagent per ready task, `jtasks status` until nothing is left); without the plugin, the `jtasks` skill.

@@ -149,12 +149,20 @@ lancez un goal :
 Claude appelle `jtasks next`, ouvre un sous-agent par tâche prête dans la même réponse (chacun sur le modèle de son
 profil) et appelle `jtasks status` jusqu'à ce qu'il ne reste rien. `/jtasks` ouvre ou ferme le panneau.
 
+Si un tour se termine avec une tâche prête et aucun sous-agent en cours (après une compaction, par exemple), le mod
+envoie à Claude un message qui relance la boucle ; après deux sans progrès, il s'arrête et vous prévient. Pour
+s'arrêter exprès, Claude appelle `jtasks pause` et vous pose la question ; `jtasks keepalive off` désactive ce
+comportement.
+
 ## Avec OpenCode
 
 Avec le plugin, c'est pareil : `to-jtasks` pour planifier, puis un goal. L'appel `subagent` de chaque tâche reçoit
 l'agent de son profil (`execute`, `execute-deep`, `review`, installés par `jtasks doctor --fix --yes`, ou
 n'importe quel agent que vous nommez dans le plan). La barre latérale affiche la checklist et la barre de
 progression.
+
+Quand la session devient inactive avec une tâche prête et rien en cours, le plugin relance la boucle de la même
+façon.
 
 ## Depuis un terminal ou Codex
 

@@ -69,6 +69,7 @@ const theme = {
 
 async function tui(server: Awaited<ReturnType<typeof fakeHost>>) {
   const slots: any[] = []
+  const toasts: { message: string; variant?: string; sessionID?: string }[] = []
   const listeners = new Map<string, ((event: unknown) => void)[]>()
   const context = {
     options: {},
@@ -87,7 +88,7 @@ async function tui(server: Awaited<ReturnType<typeof fakeHost>>) {
         return () => listeners.set(type, (listeners.get(type) ?? []).filter((h) => h !== handler))
       },
     },
-    ui: { slot: (claim: any) => (slots.push(claim), () => {}) },
+    ui: { slot: (claim: any) => (slots.push(claim), () => {}), toast: { show: (o: (typeof toasts)[number]) => void toasts.push(o) } },
   }
   await createTuiPlugin({ refreshMs: 100 }).setup(context as never)
   const emit = (type: string) => {
@@ -100,7 +101,7 @@ async function tui(server: Awaited<ReturnType<typeof fakeHost>>) {
     await setup.renderOnce()
     return setup
   }
-  return { slots, emit, mount }
+  return { slots, emit, mount, toasts }
 }
 
 describe("TUI section", () => {
@@ -211,6 +212,34 @@ describe("TUI section", () => {
     expect(line.endsWith("…")).toBe(true)
     expect(line.length).toBe(SECTION_WIDTH)
     expect(line.startsWith(`  ${long.slice(0, SECTION_WIDTH - 3)}`)).toBe(true)
+  })
+
+  test("the keepalive gave up: a line under the tasks and one toast; progress clears the line", async () => {
+    const repo = makeRepo()
+    const server = await fakeHost(repo)
+    if (server.cleanup) cleanups.push(server.cleanup)
+    const planned = await server.call("s1", "plan", { tasks: [{ id: "T01", title: "Movimento", files: ["src/a.ts"] }] })
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const t = await tui(server)
+    const view = await t.mount("s1")
+    await frame(view, (f) => f.includes("Movimento"))
+    // Three ends of the root's turn with no progress: two messages, then the give-up.
+    for (let i = 0; i < 3; i++) {
+      server.emit("session.execution.started", { sessionID: "s1" })
+      server.emit("session.execution.succeeded", { sessionID: "s1" })
+      server.emit("session.idle", { sessionID: "s1" })
+      await Bun.sleep(700)
+    }
+    const f = await frame(view, (f) => f.includes("⚠"))
+    expect(row(f, "⚠")).toBe("⚠ parada: T01 por fazer, nada rodando")
+    expect(rowRuns(view, "⚠")).toEqual([["⚠ parada: T01 por fazer, nada rodando", "255,68,68"]])
+    expect(t.toasts).toEqual([{ message: "⚠ parada: T01 por fazer, nada rodando", variant: "warning", sessionID: "s1" }])
+    // The run moves (T01 starts): the line goes away.
+    server.addSession("c1", "s1")
+    await server.call("c1", "start T01")
+    t.emit("session.tool.success")
+    expect(await frame(view, (f) => !f.includes("⚠"))).not.toContain(run)
+    expect(t.toasts.length).toBe(1)
   })
 
   test("a session without a bound run shows the runs of its repository", async () => {

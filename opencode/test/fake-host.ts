@@ -66,6 +66,8 @@ export async function fakeHost(directory: string, host?: Host) {
   const sessions = new Map<string, { id: string; parentID?: string; location: { directory: string } }>()
   const hooks = new Map<string, Hook>()
   const tools: any[] = []
+  /** What the plugin sent to sessions with `session.synthetic` (the keepalive's messages). */
+  const synthetics: { sessionID: string; text: string; delivery?: string }[] = []
   const agents = new Map<string, Agent>(["build", "execute", "execute-deep", "review"].map((id) => [id, { id }]))
   const registration = { dispose: async () => {} }
   const rpcImpls = new Map<string, Record<string, (input: unknown, context: unknown) => Promise<unknown>>>()
@@ -108,6 +110,7 @@ export async function fakeHost(directory: string, host?: Host) {
         return s
       },
       hook: async (name: string, cb: Hook) => (hooks.set(`session.${name}`, cb), registration),
+      synthetic: async (input: { sessionID: string; text: string; delivery?: string }) => (synthetics.push(input), { type: "synthetic", id: `syn-${synthetics.length}` }),
     },
     tool: {
       transform: async (cb: (editor: any) => void) => (cb({ add: (t: any) => tools.push(t) }), registration),
@@ -195,5 +198,5 @@ export async function fakeHost(directory: string, host?: Host) {
           method in target ? target[method] : (input: unknown) => rpcImpls.get(def.id)![method]!(input, { signal: new AbortController().signal }),
       },
     )
-  return { ctx, tools, hooks, agents, storage, addSession, call, request, subagent, permission, rpcClient, cleanup, emit }
+  return { ctx, tools, hooks, agents, storage, addSession, call, request, subagent, permission, rpcClient, cleanup, emit, synthetics }
 }

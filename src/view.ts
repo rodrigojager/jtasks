@@ -5,6 +5,7 @@ import { assess, blockerText, waitingOf, waitingText, type RunState } from "./fr
 import { counts, progress } from "./format.ts"
 import type { Host } from "./host.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
+import { keepaliveNotice, readKeepalive } from "./keepalive.ts"
 import { listRuns, readRun, readTasks, runDir } from "./store.ts"
 import type { RunFile, Task, TasksFile, ToolName } from "./schema.ts"
 import { tr, width as columns } from "./i18n.ts"
@@ -30,6 +31,8 @@ export interface RunView {
   remaining: number
   percent: number
   lines: ViewLine[]
+  /** The keepalive gave up on the run as it stands (`view.stalled`): shown under the tasks. */
+  notice?: string
 }
 
 export interface RunsView {
@@ -201,7 +204,9 @@ export async function loadView(host: Host, root: string, run: string, tool: Tool
   if (!runFile || !tasks) return undefined
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => [])
-  return buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool)
+  const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool)
+  const notice = keepaliveNotice(runFile, tasks, await readKeepalive(host, dir))
+  return notice ? { ...view, notice } : view
 }
 
 export async function loadRunsView(host: Host, root: string): Promise<RunsView> {

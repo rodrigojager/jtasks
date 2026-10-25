@@ -25,6 +25,14 @@ padrão do OpenCode (`execute`, `execute-deep`, `review`), e acrescenta: posse p
 (seção 21), `jtasks doctor` (seção 22), skills por agente e READMEs em onze idiomas (seção 23). Marcado com
 **[rev. 5.2]**; a seção 18 ganha os itens 9 a 15 (tickets 19 a 30).
 
+Revisão 5.3, 25/10/2026: a **retomada** (keepalive). O laço da execução dependia só de o orquestrador lembrar de
+continuar; um resumo velho depois de uma compactação bastava para ele encerrar o turno com tarefa pronta e nenhum
+subagente vivo, e nada mais acordava a sessão (o `/goal` não percebe). Agora, quando o turno do orquestrador termina,
+o host pergunta ao núcleo (`src/keepalive.ts`) e, se a execução não está pausada, tem tarefa pronta (ou em andamento
+sem ninguém) e nenhum agente vivo, manda ele mesmo uma mensagem à sessão que reabre o laço; duas mensagens sem
+progresso e ele desiste e avisa a pessoa. `jtasks keepalive on|off`, `"keepalive"` no plano, passo 5 do protocolo
+(`pause` para perguntar). Marcado com **[rev. 5.3]** nas seções 9, 12, 14, 15, 16, 17 e 18 (ticket 44).
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -438,7 +446,21 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
   no plugin (`--release-on-eof`) e no prazo `holdTtl` no CLI e no mod. Uma tarefa que ainda tem as travas (janela
   viva em outro lugar) fica como está; `--keep-owners` não libera nenhuma tarefa, nem as sem travas.
 - **Pausar:** `jtasks pause`: `start` recusado; o resumo no prompt diz "pausada: não inicie tarefas"; os subagentes
-  em andamento terminam.
+  em andamento terminam. **[rev. 5.3]** A pausa também desliga a retomada: é como o orquestrador para para perguntar
+  algo à pessoa (passo 5 do protocolo). `unpause` e `resume` zeram a contagem da retomada.
+- **Retomada [rev. 5.3]:** no fim do turno do orquestrador, o host conta os seus agentes vivos e chama
+  `checkKeepalive` do núcleo. Nada acontece com a execução pausada, `keepalive: false` no `run.json`, restam 0,
+  agente vivo, ou só tarefas bloqueadas ou com falha (a fronteira é a do `next`). Fora disso, uma mensagem em inglês
+  ("jtasks: run X is idle · done 7/9 · 2 left · ready: T08 · no subagent is running…"), que diz também, para uma
+  tarefa em andamento sem ninguém, "continue-a você mesmo ou `jtasks release`". A assinatura do progresso (contagens
+  de feitas, puladas e falhas, mais as em andamento) fica em `keepalive.json`, na pasta da execução: a mesma
+  assinatura conta como tentativa; passadas `JTASKS_KEEPALIVE_TRIES` (padrão 2), o host desiste e avisa a pessoa no
+  idioma dela, e fica quieto até o progresso mudar ou `jtasks keepalive on`. Turno interrompido pela pessoa deixa a
+  retomada quieta até a execução andar; depois de erro de API ou recusa (no OpenCode, execução que falhou) nada é
+  enviado, mas a pessoa é avisada na hora. Cada mensagem e cada desistência entram no `log.jsonl`
+  (`keepalive-nudge`, `keepalive-stalled`). Só um `unpause` de verdade (a execução estava pausada) zera a contagem;
+  `keepalive on` esquece uma desistência, não uma contagem em andamento: o modelo não consegue zerá-la respondendo à
+  mensagem com esses comandos.
 - **Tentar de novo:** `jtasks retry T04`; histórico no `log.jsonl`; `attempts` conta.
 - **Falha automática:** `release` no fim de agente morto; no `maxAttempts` vira `failed`, dependentes ficam
   `blocked`, o resto segue. O goal termina com "restam N (M falhas)".
@@ -498,7 +520,15 @@ Protocolo de execução (texto fixo, injetado no sistema enquanto houver execuç
 3. Quando terminarem, chame jtasks status. "restam 0" → goal cumprido com essa saída como
    evidência. "pausada" → pare. Senão volte ao passo 1.
 4. Nunca edite tasks.json, tickets ou o git à mão; só pela ferramenta.
+5. [rev. 5.3] Se algo depende da pessoa (uma conta, uma credencial, uma decisão que o plano não
+   cobre), chame jtasks pause e pergunte. Enquanto a execução não está pausada e tem tarefa
+   pronta, o host reabre o laço quando o seu turno termina; responda à mensagem "run is idle"
+   com jtasks next, não com texto.
 ```
+
+**[rev. 5.3]** O `/goal` (e o `create_goal` do OpenCode) não percebe um turno que termina com tarefa pronta e nada
+rodando: quem reabre o laço é a retomada (seção 9). No Codex, sem mod nem plugin, não há retomada; a skill diz que o
+laço depende só do modelo.
 
 Contexto contínuo (sem subagentes): passo 2 vira "faça a tarefa você mesmo, dentro da posse". Compactação: Claude
 Code via `prompt.section` + `session.compact`; OpenCode via hooks `context` e `compaction`. A lista nunca se perde.
@@ -555,6 +585,7 @@ core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 | perfil | `on("agent.spawn")` | modelo do subagente pelo perfil |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
 | agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
+| retomada | **[rev. 5.3]** `on("turn.complete")` sem `e.agentId`, `reason: "answer"`, sessão interativa; agentes vivos por `$.agent.list()` (`pending`/`running`/`waiting`; o mapa `agents` se a lista falhar); `$.prompt.submit`; `on("prompt.submit")` confere de novo a mensagem do próprio jtasks antes de entrar e a descarta se a execução andou; `$.prompt.read` adia a mensagem enquanto há rascunho (o relógio de 2 s a manda depois); `turn.start` cancela o que esperava | reabre o laço; na desistência, `$.ui.toast`, `$.ui.notify`, `$.ui.status` e uma linha no painel |
 
 ```
 ▾ Tasks · cursory-261023-k7f2
@@ -585,6 +616,7 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 | perfis | `agent.transform` (modelo do perfil) + `tool.hook("execute.before")` (agente da tarefa na chamada `subagent`) | agentes `execute`/`execute-deep`/`review` existentes (seção 13) |
 | guarda de posse | `ctx.permission.hook("evaluate")` (`edit` e `shell`) | mesmas regras do mod, pela regra do núcleo |
 | agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
+| retomada | **[rev. 5.3]** `session.idle` da sessão raiz, depois de 300 ms à espera do fim da execução (`session.execution.succeeded`/`failed`/`interrupted`); agentes vivos: sessões filhas em execução ou com tarefa iniciada e ainda não encerradas; `ctx.session.synthetic({ delivery: "queue" })` | reabre o laço; na desistência, a linha `notice` da vista na barra lateral e um toast da TUI |
 | goal | sem espelhar em `update_goal_plan` | objetivo + evidência; o paralelismo é nosso |
 
 ---
@@ -596,7 +628,8 @@ transições, fronteira com posse (**[rev. 5]** pela regra de hierarquia do jloc
 ciclos, dono único, `revision`, gravação atômica, progresso, ligação sessão →
 execução, pausa, retomada, falha por `maxAttempts`, guarda de posse e de git, commit por tarefa, ledger e desfazer,
 worktrees quando pedidas, `gc` como relatório, limpeza e arquivamento, desenho das interfaces, reinjeção após
-compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto.
+compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto, **[rev. 5.3]** a retomada do
+orquestrador ocioso (quando reabrir o laço, quando desistir e avisar).
 
 **Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
@@ -634,6 +667,13 @@ motivo.
   a mesma forma e os exemplos reexecutados.
 - **[rev. 5.2] O único teste que gasta tokens**, fora do `bun test`: o mod num Claude Code real, dirigido pelo
   herdr, com haiku e um roteiro curto (ticket 30), porque `claude plugin test` roda numa máquina falsa.
+- **[rev. 5.3] Retomada:** a decisão em tabela (`test/keepalive.test.ts`: pausada, off, restam 0, agente vivo,
+  só bloqueadas ou com falha, pronta sem agente, em andamento sem agente, tentativas e desistência, progresso zera);
+  `keepalive on|off`, `status`, `help`, o plano com `"keepalive": false`; no mod, o caso real (T07 feita, T08
+  pronta, nenhum agente) gera a mensagem, e turno interrompido, erro, recusa, agente vivo, sessão não interativa,
+  rascunho, mensagem velha na entrega e a desistência têm cada um o seu teste; no plugin, `session.idle` da raiz
+  gera `session.synthetic`, a filha ociosa só libera a tarefa, falha, interrupção e pausa não mandam nada, e a TUI
+  mostra a linha e um toast.
 - Sem gastar tokens de modelo real.
 
 ---
@@ -671,6 +711,8 @@ motivo.
 14. **Skills e doctor** (27, 28): `to-jtasks` e `jtasks` para Claude Code, OpenCode e Codex; `jtasks doctor` e
     `--fix --yes` (jlock, agentes, skills, pelo ledger global).
 15. **READMEs em onze idiomas e o teste real do mod** (29, 30).
+16. **[rev. 5.3] Retomada do orquestrador ocioso** (ticket 44): `src/keepalive.ts`, o fim de turno no mod e no
+    plugin, `jtasks keepalive on|off`, o passo 5 do protocolo, skills e documentação.
 
 ---
 

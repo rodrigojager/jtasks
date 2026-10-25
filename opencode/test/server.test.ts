@@ -236,4 +236,79 @@ describe("OpenCode plugin", () => {
     await Bun.sleep(300)
     expect(tasksOf()[1]!.status).toBe("done")
   })
+
+  test("keepalive: the root going idle with a ready task and no child alive gets a message; twice without progress, a notice", async () => {
+    const { repo, h } = await setup()
+    const planned = await h.call("s1", "plan", { tasks: [{ id: "T01", title: "Base", files: ["src/a.ts"] }, { id: "T02", title: "Depois", files: ["src/b.ts"], dependsOn: ["T01"] }] })
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const until = async (check: () => boolean) => {
+      for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
+      expect(check()).toBe(true)
+    }
+    const keepaliveLog = () =>
+      readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l).action as string).filter((a) => a.startsWith("keepalive"))
+    const memory = () => {
+      try {
+        return JSON.parse(readFileSync(join(dir, "keepalive.json"), "utf8")) as { action: string }
+      } catch {
+        return undefined
+      }
+    }
+    const client = h.rpcClient({ id: "jtasks" }) as any
+    const changed: unknown[] = []
+    client.events.on("changed", (e: { data: unknown }) => changed.push(e.data))
+    const turn = (outcome: "succeeded" | "failed" | "interrupted") => {
+      h.emit("session.execution.started", { sessionID: "s1" })
+      h.emit(`session.execution.${outcome}`, { sessionID: "s1" })
+      h.emit("session.idle", { sessionID: "s1" })
+    }
+
+    turn("succeeded")
+    await until(() => h.synthetics.length === 1)
+    expect(h.synthetics[0]).toMatchObject({ sessionID: "s1", delivery: "queue" })
+    expect(h.synthetics[0]!.text).toContain(`jtasks: run ${run} is idle · done 0/2 · 2 left · ready: T01 · no subagent is running.`)
+
+    turn("succeeded")
+    await until(() => h.synthetics.length === 2)
+    turn("succeeded")
+    await until(() => keepaliveLog().length === 3)
+    expect(keepaliveLog()).toEqual(["keepalive-nudge", "keepalive-nudge", "keepalive-stalled"])
+    expect(h.synthetics.length).toBe(2)
+    await until(() => changed.length > 0)
+    expect(changed.at(-1)).toEqual({ run })
+    const view = (await client.state({ sessionID: "s1" })) as { view: { notice?: string } }
+    expect(view.view.notice).toBe("⚠ parada: T01 por fazer, nada rodando")
+
+    // Watched again; an interrupted or failed execution sends nothing, and an interruption holds it.
+    expect((await h.call("s1", "keepalive on")).ok).toBe(true)
+    // A failed execution: no message, the sidebar says it at once.
+    turn("failed")
+    await until(() => memory()?.action === "stalled")
+    expect(((await client.state({ sessionID: "s1" })) as { view: { notice?: string } }).view.notice).toBe("⚠ parada: T01 por fazer, nada rodando")
+    turn("interrupted")
+    await until(() => memory()?.action === "held")
+    turn("succeeded")
+    await Bun.sleep(600)
+    expect(h.synthetics.length).toBe(2)
+
+    // A child alive (it started a task and its session has not ended): its end wakes the root, no message.
+    expect((await h.call("s1", "keepalive on")).ok).toBe(true)
+    h.addSession("c9", "s1")
+    expect((await h.call("c9", "start T01")).ok).toBe(true)
+    turn("succeeded")
+    await Bun.sleep(600)
+    expect(h.synthetics.length).toBe(2)
+    // The child's session ends: T01 goes back to the queue, and the root's next idle reopens the loop.
+    h.emit("session.idle", { sessionID: "c9" })
+    await until(() => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks[0].status === "pending")
+    turn("succeeded")
+    await until(() => h.synthetics.length === 3)
+
+    // Paused: nothing.
+    expect((await h.call("s1", "pause")).ok).toBe(true)
+    turn("succeeded")
+    await Bun.sleep(600)
+    expect(h.synthetics.length).toBe(3)
+  })
 })

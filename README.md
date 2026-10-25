@@ -138,11 +138,17 @@ into tasks, asks you to approve them, and hands the plan to the tool in batches.
 Claude calls `jtasks next`, opens one subagent per ready task in the same response (each on its profile's model), and
 calls `jtasks status` until nothing is left. `/jtasks` opens or closes the pane.
 
+If a turn ends with a task ready and no subagent running (after a compaction, say), the mod sends Claude a message
+that reopens the loop; after two with no progress it stops and tells you. To stop on purpose, Claude calls `jtasks
+pause` and asks you; `jtasks keepalive off` turns this off.
+
 ## With OpenCode
 
 With the plugin, the same: `to-jtasks` to plan, then a goal. Each task's `subagent` call gets the agent of its
 profile (`execute`, `execute-deep`, `review`, installed by `jtasks doctor --fix --yes`, or any agent you name in
 the plan). The sidebar shows the checklist and the progress bar.
+
+When the session goes idle with a task ready and nothing running, the plugin reopens the loop the same way.
 
 ## From a terminal or Codex
 

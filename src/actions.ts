@@ -39,6 +39,7 @@ import {
   type JlockLock,
 } from "./jlock.ts"
 import { unarchive } from "./housekeeping.ts"
+import { clearKeepalive, keepaliveStatus, keepaliveTries, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { slugify } from "./ids.ts"
 import { canonical, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
@@ -339,6 +340,8 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   const ready = selectReady(state, assessments, platform)
   const lines = [progressLine(state.tasks.tasks)]
   if (state.run.status === "paused") lines.push(tr("status.paused"))
+  const keepalive = keepaliveStatus(state.run, state.tasks, await readKeepalive(ctx.host, state.dir), keepaliveTries(ctx.host))
+  if (keepalive) lines.push(keepalive)
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress")
   const byKey = new Map([...repoLocks, ...groupLocks].map((l) => [l.key, l]))
   const waiting = waitingOf(state, [...byKey.values()])
@@ -380,6 +383,7 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
     data: {
       run: state.run.id,
       status: state.run.status,
+      keepalive: state.run.keepalive !== false,
       counts: counts(state.tasks.tasks),
       inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null })),
       ready: ready.map((t) => t.id),
@@ -842,6 +846,9 @@ async function setPaused(ctx: ToolContext, args: ParsedArgs, paused: boolean) {
     const from = state.run.status
     const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
     if (from !== status) await writeRun(ctx.host, state.dir, { ...state.run, status })
+    // Really unpaused (it was paused), the keepalive counts again from zero; an unpause of a run that was not
+    // paused changes nothing, so it cannot reset the count.
+    if (!paused && from === "paused") await clearKeepalive(ctx.host, state.dir)
     await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status })
     return { ...state, run: { ...state.run, status } }
   })
@@ -903,6 +910,8 @@ defineAction(
         await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted })
       }
       await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept })
+      // Only a resume that leaves a pause starts the count over (released tasks are progress anyway).
+      if (state.run.status === "paused") await clearKeepalive(ctx.host, state.dir)
       return { ...state, run, tasks }
     })
     // Whatever is left of a released task's locks (a stale holder) goes back too.
@@ -918,6 +927,31 @@ defineAction(
     return ok(lines.join("\n"), { ...s.data, released, kept }, { bind: state.run.id })
   },
   "help.resume",
+)
+
+// ── keepalive ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+defineAction(
+  "keepalive",
+  async (ctx, args) => {
+    const wanted = args.positionals[0]
+    if (wanted !== "on" && wanted !== "off") throw new ToolError(tr("keepalive.usage"), 2)
+    const on = wanted === "on"
+    const first = await resolveRun(ctx, args)
+    const state = await withLock(ctx.host, first.dir, async () => {
+      const state = await reload(ctx, first)
+      const from = state.run.keepalive !== false
+      const run = { ...state.run, keepalive: on }
+      if (from !== on || state.run.keepalive === undefined) await writeRun(ctx.host, state.dir, run)
+      // On again: a give-up (or a hold) is forgotten, so the run is watched again; from off, everything is.
+      if (on && !from) await clearKeepalive(ctx.host, state.dir)
+      else if (on) await rearmKeepalive(ctx.host, state.dir)
+      await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted })
+      return { ...state, run }
+    })
+    return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on })
+  },
+  "help.keepalive",
 )
 
 // ── exec (serialize) ──────────────────────────────────────────────────────────────────────────────────────────

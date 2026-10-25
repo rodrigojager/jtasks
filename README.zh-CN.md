@@ -115,9 +115,13 @@ $ jtasks status
 
 Claude 调用 `jtasks next`，在同一个回复中为每个就绪任务打开一个子智能体（每个都使用其配置对应的模型），并反复调用 `jtasks status`，直到没有剩余。`/jtasks` 打开或关闭面板。
 
+如果一轮结束时有就绪任务且没有子代理在运行（例如压缩之后），mod 会给 Claude 发一条重新开启循环的消息；连续两条没有进展后，它会停下并通知你。要有意停下时，Claude 会调用 `jtasks pause` 并询问你；`jtasks keepalive off` 可关闭此功能。
+
 ## 配合 OpenCode
 
 使用插件时也一样：用 `to-jtasks` 做计划，然后设定一个目标。每个任务的 `subagent` 调用会得到其配置对应的智能体（`execute`、`execute-deep`、`review`，由 `jtasks doctor --fix --yes` 安装，或者是你在计划中指定的任意智能体）。侧边栏显示清单和进度条。
+
+当会话在有就绪任务且无任何运行时变为空闲，插件也会以同样方式重新开启循环。
 
 ## 在终端或 Codex 中
 

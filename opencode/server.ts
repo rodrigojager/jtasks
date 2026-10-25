@@ -1,6 +1,7 @@
 // jtasks for OpenCode v2 (server plugin): the `jtasks` tool (the same contract as the CLI, through the core's
 // runTool), the run bound to the root session, the protocol and progress in every request and in compaction, the
-// agent of each task's profile on its subagent call, and the ownership guard on edit and shell permissions.
+// agent of each task's profile on its subagent call, the ownership guard on edit and shell permissions, and the
+// keepalive: the root session going idle with ready tasks and no subagent alive gets a message that resumes it.
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
@@ -10,6 +11,7 @@ import { onSessionEnded } from "./src/agents.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
 import { judge } from "./src/guard.ts"
+import { RootKeepalive } from "./src/keepalive.ts"
 import { agentFor, agentMissingLine, applyProfileModels, missingAgents, SUBAGENT_TOOLS } from "./src/profiles.ts"
 import { TasksRpc } from "./src/rpc.ts"
 import { viewFor } from "./src/view.ts"
@@ -57,6 +59,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       const holdMode = await holdModeFor(host).catch(() => "detach" as const)
       const bindings = new Bindings(ctx.storage as unknown as StorageLike, ctx.session as never)
       const fallbackDir = ctx.location.directory as string
+      // Set once the RPC exists (a give-up repaints the sidebar through its `changed`).
+      let keepalive: RootKeepalive | undefined
       let agentModels: { dispose(): Promise<void> } | undefined
 
       // Applies the profiles' models to their agents; answers the profiles whose agent does not exist (the editor is
@@ -110,13 +114,26 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         }
         const id = parsed.positionals[0]
         const boundRun = result.bind ?? run?.run
-        if (result.ok && id && boundRun && TASK_START.has(action)) await bindings.setTask(sessionID, { run: boundRun, task: id })
+        if (result.ok && id && boundRun && TASK_START.has(action)) {
+          await bindings.setTask(sessionID, { run: boundRun, task: id })
+          await keepalive?.taskStarted(sessionID)
+        }
         if (result.ok && id && TASK_END.has(action)) await bindings.setTask(sessionID, undefined)
         return result
       }
 
       const rpc = await ctx.rpc.register(TasksRpc, {
         state: async (input) => ({ view: await viewFor(host, bindings, (input as { sessionID: string }).sessionID, fallbackDir) }) as never,
+      })
+
+      const session = ctx.session as unknown as { synthetic?: (input: Record<string, unknown>) => Promise<unknown> }
+      keepalive = new RootKeepalive(host, bindings, {
+        send:
+          typeof session.synthetic === "function"
+            ? (sessionID, text) =>
+                session.synthetic!({ sessionID, text, description: "jtasks keepalive", delivery: "queue", metadata: { source: PLUGIN_ID } })
+            : undefined,
+        changed: (run) => rpc.events.emit("changed", { run }),
       })
 
       await ctx.tool.transform((editor) => {
@@ -162,7 +179,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         await judge(host, bindings, event as never, fallbackDir)
       })
 
-      // A subagent's session that goes idle (or is deleted) with its task in progress gives the task back.
+      // A subagent's session that goes idle (or is deleted) with its task in progress gives the task back. Every
+      // session event also goes to the keepalive, unawaited: a root's idle waits a moment for its execution's end.
       const events = (ctx.event?.subscribe?.() as AsyncIterable<{ type: string; data?: { sessionID?: string } }> | undefined)?.[
         Symbol.asyncIterator
       ]()
@@ -172,6 +190,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
             const next = await events.next().catch(() => ({ done: true, value: undefined }) as const)
             if (next.done) return
             const { type, data } = next.value
+            if (data?.sessionID) void keepalive?.onEvent(type, data.sessionID).catch(() => undefined)
             if ((type !== "session.idle" && type !== "session.deleted") || !data?.sessionID) continue
             const end = type === "session.idle" ? "idle" : "deleted"
             await onSessionEnded(host, bindings, data.sessionID, end, (sessionID, command) => call(sessionID, command, undefined)).catch(() => {})

@@ -3,7 +3,10 @@
 The Claude Code mod of [jtasks](../README.md): the `jtasks` tool (`mcp__jtasks__jtasks`, the same contract as
 the CLI), the run bound to the session (`$.state`, shared by subagents), the execution protocol in the system
 prompt while a run is bound, a "Tasks" pane with the checklist and `/jtasks` (Claude Code has its own `/tasks`), the model of each subagent from its
-task's profile, and the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of subagents.
+task's profile, the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of subagents, and the keepalive: when the
+main loop's turn ends with a task ready and no subagent alive, the mod sends a message (`$.prompt.submit`) that
+reopens the loop; after two with no progress it stops and tells you (toast, notification, status line, a line in the
+pane). `jtasks pause` (how the orchestrator stops to ask you) and `jtasks keepalive off` keep it quiet.
 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and
 the hooks module runs it with no Node and no `node_modules`. It needs `git`; `jlock` comes by itself: when it is

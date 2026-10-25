@@ -145,11 +145,18 @@ lavoro in attività, ti chiede di approvarle e consegna il piano allo strumento 
 Claude chiama `jtasks next`, apre un subagente per ogni attività pronta nella stessa risposta (ciascuno con il
 modello del suo profilo) e chiama `jtasks status` finché non resta nulla. `/jtasks` apre o chiude il pannello.
 
+Se un turno finisce con un'attività pronta e nessun subagente in corso (dopo una compattazione, per esempio),
+il mod manda a Claude un messaggio che riapre il ciclo; dopo due senza progressi si ferma e ti avvisa. Per
+fermarsi di proposito, Claude chiama `jtasks pause` e ti chiede; `jtasks keepalive off` lo disattiva.
+
 ## Con OpenCode
 
 Con il plugin, lo stesso: `to-jtasks` per pianificare, poi un obiettivo. La chiamata `subagent` di ogni attività
 riceve l'agente del suo profilo (`execute`, `execute-deep`, `review`, installati da `jtasks doctor --fix --yes`,
 o qualsiasi agente tu indichi nel piano). La barra laterale mostra la checklist e la barra di avanzamento.
+
+Quando la sessione resta inattiva con un'attività pronta e niente in corso, il plugin riapre il ciclo allo
+stesso modo.
 
 ## Da un terminale o da Codex
 

@@ -1,7 +1,8 @@
 // jtasks for Claude Code: the `jtasks` tool (the core's runTool on a host made of $.fs and $.process), the run
 // bound to the session in $.state (subagents share it), the protocol section in the system prompt while a run is
 // bound (prompt.compose runs at every request, so it is back after a compaction too), and the "Tasks" pane with
-// /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open.
+// /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open; and the keepalive: at the end of the
+// main loop's turn, with ready tasks and no subagent alive, a message that reopens the loop (./keepalive.ts).
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
@@ -9,6 +10,7 @@ import { ensureJlock, parseArgs, runTool, select, splitCommand, systemLocale, tr
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
+import { Keepalive } from './keepalive.ts'
 import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, ROW_MARK, ROW_MARK_COLOR, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
 import type { PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
@@ -30,6 +32,8 @@ const residents = new Map<string, Resident[]>()
 let port: Port | undefined
 /** Set at session.start: recomputes the pane's view now (a closure over that hook's $). */
 let refresh: ((force: boolean) => Promise<void>) | undefined
+/** Set at session.start: reopens the loop when the orchestrator stops with ready tasks (a closure over that hook's $). */
+let keepalive: Keepalive | undefined
 let paneOpen = false
 let spinnerFrame = 0
 
@@ -97,8 +101,27 @@ export const register: Register = (on) => {
         JTASKS_NO_JLOCK_INSTALL: await $.env.get('JTASKS_NO_JLOCK_INSTALL'),
         JTASKS_LANG: await $.env.get('JTASKS_LANG'),
         JLOCK_LANG: await $.env.get('JLOCK_LANG'),
+        JTASKS_KEEPALIVE_TRIES: await $.env.get('JTASKS_KEEPALIVE_TRIES'),
       },
     }
+    keepalive = new Keepalive(
+      port,
+      {
+        agents: async () => (await $.agent.list()).map((a) => ({ status: a.status })),
+        draft: async () => (await $.prompt.read()).text,
+        submit: (text) => $.prompt.submit({ text }),
+        // The status line carries the plugin's name already; the toast and the notification do not.
+        stalled: (notice) => {
+          $.ui.toast(`jtasks: ${notice}`, { timeoutMs: 15000 })
+          $.ui.status(notice)
+          void $.ui.notify(`jtasks: ${notice}`).catch(() => undefined)
+          void refresh?.(true).catch(() => undefined)
+        },
+        clear: () => $.ui.status(undefined),
+      },
+      e.isInteractive,
+    )
+    await keepalive.restore((text) => $.ui.status(text)).catch(() => undefined)
     // The session's language (plan section 21): what the pane and the tool's answers speak until a --lang.
     const env = port.env
     select({ env: (name) => env[name as keyof typeof env] ?? undefined, system: systemLocale() })
@@ -124,7 +147,10 @@ export const register: Register = (on) => {
       const view = await computeView(p)
       await update($, viewAtom, () => view)
     }
-    $.clock.every(2000, () => void refresh?.(false).catch(() => undefined))
+    $.clock.every(2000, () => {
+      void refresh?.(false).catch(() => undefined)
+      void keepalive?.tick().catch(() => undefined)
+    })
     $.clock.every(120, async () => {
       const view = await read($, viewAtom)
       if (!paneOpen || !view || !paneRows(view).some((row) => row.state === 'running')) return
@@ -185,6 +211,7 @@ export const register: Register = (on) => {
                 {' '}<Text color={row.state === 'running' ? 'claude' : undefined} dimColor={row.state === 'pending' || row.state === 'skipped'} strikethrough={row.state === 'skipped'}>{row.label}</Text>
               </Text>
             </Box>)}
+            {view.notice ? <Box key="notice" marginTop={1}><Text color="warning">{view.notice}</Text></Box> : null}
           </Box>
         })() : null}
       </Box>
@@ -255,11 +282,30 @@ export const register: Register = (on) => {
     return next(wrapped ? { ...e, command: wrapped } : e)
   }).catch(($, e, next) => (next.called ? next(e) : refused()))
 
-  // A subagent whose loop ended with its task still in progress: the task goes back to the queue.
+  on('turn.start', async ($, e, next) => {
+    if (e.agentId === undefined) keepalive?.turnStarted()
+    return next(e)
+  })
+
+  // The keepalive's own message, checked again right before it enters: dropped when the run moved meanwhile (in
+  // doubt, or past 3 s, it goes).
+  on('prompt.submit', async ($, e, next) => {
+    const p = port
+    if (e.origin?.kind !== 'plugin' || e.origin.name !== 'jtasks' || !keepalive || !p) return next(e)
+    const wanted = await Promise.race([keepalive.stillWanted().catch(() => true), p.sleep(3000).then(() => true)])
+    return wanted ? next(e) : { drop: tr('keepalive.dropped') }
+  })
+
+  // The main loop's end: the keepalive decides (the turn's end waits 3 s at most; the rest goes on in the
+  // background). A subagent whose loop ended with its task still in progress: the task goes back to the queue.
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
     const p = port
-    if (!p || !e.agentId) return done
+    if (!p) return done
+    if (e.agentId === undefined) {
+      if (keepalive) await Promise.race([keepalive.turnEnded(e.reason).catch(() => undefined), p.sleep(3000)])
+      return done
+    }
     const agents = await p.getAgents()
     const mine = agents[e.agentId]
     if (!mine) return done

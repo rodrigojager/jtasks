@@ -2,7 +2,7 @@
 // jtasks for the OpenCode TUI: the "Tasks" section in the session sidebar (header, progress row, one row per
 // task), folded with a click. The data comes from the server plugin's RPC (`jtasks.state`); the TUI never reads
 // the files. It reloads after every successful tool call, on the RPC's `changed` event, and every 2 s while a task
-// runs.
+// runs. When the keepalive gave up on the run (the view's `notice`), a line under the tasks and one toast.
 //
 //   ▾ Tasks
 //   Progress ██████▋███ 66% · 2/3
@@ -123,10 +123,14 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
 
       function TasksSection(props: { sessionID: string }) {
         const [view, setView] = createSignal<View | undefined>()
+        let toasted: string | undefined
         const load = async () => {
           try {
             const r = (await rpc.state({ sessionID: props.sessionID })) as { view: View }
             setView(r.view)
+            const notice = r.view.kind === "run" ? r.view.notice : undefined
+            if (notice && notice !== toasted) context.ui.toast?.show({ message: notice, variant: "warning", sessionID: props.sessionID })
+            toasted = notice
           } catch {
             // The server plugin is not loaded (or not reachable): no section.
           }
@@ -162,6 +166,9 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
               <Show when={!prefs.collapsed && runView() !== undefined}>
                 <ProgressRow view={runView} />
                 <Index each={runView()?.lines ?? []}>{(line) => <TaskRow line={line} />}</Index>
+                <Show when={runView()?.notice}>
+                  <text fg={error()}>{fit(runView()?.notice ?? "", SECTION_WIDTH)}</text>
+                </Show>
               </Show>
               <Show when={!prefs.collapsed && runView() === undefined}>
                 <Index each={runs()}>{(r) => <text fg={faint()}>{`${r().id} · ${r().done}/${r().total} (${r().percent}%)`}</text>}</Index>
