@@ -33,6 +33,15 @@ sem ninguém) e nenhum agente vivo, manda ele mesmo uma mensagem à sessão que 
 progresso e ele desiste e avisa a pessoa. `jtasks keepalive on|off`, `"keepalive"` no plano, passo 5 do protocolo
 (`pause` para perguntar). Marcado com **[rev. 5.3]** nas seções 9, 12, 14, 15, 16, 17 e 18 (ticket 44).
 
+Revisão 5.4, 25/10/2026: a trava de uma tarefa longa não vence mais no meio do trabalho. O `--ttl` do jlock expira
+um `hold` esse tempo depois de concedido, mesmo com o dono vivo, e o jlock não tem como estender o prazo; na Fase 4,
+tarefas de mais de 2 h perderam as travas, o `done` recusou o commit, e no plugin o `hold` que sai com 14 devolvia a
+tarefa à fila como "posse perdida" com o subagente ainda trabalhando. Agora o mod e o plugin, que ficam abertos,
+renovam a cada minuto as travas das tarefas em andamento que eles mesmos iniciaram, pouco antes de vencerem
+(`release` e `hold --no-wait` na hora, sob a trava curta de escrita da execução), e o `done` retoma as próprias
+chaves vencidas quando ninguém as pegou. O prazo continua sendo a rede de segurança de janela morta (ninguém
+renova). Marcado com **[rev. 5.4]** nas seções 4, 14, 15, 16, 17, 18 e 19 (ticket 45).
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -186,7 +195,16 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   `jlock hold … --release-on-eof --ttl <prazo>` em primeiro plano, com a entrada padrão aberta. Em qualquer host,
   `done`, `skip`, `fail` e `release` devolvem a posse com `jlock release --group <run> --owner <dono>` (o `hold`
   termina com 0). O prazo (`holdTtl` no plano, padrão `2h`) é a rede de segurança: se ninguém devolver (agente ou
-  janela mortos), a trava expira sozinha. Se um `hold` termina com código 14 (`lost`: alguém usou `unlock --force`,
+  janela mortos), a trava expira sozinha. **[rev. 5.4]** Como o jlock não estende um `--ttl`, o host que fica
+  aberto (mod e plugin) renova as travas das tarefas que iniciou: a cada minuto (`RENEW_EVERY_MS`), a que vence em
+  menos de 10 min (ou da metade do prazo, se for curto) é devolvida e pega de novo na hora, com prazo novo
+  (`renewRun` em `src/renew.ts`, log `renew`); a que já venceu é pega de novo (log `retake`). O `done`, em qualquer
+  host e no CLI, retoma as próprias chaves vencidas antes de recusar; só recusa se outro dono as pegou, ou se o
+  `log.jsonl` mostra outra tarefa da execução pegando a chave depois (as edições dela iriam neste commit). Quem
+  estava na fila de uma chave a recebe na renovação, como receberia no vencimento; uma chave contestada não custa as
+  livres (pedidas uma a uma). A trava curta de escrita é tomada por tarefa, só em volta do `release` e do novo
+  `hold`, depois de reler a tarefa; e se ela saiu de `in_progress` mesmo assim, o que foi pego é devolvido. Se um
+  `hold` termina com código 14 (`lost`: alguém usou `unlock --force`,
   o prazo venceu, ou a trava expirou com a máquina dormindo), a ferramenta trata como `release` involuntário: a
   tarefa volta a `pending` (a tentativa já foi contada no `start`), o log registra `lost`, o painel mostra "posse
   perdida: T04". No plugin, a janela cair fecha a entrada padrão e o `hold` solta a trava na hora; no CLI e no mod,
@@ -583,6 +601,7 @@ core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 | atualização | `$.clock.every(2000)` + `$.fs.stat/read`; `atom/update` | acompanha escritas de outro processo |
 | contexto | **[rev. 5.2]** `prompt.compose`: a seção `jtasks:protocol` acrescentada a cada requisição enquanto há execução ligada | resumo sempre no prompt; volta sozinho depois da compactação (não existe `prompt.section`) |
 | perfil | `on("agent.spawn")` | modelo do subagente pelo perfil |
+| renovação | **[rev. 5.4]** `$.clock.every(60000)` + `renewRun` do núcleo | as travas das tarefas desta sessão (dono `claude:<sessão>` ou de um subagente dela) não vencem pelo `holdTtl` enquanto a janela está aberta |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
 | agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
 | retomada | **[rev. 5.3]** `on("turn.complete")` sem `e.agentId`, `reason: "answer"`, sessão interativa; agentes vivos por `$.agent.list()` (`pending`/`running`/`waiting`; o mapa `agents` se a lista falhar); `$.prompt.submit`; `on("prompt.submit")` confere de novo a mensagem do próprio jtasks antes de entrar e a descarta se a execução andou; `$.prompt.read` adia a mensagem enquanto há rascunho (o relógio de 2 s a manda depois); `turn.start` cancela o que esperava | reabre o laço; na desistência, `$.ui.toast`, `$.ui.notify`, `$.ui.status` e uma linha no painel |
@@ -617,6 +636,7 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 | guarda de posse | `ctx.permission.hook("evaluate")` (`edit` e `shell`) | mesmas regras do mod, pela regra do núcleo |
 | agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
 | retomada | **[rev. 5.3]** `session.idle` da sessão raiz, depois de 300 ms à espera do fim da execução (`session.execution.succeeded`/`failed`/`interrupted`); agentes vivos: sessões filhas em execução ou com tarefa iniciada e ainda não encerradas; `ctx.session.synthetic({ delivery: "queue" })` | reabre o laço; na desistência, a linha `notice` da vista na barra lateral e um toast da TUI |
+| renovação | **[rev. 5.4]** `setInterval` de 60 s + `renewRun` do núcleo, nas execuções em que o processo trabalhou | os `hold --release-on-eof` das tarefas iniciadas pelas suas sessões não vencem (nem viram "posse perdida") pelo `holdTtl` |
 | goal | sem espelhar em `update_goal_plan` | objetivo + evidência; o paralelismo é nosso |
 
 ---
@@ -629,7 +649,8 @@ ciclos, dono único, `revision`, gravação atômica, progresso, ligação sess�
 execução, pausa, retomada, falha por `maxAttempts`, guarda de posse e de git, commit por tarefa, ledger e desfazer,
 worktrees quando pedidas, `gc` como relatório, limpeza e arquivamento, desenho das interfaces, reinjeção após
 compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto, **[rev. 5.3]** a retomada do
-orquestrador ocioso (quando reabrir o laço, quando desistir e avisar).
+orquestrador ocioso (quando reabrir o laço, quando desistir e avisar), **[rev. 5.4]** a renovação das travas de
+tarefas longas e a retomada das chaves vencidas no `done`.
 
 **Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
@@ -674,6 +695,11 @@ motivo.
   rascunho, mensagem velha na entrega e a desistência têm cada um o seu teste; no plugin, `session.idle` da raiz
   gera `session.synthetic`, a filha ociosa só libera a tarefa, falha, interrupção e pausa não mandam nada, e a TUI
   mostra a linha e um toast.
+- **[rev. 5.4] Travas além do `holdTtl`** (`test/renew.test.ts`, jlock real com prazo de segundos): `done` retoma
+  as próprias chaves vencidas e faz o commit; recusa se outro dono as pegou; `renewRun` deixa a trava passar do
+  prazo com `--detach` e com `--release-on-eof`, sem a tarefa virar "posse perdida", e não toca tarefa de outro dono;
+  no mod, o relógio de 60 s retoma uma trava vencida; no plugin, uma tarefa com prazo de 3 s segue com a trava
+  depois de 6,5 s.
 - Sem gastar tokens de modelo real.
 
 ---
@@ -713,6 +739,8 @@ motivo.
 15. **READMEs em onze idiomas e o teste real do mod** (29, 30).
 16. **[rev. 5.3] Retomada do orquestrador ocioso** (ticket 44): `src/keepalive.ts`, o fim de turno no mod e no
     plugin, `jtasks keepalive on|off`, o passo 5 do protocolo, skills e documentação.
+17. **[rev. 5.4] Travas de tarefas longas** (ticket 45): `src/renew.ts`, a renovação no mod e no plugin, `done`
+    retomando as próprias chaves vencidas.
 
 ---
 
@@ -728,6 +756,7 @@ motivo.
 | Órfãs e efeitos das execuções de hoje | Fora do alcance do ledger por construção; só relatório via `gc --scan`, remoção quando você quiser e com `--yes`. |
 | O avaliador do `/goal` só vê a conversa | A saída de `jtasks status` é texto na conversa. Alternativa sem avaliador: Stop hook clássico lendo o arquivo. |
 | Largura do painel do Claude Code | Abre sozinho só a partir de ~110–144 colunas; abaixo, `/jtasks` à mão. |
+| **[rev. 5.4]** O jlock não estende um `--ttl` | A renovação devolve e pega de novo (milissegundos sem trava); quem estava na fila ganha a chave, como no vencimento. Um `jlock hold --renew`/`--ttl` reentrante no jlock tiraria esse intervalo, pelo processo do jlock. Tarefas iniciadas pelo CLI (sem host aberto) só se recuperam no `done`. |
 | **[rev. 5.2]** Um Claude Code que cai deixa a trava até o `holdTtl` | O mod não sabe o PID do Claude Code e `$.process.spawn` fecha a entrada padrão na partida, então nem `--release-on-eof` nem `--parent` servem; o prazo (`2h` por padrão) é a rede. Se pesar, um `jlock hold --parent <pid>` no plano do jlock. |
 | **[rev. 5.2]** `doctor --fix` instala o jlock pelo instalador oficial | O instalador do jlock acrescenta a pasta ao `PATH` do usuário (comportamento dele, documentado); o jtasks não mexe no `PATH` por conta própria e registra o binário instalado no ledger global para o desfazer. |
 | **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o jtasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no jtasks depende de API do Windows. |

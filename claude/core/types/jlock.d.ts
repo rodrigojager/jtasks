@@ -17,6 +17,8 @@ export interface JlockHolder {
     meta?: Record<string, string> | null;
     pid?: number;
     since?: string;
+    /** The hold's `--ttl` in seconds (null without one): it expires `ttl_secs` after `since`, renewed or not. */
+    ttl_secs?: number | null;
     key?: string;
     stale?: boolean;
     late?: boolean;

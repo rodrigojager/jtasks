@@ -56,7 +56,9 @@ messages already sent); `jtasks status` says when it is off or has given up.
 - **Deadlock**: the claim is refused with the waiting cycle; whoever asked last yields: do another part, or
   `jtasks release <id>` to give the task back to the queue.
 - **Ownership lost** (`jtasks status` shows it, or `done` refuses): someone broke the lock, or its time limit ran
-  out. `jtasks resume <run>` gives the task back to the queue; the edits stay on disk for the next attempt.
+  out. A long task is not a reason by itself: the mod and the plugin renew the locks of tasks in progress, and
+  `done` takes back its own expired keys when nobody took them. If `done` still refuses, someone else holds them
+  now: `jtasks resume <run>` gives the task back to the queue; the edits stay on disk for the next attempt.
 - **`done` refused for files outside the ownership**: `jtasks claim` them, or undo those changes.
 - **A task failed**: the tasks that depend on it stay blocked; the rest goes on. `jtasks retry <id>` reopens it.
 

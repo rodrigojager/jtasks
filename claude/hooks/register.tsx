@@ -2,11 +2,12 @@
 // bound to the session in $.state (subagents share it), the protocol section in the system prompt while a run is
 // bound (prompt.compose runs at every request, so it is back after a compaction too), and the "Tasks" pane with
 // /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open; and the keepalive: at the end of the
-// main loop's turn, with ready tasks and no subagent alive, a message that reopens the loop (./keepalive.ts).
+// main loop's turn, with ready tasks and no subagent alive, a message that reopens the loop (./keepalive.ts); and
+// the holds of this session's tasks in progress renewed before the run's holdTtl expires them (core's renew.ts).
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { ensureJlock, parseArgs, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { ensureJlock, parseArgs, renewRun, RENEW_EVERY_MS, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
@@ -72,6 +73,24 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
     await p.setRun({ run: result.bind, root })
   }
   return result
+}
+
+let renewing = false
+
+/** One pass over the bound run: the holds of the tasks this session (or one of its subagents) started. */
+export async function renewHolds(p: Port): Promise<void> {
+  const bound = await p.getRun()
+  if (!bound || renewing) return
+  renewing = true
+  try {
+    const cwd = await p.cwd()
+    const session = await p.sessionId()
+    const ctx: ToolContext = { host: createModHost(p, cwd), cwd, tool: 'claude', session, residents, holdMode: 'detach', boundRun: bound.run }
+    const actor = `claude:${session}`
+    await renewRun(ctx, bound.run, (owner) => owner === actor || owner.startsWith(`${actor}/`))
+  } finally {
+    renewing = false
+  }
 }
 
 export const register: Register = (on) => {
@@ -150,6 +169,10 @@ export const register: Register = (on) => {
     $.clock.every(2000, () => {
       void refresh?.(false).catch(() => undefined)
       void keepalive?.tick().catch(() => undefined)
+    })
+    $.clock.every(RENEW_EVERY_MS, () => {
+      const p = port
+      if (p) void renewHolds(p).catch(() => undefined)
     })
     $.clock.every(120, async () => {
       const view = await read($, viewAtom)

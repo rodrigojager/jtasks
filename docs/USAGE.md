@@ -75,8 +75,9 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   `jtasks:execute`, `jtasks:execute-deep`, `jtasks:review` (`claude/agents/`, generated from the OpenCode ones). A
   profile may name any agent you already have (`claude.agent`, `opencode.agent`). In Claude Code, `claude.model`
   is the subagent's model and `claude.effort` (`low` to `max`) the effort of every request it makes; in OpenCode,
-  `opencode.model` (`providerID`, `modelID`, and `variant` for the reasoning level), otherwise the session's. `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a task's locks expire by
-  themselves after this long if nobody gives them back, an agent or a window that died), `branch` (`"run"`: commit on
+  `opencode.model` (`providerID`, `modelID`, and `variant` for the reasoning level), otherwise the session's. `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a
+  task's locks expire by themselves after this long if nobody renews or gives them back, a window that died; the mod
+  and the plugin renew the locks of their tasks in progress, so a long task keeps them), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
 
 The full schema is [`schema.json`](../skills/claude-code/to-jtasks/schema.json), beside the `to-jtasks` skill,
@@ -136,6 +137,13 @@ standard input open, so OpenCode dying frees its locks at once (jlock 0.1.1 or n
 `--detach`). The tool needs jlock 0.1.0 at least and checks `jlock --version` once per process. A lock that
 expired or was broken shows up in `jtasks status` as `posse perdida`; `jtasks resume` gives the task back to the
 queue.
+
+jlock's `--ttl` expires a hold that long after it was granted, even with its owner alive, and cannot be extended. So
+the hosts that stay open (the mod and the plugin) look every minute at the tasks in progress they started, and the
+hold that expires in less than 10 minutes (or half the `holdTtl`, if that is shorter) is given back and taken again
+at once with a new ttl (`renew` in `log.jsonl`); one that already expired is taken again (`retake`). `jtasks done`,
+from any host and the CLI, takes back its own expired keys when nobody else took them, and refuses only when someone
+did. The ttl still frees the locks of a window that died, since nobody renews them.
 
 ## Variables
 

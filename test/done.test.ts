@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { readEffects } from "../src/ledger.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
-import { cleanupTemp, host, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles } from "./helpers.ts"
+import { cleanupTemp, foreignHold, host, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -101,15 +101,21 @@ describe("done: one commit per task", () => {
     expect(sh(repo, "git", "log", "--format=%s", "-1").trim()).toBe("init")
   })
 
-  test("done is refused when the lock was lost", async () => {
+  test("done is refused when the lock was lost and someone else holds the file now", async () => {
     const { repo, run, dir } = await newRun()
     await tasksOk(repo, ["start", "T01"])
     writeFiles(repo, { "src/a.ts": "1\n" })
     sh(repo, "jlock", "release", "--group", run, "--owner", `gt:${run}/T01`, "--json")
-    const r = await tasks(repo, ["done", "T01", "--evidence", "ok"])
-    expect(r.ok).toBe(false)
-    expect(r.text).toMatch(/^posse perdida: src\/a\.ts já não está com T01 no jlock; o done foi recusado/)
-    expect(tasksFile(dir).tasks[0]!.status).toBe("in_progress")
+    // Lost and still free, done would take it back (test/renew.test.ts); here another program took it.
+    const other = await foreignHold([join(repo, "src/a.ts").replace(/\\/g, "/")], "vim")
+    try {
+      const r = await tasks(repo, ["done", "T01", "--evidence", "ok"])
+      expect(r.ok).toBe(false)
+      expect(r.text).toMatch(/^posse perdida: src\/a\.ts já não está com T01 no jlock; o done foi recusado/)
+      expect(tasksFile(dir).tasks[0]!.status).toBe("in_progress")
+    } finally {
+      await other.stop()
+    }
   })
 
   test("done with nothing changed records no commit", async () => {

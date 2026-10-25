@@ -176,3 +176,21 @@ falhar igual), mas a pessoa é avisada na hora, como numa desistência (`keepali
 `keepalive on` só zeram a contagem quando de fato saem de uma pausa, de um desligamento ou de uma desistência: o
 modelo os chama, e um modelo que respondesse à mensagem com `resume` faria a contagem voltar a 1 para sempre.
 
+## 13. As travas de uma tarefa longa são renovadas pelo jtasks, não pelo jlock (ticket 45)
+
+**O que mudou:** o anexo do plano da retomada oferecia duas saídas: renovar o `hold` enquanto a tarefa está em
+andamento, ou o `done` aceitar arquivos da própria tarefa cuja trava venceu. Ficaram as duas. A renovação não é um
+heartbeat, porque o `--ttl` do jlock conta desde a concessão e nem um `hold` reentrante do mesmo dono o estende
+(conferido no jlock 0.1.1): é devolver e pegar de novo, na hora, sob a trava curta de escrita da execução.
+
+**Consequência:** há um intervalo de milissegundos sem trava a cada renovação (uma vez por `holdTtl`, perto do fim);
+quem estava na fila da chave a recebe, como receberia no vencimento, e a tarefa fica como "posse perdida" só nessa
+chave (as livres são pegas uma a uma). Com `--detach`, o processo que o jlock deixa segurando a trava antiga não
+percebe a devolução (o novo `hold` tem o mesmo dono) e segue vivo até a tarefa devolver a posse: um processo pequeno
+a mais por renovação, todos encerrados no `done`/`release` (conferido no jlock 0.1.1). Tarefas iniciadas pelo CLI,
+sem host aberto, não são renovadas; o `done` delas retoma as chaves se ninguém as pegou e se nenhuma outra tarefa
+da execução as pegou depois (pelo `log.jsonl`).
+
+**O que fazer:** se o intervalo ou os processos a mais pesarem, um `--ttl` renovável no jlock (pelo processo do
+jlock, com um ticket lá); o jtasks passaria a usá-lo no lugar de devolver e pegar de novo.
+

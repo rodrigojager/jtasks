@@ -61,7 +61,7 @@ export interface Agent {
   model?: unknown
 }
 
-export async function fakeHost(directory: string, host?: Host) {
+export async function fakeHost(directory: string, host?: Host, options: { renewEveryMs?: number } = {}) {
   const storage = new Map<string, unknown>()
   const sessions = new Map<string, { id: string; parentID?: string; location: { directory: string } }>()
   const hooks = new Map<string, Hook>()
@@ -146,7 +146,7 @@ export async function fakeHost(directory: string, host?: Host) {
       },
     },
   }
-  const plugin = createServerPlugin(host ? { host } : {})
+  const plugin = createServerPlugin({ ...(host ? { host } : {}), ...options })
   const cleanup = (await plugin.setup(ctx as never)) as (() => Promise<void>) | undefined
 
   const addSession = (id: string, parentID?: string) => sessions.set(id, { id, ...(parentID ? { parentID } : {}), location: { directory } })

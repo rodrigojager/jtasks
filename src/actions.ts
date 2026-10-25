@@ -41,7 +41,7 @@ import {
 import { unarchive } from "./housekeeping.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { slugify } from "./ids.ts"
-import { canonical, covers, normalizeKey } from "./keys.ts"
+import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
@@ -106,7 +106,8 @@ function residentKey(run: string, task: string) {
   return `${run}/${task}`
 }
 
-function remember(ctx: ToolContext, state: RunState, task: string, resident: Resident) {
+/** Keeps a hold process of this host (`eof` mode) under `<run>/<task>`; its own end (14) marks the task lost. */
+export function remember(ctx: ToolContext, state: RunState, task: string, resident: Resident) {
   if (!ctx.residents) return
   const run = state.run.id
   const key = residentKey(run, task)
@@ -470,6 +471,64 @@ export async function missingKeys(ctx: ToolContext, state: RunState, task: Task)
   return keys.filter((k) => !held.has(k))
 }
 
+/**
+ * Takes keys for a task without waiting: all at once, else one by one (a key someone else holds does not cost the
+ * free ones). Answers the keys that were refused.
+ */
+export async function takeKeys(ctx: ToolContext, state: RunState, task: Task, keys: string[]): Promise<string[]> {
+  if (!keys.length) return []
+  const take = async (some: string[]) => {
+    const outcome = await acquireHold(ctx, state, task, some, { noWait: true }, 5_000)
+    if (outcome.answer.result !== "granted") return false
+    if (outcome.resident) remember(ctx, state, task.id, outcome.resident)
+    return true
+  }
+  if (await take(keys)) return []
+  if (keys.length === 1) return keys
+  const refused: string[] = []
+  for (const key of keys) if (!(await take([key]))) refused.push(key)
+  return refused
+}
+
+const HOLDING = new Set(["start", "claim", "renew", "retake"])
+
+/**
+ * The keys another task of the run took since this task last held them (its start, claim, renew or retake), read
+ * off the run's log: taking them back would put that task's edits in this one's commit.
+ */
+export async function takenSince(ctx: ToolContext, state: RunState, task: Task, keys: string[]): Promise<string[]> {
+  const text = (await ctx.host.readText(join(state.dir, "log.jsonl")).catch(() => undefined)) ?? ""
+  let since = ""
+  const others: { at: string; keys: string[] }[] = []
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue
+    let e: { at?: string; action?: string; task?: string; keys?: unknown }
+    try {
+      e = JSON.parse(line)
+    } catch {
+      continue
+    }
+    if (!e.at || !e.action || !HOLDING.has(e.action)) continue
+    if (e.task === task.id) since = e.at > since ? e.at : since
+    else if (Array.isArray(e.keys)) others.push({ at: e.at, keys: e.keys.filter((k): k is string => typeof k === "string") })
+  }
+  return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))))
+}
+
+/**
+ * Takes again, without waiting, the keys of a task whose hold expired, unless another task of the run took them
+ * meanwhile; answers the ones still missing.
+ */
+export async function retakeMissing(ctx: ToolContext, state: RunState, task: Task): Promise<string[]> {
+  const missing = await missingKeys(ctx, state, task)
+  if (!missing.length) return []
+  const taken = await takenSince(ctx, state, task, missing)
+  const refused = [...taken, ...(await takeKeys(ctx, state, task, missing.filter((k) => !taken.includes(k))))]
+  const retaken = missing.filter((k) => !refused.includes(k))
+  if (retaken.length) await log(ctx, state, { action: "retake", task: task.id, keys: retaken })
+  return refused
+}
+
 function textArg(args: ParsedArgs, name: string): string | undefined {
   const v = args.options[name]
   return typeof v === "string" && v.trim() ? v.trim() : undefined
@@ -664,7 +723,8 @@ defineAction(
           1,
           { outside: split.outside },
         )
-      const missing = await missingKeys(ctx, state, task)
+      // A hold that expired (the run's holdTtl) while nobody else took its keys is taken back, not refused.
+      const missing = await retakeMissing(ctx, state, task)
       if (missing.length)
         throw new ToolError(
           tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }),

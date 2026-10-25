@@ -15,6 +15,7 @@ export * from "./plan.js";
 export * from "./jlock.js";
 export * from "./frontier.js";
 export * from "./keepalive.js";
+export * from "./renew.js";
 export * from "./actions.js";
 export * from "./housekeeping.js";
 export * from "./gc.js";

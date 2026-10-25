@@ -6995,6 +6995,64 @@ async function missingKeys(ctx, state, task) {
   const held = new Set(locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key));
   return keys.filter((k) => !held.has(k));
 }
+async function takeKeys(ctx, state, task, keys) {
+  if (!keys.length)
+    return [];
+  const take = async (some) => {
+    const outcome = await acquireHold(ctx, state, task, some, { noWait: true }, 5000);
+    if (outcome.answer.result !== "granted")
+      return false;
+    if (outcome.resident)
+      remember(ctx, state, task.id, outcome.resident);
+    return true;
+  };
+  if (await take(keys))
+    return [];
+  if (keys.length === 1)
+    return keys;
+  const refused = [];
+  for (const key of keys)
+    if (!await take([key]))
+      refused.push(key);
+  return refused;
+}
+var HOLDING = new Set(["start", "claim", "renew", "retake"]);
+async function takenSince(ctx, state, task, keys) {
+  const text = await ctx.host.readText(join(state.dir, "log.jsonl")).catch(() => {
+    return;
+  }) ?? "";
+  let since = "";
+  const others = [];
+  for (const line of text.split(`
+`)) {
+    if (!line.trim())
+      continue;
+    let e;
+    try {
+      e = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (!e.at || !e.action || !HOLDING.has(e.action))
+      continue;
+    if (e.task === task.id)
+      since = e.at > since ? e.at : since;
+    else if (Array.isArray(e.keys))
+      others.push({ at: e.at, keys: e.keys.filter((k) => typeof k === "string") });
+  }
+  return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))));
+}
+async function retakeMissing(ctx, state, task) {
+  const missing = await missingKeys(ctx, state, task);
+  if (!missing.length)
+    return [];
+  const taken = await takenSince(ctx, state, task, missing);
+  const refused = [...taken, ...await takeKeys(ctx, state, task, missing.filter((k) => !taken.includes(k)))];
+  const retaken = missing.filter((k) => !refused.includes(k));
+  if (retaken.length)
+    await log(ctx, state, { action: "retake", task: task.id, keys: retaken });
+  return refused;
+}
 function textArg(args, name) {
   const v = args.options[name];
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
@@ -7153,7 +7211,7 @@ defineAction("done", async (ctx, args) => {
     const split = await splitChanges(ctx, state, task);
     if (split.outside.length)
       throw new ToolError(tr("done.outside", { id: task.id, files: split.outside.join(", ") }), 1, { outside: split.outside });
-    const missing = await missingKeys(ctx, state, task);
+    const missing = await retakeMissing(ctx, state, task);
     if (missing.length)
       throw new ToolError(tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }), 1, { missing });
     if (split.inside.length) {
@@ -7664,6 +7722,99 @@ ${leftovers.map((l) => `  ${l}`).join(`
   return ok(lines.join(`
 `), { checked: effects.length, gone, leftovers });
 }, "help.effects");
+
+// src/renew.ts
+var RENEW_EVERY_MS = 60000;
+var RENEW_MARGIN_MS = 10 * 60000;
+function ttlMs(ttl) {
+  const m = /^(\d+)(ms|s|m|h|d)$/.exec(ttl.trim());
+  if (!m)
+    return 0;
+  const n = Number(m[1]);
+  return n * { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }[m[2]];
+}
+function renewMargin(ttl, every = RENEW_EVERY_MS) {
+  return Math.min(RENEW_MARGIN_MS, Math.max(Math.floor(ttl / 2), 2 * every));
+}
+function earliestExpiry(locks) {
+  let out;
+  for (const l of locks) {
+    const since = l.holder?.since ? Date.parse(l.holder.since) : NaN;
+    const ttl = l.holder?.ttl_secs;
+    if (!Number.isFinite(since) || typeof ttl !== "number")
+      continue;
+    const at = since + ttl * 1000;
+    out = out === undefined ? at : Math.min(out, at);
+  }
+  return out;
+}
+function renewalNeed(state, task, locks, platform, now, every = RENEW_EVERY_MS) {
+  const keys = taskKeys(state.root, task, platform);
+  if (!keys.length)
+    return "none";
+  const owner = ownerOf(state.run.id, task.id);
+  const mine = locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true);
+  const held = new Set(mine.map((l) => l.key));
+  if (keys.some((k) => !held.has(k)))
+    return "retake";
+  const expiry = earliestExpiry(mine);
+  const margin = renewMargin(ttlMs(state.run.holdTtl ?? DEFAULT_HOLD_TTL), every);
+  return expiry === undefined || expiry - now > margin ? "fresh" : "renew";
+}
+async function renewTask(ctx, state, task) {
+  const keys = taskKeys(state.root, task, ctx.host.platform);
+  await releaseHolds(ctx, state.run.id, task.id);
+  const refused = await takeKeys(ctx, state, task, keys);
+  await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys });
+  return refused.length ? "lost" : "renewed";
+}
+async function renewRun(ctx, run, mine, every = RENEW_EVERY_MS) {
+  let first;
+  try {
+    first = await resolveRun(ctx, { action: "renew", positionals: [], options: { run } });
+  } catch {
+    return [];
+  }
+  const candidates = first.tasks.tasks.filter((t) => t.status === "in_progress" && t.owner && mine(t.owner));
+  if (!candidates.length)
+    return [];
+  const locks = await jlockList(ctx.host, { group: run }).catch(() => {
+    return;
+  });
+  if (!locks)
+    return [];
+  const out = [];
+  for (const candidate of candidates) {
+    const need = renewalNeed(first, candidate, locks, ctx.host.platform, ctx.host.now().getTime(), every);
+    if (need === "none" || need === "fresh") {
+      out.push({ task: candidate.id, result: need });
+      continue;
+    }
+    let result = "fresh";
+    try {
+      result = await withLock(ctx.host, first.dir, async () => {
+        const state = await reload(ctx, first);
+        const task = state.tasks.tasks.find((t) => t.id === candidate.id);
+        if (!task || task.status !== "in_progress" || task.owner !== candidate.owner)
+          return "fresh";
+        if (need === "renew")
+          return renewTask(ctx, state, task);
+        return (await retakeMissing(ctx, state, task)).length ? "lost" : "retaken";
+      });
+      if (result === "renewed" || result === "retaken" || result === "lost") {
+        const after = (await readTasks(ctx.host, first.dir).catch(() => {
+          return;
+        }))?.tasks.find((t) => t.id === candidate.id);
+        if (after?.status !== "in_progress")
+          await releaseHolds(ctx, run, candidate.id).catch(() => []);
+      }
+    } catch (error) {
+      await log(ctx, first, { action: "renew-failed", task: candidate.id, error: error.message }).catch(() => {});
+    }
+    out.push({ task: candidate.id, result });
+  }
+  return out;
+}
 // src/gc.ts
 var SKIP = new Set(["node_modules", ".git"]);
 var MAX_FILES = 20000;
@@ -8393,6 +8544,8 @@ export {
   KEEPALIVE_FILE,
   MIN_JLOCK,
   OPENCODE_AGENTS,
+  RENEW_EVERY_MS,
+  RENEW_MARGIN_MS,
   SCRATCH,
   SKILLS,
   SKILL_FILES,
@@ -8442,6 +8595,7 @@ export {
   detachedHold,
   dirname,
   draftSummary,
+  earliestExpiry,
   effectLine,
   effectsOf,
   ensureJlock,
@@ -8521,14 +8675,19 @@ export {
   relativeInside,
   releaseHolds,
   reload,
+  remember,
   removeExcludeLine,
   renderTicket,
+  renewMargin,
+  renewRun,
+  renewalNeed,
   repoRelative,
   repoRoot,
   requireRepo,
   resetJlockSetup,
   resolve,
   resolveRun,
+  retakeMissing,
   runChecks,
   runDir,
   runId,
@@ -8558,6 +8717,8 @@ export {
   summaryText,
   systemLocale,
   tags,
+  takeKeys,
+  takenSince,
   taskIdArg,
   taskKeys,
   ticketFileName,
@@ -8566,6 +8727,7 @@ export {
   ticketReadLine,
   toTask,
   tr,
+  ttlMs,
   unarchive,
   userHome,
   validateBatch,

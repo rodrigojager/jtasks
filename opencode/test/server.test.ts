@@ -311,4 +311,30 @@ describe("OpenCode plugin", () => {
     await Bun.sleep(600)
     expect(h.synthetics.length).toBe(3)
   })
+
+  test("the holds of a task in progress are renewed before the run's holdTtl: a long task keeps its lock and is never lost", async () => {
+    const repo = makeRepo()
+    const h = await fakeHost(repo, undefined, { renewEveryMs: 500 })
+    if (h.cleanup) cleanups.push(h.cleanup)
+    const planned = await h.call("s1", "plan", { holdTtl: "3s", tasks: [{ id: "T01", title: "Longa", files: ["src/a.ts"] }] })
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const held = () =>
+      (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks.filter(
+        (l) => l.holder?.owner === `gt:${run}/T01`,
+      ).length
+    h.addSession("c1", "s1")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    // Twice the ttl: without the renewal the hold would have ended (14) and the task gone back as lost.
+    await Bun.sleep(6500)
+    const task = JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks[0]
+    expect(task.status).toBe("in_progress")
+    expect(task.lost).toBeUndefined()
+    expect(held()).toBe(1)
+    const log = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l).action)
+    expect(log.filter((a: string) => a === "renew").length).toBeGreaterThanOrEqual(2)
+    writeFiles(repo, { "src/a.ts": "export const a = 1\n" })
+    expect((await h.call("c1", 'done T01 --evidence "ok"')).ok).toBe(true)
+    expect(held()).toBe(0)
+  })
 })

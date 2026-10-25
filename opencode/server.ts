@@ -1,11 +1,12 @@
 // jtasks for OpenCode v2 (server plugin): the `jtasks` tool (the same contract as the CLI, through the core's
 // runTool), the run bound to the root session, the protocol and progress in every request and in compaction, the
 // agent of each task's profile on its subagent call, the ownership guard on edit and shell permissions, and the
-// keepalive: the root session going idle with ready tasks and no subagent alive gets a message that resumes it.
+// keepalive: the root session going idle with ready tasks and no subagent alive gets a message that resumes it; and
+// the holds of the tasks this process started renewed before the run's holdTtl expires them (core's renew.ts).
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { ensureJlock, holdModeFor, parseArgs, readTasks, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { ensureJlock, holdModeFor, parseArgs, readTasks, renewRun, RENEW_EVERY_MS, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
@@ -42,6 +43,8 @@ const TASK_END = new Set(["done", "skip", "fail", "release"])
 
 export interface ServerOptions {
   host?: Host
+  /** How often the holds are looked at (tests use less). */
+  renewEveryMs?: number
 }
 
 export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
@@ -59,6 +62,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       const holdMode = await holdModeFor(host).catch(() => "detach" as const)
       const bindings = new Bindings(ctx.storage as unknown as StorageLike, ctx.session as never)
       const fallbackDir = ctx.location.directory as string
+      // The runs this process works on, by run: its repository root and the root sessions bound to it.
+      const working = new Map<string, { root: string; sessions: Set<string> }>()
       // Set once the RPC exists (a give-up repaints the sidebar through its `changed`).
       let keepalive: RootKeepalive | undefined
       let agentModels: { dispose(): Promise<void> } | undefined
@@ -98,6 +103,11 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           holdMode,
         }
         if (run) tctx.boundRun = run.run
+        if (run) {
+          const w = working.get(run.run) ?? { root: run.root, sessions: new Set<string>() }
+          w.sessions.add(tctx.session!)
+          working.set(run.run, w)
+        }
         if (child) tctx.agent = sessionID
         if (json !== undefined) tctx.json = json
         const result = await runTool(tctx, argv)
@@ -197,7 +207,25 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           }
         })()
 
+      // Every minute, the holds of the tasks in progress this process's sessions started, renewed before they expire.
+      let renewing = false
+      const renewTimer = setInterval(() => {
+        if (renewing) return
+        renewing = true
+        void (async () => {
+          for (const [run, w] of working) {
+            const ctx: ToolContext = { host, cwd: w.root, tool: "opencode", session: [...w.sessions][0], residents, holdMode, boundRun: run }
+            const actors = [...w.sessions].map((s) => `opencode:${s}`)
+            await renewRun(ctx, run, (owner) => actors.some((a) => owner === a || owner.startsWith(`${a}/`)), options.renewEveryMs ?? RENEW_EVERY_MS)
+          }
+        })().finally(() => {
+          renewing = false
+        })
+      }, options.renewEveryMs ?? RENEW_EVERY_MS)
+      ;(renewTimer as { unref?: () => void }).unref?.()
+
       return async () => {
+        clearInterval(renewTimer)
         await events?.return?.().catch(() => {})
         await agentModels?.dispose()
         await rpc.dispose().catch(() => {})

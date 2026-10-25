@@ -119,4 +119,39 @@ for (const { os, root: ROOT } of ROOTS) {
     await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't2', agentId: 'agent-1', reason: 'answer' } as never)
     expect(JSON.parse(machine.read(file)!).tasks[0].status).toBe('pending')
   })
+
+  test(`the holds of this session's tasks are taken again when they expire (every minute); others' are left alone · ${os}`, async ($, on) => {
+    const machine = installMachine(on, ROOT)
+    const { clock } = installSession(on, ROOT)
+    on('agent.spawn', (_$: unknown, e: { model?: string }) => ({ model: e.model ?? 'inherit', agentId: 'agent-1' }))
+    on('turn.complete', () => ({ text: '' }))
+    on('ui.status', () => ({ value: undefined }))
+    on('command.run', (_$: unknown, e: unknown) => e as never)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    const r = await $.tool.call({ tool: 'mcp__jtasks__jtasks', command: 'plan', json: PLAN })
+    const run = /execução (\S+) criada/.exec(String(r.result))![1]!
+    // The pane closed: a minute of its 120 ms spinner is not what this test is about.
+    await $.command.run({ command: 'jtasks', args: '' } as never)
+    await $.agent.spawn({ prompt: `--run ${run} --task T01 x`, description: 'T01', subagentType: 'general-purpose' } as never)
+    await $.tool.call({ tool: 'mcp__jtasks__jtasks', command: 'start T01', agentId: 'agent-1' } as never)
+    expect(machine.locks.map((l) => l.owner)).toEqual([`gt:${run}/T01`])
+    // The ttl ran out: jlock no longer has it.
+    machine.locks.splice(0)
+    const holds = () => machine.commands.filter((c) => c.startsWith('jlock hold')).length
+    const before = holds()
+    await clock.advance(60_000)
+    expect(holds()).toBe(before + 1)
+    expect(machine.commands.filter((c) => c.startsWith('jlock hold')).at(-1)).toContain('--no-wait')
+    expect(machine.locks.map((l) => l.owner)).toEqual([`gt:${run}/T01`])
+    const log = machine.read(`${ROOT}/.scratch/jtasks/runs/${run}/log.jsonl`)!.trim().split('\n').map((l) => JSON.parse(l).action)
+    expect(log).toContain('retake')
+    // A task another session started is not this one's to renew.
+    const file = `${ROOT}/.scratch/jtasks/runs/${run}/tasks.json`
+    const tasks = JSON.parse(machine.read(file)!)
+    tasks.tasks[0].owner = 'claude:other-session'
+    machine.write(file, JSON.stringify(tasks))
+    machine.locks.splice(0)
+    await clock.advance(60_000)
+    expect(holds()).toBe(before + 1)
+  })
 }
