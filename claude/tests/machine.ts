@@ -1,13 +1,28 @@
 // A fake machine beneath the mod for `claude plugin test` (which runs with no fs and no processes): the files
-// in memory, and the answers of the commands the core runs (git, jlock, and cmd for what $.fs lacks). The test's
-// own hooks stand for the engine, so every $.fs and $.process call of the mod lands here.
+// in memory, and the answers of the commands the core runs (git, jlock, and cmd or mkdir/mv/rm for what $.fs
+// lacks). The test's own hooks stand for the engine, so every $.fs and $.process call of the mod lands here. Every
+// test runs on a Windows and on a POSIX root (ROOTS), whatever the OS the tests run on.
 
 import type { On } from 'claude-code'
 import { mock } from 'claude-code/testing'
 
 type Node = { kind: 'file' | 'dir'; text: string; mtimeMs: number }
 
-const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+/** The roots each test runs on: the mod takes its platform from the shape of the working directory. */
+export const ROOTS = [
+  { os: 'windows', root: 'D:/work/repo' },
+  { os: 'posix', root: '/work/repo' },
+] as const
+
+/**
+ * A path as the machine keys it. The engine resolves a path its OS does not call absolute under the tests' own
+ * folder (`D:/work` on Linux arrives as `<folder>/D:/work`) and puts the current drive on a POSIX one on Windows
+ * (`/work` arrives as `C:\work`): both are undone, so a path names the same file on every OS.
+ */
+const normalize = (p: string, posix: boolean) => {
+  const n = p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase().replace(/^.*\/(?=[a-z]:\/)/, '')
+  return posix ? n.replace(/^[a-z]:(?=\/)/, '') : n
+}
 
 export interface Machine {
   root: string
@@ -24,6 +39,8 @@ export interface Machine {
 }
 
 export function installMachine(on: On, root: string): Machine {
+  const posix = root.startsWith('/')
+  const norm = (p: string) => normalize(p, posix)
   const files = new Map<string, Node>()
   let clock = 1_800_000_000_000
   const tick = () => (clock += 1000)
@@ -132,6 +149,17 @@ export function installMachine(on: On, root: string): Machine {
     }
     return fail(`fake cmd: ${args.join(' ')}`)
   }
+  // What the POSIX side of the mod runs for what $.fs lacks: mkdir [-p], mv -f, rm -rf | -d | -f.
+  const posixFs = (exe: string, args: readonly string[]) => {
+    const operands = args.filter((a) => !a.startsWith('-'))
+    if (exe === 'mkdir') return mkdir(operands[0]!) || args.includes('-p') ? ok() : fail(`mkdir: cannot create directory '${operands[0]}': File exists`)
+    if (exe === 'mv') {
+      move(operands[0]!, operands[1]!)
+      return ok()
+    }
+    removeTree(operands[0]!)
+    return ok()
+  }
 
   on('process.run', (_$, e) => {
     commands.push(e.argv.join(' '))
@@ -139,6 +167,7 @@ export function installMachine(on: On, root: string): Machine {
     if (exe === 'git') return git(args)
     if (exe === 'jlock') return jlock(args)
     if (exe === 'cmd') return cmd(args)
+    if (exe === 'mkdir' || exe === 'mv' || exe === 'rm') return posixFs(exe, args)
     return fail(`fake machine: no ${exe}`)
   })
   on('fs.read', (_$, e) => {
@@ -184,9 +213,10 @@ export function installMachine(on: On, root: string): Machine {
 
 /**
  * The engine's answers a session needs beneath the mod: start, cwd, id, tool and command registration, env, a
- * clock that moves only when the test moves it, a store, and panes that always fit.
+ * clock that moves only when the test moves it, a store, and panes that always fit. `ownCommand`: the person has a
+ * /jtasks of their own (a skill), so the engine refuses the mod's.
  */
-export function installSession(on: On, cwd: string, sessionId = 'session-1', lang = 'pt-BR') {
+export function installSession(on: On, cwd: string, sessionId = 'session-1', lang = 'pt-BR', ownCommand = false) {
   const tools: string[] = []
   const panes: string[] = []
   const clock = mock.clock(on)
@@ -196,7 +226,7 @@ export function installSession(on: On, cwd: string, sessionId = 'session-1', lan
     store.set(e.key, e.value)
     return { value: undefined }
   })
-  on('command.register', (_$, e) => ({ value: { command: e.name } }) as never)
+  on('command.register', (_$, e) => (ownCommand ? { deny: `"/${e.name}" refused: it is the user's /${e.name}` } : { value: { command: e.name } }) as never)
   on('ui.open', (_$, e) => {
     panes.push(`open ${e.id}`)
     return { value: { isPlaced: true as const } }

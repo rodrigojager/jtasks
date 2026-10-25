@@ -105,7 +105,9 @@ export const register: Register = (on) => {
     // jlock comes with jtasks: a missing one is installed in the background (the first tool call tells the user).
     void ensureJlock(createModHost(port, await port.cwd())).catch(() => undefined)
     await $.tool.register({ name: TOOL_NAME, description: TOOL_DESCRIPTION, inputSchema: TOOL_SCHEMA, isDeferred: false })
-    await $.command.register({ name: 'jtasks', description: tr('mod.command') })
+    // A /jtasks of the person's own (the skill `jtasks doctor --fix` puts in ~/.claude/skills) refuses the
+    // registration; the command.run hook below still answers /jtasks, so the pane's refresh is set up anyway.
+    await $.command.register({ name: 'jtasks', description: tr('mod.command') }).catch(() => undefined)
 
     const stored = await $.store.get('collapsed')
     if (typeof stored === 'boolean') await update($, collapsedAtom, () => stored)

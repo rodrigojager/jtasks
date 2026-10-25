@@ -4376,16 +4376,16 @@ function systemLocale() {
 function choose(inputs) {
   let warning;
   if (inputs.lang) {
-    const tag2 = resolve(inputs.lang);
-    if (tag2)
-      return { tag: tag2, source: "--lang" };
+    const tag = resolve(inputs.lang);
+    if (tag)
+      return { tag, source: "--lang" };
     warning = `unknown language "${inputs.lang}" (available: ${tags().join(", ")}); using English`;
   }
   for (const name of ["JTASKS_LANG", "JLOCK_LANG"]) {
     const value = inputs.env?.(name);
-    const tag2 = value ? resolve(value) : undefined;
-    if (tag2 && !warning)
-      return { tag: tag2, source: name };
+    const tag = value ? resolve(value) : undefined;
+    if (tag && !warning)
+      return { tag, source: name };
   }
   const tag = !warning && inputs.system ? resolve(inputs.system) : undefined;
   if (tag)
@@ -4529,13 +4529,13 @@ function readPlan(raw) {
     errors.push(tr("plan.no_tasks"));
     return { plan, errors };
   }
-  obj.tasks.forEach((raw2, index) => {
-    const name = label(raw2, index);
-    if (!raw2 || typeof raw2 !== "object" || Array.isArray(raw2)) {
+  obj.tasks.forEach((raw, index) => {
+    const name = label(raw, index);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       errors.push(tr("plan.task_object", { name }));
       return;
     }
-    const t = raw2;
+    const t = raw;
     const before = errors.length;
     for (const key of Object.keys(t))
       if (!TASK_FIELDS.has(key))
@@ -4797,33 +4797,33 @@ function parseTicket(text, file, index) {
   const fields = new Map;
   const acceptance = [];
   let heading;
-  let current2;
+  let current;
   for (const raw of lines) {
     const line = raw.trimEnd();
     const h = /^#\s+(\d+)\s*[:.\-–]\s*(.+)$/.exec(line);
     if (h && !heading) {
       heading = { num: h[1], title: h[2].trim() };
-      current2 = undefined;
+      current = undefined;
       continue;
     }
     const crit = /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line);
     if (crit) {
       acceptance.push(crit[2].trim());
-      current2 = undefined;
+      current = undefined;
       continue;
     }
     const f = FIELD.exec(line);
     if (f) {
-      current2 = f[1].trim().toLowerCase();
-      fields.set(current2, f[2].trim());
+      current = f[1].trim().toLowerCase();
+      fields.set(current, f[2].trim());
       continue;
     }
     if (!line.trim() || line.startsWith("#")) {
-      current2 = undefined;
+      current = undefined;
       continue;
     }
-    if (current2)
-      fields.set(current2, `${fields.get(current2)} ${line.trim()}`.trim());
+    if (current)
+      fields.set(current, `${fields.get(current)} ${line.trim()}`.trim());
   }
   const fromName = /^(\d+)-(.+)\.md$/i.exec(file.split("/").pop() ?? file);
   const num = heading?.num ?? fromName?.[1] ?? String(index + 1);
@@ -4953,8 +4953,8 @@ async function writeRun(host, dir, run) {
   await atomicWrite(host, join(dir, "run.json"), stringify(run));
 }
 async function writeTasks(host, dir, tasks, expected) {
-  const current2 = await readTasks(host, dir);
-  const found = current2?.revision ?? 0;
+  const current = await readTasks(host, dir);
+  const found = current?.revision ?? 0;
   if (found !== expected)
     throw new StaleRevisionError(expected, found);
   const next = { ...tasks, revision: expected + 1 };
@@ -5039,8 +5039,8 @@ function serialize(effects) {
   return effects.map((e) => `${JSON.stringify(e)}
 `).join("");
 }
-async function recordEffect(host, runDir2, effect) {
-  const file = join(runDir2, "ledger.jsonl");
+async function recordEffect(host, runDir, effect) {
+  const file = join(runDir, "ledger.jsonl");
   const existing = await readEffects(host, file);
   const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
   const full = { id: `e-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
@@ -5059,9 +5059,9 @@ async function recordGlobalEffect(host, effect) {
 `);
   return full;
 }
-async function setEffectState(host, runDir2, run, id, state) {
+async function setEffectState(host, runDir, run, id, state) {
   const at = host.now().toISOString();
-  for (const file of [join(runDir2, "ledger.jsonl"), globalLedger(host)]) {
+  for (const file of [join(runDir, "ledger.jsonl"), globalLedger(host)]) {
     const effects = await readEffects(host, file);
     let changed = false;
     for (const e of effects)
@@ -5789,19 +5789,19 @@ async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   const raw = await readJsonArg(ctx, args.positionals[0], "json.batch");
   return withLock(ctx.host, dir, async () => {
-    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
     const read = readPlan(raw);
-    const profiles = read.plan.profiles ?? current2.profiles ?? DEFAULT_PROFILES;
+    const profiles = read.plan.profiles ?? current.profiles ?? DEFAULT_PROFILES;
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
       profiles,
-      existingIds: current2.tasks.map((t) => t.id)
+      existingIds: current.tasks.map((t) => t.id)
     });
-    const earlier = read.plan.profiles ? current2.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
+    const earlier = read.plan.profiles ? current.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
     const errors = [...read.errors, ...batch.errors, ...earlier];
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
-    const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
+    const next = { ...current, tasks: [...current.tasks, ...batch.tasks] };
     for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "branch"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
@@ -5828,8 +5828,8 @@ async function draftFix(ctx, args) {
   if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.id === undefined)
     raw = { ...raw, id: fixId };
   return withLock(ctx.host, dir, async () => {
-    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
-    const index = current2.tasks.findIndex((t) => t.id === fixId);
+    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    const index = current.tasks.findIndex((t) => t.id === fixId);
     if (index < 0)
       throw new ToolError(tr("draft.no_task", { id: fixId }));
     const read = readPlan([raw]);
@@ -5839,16 +5839,16 @@ async function draftFix(ctx, args) {
       errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }));
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
-      profiles: current2.profiles ?? DEFAULT_PROFILES,
-      existingIds: current2.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
+      profiles: current.profiles ?? DEFAULT_PROFILES,
+      existingIds: current.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
     });
     errors.push(...batch.errors);
     if (errors.length > 0 || !batch.tasks[0])
       return refused(tr("draft.fix_refused", { id: fixId }), errors);
-    const tasks = [...current2.tasks];
+    const tasks = [...current.tasks];
     tasks[index] = batch.tasks[0];
-    await saveDraft(ctx, dir, { ...current2, tasks });
-    return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current2.id, fixed: fixId });
+    await saveDraft(ctx, dir, { ...current, tasks });
+    return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current.id, fixed: fixId });
   });
 }
 async function draftShow(ctx, args) {
@@ -5861,13 +5861,13 @@ async function draftShow(ctx, args) {
 async function draftCommit(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   return withLock(ctx.host, dir, async () => {
-    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
-    if (current2.tasks.length === 0)
+    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    if (current.tasks.length === 0)
       throw new ToolError(tr("draft.empty"));
-    const { plan, errors } = validatePlan(draftPlan(current2), { platform: ctx.host.platform });
+    const { plan, errors } = validatePlan(draftPlan(current), { platform: ctx.host.platform });
     if (errors.length > 0)
       return refused(tr("draft.commit_refused"), errors);
-    const created = await createRun(ctx, plan, { id: current2.id });
+    const created = await createRun(ctx, plan, { id: current.id });
     await ctx.host.remove(draftFile(dir));
     return ok(createdText(created), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch }, { bind: created.run.id });
   });
@@ -6056,14 +6056,14 @@ async function detachedHold(host, argv, cwd, timeoutMs) {
 async function startHold(host, resident, firstLineTimeoutMs) {
   const line = await resident.firstLine(firstLineTimeoutMs);
   if (line === undefined) {
-    const code2 = await Promise.race([resident.exited, host.sleep(2000).then(() => {
+    const code = await Promise.race([resident.exited, host.sleep(2000).then(() => {
       return;
     })]);
-    if (code2 === undefined) {
+    if (code === undefined) {
       await resident.stop();
       throw new ToolError(tr("jlock.hold_silent", { seconds: Math.round(firstLineTimeoutMs / 1000) }));
     }
-    throw failure(code2, resident.lines().join(`
+    throw failure(code, resident.lines().join(`
 `), "", "hold");
   }
   const answer = parseAnswer(line);
@@ -6084,11 +6084,11 @@ function describeOwner(owner, run) {
   if (!owner.startsWith("gt:"))
     return tr("jlock.other_program", { owner });
   const rest = owner.slice(3);
-  const slash2 = rest.lastIndexOf("/");
-  if (slash2 < 0)
+  const slash = rest.lastIndexOf("/");
+  if (slash < 0)
     return rest;
-  const ownerRun = rest.slice(0, slash2);
-  const task = rest.slice(slash2 + 1);
+  const ownerRun = rest.slice(0, slash);
+  const task = rest.slice(slash + 1);
   return ownerRun === run ? task : `${ownerRun}/${task}`;
 }
 function describeKey(key, root, platform) {
@@ -6183,8 +6183,8 @@ function waitingOf(state, locks) {
 function waitingText(w, state, platform) {
   const asked = describeKey(w.key, state.root, platform);
   const via = describeKey(w.via, state.root, platform);
-  const shown2 = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
-  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown: shown2, position: w.position });
+  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
+  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown, position: w.position });
 }
 function blockerText(b, state, platform) {
   switch (b.kind) {
@@ -6270,8 +6270,8 @@ ${tr("clean.busy", { tasks: busy.join(", ") })}`);
   }
   const dirs = [];
   for (const r of ids) {
-    const all2 = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform));
-    dirs.push(...all2.filter((e) => e.type === "dir" && e.state === "active"));
+    const all = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform));
+    dirs.push(...all.filter((e) => e.type === "dir" && e.state === "active"));
   }
   await host.remove(target, { recursive: true });
   for (const e of dirs)
@@ -6502,7 +6502,7 @@ defineAction("start", async (ctx, args) => {
       const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : "";
       throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`);
     }
-    const byId = new Map(state.tasks.tasks.map((t2) => [t2.id, t2]));
+    const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]));
     const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""));
     if (open.length)
       throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }));
@@ -6689,9 +6689,9 @@ async function syncRunStatus(ctx, state, tasks) {
   if (!run || run.status === "paused")
     return;
   const remaining = counts(tasks).remaining;
-  const status2 = remaining === 0 ? "done" : "active";
-  if (run.status !== status2)
-    await writeRun(ctx.host, state.dir, { ...run, status: status2 });
+  const status = remaining === 0 ? "done" : "active";
+  if (run.status !== status)
+    await writeRun(ctx.host, state.dir, { ...run, status });
 }
 async function transition(ctx, args, action, change) {
   const first = await resolveRun(ctx, args);
@@ -6710,8 +6710,8 @@ async function transition(ctx, args, action, change) {
     return { task, tasks, state: { ...state, tasks } };
   });
 }
-function closeTask(task, status2, now) {
-  task.status = status2;
+function closeTask(task, status, now) {
+  task.status = status;
   task.owner = null;
   task.finishedAt = now;
   delete task.holds;
@@ -6758,10 +6758,10 @@ defineAction("claim", async (ctx, args) => {
   }
   if (errors.length)
     throw new ToolError(tr("claim.refused", { errors: errors.join("; ") }));
-  const current2 = taskKeys(first.root, task, platform);
+  const current = taskKeys(first.root, task, platform);
   const wanted = files.filter((f) => {
     const key = normalizeKey(f, first.root, platform);
-    return !current2.some((k) => covers(k, key));
+    return !current.some((k) => covers(k, key));
   });
   if (!wanted.length)
     return ok(tr("claim.already", { id: task.id, files: files.join(", ") }), { task: task.id, granted: [] });
@@ -6999,11 +6999,11 @@ async function setPaused(ctx, args, paused) {
   return withLock(ctx.host, first.dir, async () => {
     const state = await reload(ctx, first);
     const from = state.run.status;
-    const status2 = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
-    if (from !== status2)
-      await writeRun(ctx.host, state.dir, { ...state.run, status: status2 });
-    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status2 });
-    return { ...state, run: { ...state.run, status: status2 } };
+    const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
+    if (from !== status)
+      await writeRun(ctx.host, state.dir, { ...state.run, status });
+    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status });
+    return { ...state, run: { ...state.run, status } };
   });
 }
 defineAction("pause", async (ctx, args) => {
@@ -7030,36 +7030,36 @@ defineAction("resume", async (ctx, args) => {
   const released = [];
   const kept = [];
   const state = await withLock(ctx.host, first.dir, async () => {
-    const state2 = await reload(ctx, first);
+    const state = await reload(ctx, first);
     const now = ctx.host.now().toISOString();
-    const run = { ...state2.run };
+    const run = { ...state.run };
     if (run.status === "paused")
-      run.status = counts(state2.tasks.tasks).remaining === 0 ? "done" : "active";
-    if (ctx.session && !run.sessions.some((s2) => s2.tool === ctx.tool && s2.id === ctx.session))
+      run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
+    if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
       run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }];
-    const copy = clone(state2.tasks);
+    const copy = clone(state.tasks);
     for (const task of copy.tasks) {
       if (task.status !== "in_progress")
         continue;
-      const keys = taskKeys(state2.root, task, ctx.host.platform);
-      const missing = keys.length ? await missingKeys(ctx, state2, task) : [];
+      const keys = taskKeys(state.root, task, ctx.host.platform);
+      const missing = keys.length ? await missingKeys(ctx, state, task) : [];
       if (keepOwners || !keys.length || missing.length === 0) {
         kept.push(task.id);
         continue;
       }
-      const uncommitted = (await splitChanges(ctx, state2, task, false)).inside;
+      const uncommitted = (await splitChanges(ctx, state, task, false)).inside;
       const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now);
       released.push({ id: task.id, to, uncommitted });
     }
-    const tasks = released.length ? await writeTasks(ctx.host, state2.dir, copy, state2.tasks.revision) : state2.tasks;
-    if (JSON.stringify(run) !== JSON.stringify(state2.run))
-      await writeRun(ctx.host, state2.dir, run);
+    const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks;
+    if (JSON.stringify(run) !== JSON.stringify(state.run))
+      await writeRun(ctx.host, state.dir, run);
     for (const r of released) {
-      await writeTicket(ctx.host, state2.dir, tasks, r.id);
-      await log(ctx, state2, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted });
+      await writeTicket(ctx.host, state.dir, tasks, r.id);
+      await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted });
     }
-    await log(ctx, state2, { action: "resume", released: released.map((r) => r.id), kept });
-    return { ...state2, run, tasks };
+    await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept });
+    return { ...state, run, tasks };
   });
   for (const r of released)
     await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
@@ -7073,9 +7073,9 @@ defineAction("resume", async (ctx, args) => {
   return ok(lines.join(`
 `), { ...s.data, released, kept }, { bind: state.run.id });
 }, "help.resume");
-function serializeEntry(serialize2, command) {
+function serializeEntry(serialize, command) {
   const norm = command.trim().replace(/\s+/g, " ");
-  return serialize2.find((e) => {
+  return serialize.find((e) => {
     const entry = e.trim().replace(/\s+/g, " ");
     return norm === entry || norm.startsWith(`${entry} `);
   });
@@ -7118,14 +7118,14 @@ defineAction("ledger", async (ctx, args) => {
   const insensitive = caseInsensitive(ctx.host.platform);
   if (args.options["all-projects"]) {
     const all = await readEffects(ctx.host, globalLedger(ctx.host));
-    const active2 = all.filter((e) => e.state === "active").length;
-    const lines2 = [tr("ledger.global", { file: globalLedger(ctx.host), n: all.length, active: active2 })];
+    const active = all.filter((e) => e.state === "active").length;
+    const lines = [tr("ledger.global", { file: globalLedger(ctx.host), n: all.length, active })];
     for (const repo of [...new Set(all.map((e) => e.repo))]) {
-      lines2.push(`${repo}:`);
+      lines.push(`${repo}:`);
       for (const e of all.filter((x) => x.repo === repo))
-        lines2.push(`  ${effectLine(e)}`);
+        lines.push(`  ${effectLine(e)}`);
     }
-    return ok(lines2.join(`
+    return ok(lines.join(`
 `), { effects: all });
   }
   const root = await requireRepo(ctx.host, ctx.cwd);
@@ -7240,17 +7240,17 @@ defineAction("undo", async (ctx, args) => {
   const taskId = typeof args.options.task === "string" ? args.options.task : undefined;
   const insensitive = caseInsensitive(ctx.host.platform);
   if (!id && !taskId) {
-    const runId2 = typeof args.options.run === "string" ? args.options.run : undefined;
-    if (!runId2)
+    const runId = typeof args.options.run === "string" ? args.options.run : undefined;
+    if (!runId)
       throw new ToolError(tr("undo.which"), 2);
     const root = await requireRepo(ctx.host, ctx.cwd);
-    const effects2 = (await effectsOf(ctx.host, { repo: root, run: runId2 }, insensitive)).filter((e) => e.state === "active");
-    if (!effects2.length)
-      return ok(tr("undo.run_clean", { run: runId2 }), { undone: [] });
-    const done2 = await undoMany(ctx, root, effects2, force);
-    return ok(`${tr("undo.run_done", { run: runId2 })}
-${done2.join(`
-`)}`, { undone: done2 });
+    const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active");
+    if (!effects.length)
+      return ok(tr("undo.run_clean", { run: runId }), { undone: [] });
+    const done = await undoMany(ctx, root, effects, force);
+    return ok(`${tr("undo.run_done", { run: runId })}
+${done.join(`
+`)}`, { undone: done });
   }
   const state = await resolveRun(ctx, args);
   const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active");
@@ -7258,9 +7258,9 @@ ${done2.join(`
     const e = all.find((x) => x.id === id);
     if (!e)
       throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }));
-    const done2 = await undoMany(ctx, state.root, [e], force);
-    return ok(done2.join(`
-`), { undone: done2 });
+    const done = await undoMany(ctx, state.root, [e], force);
+    return ok(done.join(`
+`), { undone: done });
   }
   const task = findTask(state, taskId);
   if (task.status === "in_progress")
@@ -7386,9 +7386,9 @@ async function worktreeFinding(host, dir, gitFile) {
     if (base)
       f.base = base;
     if (f.branch && base) {
-      const isMerged2 = await merged(host, owner, f.branch, base);
-      if (isMerged2 !== undefined)
-        f.merged = isMerged2;
+      const isMerged = await merged(host, owner, f.branch, base);
+      if (isMerged !== undefined)
+        f.merged = isMerged;
     }
   } else
     f.known = false;
@@ -7404,16 +7404,16 @@ async function runFinding(host, dir, type) {
     f.branch = run.repo.branch;
     f.base = run.repo.baseBranch;
     if (run.repo.branch !== run.repo.baseBranch && await host.stat(run.repo.root)) {
-      const isMerged2 = await merged(host, run.repo.root, run.repo.branch, run.repo.baseBranch);
-      if (isMerged2 !== undefined)
-        f.merged = isMerged2;
+      const isMerged = await merged(host, run.repo.root, run.repo.branch, run.repo.baseBranch);
+      if (isMerged !== undefined)
+        f.merged = isMerged;
     }
   }
   return f;
 }
 async function classify(host, dir) {
-  const git2 = await host.stat(join(dir, ".git"));
-  if (git2?.kind === "file")
+  const git = await host.stat(join(dir, ".git"));
+  if (git?.kind === "file")
     return worktreeFinding(host, dir, await host.readText(join(dir, ".git")) ?? "");
   if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file") {
     const inRepo = /\/\.scratch\/jtasks\/runs$/i.test(dirname(slash(dir)));
@@ -7472,13 +7472,13 @@ function findingLine(f, now) {
 defineAction("gc", async (ctx, args) => {
   const { host } = ctx;
   const now = host.now().getTime();
-  const resolve2 = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
+  const resolve = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
   if (typeof args.options.remove === "string")
-    return removeFound(ctx, resolve2(args.options.remove), !!args.options.yes);
+    return removeFound(ctx, resolve(args.options.remove), !!args.options.yes);
   const raw = typeof args.options.scan === "string" ? args.options.scan : args.positionals[0];
   if (!raw)
     throw new ToolError(tr("gc.usage"), 2);
-  const root = resolve2(raw);
+  const root = resolve(raw);
   if ((await host.stat(root))?.kind !== "dir")
     throw new ToolError(tr("path.not_a_folder", { path: raw }));
   const depth = typeof args.options.depth === "string" ? Number(args.options.depth) : 4;
@@ -7735,8 +7735,8 @@ function barCells(percent, cells = BAR_CELLS) {
   const partial = EIGHTHS[eighths % 8];
   return { full: "█".repeat(full), partial, empty: "█".repeat(Math.max(0, cells - full - (partial ? 1 : 0))) };
 }
-function bar(percent, width2) {
-  const w = Math.max(1, width2);
+function bar(percent, width) {
+  const w = Math.max(1, width);
   const units = Math.round(Math.max(0, Math.min(100, percent)) / 100 * w * 8);
   const full = Math.floor(units / 8);
   const part = EIGHTHS[units % 8];
@@ -7863,8 +7863,8 @@ async function checkJlock(host) {
   const fixes = bad.map((c) => c.fix).filter((f) => !!f);
   if (oldForEof)
     fixes.push("jlock update");
-  const status2 = failed ? "fail" : bad.length || oldForEof ? "warn" : "ok";
-  return status2 === "ok" ? { name: "jlock", status: status2, detail: parts.join("; ") } : { name: "jlock", status: status2, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" };
+  const status = failed ? "fail" : bad.length || oldForEof ? "warn" : "ok";
+  return status === "ok" ? { name: "jlock", status, detail: parts.join("; ") } : { name: "jlock", status, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" };
 }
 async function checkHome(host) {
   const home = jtasksHome(host);
@@ -7909,15 +7909,18 @@ async function checkClaude(host) {
   const r = await host.run(["claude", "--version"], { timeoutMs: 20000 });
   if (r.code !== 0)
     return { name: "claude", status: "ok", detail: tr("doctor.claude_absent") };
-  const plugins = await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json")) ?? "";
-  const mod = /jtasks/.test(plugins) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent");
+  const mod = await claudeModInstalled(host) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent");
   return { name: "claude", status: "ok", detail: `${r.stdout.trim().split(`
 `)[0]}; ${mod}` };
 }
+async function claudeModInstalled(host) {
+  return /jtasks/.test(await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json")) ?? "");
+}
 async function missingSkills(host) {
   const out = [];
+  const mod = await claudeModInstalled(host);
   for (const h of skillHosts(host)) {
-    if (!await isDir(host, h.present))
+    if (!await isDir(host, h.present) || mod && h.host === "claude-code")
       continue;
     for (const skill of SKILLS)
       if (!await isFile(host, join(h.dir, skill, "SKILL.md")))
@@ -7937,11 +7940,11 @@ async function checkSkills(host) {
     return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "jtasks doctor --fix --yes" };
   return { name: "skills", status: "ok", detail: tr("doctor.skills_ok", { agents: present.join(", ") }) };
 }
-function checkLanguage(host, lang2) {
-  const choice = choose({ lang: lang2, env: (name) => host.env(name), system: systemLocale() });
+function checkLanguage(host, lang) {
+  const choice = choose({ lang, env: (name) => host.env(name), system: systemLocale() });
   return { name: "language", status: "ok", detail: `${choice.tag} (${choice.source})` };
 }
-async function runChecks(ctx, lang2) {
+async function runChecks(ctx, lang) {
   const { host } = ctx;
   return [
     await checkVersion(host),
@@ -7951,16 +7954,16 @@ async function runChecks(ctx, lang2) {
     await checkOpenCode(host, ctx.cwd),
     await checkClaude(host),
     await checkSkills(host),
-    checkLanguage(host, lang2)
+    checkLanguage(host, lang)
   ];
 }
 function checksText(checks) {
-  const width2 = Math.max(...checks.map((c) => c.name.length));
+  const width = Math.max(...checks.map((c) => c.name.length));
   const lines = [];
   for (const c of checks) {
-    lines.push(`${c.status.padEnd(5)} ${c.name.padEnd(width2)}  ${c.detail}`);
+    lines.push(`${c.status.padEnd(5)} ${c.name.padEnd(width)}  ${c.detail}`);
     if (c.fix)
-      lines.push(`${" ".repeat(width2 + 8)}${tr("doctor.fix", { fix: c.fix })}`);
+      lines.push(`${" ".repeat(width + 8)}${tr("doctor.fix", { fix: c.fix })}`);
   }
   const n = (s) => checks.filter((c) => c.status === s).length;
   lines.push("", tr("doctor.summary", { ok: n("ok"), warn: n("warn"), fail: n("fail") }));
@@ -7971,9 +7974,9 @@ async function installFile(host, from, to) {
   const text = await host.readText(from);
   if (text === undefined)
     throw new ToolError(tr("doctor.package_missing", { file: from }));
-  const current2 = await host.readText(to);
-  if (current2 !== undefined)
-    return current2 === text ? tr("doctor.file_same", { file: to }) : tr("doctor.file_differs", { file: to });
+  const current = await host.readText(to);
+  if (current !== undefined)
+    return current === text ? tr("doctor.file_same", { file: to }) : tr("doctor.file_differs", { file: to });
   await host.writeText(to, text);
   const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, undo: { kind: "remove-file" } });
   return tr("doctor.file_installed", { file: to, id: e.id });
@@ -8006,8 +8009,8 @@ async function installJlock2(ctx) {
   return done.path ? tr("doctor.jlock_installed", { file: done.path, id: done.effect ?? "-" }) : tr("doctor.jlock_installed_somewhere");
 }
 async function doctor(ctx, args) {
-  const lang2 = typeof args.options.lang === "string" ? args.options.lang : ctx.lang;
-  const checks = await runChecks(ctx, lang2);
+  const lang = typeof args.options.lang === "string" ? args.options.lang : ctx.lang;
+  const checks = await runChecks(ctx, lang);
   const summary = { ok: 0, warn: 0, fail: 0 };
   for (const c of checks)
     summary[c.status]++;
@@ -8028,199 +8031,199 @@ ${tr("doctor.nothing_to_fix")}`, { ...data, fixed: [] });
   const done = [];
   for (const s of steps)
     done.push(await s.run());
-  const after = await runChecks(ctx, lang2);
+  const after = await runChecks(ctx, lang);
   return ok([tr("doctor.fixed"), ...done.map((d) => `  ${d}`), "", checksText(after)].join(`
 `), { ...data, fixed: done, after });
 }
 defineAction("doctor", doctor, "help.doctor");
 export {
-  yymmdd,
-  writeTickets,
-  writeTicket,
-  writeTasks,
-  writeRun,
-  withLock,
-  width,
-  waitingText,
-  waitingOf,
-  viewLines,
-  versionAtLeast,
-  validatePlan,
-  validateGraph,
-  validateBatch,
-  userHome,
-  unarchive,
-  tr,
-  toTask,
-  ticketReadLine,
-  ticketPath,
-  ticketNumber,
-  ticketFileName,
-  taskKeys,
-  taskIdArg,
-  tags,
-  systemLocale,
-  summaryText,
-  summaryTail,
-  stringify,
-  statusOf,
-  status,
-  startHold,
-  splitCommand,
-  splitChanges,
-  slugify,
-  slash,
-  skillHosts,
-  shortHead,
-  shellSegments,
-  setEffectState,
-  serializeKey,
-  serializeEntry,
-  selectReady,
-  select,
-  scan,
-  runsView,
-  runsDir,
-  runTool,
-  runLine,
-  runId,
-  runDir,
-  runChecks,
-  resolveRun,
-  resolve,
-  resetJlockSetup,
-  requireRepo,
-  repoRoot,
-  repoRelative,
-  renderTicket,
-  removeExcludeLine,
-  reload,
-  releaseHolds,
-  relativeInside,
-  relConflicts,
-  recordGlobalEffect,
-  recordEffect,
-  readTicketsDir,
-  readTasks,
-  readRun,
-  readPlan,
-  readJsonArg,
-  readJson,
-  readEffects,
-  protocolText,
-  progressLine,
-  progress,
-  possession,
-  planFromJson,
-  parseTicket,
-  parseDuration,
-  parseArgs,
-  ownerOf,
-  ok,
-  normalizeKey,
-  normalizeFileEntry,
-  normalize,
-  mutateTasks,
-  moveDir,
-  missingKeys,
-  markLost,
-  log,
-  loadView,
-  loadRunsView,
-  listRuns,
-  listDrafts,
-  lineText,
-  lang,
-  jtasksHome,
-  join,
-  jlockVersion,
-  jlockReleaseKeys,
-  jlockRelease,
-  jlockNotice,
-  jlockList,
-  jlockInstallPath,
-  jlockInstallCommand,
-  jlockEnv,
-  jlockBin,
-  isNameKey,
-  isMerged,
-  isAbsolute,
-  installedJlock,
-  installJlock,
-  identity,
-  holdModeOf,
-  holdModeFor,
-  holdArgv,
-  headerText,
-  hasExcludeLine,
-  globalLedger,
-  gitOk,
-  git,
-  formatRunsList,
-  firstConflict,
-  findingLine,
-  findTask,
-  excludeFile,
-  ensureJlock,
-  effectsOf,
-  effectLine,
-  draftSummary,
-  dirname,
-  detachedHold,
-  describeOwner,
-  describeKey,
-  defineAction,
-  currentBranch,
-  createdText,
-  createRun,
-  covers,
-  counts,
-  conflicts,
-  commitReachable,
-  commitExists,
-  clone,
-  classify,
-  choose,
-  checksText,
-  checkShell,
-  checkJlock,
-  checkEdit,
-  chainText,
-  caseInsensitive,
-  canonical,
-  bullet,
-  buildView,
-  branchExists,
-  blockerText,
-  basename,
-  barCells,
-  bar,
-  backToPending,
-  atomicWrite,
-  assess,
-  archiveDir,
-  appendLog,
-  ancestors,
-  addUsage,
-  addExcludeLine,
-  actorOf,
-  acquireHold,
-  VERSION,
-  ToolError,
-  StaleRevisionError,
-  SKILL_FILES,
-  SKILLS,
-  SCRATCH,
-  OPENCODE_AGENTS,
-  MIN_JLOCK,
-  JLOCK,
-  EOF_JLOCK,
-  DURATION,
-  DEFAULT_PROFILES,
-  DEFAULT_PROFILE,
-  DEFAULT_MAX_ATTEMPTS,
-  DEFAULT_HOLD_TTL,
-  CATALOGS,
+  ALL,
   BAR_CELLS,
-  ALL
+  CATALOGS,
+  DEFAULT_HOLD_TTL,
+  DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_PROFILE,
+  DEFAULT_PROFILES,
+  DURATION,
+  EOF_JLOCK,
+  JLOCK,
+  MIN_JLOCK,
+  OPENCODE_AGENTS,
+  SCRATCH,
+  SKILLS,
+  SKILL_FILES,
+  StaleRevisionError,
+  ToolError,
+  VERSION,
+  acquireHold,
+  actorOf,
+  addExcludeLine,
+  addUsage,
+  ancestors,
+  appendLog,
+  archiveDir,
+  assess,
+  atomicWrite,
+  backToPending,
+  bar,
+  barCells,
+  basename,
+  blockerText,
+  branchExists,
+  buildView,
+  bullet,
+  canonical,
+  caseInsensitive,
+  chainText,
+  checkEdit,
+  checkJlock,
+  checkShell,
+  checksText,
+  choose,
+  classify,
+  clone,
+  commitExists,
+  commitReachable,
+  conflicts,
+  counts,
+  covers,
+  createRun,
+  createdText,
+  currentBranch,
+  defineAction,
+  describeKey,
+  describeOwner,
+  detachedHold,
+  dirname,
+  draftSummary,
+  effectLine,
+  effectsOf,
+  ensureJlock,
+  excludeFile,
+  findTask,
+  findingLine,
+  firstConflict,
+  formatRunsList,
+  git,
+  gitOk,
+  globalLedger,
+  hasExcludeLine,
+  headerText,
+  holdArgv,
+  holdModeFor,
+  holdModeOf,
+  identity,
+  installJlock,
+  installedJlock,
+  isAbsolute,
+  isMerged,
+  isNameKey,
+  jlockBin,
+  jlockEnv,
+  jlockInstallCommand,
+  jlockInstallPath,
+  jlockList,
+  jlockNotice,
+  jlockRelease,
+  jlockReleaseKeys,
+  jlockVersion,
+  join,
+  jtasksHome,
+  lang,
+  lineText,
+  listDrafts,
+  listRuns,
+  loadRunsView,
+  loadView,
+  log,
+  markLost,
+  missingKeys,
+  moveDir,
+  mutateTasks,
+  normalize,
+  normalizeFileEntry,
+  normalizeKey,
+  ok,
+  ownerOf,
+  parseArgs,
+  parseDuration,
+  parseTicket,
+  planFromJson,
+  possession,
+  progress,
+  progressLine,
+  protocolText,
+  readEffects,
+  readJson,
+  readJsonArg,
+  readPlan,
+  readRun,
+  readTasks,
+  readTicketsDir,
+  recordEffect,
+  recordGlobalEffect,
+  relConflicts,
+  relativeInside,
+  releaseHolds,
+  reload,
+  removeExcludeLine,
+  renderTicket,
+  repoRelative,
+  repoRoot,
+  requireRepo,
+  resetJlockSetup,
+  resolve,
+  resolveRun,
+  runChecks,
+  runDir,
+  runId,
+  runLine,
+  runTool,
+  runsDir,
+  runsView,
+  scan,
+  select,
+  selectReady,
+  serializeEntry,
+  serializeKey,
+  setEffectState,
+  shellSegments,
+  shortHead,
+  skillHosts,
+  slash,
+  slugify,
+  splitChanges,
+  splitCommand,
+  startHold,
+  status,
+  statusOf,
+  stringify,
+  summaryTail,
+  summaryText,
+  systemLocale,
+  tags,
+  taskIdArg,
+  taskKeys,
+  ticketFileName,
+  ticketNumber,
+  ticketPath,
+  ticketReadLine,
+  toTask,
+  tr,
+  unarchive,
+  userHome,
+  validateBatch,
+  validateGraph,
+  validatePlan,
+  versionAtLeast,
+  viewLines,
+  waitingOf,
+  waitingText,
+  width,
+  withLock,
+  writeRun,
+  writeTasks,
+  writeTicket,
+  writeTickets,
+  yymmdd
 };

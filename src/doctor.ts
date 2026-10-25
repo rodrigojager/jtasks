@@ -130,15 +130,21 @@ async function checkOpenCode(host: Host, cwd: string): Promise<Check> {
 async function checkClaude(host: Host): Promise<Check> {
   const r = await host.run(["claude", "--version"], { timeoutMs: 20_000 })
   if (r.code !== 0) return { name: "claude", status: "ok", detail: tr("doctor.claude_absent") }
-  const plugins = (await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json"))) ?? ""
-  const mod = /jtasks/.test(plugins) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent")
+  const mod = (await claudeModInstalled(host)) ? tr("doctor.claude_mod_installed") : tr("doctor.claude_mod_absent")
   return { name: "claude", status: "ok", detail: `${r.stdout.trim().split("\n")[0]}; ${mod}` }
+}
+
+/** Whether the Claude Code mod is installed (the plugin brings the skills as jtasks:jtasks and jtasks:to-jtasks). */
+async function claudeModInstalled(host: Host): Promise<boolean> {
+  return /jtasks/.test((await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json"))) ?? "")
 }
 
 async function missingSkills(host: Host): Promise<{ host: string; skill: string; dir: string }[]> {
   const out: { host: string; skill: string; dir: string }[] = []
+  // With the mod, Claude Code has the skills already; a copy in ~/.claude/skills would also take /jtasks from the mod.
+  const mod = await claudeModInstalled(host)
   for (const h of skillHosts(host)) {
-    if (!(await isDir(host, h.present))) continue
+    if (!(await isDir(host, h.present)) || (mod && h.host === "claude-code")) continue
     for (const skill of SKILLS) if (!(await isFile(host, join(h.dir, skill, "SKILL.md")))) out.push({ host: h.host, skill, dir: join(h.dir, skill) })
   }
   return out

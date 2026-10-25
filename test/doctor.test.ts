@@ -69,6 +69,17 @@ describe("jtasks doctor", () => {
     expect(check(r, "skills").detail).toContain("opencode/to-jtasks, opencode/jtasks")
   })
 
+  test("Claude Code with the mod: its skills come with the plugin, so none is asked for in ~/.claude/skills", async () => {
+    const repo = makeRepo()
+    const home = tempDir("user-home")
+    mkdirSync(join(home, ".claude/plugins"), { recursive: true })
+    writeFileSync(join(home, ".claude/plugins/installed_plugins.json"), JSON.stringify({ plugins: { "jtasks@jtasks": [{ scope: "user" }] } }))
+    const r = await doctor(repo, { JTASKS_USER_HOME: home })
+    expect(check(r, "skills").status).toBe("ok")
+    const fix = await doctor(repo, { JTASKS_USER_HOME: home }, ["--fix"])
+    expect(fix.text).not.toContain(".claude/skills")
+  })
+
   test("the agents found in opencode.json count; the language follows --lang", async () => {
     const repo = makeRepo()
     const home = tempDir("user-home")

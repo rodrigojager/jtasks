@@ -6,6 +6,7 @@ import { afterAll, setDefaultTimeout } from "bun:test"
 import { mkdirSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { select } from "../src/i18n.ts"
 
 const root = (
   process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : join(tmpdir(), "jtasks-tests"))
@@ -23,6 +24,8 @@ setDefaultTimeout(60_000)
 delete process.env.JTASKS_RUN
 // The answers the tests read are the Portuguese ones, whatever the machine speaks (test/i18n.test.ts tries others).
 process.env.JTASKS_LANG = "pt-BR"
+// Also for the tests that call the core's functions directly, with no command to choose it.
+select({ env: (name) => process.env[name] })
 delete process.env.JLOCK_LANG
 
 function remove(dir: string) {

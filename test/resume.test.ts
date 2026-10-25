@@ -72,7 +72,8 @@ describe("resume after a dead window", () => {
     const { repo, run, dir } = await newRun()
     // T02 is held by the CLI (`hold --detach`: jlock's keeper lives on): resume must keep it.
     await tasksOk(repo, ["start", "T02"])
-    const win = Bun.spawn(["bun", join(REPO_ROOT, "test/window.ts"), repo, "T01"], { stdout: "pipe", env: process.env })
+    // Its own process group off Windows, so killTree's kill(-pid) ends it with its holds.
+    const win = Bun.spawn(["bun", join(REPO_ROOT, "test/window.ts"), repo, "T01"], { stdout: "pipe", env: process.env, detached: process.platform !== "win32" })
     windows.push(win.pid)
     const reader = win.stdout.getReader()
     const first = JSON.parse(new TextDecoder().decode((await reader.read()).value).split("\n")[0]!)
