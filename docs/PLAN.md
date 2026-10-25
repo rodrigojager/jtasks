@@ -41,6 +41,10 @@ renovam a cada minuto as travas das tarefas em andamento que eles mesmos iniciar
 (`release` e `hold --no-wait` na hora, sob a trava curta de escrita da execução), e o `done` retoma as próprias
 chaves vencidas quando ninguém as pegou. O prazo continua sendo a rede de segurança de janela morta (ninguém
 renova). Marcado com **[rev. 5.4]** nas seções 4, 14, 15, 16, 17, 18 e 19 (ticket 45).
+Revisão 5.5, 25/10/2026: com o jlock 0.2.0, a renovação é no lugar. O `jlock renew` (ticket 19 do jlock) adia o
+prazo sem soltar a trava: nenhum instante sem trava, o mesmo `hold` segue segurando, e não sobra processo a mais.
+Com um jlock anterior, o jtasks segue devolvendo e pegando de novo, e o `jtasks doctor` avisa e sugere
+`jlock update`. Marcado com **[rev. 5.5]** nas seções 4, 18, 19 e 20 (ticket 46).
 
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
@@ -195,10 +199,12 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   `jlock hold … --release-on-eof --ttl <prazo>` em primeiro plano, com a entrada padrão aberta. Em qualquer host,
   `done`, `skip`, `fail` e `release` devolvem a posse com `jlock release --group <run> --owner <dono>` (o `hold`
   termina com 0). O prazo (`holdTtl` no plano, padrão `2h`) é a rede de segurança: se ninguém devolver (agente ou
-  janela mortos), a trava expira sozinha. **[rev. 5.4]** Como o jlock não estende um `--ttl`, o host que fica
-  aberto (mod e plugin) renova as travas das tarefas que iniciou: a cada minuto (`RENEW_EVERY_MS`), a que vence em
-  menos de 10 min (ou da metade do prazo, se for curto) é devolvida e pega de novo na hora, com prazo novo
-  (`renewRun` em `src/renew.ts`, log `renew`); a que já venceu é pega de novo (log `retake`). O `done`, em qualquer
+  janela mortos), a trava expira sozinha. **[rev. 5.4]** O `--ttl` vence mesmo com o dono vivo, então o host que
+  fica aberto (mod e plugin) renova as travas das tarefas que iniciou: a cada minuto (`RENEW_EVERY_MS`), a que vence
+  em menos de 10 min (ou da metade do prazo, se for curto) ganha prazo novo (`renewRun` em `src/renew.ts`, log
+  `renew`). **[rev. 5.5]** Com o jlock 0.2.0, é `jlock renew --group <run> --owner <dono> --ttl <holdTtl>`: o
+  prazo é adiado no lugar, a trava não é solta em instante nenhum, e o vencimento lido é o `expires` do
+  `jlock list`. Com um jlock anterior, é devolvida e pega de novo na hora; a que já venceu é pega de novo (log `retake`). O `done`, em qualquer
   host e no CLI, retoma as próprias chaves vencidas antes de recusar; só recusa se outro dono as pegou, ou se o
   `log.jsonl` mostra outra tarefa da execução pegando a chave depois (as edições dela iriam neste commit). Quem
   estava na fila de uma chave a recebe na renovação, como receberia no vencimento; uma chave contestada não custa as
@@ -698,6 +704,8 @@ motivo.
 - **[rev. 5.4] Travas além do `holdTtl`** (`test/renew.test.ts`, jlock real com prazo de segundos): `done` retoma
   as próprias chaves vencidas e faz o commit; recusa se outro dono as pegou; `renewRun` deixa a trava passar do
   prazo com `--detach` e com `--release-on-eof`, sem a tarefa virar "posse perdida", e não toca tarefa de outro dono;
+  **[rev. 5.5]** com o jlock 0.2.0, a mesma concessão segue (o `since` não muda, nenhum `retake`) e a passada
+  seguinte já vê o prazo novo (`fresh`); com um jlock que se diz 0.1.1 e não tem `renew`, devolve e pega de novo;
   no mod, o relógio de 60 s retoma uma trava vencida; no plugin, uma tarefa com prazo de 3 s segue com a trava
   depois de 6,5 s.
 - Sem gastar tokens de modelo real.
@@ -741,6 +749,8 @@ motivo.
     plugin, `jtasks keepalive on|off`, o passo 5 do protocolo, skills e documentação.
 17. **[rev. 5.4] Travas de tarefas longas** (ticket 45): `src/renew.ts`, a renovação no mod e no plugin, `done`
     retomando as próprias chaves vencidas.
+18. **[rev. 5.5] Renovação no lugar** (ticket 46): `jlock renew` quando o jlock é 0.2.0 ou mais novo
+    (`canRenew`), vencimento pelo `expires` do `jlock list`, aviso no `jtasks doctor` com jlock anterior.
 
 ---
 
@@ -756,7 +766,7 @@ motivo.
 | Órfãs e efeitos das execuções de hoje | Fora do alcance do ledger por construção; só relatório via `gc --scan`, remoção quando você quiser e com `--yes`. |
 | O avaliador do `/goal` só vê a conversa | A saída de `jtasks status` é texto na conversa. Alternativa sem avaliador: Stop hook clássico lendo o arquivo. |
 | Largura do painel do Claude Code | Abre sozinho só a partir de ~110–144 colunas; abaixo, `/jtasks` à mão. |
-| **[rev. 5.4]** O jlock não estende um `--ttl` | A renovação devolve e pega de novo (milissegundos sem trava); quem estava na fila ganha a chave, como no vencimento. Um `jlock hold --renew`/`--ttl` reentrante no jlock tiraria esse intervalo, pelo processo do jlock. Tarefas iniciadas pelo CLI (sem host aberto) só se recuperam no `done`. |
+| **[rev. 5.4]** O jlock não estendia um `--ttl` | **[rev. 5.5]** Resolvido no jlock 0.2.0 (`jlock renew`): a renovação é no lugar. Com um jlock anterior, ela ainda devolve e pega de novo (milissegundos sem trava; quem estava na fila ganha a chave, como no vencimento), e o `jtasks doctor` avisa. Tarefas iniciadas pelo CLI (sem host aberto) só se recuperam no `done`. |
 | **[rev. 5.2]** Um Claude Code que cai deixa a trava até o `holdTtl` | O mod não sabe o PID do Claude Code e `$.process.spawn` fecha a entrada padrão na partida, então nem `--release-on-eof` nem `--parent` servem; o prazo (`2h` por padrão) é a rede. Se pesar, um `jlock hold --parent <pid>` no plano do jlock. |
 | **[rev. 5.2]** `doctor --fix` instala o jlock pelo instalador oficial | O instalador do jlock acrescenta a pasta ao `PATH` do usuário (comportamento dele, documentado); o jtasks não mexe no `PATH` por conta própria e registra o binário instalado no ledger global para o desfazer. |
 | **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o jtasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no jtasks depende de API do Windows. |
@@ -781,7 +791,8 @@ lê nem escreve em `%LOCALAPPDATA%\jlock`.
 | `start T04` | `jlock hold <chave…> --no-wait --ttl <holdTtl> --owner gt:<run>/T04 --group <run> --intent "<título>" --meta task=T04 --meta run=<run> --meta tool=<claude\|opencode\|cli> --json`, **[rev. 5.2]** com `--detach` (CLI, mod: responde e volta; o jlock segura) ou `--release-on-eof` (plugin: processo residente com a entrada padrão aberta) | primeira linha: `granted` ou `queued` + código 10 ("não estava pronta"); `exclusive` usa a chave `*` |
 | `claim T04 <arquivo>` | `jlock hold <abs> --timeout <t> --ttl <holdTtl> --owner gt:<run>/T04 --group <run> --intent "<título>" --json`, com o mesmo `--detach`/`--release-on-eof` do host | `granted` (0); `timeout` (11) com `holder`, `position`, `via`; `deadlock` (12) com `chain` |
 | `done` / `skip` / `fail` / `release` | **[rev. 5.2]** `jlock release --group <run> --owner gt:<run>/T04 --json` (o `hold` termina com 0) | `released` (0); `not_owner` (13) = a posse já não era nossa |
-| início de cada processo | **[rev. 5.2]** `jlock --version` uma vez (cacheado) | ≥ 0.1.1 para `--release-on-eof`; abaixo de 0.1.0 a ferramenta recusa e sugere `jlock update` |
+| início de cada processo | **[rev. 5.2]** `jlock --version` uma vez (cacheado) | ≥ 0.1.1 para `--release-on-eof`; **[rev. 5.5]** ≥ 0.2.0 para `renew`; abaixo de 0.1.0 a ferramenta recusa e sugere `jlock update` |
+| renovação (mod, plugin) | **[rev. 5.5]** `jlock renew --group <run> --owner gt:<run>/T04 --ttl <holdTtl> --json`; antes do 0.2.0, `release` + `hold --no-wait` | `ok` (0); `not_owner` (13) ou `lost` (14) = alguma chave venceu ou mudou de dono: o que falta é retomado como no `done` |
 | `done` (conferência) | `jlock list --group <run> --json` | todas as chaves da posse da tarefa presentes com `holder.owner` = o nosso; senão, recusa |
 | `status` | `jlock list --group <run> --json` | travas ativas da execução |
 | painel (a cada 2 s) | `jlock list --under <repo> --json` | tudo travado no repositório, por qualquer janela ou programa |

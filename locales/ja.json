@@ -65,6 +65,7 @@
   "setup.jlock_not_found_after": "インストーラーは終了しましたが、jlock が配置先にありません",
   "doctor.jlock_missing": "jlock が見つからない（{bin}）",
   "doctor.jlock_no_eof": "hold --release-on-eof には jlock {minimum} が必要",
+  "doctor.jlock_no_renew": "jlock renew には jlock {minimum} が必要: それまでは、長いタスクはロックを返して取り直すことで更新する",
   "doctor.jlock_ok": "jlock {version}。jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} は古すぎる（{minimum} 以上が必要）",
   "doctor.nothing_to_fix": "インストールするものはない",

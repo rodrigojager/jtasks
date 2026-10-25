@@ -65,6 +65,7 @@
   "setup.jlock_not_found_after": "انتهى المثبّت لكن jlock ليس في المكان الذي يضعه فيه",
   "doctor.jlock_missing": "لم يُعثر على jlock ({bin})",
   "doctor.jlock_no_eof": "يحتاج hold --release-on-eof إلى jlock {minimum}",
+  "doctor.jlock_no_renew": "يحتاج jlock renew إلى jlock {minimum}: وحتى ذلك الحين، تجدد المهام الطويلة أقفالها بتحريرها ثم أخذها من جديد",
   "doctor.jlock_ok": "jlock {version}؛ jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} قديم جدًا (الحد الأدنى {minimum})",
   "doctor.nothing_to_fix": "لا شيء لتثبيته",

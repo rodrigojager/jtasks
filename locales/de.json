@@ -65,6 +65,7 @@
   "setup.jlock_not_found_after": "das Installationsprogramm ist fertig, aber jlock liegt nicht dort, wo es es ablegt",
   "doctor.jlock_missing": "jlock nicht gefunden ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof braucht jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew braucht jlock {minimum}: bis dahin erneuern lange Aufgaben ihre Sperren, indem sie sie zurückgeben und neu nehmen",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} ist zu alt (mindestens {minimum})",
   "doctor.nothing_to_fix": "nichts zu installieren",

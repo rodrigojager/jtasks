@@ -1,12 +1,13 @@
-// A task's locks outliving the run's `holdTtl` (plan rev. 5.4): jlock's `--ttl` expires a hold that long after it was
-// granted, even with its owner alive, and has no call that extends it. So a host that stays open (the mod, the
-// plugin) renews the holds of its tasks in progress shortly before they expire: it gives them back and takes them
-// again at once (`release`, then `hold --no-wait`). And `done` takes back its own keys whose hold expired when
-// nobody else took them meanwhile. The ttl stays what it was for: the net under a window that died (nobody renews).
+// A task's locks outliving the run's `holdTtl` (plan rev. 5.4, 5.5): jlock's `--ttl` expires a hold that long after it
+// was granted, even with its owner alive. So a host that stays open (the mod, the plugin) renews the holds of its
+// tasks in progress shortly before they expire: with jlock 0.2.0, `jlock renew` pushes the deadline back in place
+// (the lock is never let go, the same hold keeps it); with an older jlock, it gives them back and takes them again
+// at once (`release`, then `hold --no-wait`). And `done` takes back its own keys whose hold expired when nobody else
+// took them meanwhile. The ttl stays what it was for: the net under a window that died (nobody renews).
 
 import { log, reload, releaseHolds, resolveRun, retakeMissing, takeKeys } from "./actions.ts"
 import { ownerOf, taskKeys, type RunState } from "./frontier.ts"
-import { jlockList, type JlockLock } from "./jlock.ts"
+import { canRenew, jlockList, jlockRenew, type JlockLock } from "./jlock.ts"
 import type { Task } from "./schema.ts"
 import { DEFAULT_HOLD_TTL } from "./schema.ts"
 import { readTasks, withLock } from "./store.ts"
@@ -34,20 +35,31 @@ export function renewMargin(ttl: number, every = RENEW_EVERY_MS): number {
 }
 
 /**
- * `fresh`: nothing to do. `renewed`: given back and taken again with a new ttl. `retaken`: keys whose hold had
+ * `fresh`: nothing to do. `renewed`: a new deadline (in place, or given back and taken again). `retaken`: keys whose hold had
  * expired, taken again. `lost`: someone else holds one of them now (the others are kept; `status` and `done` say
  * so). `none`: the task has no keys.
  */
 export type RenewResult = "fresh" | "renewed" | "retaken" | "lost" | "none"
 
-/** When the earliest of these holds expires (epoch ms), or undefined when none has a ttl. */
+/**
+ * When the earliest of these holds expires (epoch ms), or undefined when none has a deadline: jlock's `expires`
+ * (which counts `jlock renew`) when it says, else `since + ttl_secs` (a jlock before 0.2.0).
+ */
 export function earliestExpiry(locks: JlockLock[]): number | undefined {
   let out: number | undefined
   for (const l of locks) {
-    const since = l.holder?.since ? Date.parse(l.holder.since) : NaN
-    const ttl = l.holder?.ttl_secs
-    if (!Number.isFinite(since) || typeof ttl !== "number") continue
-    const at = since + ttl * 1000
+    const h = l.holder
+    if (!h) continue
+    let at: number
+    if (h.expires !== undefined) {
+      if (h.expires === null) continue
+      at = Date.parse(h.expires)
+    } else {
+      const since = h.since ? Date.parse(h.since) : NaN
+      if (typeof h.ttl_secs !== "number") continue
+      at = since + h.ttl_secs * 1000
+    }
+    if (!Number.isFinite(at)) continue
     out = out === undefined ? at : Math.min(out, at)
   }
   return out
@@ -66,9 +78,21 @@ export function renewalNeed(state: RunState, task: Task, locks: JlockLock[], pla
   return expiry === undefined || expiry - now > margin ? "fresh" : "renew"
 }
 
-/** Gives a task's holds back and takes them again at once, with a new ttl (anyone queued for a key gets it first). */
+/**
+ * A new deadline for a task's holds. With `jlock renew`, in place: the lock is never let go; a key it could not renew
+ * (expired meanwhile, or taken) is taken back like on a `done`. Before jlock 0.2.0: given back and taken again at once
+ * (anyone queued for a key gets it first).
+ */
 async function renewTask(ctx: ToolContext, state: RunState, task: Task): Promise<RenewResult> {
   const keys = taskKeys(state.root, task, ctx.host.platform)
+  if (await canRenew(ctx.host)) {
+    const ttl = state.run.holdTtl ?? DEFAULT_HOLD_TTL
+    await jlockRenew(ctx.host, state.run.id, ownerOf(state.run.id, task.id), ttl)
+    // Without keys, `renew` skips the ones the owner no longer holds: whatever is missing is taken back here.
+    const refused = await retakeMissing(ctx, state, task)
+    await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys, ttl })
+    return refused.length ? "lost" : "renewed"
+  }
   await releaseHolds(ctx, state.run.id, task.id)
   const refused = await takeKeys(ctx, state, task, keys)
   await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys })

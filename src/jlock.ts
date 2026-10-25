@@ -25,8 +25,10 @@ export interface JlockHolder {
   meta?: Record<string, string> | null
   pid?: number
   since?: string
-  /** The hold's `--ttl` in seconds (null without one): it expires `ttl_secs` after `since`, renewed or not. */
+  /** The hold's `--ttl` in seconds (null without one): it expires `ttl_secs` after `since` unless renewed. */
   ttl_secs?: number | null
+  /** When it expires, counting `jlock renew` (jlock 0.2.0; null without a deadline, absent before 0.2.0). */
+  expires?: string | null
   key?: string
   stale?: boolean
   late?: boolean
@@ -126,6 +128,17 @@ export async function jlockReleaseKeys(host: Host, keys: string[], owner: string
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] }
 }
 
+/**
+ * `jlock renew --group <run> --owner <owner> --ttl <ttl>` (jlock 0.2.0): every lock of the owner gets its deadline
+ * moved to now + ttl, without ever being let go. Tolerates "not the owner" (13) and "past its deadline" (14): the
+ * caller takes back what is missing.
+ */
+export async function jlockRenew(host: Host, group: string, owner: string, ttl: string): Promise<ReleaseOutcome> {
+  const r = await host.run([jlockBin(host), "renew", "--group", group, "--owner", owner, "--ttl", ttl, "--json"], { env: jlockEnv() })
+  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER && r.code !== JLOCK.LOST) throw failure(r.code, r.stdout, r.stderr, "renew")
+  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] }
+}
+
 export interface Identity {
   owner: string
   group: string
@@ -141,9 +154,10 @@ export interface Identity {
  */
 export type HoldMode = "detach" | "eof"
 
-/** The oldest jlock the tool works with, and the first one with `hold --release-on-eof`. */
+/** The oldest jlock the tool works with, the first one with `hold --release-on-eof`, and the first with `renew`. */
 export const MIN_JLOCK = "0.1.0"
 export const EOF_JLOCK = "0.1.1"
+export const RENEW_JLOCK = "0.2.0"
 
 const versions = new Map<string, Promise<string>>()
 
@@ -172,6 +186,11 @@ export function versionAtLeast(version: string, minimum: string): boolean {
     if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0)
   }
   return true
+}
+
+/** Whether the installed jlock can push a deadline back in place (`jlock renew`). */
+export async function canRenew(host: Host): Promise<boolean> {
+  return versionAtLeast(await jlockVersion(host), RENEW_JLOCK)
 }
 
 /** The mode a long-lived host should use: `eof` when the installed jlock has `--release-on-eof`. */

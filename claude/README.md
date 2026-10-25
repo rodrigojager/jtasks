@@ -7,8 +7,8 @@ task's profile, the ownership guard on `Edit`/`Write`/`NotebookEdit`/`Bash` of s
 main loop's turn ends with a task ready and no subagent alive, the mod sends a message (`$.prompt.submit`) that
 reopens the loop; after two with no progress it stops and tells you (toast, notification, status line, a line in the
 pane). `jtasks pause` (how the orchestrator stops to ask you) and `jtasks keepalive off` keep it quiet. Every
-minute the mod also renews the locks of the tasks this session started, before the run's `holdTtl` expires them, so
-a task that runs for hours keeps its files.
+minute the mod also renews the locks of the tasks this session started (in place with jlock 0.2.0's `jlock renew`),
+before the run's `holdTtl` expires them, so a task that runs for hours keeps its files.
 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and
 the hooks module runs it with no Node and no `node_modules`. It needs `git`; `jlock` comes by itself: when it is

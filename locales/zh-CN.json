@@ -65,6 +65,7 @@
   "setup.jlock_not_found_after": "安装程序已结束，但 jlock 不在其安装位置",
   "doctor.jlock_missing": "找不到 jlock（{bin}）",
   "doctor.jlock_no_eof": "hold --release-on-eof 需要 jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew 需要 jlock {minimum}：在此之前，长任务通过归还再重新获取来续期锁",
   "doctor.jlock_ok": "jlock {version}；jlock doctor：{n}/{total} ok",
   "doctor.jlock_old": "jlock {version} 太旧（至少需要 {minimum}）",
   "doctor.nothing_to_fix": "无需安装",

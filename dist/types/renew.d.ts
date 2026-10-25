@@ -15,12 +15,15 @@ export declare function ttlMs(ttl: string): number;
  */
 export declare function renewMargin(ttl: number, every?: number): number;
 /**
- * `fresh`: nothing to do. `renewed`: given back and taken again with a new ttl. `retaken`: keys whose hold had
+ * `fresh`: nothing to do. `renewed`: a new deadline (in place, or given back and taken again). `retaken`: keys whose hold had
  * expired, taken again. `lost`: someone else holds one of them now (the others are kept; `status` and `done` say
  * so). `none`: the task has no keys.
  */
 export type RenewResult = "fresh" | "renewed" | "retaken" | "lost" | "none";
-/** When the earliest of these holds expires (epoch ms), or undefined when none has a ttl. */
+/**
+ * When the earliest of these holds expires (epoch ms), or undefined when none has a deadline: jlock's `expires`
+ * (which counts `jlock renew`) when it says, else `since + ttl_secs` (a jlock before 0.2.0).
+ */
 export declare function earliestExpiry(locks: JlockLock[]): number | undefined;
 /** What a task's holds need, from one `jlock list --group` of the run. */
 export declare function renewalNeed(state: RunState, task: Task, locks: JlockLock[], platform: string, now: number, every?: number): "none" | "fresh" | "retake" | "renew";

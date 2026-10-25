@@ -17,8 +17,10 @@ export interface JlockHolder {
     meta?: Record<string, string> | null;
     pid?: number;
     since?: string;
-    /** The hold's `--ttl` in seconds (null without one): it expires `ttl_secs` after `since`, renewed or not. */
+    /** The hold's `--ttl` in seconds (null without one): it expires `ttl_secs` after `since` unless renewed. */
     ttl_secs?: number | null;
+    /** When it expires, counting `jlock renew` (jlock 0.2.0; null without a deadline, absent before 0.2.0). */
+    expires?: string | null;
     key?: string;
     stale?: boolean;
     late?: boolean;
@@ -67,6 +69,12 @@ export interface ReleaseOutcome {
 export declare function jlockRelease(host: Host, group: string, owner: string): Promise<ReleaseOutcome>;
 /** `jlock release <keys…> --owner <owner>`: gives back some keys only (a claim that could not be recorded). */
 export declare function jlockReleaseKeys(host: Host, keys: string[], owner: string): Promise<ReleaseOutcome>;
+/**
+ * `jlock renew --group <run> --owner <owner> --ttl <ttl>` (jlock 0.2.0): every lock of the owner gets its deadline
+ * moved to now + ttl, without ever being let go. Tolerates "not the owner" (13) and "past its deadline" (14): the
+ * caller takes back what is missing.
+ */
+export declare function jlockRenew(host: Host, group: string, owner: string, ttl: string): Promise<ReleaseOutcome>;
 export interface Identity {
     owner: string;
     group: string;
@@ -80,12 +88,15 @@ export interface Identity {
  * lock at once (the plugin; needs jlock 0.1.1).
  */
 export type HoldMode = "detach" | "eof";
-/** The oldest jlock the tool works with, and the first one with `hold --release-on-eof`. */
+/** The oldest jlock the tool works with, the first one with `hold --release-on-eof`, and the first with `renew`. */
 export declare const MIN_JLOCK = "0.1.0";
 export declare const EOF_JLOCK = "0.1.1";
+export declare const RENEW_JLOCK = "0.2.0";
 /** `jlock --version` once per process (per executable), as `X.Y.Z`. */
 export declare function jlockVersion(host: Host): Promise<string>;
 export declare function versionAtLeast(version: string, minimum: string): boolean;
+/** Whether the installed jlock can push a deadline back in place (`jlock renew`). */
+export declare function canRenew(host: Host): Promise<boolean>;
 /** The mode a long-lived host should use: `eof` when the installed jlock has `--release-on-eof`. */
 export declare function holdModeFor(host: Host): Promise<HoldMode>;
 export declare function holdArgv(host: Host, keys: string[], id: Identity, wait: {

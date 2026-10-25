@@ -65,6 +65,7 @@
   "setup.jlock_not_found_after": "इंस्टॉलर समाप्त हो गया, पर jlock वहाँ नहीं है जहाँ वह उसे रखता है",
   "doctor.jlock_missing": "jlock नहीं मिला ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof को jlock {minimum} चाहिए",
+  "doctor.jlock_no_renew": "jlock renew को jlock {minimum} चाहिए: तब तक लंबे कार्य अपने लॉक छोड़कर दोबारा लेकर नवीनीकृत करते हैं",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} बहुत पुराना है (कम से कम {minimum})",
   "doctor.nothing_to_fix": "इंस्टॉल करने को कुछ नहीं",

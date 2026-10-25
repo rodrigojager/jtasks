@@ -7,7 +7,7 @@
 
 import { choose, systemLocale, tr } from "./i18n.ts"
 import type { Host } from "./host.ts"
-import { EOF_JLOCK, jlockBin, jlockEnv, MIN_JLOCK, versionAtLeast } from "./jlock.ts"
+import { EOF_JLOCK, jlockBin, jlockEnv, MIN_JLOCK, RENEW_JLOCK, versionAtLeast } from "./jlock.ts"
 import { globalLedger, readEffects, recordGlobalEffect } from "./ledger.ts"
 import { dirname, join } from "./paths.ts"
 import { installJlock as installJlockWith, jlockInstallPath, userHome } from "./setup.ts"
@@ -79,12 +79,14 @@ export async function checkJlock(host: Host): Promise<Check> {
   const bad = checks.filter((c) => c.status !== "ok")
   const failed = bad.some((c) => c.status === "fail")
   const oldForEof = !versionAtLeast(version, EOF_JLOCK)
+  const oldForRenew = !versionAtLeast(version, RENEW_JLOCK)
   const parts = [tr("doctor.jlock_ok", { version, n: checks.length - bad.length, total: checks.length })]
   for (const c of bad) parts.push(`${c.status} ${c.name}: ${c.detail}`)
   if (oldForEof) parts.push(tr("doctor.jlock_no_eof", { minimum: EOF_JLOCK }))
+  if (oldForRenew) parts.push(tr("doctor.jlock_no_renew", { minimum: RENEW_JLOCK }))
   const fixes = bad.map((c) => c.fix).filter((f): f is string => !!f)
-  if (oldForEof) fixes.push("jlock update")
-  const status: CheckStatus = failed ? "fail" : bad.length || oldForEof ? "warn" : "ok"
+  if (oldForRenew) fixes.push("jlock update")
+  const status: CheckStatus = failed ? "fail" : bad.length || oldForRenew ? "warn" : "ok"
   return status === "ok" ? { name: "jlock", status, detail: parts.join("; ") } : { name: "jlock", status, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" }
 }
 

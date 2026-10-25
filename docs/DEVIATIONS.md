@@ -194,3 +194,10 @@ da execução as pegou depois (pelo `log.jsonl`).
 **O que fazer:** se o intervalo ou os processos a mais pesarem, um `--ttl` renovável no jlock (pelo processo do
 jlock, com um ticket lá); o jtasks passaria a usá-lo no lugar de devolver e pegar de novo.
 
+**Atualização (ticket 46, 25/10/2026):** feito. O jlock 0.2.0 tem `jlock renew` (ticket 19 de lá), que adia o
+prazo sem soltar a trava nem reescrever `holder.json`, e o jtasks o usa sempre que o jlock instalado é 0.2.0 ou
+mais novo. Com ele, somem o intervalo sem trava e os processos a mais. O caminho de devolver e pegar de novo só vale
+para um jlock anterior, e o `jtasks doctor` então avisa e sugere `jlock update`. Fica um limite: um `hold`
+iniciado por um jlock anterior à 0.2.0 não lê o prazo novo e vence no antigo; a passada seguinte o retoma, como
+retomaria uma trava vencida.
+

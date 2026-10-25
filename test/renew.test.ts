@@ -1,11 +1,11 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
-import { readFileSync } from "node:fs"
+import { chmodSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Resident } from "../src/host.ts"
-import { renewRun, renewMargin, ttlMs } from "../src/renew.ts"
+import { earliestExpiry, renewRun, renewMargin, ttlMs } from "../src/renew.ts"
 import { takenSince } from "../src/actions.ts"
 import type { TasksFile } from "../src/schema.ts"
-import { cleanupTemp, context, foreignHold, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, writeFiles } from "./helpers.ts"
+import { cleanupTemp, context, foreignHold, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, tempDir, writeFiles } from "./helpers.ts"
 
 // Real git and jlock processes, and holds that expire in seconds.
 setDefaultTimeout(60_000)
@@ -51,6 +51,15 @@ describe("holds that outlive the run's holdTtl", () => {
     expect(renewMargin(ttlMs("90s"))).toBe(120_000)
   })
 
+  test("the expiry is jlock's own (it counts renew), else since + ttl from a jlock before 0.2.0", () => {
+    const since = "2026-10-25T10:00:00.000Z"
+    const lock = (holder: object) => ({ key: "k", holder: { owner: "o", since, ...holder }, queue: [] })
+    expect(earliestExpiry([lock({ ttl_secs: 3600 })])).toBe(Date.parse("2026-10-25T11:00:00.000Z"))
+    expect(earliestExpiry([lock({ ttl_secs: 3600, expires: "2026-10-25T15:00:00.000Z" })])).toBe(Date.parse("2026-10-25T15:00:00.000Z"))
+    expect(earliestExpiry([lock({ ttl_secs: null, expires: null })])).toBeUndefined()
+    expect(earliestExpiry([lock({ ttl_secs: 60 }), lock({ ttl_secs: 3600, expires: "2026-10-25T10:00:30.000Z" })])).toBe(Date.parse("2026-10-25T10:00:30.000Z"))
+  })
+
   test("done takes back its own keys when the hold expired and nobody took them; the commit goes in", async () => {
     const { repo, run, dir } = await newRun("2s")
     await tasksOk(repo, ["start", "T01"])
@@ -89,13 +98,38 @@ describe("holds that outlive the run's holdTtl", () => {
     expect(await renewRun(ctx, run, () => true, 1000)).toEqual([{ task: "T01", result: "fresh" }])
     await Bun.sleep(2500)
     expect(await renewRun(ctx, run, () => true, 1000)).toEqual([{ task: "T01", result: "renewed" }])
-    expect(since(run)).not.toBe(first)
+    // In place (jlock renew): the same grant, never let go, and the new deadline is far again.
+    expect(since(run)).toBe(first)
+    expect(await renewRun(ctx, run, () => true, 1000)).toEqual([{ task: "T01", result: "fresh" }])
     // Past the first hold's ttl, the task still holds its file.
     await Bun.sleep(2500)
     expect(mine(run).length).toBe(1)
+    expect(since(run)).toBe(first)
     expect(logActions(dir)).toContain("renew")
+    expect(logActions(dir)).not.toContain("retake")
     // Tasks the host did not start are not its to renew.
     expect(await renewRun(ctx, run, (owner) => owner.startsWith("opencode:"), 1000)).toEqual([])
+    writeFiles(repo, { "src/a.ts": "export const a = 1\n" })
+    await tasksOk(repo, ["done", "T01", "--evidence", "ok"])
+    expect(mine(run)).toEqual([])
+  })
+
+  test.skipIf(process.platform === "win32")("with a jlock before 0.2.0 (no renew), the holds are given back and taken again", async () => {
+    // A jlock that says it is 0.1.1 and knows no renew; everything else goes to the real one.
+    const real = Bun.which("jlock")!
+    const old = join(tempDir("old-jlock"), "jlock")
+    writeFileSync(old, `#!/bin/sh\ncase "$1" in --version) echo "jlock 0.1.1"; exit 0;; renew) echo "unknown command: renew" >&2; exit 2;; esac\nexec "${real}" "$@"\n`)
+    chmodSync(old, 0o755)
+    const { repo, run, dir } = await newRun("4s")
+    await tasksOk(repo, ["start", "T01"])
+    const first = since(run)
+    const ctx = context(repo, { boundRun: run, host: { ...context(repo).host, env: (name: string) => (name === "JLOCK_BIN" ? old : process.env[name]) } })
+    await Bun.sleep(2500)
+    expect(await renewRun(ctx, run, () => true, 1000)).toEqual([{ task: "T01", result: "renewed" }])
+    expect(since(run)).not.toBe(first)
+    await Bun.sleep(2500)
+    expect(mine(run).length).toBe(1)
+    expect(logActions(dir)).toContain("renew")
     writeFiles(repo, { "src/a.ts": "export const a = 1\n" })
     await tasksOk(repo, ["done", "T01", "--evidence", "ok"])
     expect(mine(run)).toEqual([])

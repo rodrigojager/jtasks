@@ -1,13 +1,13 @@
 # jtasks for OpenCode
 
-The OpenCode v2 plugin of [jtasks](../README.md): the `jtasks` tool with the same contract as the CLI, the run
-bound to the root session, the execution protocol and the run's progress in every model request (and in
-compaction), the agent of each task's profile on its `subagent` call, the ownership guard on `edit` and
-`shell` permissions, and the keepalive: when the root session goes idle with a task ready and no subagent alive, the
-plugin sends it a synthetic message (`session.synthetic`) that resumes the loop; after two with no progress it stops
-and shows a notice in the sidebar (and a toast). `jtasks pause` and `jtasks keepalive off` keep it quiet. Every
-minute the plugin also renews the locks of the tasks its sessions started, before the run's `holdTtl` expires them,
-so a task that runs for hours keeps its files and is never given back as lost.
+The OpenCode v2 plugin of [jtasks](../README.md): the `jtasks` tool with the same contract as the CLI, the run bound
+to the root session, the execution protocol and the run's progress in every model request (and in compaction), the
+agent of each task's profile on its `subagent` call, the ownership guard on `edit` and `shell` permissions, and the
+keepalive: when the root session goes idle with a task ready and no subagent alive, the plugin sends it a synthetic
+message (`session.synthetic`) that resumes the loop; after two with no progress it stops and shows a notice in the
+sidebar (and a toast). `jtasks pause` and `jtasks keepalive off` keep it quiet. Every minute the plugin also renews
+the locks of the tasks its sessions started (in place with jlock 0.2.0's `jlock renew`), before the run's `holdTtl`
+expires them, so a task that runs for hours keeps its files and is never given back as lost.
 
 The package is self-contained: `core/core.js` (the core, generated from `../src` by `bun scripts/build.ts`) and
 `core/node-host.js` travel with it. It needs `git`; `jlock` comes by itself: when it is missing, the plugin installs

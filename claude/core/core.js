@@ -191,6 +191,7 @@ var en_default = {
   "setup.jlock_not_found_after": "the installer ended, but jlock is not where it puts it",
   "doctor.jlock_missing": "jlock not found ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof needs jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew needs jlock {minimum}: until then, long tasks renew their locks by giving them back and taking them again",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} is too old (at least {minimum})",
   "doctor.nothing_to_fix": "nothing to install",
@@ -588,6 +589,7 @@ var pt_BR_default = {
   "setup.jlock_not_found_after": "o instalador terminou, mas o jlock não está onde ele o põe",
   "doctor.jlock_missing": "jlock não encontrado ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof precisa do jlock {minimum}",
+  "doctor.jlock_no_renew": "o jlock renew precisa do jlock {minimum}: até lá, tarefas longas renovam as travas devolvendo e pegando de novo",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} é antigo demais (mínimo {minimum})",
   "doctor.nothing_to_fix": "nada a instalar",
@@ -985,6 +987,7 @@ var es_default = {
   "setup.jlock_not_found_after": "el instalador terminó, pero jlock no está donde lo pone",
   "doctor.jlock_missing": "jlock no encontrado ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof necesita jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew necesita jlock {minimum}: hasta entonces, las tareas largas renuevan sus bloqueos devolviéndolos y tomándolos de nuevo",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} es demasiado antiguo (mínimo {minimum})",
   "doctor.nothing_to_fix": "nada que instalar",
@@ -1382,6 +1385,7 @@ var fr_default = {
   "setup.jlock_not_found_after": "l'installateur a terminé, mais jlock n'est pas là où il le place",
   "doctor.jlock_missing": "jlock introuvable ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof demande jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew demande jlock {minimum}: d'ici là, les tâches longues renouvellent leurs verrous en les rendant puis en les reprenant",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} est trop ancien (au moins {minimum})",
   "doctor.nothing_to_fix": "rien à installer",
@@ -1779,6 +1783,7 @@ var de_default = {
   "setup.jlock_not_found_after": "das Installationsprogramm ist fertig, aber jlock liegt nicht dort, wo es es ablegt",
   "doctor.jlock_missing": "jlock nicht gefunden ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof braucht jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew braucht jlock {minimum}: bis dahin erneuern lange Aufgaben ihre Sperren, indem sie sie zurückgeben und neu nehmen",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} ist zu alt (mindestens {minimum})",
   "doctor.nothing_to_fix": "nichts zu installieren",
@@ -2176,6 +2181,7 @@ var it_default = {
   "setup.jlock_not_found_after": "l'installer ha finito, ma jlock non è dove lo mette",
   "doctor.jlock_missing": "jlock non trovato ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof richiede jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew richiede jlock {minimum}: fino ad allora, le attività lunghe rinnovano i blocchi rilasciandoli e riprendendoli",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} è troppo vecchio (minimo {minimum})",
   "doctor.nothing_to_fix": "niente da installare",
@@ -2573,6 +2579,7 @@ var zh_CN_default = {
   "setup.jlock_not_found_after": "安装程序已结束，但 jlock 不在其安装位置",
   "doctor.jlock_missing": "找不到 jlock（{bin}）",
   "doctor.jlock_no_eof": "hold --release-on-eof 需要 jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew 需要 jlock {minimum}：在此之前，长任务通过归还再重新获取来续期锁",
   "doctor.jlock_ok": "jlock {version}；jlock doctor：{n}/{total} ok",
   "doctor.jlock_old": "jlock {version} 太旧（至少需要 {minimum}）",
   "doctor.nothing_to_fix": "无需安装",
@@ -2970,6 +2977,7 @@ var ja_default = {
   "setup.jlock_not_found_after": "インストーラーは終了しましたが、jlock が配置先にありません",
   "doctor.jlock_missing": "jlock が見つからない（{bin}）",
   "doctor.jlock_no_eof": "hold --release-on-eof には jlock {minimum} が必要",
+  "doctor.jlock_no_renew": "jlock renew には jlock {minimum} が必要: それまでは、長いタスクはロックを返して取り直すことで更新する",
   "doctor.jlock_ok": "jlock {version}。jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} は古すぎる（{minimum} 以上が必要）",
   "doctor.nothing_to_fix": "インストールするものはない",
@@ -3367,6 +3375,7 @@ var ru_default = {
   "setup.jlock_not_found_after": "установщик завершился, но jlock нет там, куда он его кладёт",
   "doctor.jlock_missing": "jlock не найден ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof требует jlock {minimum}",
+  "doctor.jlock_no_renew": "jlock renew требует jlock {minimum}: до тех пор долгие задачи продлевают блокировки, отдавая их и беря заново",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} слишком старый (нужен минимум {minimum})",
   "doctor.nothing_to_fix": "устанавливать нечего",
@@ -3764,6 +3773,7 @@ var ar_default = {
   "setup.jlock_not_found_after": "انتهى المثبّت لكن jlock ليس في المكان الذي يضعه فيه",
   "doctor.jlock_missing": "لم يُعثر على jlock ({bin})",
   "doctor.jlock_no_eof": "يحتاج hold --release-on-eof إلى jlock {minimum}",
+  "doctor.jlock_no_renew": "يحتاج jlock renew إلى jlock {minimum}: وحتى ذلك الحين، تجدد المهام الطويلة أقفالها بتحريرها ثم أخذها من جديد",
   "doctor.jlock_ok": "jlock {version}؛ jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} قديم جدًا (الحد الأدنى {minimum})",
   "doctor.nothing_to_fix": "لا شيء لتثبيته",
@@ -4161,6 +4171,7 @@ var hi_default = {
   "setup.jlock_not_found_after": "इंस्टॉलर समाप्त हो गया, पर jlock वहाँ नहीं है जहाँ वह उसे रखता है",
   "doctor.jlock_missing": "jlock नहीं मिला ({bin})",
   "doctor.jlock_no_eof": "hold --release-on-eof को jlock {minimum} चाहिए",
+  "doctor.jlock_no_renew": "jlock renew को jlock {minimum} चाहिए: तब तक लंबे कार्य अपने लॉक छोड़कर दोबारा लेकर नवीनीकृत करते हैं",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
   "doctor.jlock_old": "jlock {version} बहुत पुराना है (कम से कम {minimum})",
   "doctor.nothing_to_fix": "इंस्टॉल करने को कुछ नहीं",
@@ -6162,8 +6173,15 @@ async function jlockReleaseKeys(host, keys, owner) {
     throw failure(r.code, r.stdout, r.stderr, "release");
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
 }
+async function jlockRenew(host, group, owner, ttl) {
+  const r = await host.run([jlockBin(host), "renew", "--group", group, "--owner", owner, "--ttl", ttl, "--json"], { env: jlockEnv() });
+  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER && r.code !== JLOCK.LOST)
+    throw failure(r.code, r.stdout, r.stderr, "renew");
+  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
+}
 var MIN_JLOCK = "0.1.0";
 var EOF_JLOCK = "0.1.1";
+var RENEW_JLOCK = "0.2.0";
 var versions = new Map;
 function jlockVersion(host) {
   const bin = jlockBin(host);
@@ -6190,6 +6208,9 @@ function versionAtLeast(version, minimum) {
       return (a[i] ?? 0) > (b[i] ?? 0);
   }
   return true;
+}
+async function canRenew(host) {
+  return versionAtLeast(await jlockVersion(host), RENEW_JLOCK);
 }
 async function holdModeFor(host) {
   return versionAtLeast(await jlockVersion(host), EOF_JLOCK) ? "eof" : "detach";
@@ -7739,11 +7760,22 @@ function renewMargin(ttl, every = RENEW_EVERY_MS) {
 function earliestExpiry(locks) {
   let out;
   for (const l of locks) {
-    const since = l.holder?.since ? Date.parse(l.holder.since) : NaN;
-    const ttl = l.holder?.ttl_secs;
-    if (!Number.isFinite(since) || typeof ttl !== "number")
+    const h = l.holder;
+    if (!h)
       continue;
-    const at = since + ttl * 1000;
+    let at;
+    if (h.expires !== undefined) {
+      if (h.expires === null)
+        continue;
+      at = Date.parse(h.expires);
+    } else {
+      const since = h.since ? Date.parse(h.since) : NaN;
+      if (typeof h.ttl_secs !== "number")
+        continue;
+      at = since + h.ttl_secs * 1000;
+    }
+    if (!Number.isFinite(at))
+      continue;
     out = out === undefined ? at : Math.min(out, at);
   }
   return out;
@@ -7763,6 +7795,13 @@ function renewalNeed(state, task, locks, platform, now, every = RENEW_EVERY_MS) 
 }
 async function renewTask(ctx, state, task) {
   const keys = taskKeys(state.root, task, ctx.host.platform);
+  if (await canRenew(ctx.host)) {
+    const ttl = state.run.holdTtl ?? DEFAULT_HOLD_TTL;
+    await jlockRenew(ctx.host, state.run.id, ownerOf(state.run.id, task.id), ttl);
+    const refused = await retakeMissing(ctx, state, task);
+    await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys, ttl });
+    return refused.length ? "lost" : "renewed";
+  }
   await releaseHolds(ctx, state.run.id, task.id);
   const refused = await takeKeys(ctx, state, task, keys);
   await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys });
@@ -8348,15 +8387,18 @@ async function checkJlock(host) {
   const bad = checks.filter((c) => c.status !== "ok");
   const failed = bad.some((c) => c.status === "fail");
   const oldForEof = !versionAtLeast(version, EOF_JLOCK);
+  const oldForRenew = !versionAtLeast(version, RENEW_JLOCK);
   const parts = [tr("doctor.jlock_ok", { version, n: checks.length - bad.length, total: checks.length })];
   for (const c of bad)
     parts.push(`${c.status} ${c.name}: ${c.detail}`);
   if (oldForEof)
     parts.push(tr("doctor.jlock_no_eof", { minimum: EOF_JLOCK }));
+  if (oldForRenew)
+    parts.push(tr("doctor.jlock_no_renew", { minimum: RENEW_JLOCK }));
   const fixes = bad.map((c) => c.fix).filter((f) => !!f);
-  if (oldForEof)
+  if (oldForRenew)
     fixes.push("jlock update");
-  const status = failed ? "fail" : bad.length || oldForEof ? "warn" : "ok";
+  const status = failed ? "fail" : bad.length || oldForRenew ? "warn" : "ok";
   return status === "ok" ? { name: "jlock", status, detail: parts.join("; ") } : { name: "jlock", status, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" };
 }
 async function checkHome(host) {
@@ -8545,6 +8587,7 @@ export {
   MIN_JLOCK,
   OPENCODE_AGENTS,
   RENEW_EVERY_MS,
+  RENEW_JLOCK,
   RENEW_MARGIN_MS,
   SCRATCH,
   SKILLS,
@@ -8569,6 +8612,7 @@ export {
   branchExists,
   buildView,
   bullet,
+  canRenew,
   canonical,
   caseInsensitive,
   chainText,
@@ -8627,6 +8671,7 @@ export {
   jlockNotice,
   jlockRelease,
   jlockReleaseKeys,
+  jlockRenew,
   jlockVersion,
   join,
   jtasksHome,
