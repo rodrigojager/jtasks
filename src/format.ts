@@ -73,6 +73,7 @@ export function protocolText(run: string, summary: string, spawn: string): strin
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
     "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " +
       'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
+    "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move.",
   ].join("\n")
 }
 

@@ -18,6 +18,27 @@ export interface WaitingFor {
     holder: string;
     position: number;
     via: string;
+    /** Set when the task waits for ownership it gave back with `yield` (no jlock queue): the entries it waits for. */
+    yielded?: string[];
+}
+/** An ownership entry a task gave back with `jtasks yield` while it goes on (rev. 5.6): it waits to take it back. */
+export interface Yielded {
+    /** The entry, as it was in `files` or `claimed`. */
+    path: string;
+    /** The list it goes back to. */
+    from: "files" | "claimed";
+    /** The jlock key given back. */
+    key: string;
+    at: string;
+}
+/** A task's uncommitted edit of one file, kept aside by `yield` or a release, reapplied when the file is the task's again. */
+export interface SavedPatch {
+    /** The file, relative to the repository. */
+    file: string;
+    /** The patch, relative to the run folder (`patches/<task>/<n>-<file>.patch`). */
+    patch: string;
+    at: string;
+    by: "yield" | "release";
 }
 export interface Task {
     id: string;
@@ -44,6 +65,10 @@ export interface Task {
     holds?: Hold[];
     /** When the task went back to pending because its lock was taken away (shown as "posse perdida"). */
     lost?: string;
+    /** Ownership given back by `yield`, waiting to come back (rev. 5.6). */
+    yielded?: Yielded[];
+    /** Edits kept aside, reapplied when their file is the task's again: on its claim, or on the next start. */
+    patches?: SavedPatch[];
 }
 export interface ClaudeProfile {
     /** The subagent type the spawn becomes, e.g. `jtasks:execute`, one of the agents the mod ships. */

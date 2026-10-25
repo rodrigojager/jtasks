@@ -74,11 +74,15 @@ run the section lists the repository's runs.
 tasks { "command": "next" }
 tasks { "command": "start T04" }
 tasks { "command": "claim T04 src/x.ts --timeout 2m" }
+tasks { "command": "yield T05" }
 tasks { "command": "done T04 --evidence \"bun test: 12 passed\"" }
 tasks { "command": "plan --add", "json": [ { "id": "T05", "title": "…", "files": ["src/y.ts"] } ] }
 ```
 
-`help` lists every action. A session bound to a run refuses `--run` naming another one.
+`help` lists every action. A session bound to a run refuses `--run` naming another one. A claim refused for a
+deadlock is answered with `yield`: the task gives back only the contested files, its edits kept as patches, and stays
+in progress; the sidebar shows "title · espera c.ts" until it gets them back, which happens by itself as soon as they are free (each minute, or when another task finishes)
+or with `claim T05`.
 
 ## When a subagent or OpenCode dies
 

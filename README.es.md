@@ -26,7 +26,8 @@ esos archivos quedan bloqueados mientras se ejecuta.
   y dice qué tareas y qué archivo.
 - **Quién cambia qué.** Mientras una tarea se ejecuta, sus archivos se mantienen como bloqueos en
   [jlock](https://github.com/rodrigojager/jlock), una herramienta de bloqueos para toda la máquina. Otra tarea que
-  necesite uno de ellos espera en la cola (`claim`) o hace otra cosa; una espera que cerraría un ciclo se rechaza.
+  necesite uno de ellos espera en la cola (`claim`) o hace otra cosa; una espera que cerraría un ciclo se rechaza. La tarea rechazada cede con `jtasks yield`: devuelve solo los archivos disputados, con sus ediciones guardadas
+  en un patch que vuelve con ellos, y sigue adelante.
 - **Pruebas, no promesas.** Una tarea se termina con `done` y su evidencia; la herramienta comprueba que solo
   cambiaron sus archivos y hace el commit (`T04: título`). Un commit por tarea: revertir una tarea es revertir un
   commit.

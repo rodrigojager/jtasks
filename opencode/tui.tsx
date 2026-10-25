@@ -100,7 +100,7 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
                 attributes: state() === "skipped" ? TextAttributes.STRIKETHROUGH : TextAttributes.NONE,
               }}
             >
-              {fit(props.line().title, SECTION_WIDTH - MARK_COLUMNS)}
+              {fit(props.line().note ? `${props.line().title} · ${props.line().note}` : props.line().title, SECTION_WIDTH - MARK_COLUMNS)}
             </span>
           </text>
         )

@@ -33,6 +33,7 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
      (a file is in use), pick another task;
    - reads the ticket, then edits **only inside the ownership** (a folder covers everything in it);
    - needs one more file? `jtasks claim <id> <file>`. It waits in jlock's queue up to `--timeout` (60 s by default);
+     refused for a deadlock? `jtasks yield <id>` (below);
    - runs the build and the tests as usual (commands the run serializes go through `jtasks exec -- <command>`);
    - when every criterion holds: `jtasks done <id> --evidence "<what was run and what it showed>"`. The tool commits
      the ownership's changes and gives the locks back. If the task cannot be finished:
@@ -53,8 +54,12 @@ messages already sent); `jtasks status` says when it is off or has given up.
 
 - **`claim` timed out**: the answer names who holds the file and your place in the queue. Do the part that does not
   depend on it, ask again with a longer `--timeout`, or `jtasks fail`.
-- **Deadlock**: the claim is refused with the waiting cycle; whoever asked last yields: do another part, or
-  `jtasks release <id>` to give the task back to the queue.
+- **Deadlock**: the claim is refused with the waiting cycle, and whoever asked last yields. Run `jtasks yield <id>`:
+  it gives back only the contested files (your edits of them are kept as a patch, the files go back to HEAD), the
+  task stays in progress with the rest of its ownership, and you go on with the parts that do not need them. They
+  come back by themselves once free, or with `jtasks claim <id>` (no files: it waits for what was yielded). When
+  they come back, read the answer: the patches reapplied, and any file left with conflict markers to resolve before
+  `done`. Only if nothing else can move, `jtasks release <id>`.
 - **Ownership lost** (`jtasks status` shows it, or `done` refuses): someone broke the lock, or its time limit ran
   out. A long task is not a reason by itself: the mod and the plugin renew the locks of tasks in progress, and
   `done` takes back its own expired keys when nobody took them. If `done` still refuses, someone else holds them

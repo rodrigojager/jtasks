@@ -31,6 +31,12 @@ export interface Assessment {
 }
 /** Why each pending task is (not) ready. `locks` is what jlock holds now (at least under the repository). */
 export declare function assess(state: RunState, locks: JlockLock[], platform: string): Assessment[];
+/** The keys the run's tasks in progress gave back with `yield` and wait to take back. */
+export declare function yieldedKeys(state: RunState): {
+    task: string;
+    key: string;
+    path: string;
+}[];
 /** The ready tasks that can start together: never two with conflicting ownership; an exclusive one goes alone. */
 export declare function selectReady(state: RunState, assessments: Assessment[], platform: string, limit?: number): Task[];
 /**

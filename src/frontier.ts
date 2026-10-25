@@ -59,10 +59,21 @@ export function assess(state: RunState, locks: JlockLock[], platform: string): A
         blockers.push({ kind: "ownership", key, via: lock.key, owner: lock.holder!.owner })
         break
       }
+      // A key a task in progress yielded is still that task's to take back: no new task starts on it meanwhile.
+      const reserved = yieldedKeys(state).find((y) => conflicts(key, y.key))
+      if (reserved) {
+        blockers.push({ kind: "ownership", key, via: reserved.key, owner: ownerOf(state.run.id, reserved.task) })
+        break
+      }
     }
     out.push({ task, ready: blockers.length === 0, blockers })
   }
   return out
+}
+
+/** The keys the run's tasks in progress gave back with `yield` and wait to take back. */
+export function yieldedKeys(state: RunState): { task: string; key: string; path: string }[] {
+  return state.tasks.tasks.flatMap((t) => (t.status === "in_progress" ? (t.yielded ?? []).map((y) => ({ task: t.id, key: y.key, path: y.path })) : []))
 }
 
 /** The ready tasks that can start together: never two with conflicting ownership; an exclusive one goes alone. */
@@ -103,12 +114,22 @@ export function waitingOf(state: RunState, locks: JlockLock[]): Map<string, Wait
       })
       break
     }
+    // Not in a jlock queue but waiting for what it yielded: who holds it now, if anyone.
+    if (!out.has(task.id) && task.yielded?.length) {
+      const y = task.yielded[0]!
+      const blocking = held.find((h) => h.holder!.owner !== owner && conflicts(y.key, h.key))
+      out.set(task.id, { key: y.key, holder: blocking?.holder?.owner ?? "", position: 0, via: blocking?.key ?? y.key, yielded: task.yielded.map((x) => x.path) })
+    }
   }
   return out
 }
 
 /** `⏳ T01: types.ts · posição 1`; `⏳ T01: src/` when a folder above blocks; the file inside otherwise. */
 export function waitingText(w: WaitingFor, state: RunState, platform: string): string {
+  if (w.yielded) {
+    const files = w.yielded.join(", ")
+    return w.holder ? tr("frontier.yielded_held", { files, owner: describeOwner(w.holder, state.run.id) }) : tr("frontier.yielded", { files })
+  }
   const asked = describeKey(w.key, state.root, platform)
   const via = describeKey(w.via, state.root, platform)
   const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked })

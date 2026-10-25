@@ -2,6 +2,7 @@
 import { type RunState } from "./frontier.js";
 import type { Resident } from "./host.js";
 import { type HoldMode, type HoldOutcome, type Identity } from "./jlock.js";
+import { type ReapplyReport } from "./keep.js";
 import { type Task } from "./schema.js";
 import { type ParsedArgs, type ToolContext } from "./tool.js";
 /** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
@@ -90,11 +91,6 @@ export declare function missingKeys(ctx: ToolContext, state: RunState, task: Tas
  */
 export declare function takeKeys(ctx: ToolContext, state: RunState, task: Task, keys: string[]): Promise<string[]>;
 /**
- * The keys another task of the run took since this task last held them (its start, claim, renew or retake), read
- * off the run's log: taking them back would put that task's edits in this one's commit.
- */
-export declare function takenSince(ctx: ToolContext, state: RunState, task: Task, keys: string[]): Promise<string[]>;
-/**
  * Takes again, without waiting, the keys of a task whose hold expired, unless another task of the run took them
  * meanwhile; answers the ones still missing.
  */
@@ -103,6 +99,19 @@ export declare function retakeMissing(ctx: ToolContext, state: RunState, task: T
 export declare function parseDuration(raw: string): number;
 /** jlock's deadlock chain with our owners shortened (`gt:<run>/T04` → `T04`). */
 export declare function chainText(chain: string, run: string): string;
+/** What a reapply did, as lines of an answer. */
+export declare function reapplyLines(r: ReapplyReport): string[];
+export interface Retaken {
+    task: string;
+    files: string[];
+    reapply: ReapplyReport;
+}
+/**
+ * The queue a `yield` waits in: the keys the run's tasks in progress yielded are taken back without waiting where
+ * they are free now, with their patches reapplied. Runs after another task gives keys back (done, release, skip,
+ * fail), on `next`, and on each pass of a host that stays open (`only` limits it to that host's tasks). Never throws.
+ */
+export declare function retakeYielded(ctx: ToolContext, first: RunState, only?: (task: Task) => boolean): Promise<Retaken[]>;
 /** In progress → pending (or failed at maxAttempts), keeping the edits on disk. Used by release, resume, lost. */
 export declare function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed";
 /** The `serialize` entry a command line falls under: the same command, or one with more arguments. */

@@ -14,7 +14,9 @@ repository history by hand.
 1. Call `jtasks start <id>` before the first edit. If it answers that the task was not ready, stop and say so.
 2. Think the design through first, in writing, with the alternatives you rejected and why. Then edit only inside
    the task's ownership. If you need another file, ask for it with `jtasks claim <id> <file>`; if the file is in
-   use, do the part that does not depend on it or wait again with `--timeout`.
+   use, do the part that does not depend on it or wait again with `--timeout`. If the claim is refused for a
+   deadlock, run `jtasks yield <id>` (your edits of the contested files are kept and come back with them) and do
+   other parts; release only when nothing else can move.
 3. Do not run git. Run the project's build and tests; add the tests the criteria imply. The tool runs the commands
    the run serializes one at a time.
 4. When every criterion holds, call `jtasks done <id> --evidence "<what you ran and what it showed>"`. If the plan

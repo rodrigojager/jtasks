@@ -18,7 +18,7 @@ import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA }
 
 const RUN = { plugin: 'jtasks', key: 'run' } as const
 // Change the tag when the view's fields change: it declines what an earlier version stored.
-const viewAtom = atom({ plugin: 'jtasks', key: 'view' } as const, null as PaneView | null, { shape: 'view-1' })
+const viewAtom = atom({ plugin: 'jtasks', key: 'view' } as const, null as PaneView | null, { shape: 'view-2' })
 const collapsedAtom = atom({ plugin: 'jtasks', key: 'collapsed' } as const, false)
 const AGENTS = { plugin: 'jtasks', key: 'agents' } as const
 const FULL_NAME = 'mcp__jtasks__jtasks'

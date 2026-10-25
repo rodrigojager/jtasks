@@ -17,7 +17,9 @@ onze idiomas, `jtasks doctor`, skills por agente, READMEs, teste real do mod), m
 5.3 (seção 18 item 16, ticket 44): a retomada do orquestrador ocioso (`src/keepalive.ts`, fim de turno no mod e no
 plugin, `jtasks keepalive on|off`). Revisão 5.4 (item 17, ticket 45): as travas de tarefas longas são renovadas
 pelo mod e pelo plugin (`src/renew.ts`), e o `done` retoma as próprias chaves vencidas. Revisão 5.5 (item 18,
-ticket 46): com o jlock 0.2.0, a renovação é `jlock renew`, no lugar, sem soltar a trava.
+ticket 46): com o jlock 0.2.0, a renovação é `jlock renew`, no lugar, sem soltar a trava. Revisão 5.6 (item 19,
+ticket 47): `jtasks yield` cede só os arquivos disputados num deadlock, com as edições guardadas como patch
+(`src/patches.ts`, `src/keep.ts`) e reaplicadas com `git apply --3way` quando o arquivo volta.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

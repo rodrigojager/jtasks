@@ -3,9 +3,10 @@
 // tasks in progress shortly before they expire: with jlock 0.2.0, `jlock renew` pushes the deadline back in place
 // (the lock is never let go, the same hold keeps it); with an older jlock, it gives them back and takes them again
 // at once (`release`, then `hold --no-wait`). And `done` takes back its own keys whose hold expired when nobody else
-// took them meanwhile. The ttl stays what it was for: the net under a window that died (nobody renews).
+// took them meanwhile. The ttl stays what it was for: the net under a window that died (nobody renews). Each pass also
+// takes back, as soon as they are free, the keys this host's tasks gave back with `jtasks yield` (rev. 5.6).
 
-import { log, reload, releaseHolds, resolveRun, retakeMissing, takeKeys } from "./actions.ts"
+import { log, reload, releaseHolds, resolveRun, retakeMissing, retakeYielded, takeKeys } from "./actions.ts"
 import { ownerOf, taskKeys, type RunState } from "./frontier.ts"
 import { canRenew, jlockList, jlockRenew, type JlockLock } from "./jlock.ts"
 import type { Task } from "./schema.ts"
@@ -147,5 +148,7 @@ export async function renewRun(
     }
     out.push({ task: candidate.id, result })
   }
+  // The queue of `yield` (rev. 5.6): what this host's tasks gave back is taken back as soon as it is free.
+  await retakeYielded(ctx, first, (t) => !!t.owner && mine(t.owner))
   return out
 }

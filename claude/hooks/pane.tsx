@@ -60,7 +60,7 @@ export function paneRows(view: PaneView): PaneRow[] {
   const v = view as View
   if (v.kind !== 'run') return []
   return v.lines.map((line: ViewLine) => ({
-    label: `${line.id.replace(/^T0*/, 'T')} - ${line.title}`,
+    label: `${line.id.replace(/^T0*/, 'T')} - ${line.title}${line.note ? ` · ${line.note}` : ''}`,
     state: rowState(line.state),
   }))
 }

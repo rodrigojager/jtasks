@@ -22,6 +22,8 @@ export type PaneLine = {
   title: string
   detail: string
   state: 'done' | 'running' | 'waiting' | 'ready' | 'blocked' | 'skipped' | 'failed'
+  /** A short note the row adds (rev. 5.6): what a task waits for after a yield, or its saved edits. */
+  note?: string
 }
 
 /** What the pane draws (the core's View): a run's checklist, or the repository's runs when none is bound. */

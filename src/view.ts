@@ -18,6 +18,8 @@ export interface ViewLine {
   title: string
   detail: string
   state: LineState
+  /** A short note the pane adds to the row (rev. 5.6): the files a task waits for after a yield, or its saved edits. */
+  note?: string
 }
 
 export interface RunView {
@@ -66,6 +68,7 @@ export function buildView(state: RunState, locks: JlockLock[], platform: string,
   const lines: ViewLine[] = state.tasks.tasks.map((t) => {
     let st: LineState
     let detail = ""
+    let note: string | undefined
     switch (t.status) {
       case "done":
         st = "done"
@@ -83,6 +86,7 @@ export function buildView(state: RunState, locks: JlockLock[], platform: string,
         const w = waiting.get(t.id)
         st = w ? "waiting" : "running"
         detail = w ? waitingText(w, state, platform) : profileDetail(state.tasks, t, tool)
+        if (w?.yielded) note = tr("view.waits_for", { files: w.yielded.join(", ") })
         break
       }
       default: {
@@ -92,7 +96,9 @@ export function buildView(state: RunState, locks: JlockLock[], platform: string,
         if (t.lost) detail = `${tr("view.lost")}${detail ? ` · ${detail}` : ""}`
       }
     }
-    return { mark: MARKS[st], id: t.id, title: t.title, detail, state: st }
+    const line: ViewLine = { mark: MARKS[st], id: t.id, title: t.title, detail, state: st }
+    if (note) line.note = note
+    return line
   })
   return {
     kind: "run",

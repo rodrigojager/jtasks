@@ -23,7 +23,8 @@ file only the tool writes; each task declares the files it owns, and those files
   dependency between them must not share a file: the tool refuses such a plan and says which tasks and which file.
 - **Who changes what.** While a task runs, its files are held as locks in [jlock](https://github.com/rodrigojager/jlock),
   a machine-wide lock tool. Another task that needs one of them waits in line (`claim`) or does something else; a
-  wait that would close a cycle is refused.
+  wait that would close a cycle is refused. The task refused yields with `jtasks yield`: it gives back only the contested files, its edits kept as a patch
+  that comes back with them, and goes on.
 - **Proof, not promises.** A task is finished with `done` and its evidence; the tool checks that only its files
   changed and makes the commit (`T04: title`). One commit per task: reverting a task is reverting one commit.
 - **Resuming.** Where the run stands is the state of the list, not the model's memory: `jtasks resume` in any

@@ -6,7 +6,20 @@ import { join, slash } from "./paths.ts"
 import { atomicWrite, jtasksHome } from "./store.ts"
 import { tr } from "./i18n.ts"
 
-export type EffectType = "exclude" | "branch" | "commit" | "worktree" | "junction" | "dir" | "archive" | "agent-config" | "install"
+export type EffectType =
+  | "exclude"
+  | "branch"
+  | "commit"
+  | "worktree"
+  | "junction"
+  | "dir"
+  | "archive"
+  | "agent-config"
+  | "install"
+  // rev. 5.6: a task's edit kept aside (`patch`), its file put back to HEAD (`restore`), the edit put back (`reapply`).
+  | "patch"
+  | "restore"
+  | "reapply"
 export type UndoKind =
   | "remove-line"
   | "git-branch-delete"
@@ -15,6 +28,8 @@ export type UndoKind =
   | "unarchive"
   | "agent-config-remove"
   | "remove-file"
+  | "apply-patch"
+  | "reverse-patch"
   | "none"
 export type EffectState = "active" | "undone" | "gone"
 
@@ -38,7 +53,12 @@ export interface Effect {
   changedAt?: string
   /** For a revert commit: the effect it undid. */
   reverts?: string
+  /** For `patch`, `restore` and `reapply`: the patch file (absolute). `path` is then the file, relative to the repository. */
+  patch?: string
 }
+
+/** The effects that move a task's edit between the tree and a patch: undone one by one (`undo <e-id>`), never in bulk. */
+export const PATCH_MOVES: readonly EffectType[] = ["restore", "reapply"]
 
 export type NewEffect = Omit<Effect, "id" | "at" | "state">
 
@@ -119,7 +139,9 @@ export function effectLine(e: Effect): string {
           ? `${e.path}: ${e.line}`
           : e.type === "archive"
             ? `${e.path} → ${e.to}`
-            : (e.path ?? e.ref ?? "")
+            : e.type === "patch" || e.type === "restore" || e.type === "reapply"
+              ? `${e.path} (${e.patch})`
+              : (e.path ?? e.ref ?? "")
   const when = e.at.replace("T", " ").slice(0, 16)
   return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`
 }

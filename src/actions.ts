@@ -39,13 +39,15 @@ import {
   type JlockLock,
 } from "./jlock.ts"
 import { unarchive } from "./housekeeping.ts"
+import { chainKeys, changedUnder, keepEdits, lastDeadlock, ownFiles, patchesUnder, readLog, reapplyPatches, takenSince, type ReapplyReport } from "./keep.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { slugify } from "./ids.ts"
 import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
-import { effectLine, effectsOf, globalLedger, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
+import { effectLine, effectsOf, globalLedger, PATCH_MOVES, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
+import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
-import { DEFAULT_HOLD_TTL, type Hold, type Task, type TasksFile } from "./schema.ts"
+import { DEFAULT_HOLD_TTL, type Hold, type Task, type TasksFile, type Yielded } from "./schema.ts"
 import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
@@ -200,7 +202,10 @@ export async function releaseHolds(ctx: ToolContext, run: string, task: string):
 defineAction(
   "next",
   async (ctx, args) => {
-    const state = await resolveRun(ctx, args)
+    const found = await resolveRun(ctx, args)
+    // A task waiting for what it yielded takes it back first, if it is free now.
+    const back = await retakeYielded(ctx, found)
+    const state = back.length ? await reload(ctx, found) : found
     const platform = ctx.host.platform
     const raw = args.positionals[0] ?? (typeof args.options.limit === "string" ? args.options.limit : undefined)
     const limit = raw === undefined ? Infinity : Number(raw)
@@ -220,7 +225,7 @@ defineAction(
       exclusive: !!t.exclusive,
       ticket: ticketPath(state.dir, state.tasks.tasks, t.id),
     }))
-    const lines: string[] = []
+    const lines: string[] = retakenLines(back)
     if (ready.length) {
       lines.push(tr("next.ready", { n: ready.length, run: state.run.id }))
       for (const t of items) {
@@ -490,31 +495,6 @@ export async function takeKeys(ctx: ToolContext, state: RunState, task: Task, ke
   return refused
 }
 
-const HOLDING = new Set(["start", "claim", "renew", "retake"])
-
-/**
- * The keys another task of the run took since this task last held them (its start, claim, renew or retake), read
- * off the run's log: taking them back would put that task's edits in this one's commit.
- */
-export async function takenSince(ctx: ToolContext, state: RunState, task: Task, keys: string[]): Promise<string[]> {
-  const text = (await ctx.host.readText(join(state.dir, "log.jsonl")).catch(() => undefined)) ?? ""
-  let since = ""
-  const others: { at: string; keys: string[] }[] = []
-  for (const line of text.split("\n")) {
-    if (!line.trim()) continue
-    let e: { at?: string; action?: string; task?: string; keys?: unknown }
-    try {
-      e = JSON.parse(line)
-    } catch {
-      continue
-    }
-    if (!e.at || !e.action || !HOLDING.has(e.action)) continue
-    if (e.task === task.id) since = e.at > since ? e.at : since
-    else if (Array.isArray(e.keys)) others.push({ at: e.at, keys: e.keys.filter((k): k is string => typeof k === "string") })
-  }
-  return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))))
-}
-
 /**
  * Takes again, without waiting, the keys of a task whose hold expired, unless another task of the run took them
  * meanwhile; answers the ones still missing.
@@ -522,7 +502,7 @@ export async function takenSince(ctx: ToolContext, state: RunState, task: Task, 
 export async function retakeMissing(ctx: ToolContext, state: RunState, task: Task): Promise<string[]> {
   const missing = await missingKeys(ctx, state, task)
   if (!missing.length) return []
-  const taken = await takenSince(ctx, state, task, missing)
+  const taken = await takenSince(ctx.host, state.dir, task.id, missing)
   const refused = [...taken, ...(await takeKeys(ctx, state, task, missing.filter((k) => !taken.includes(k))))]
   const retaken = missing.filter((k) => !refused.includes(k))
   if (retaken.length) await log(ctx, state, { action: "retake", task: task.id, keys: retaken })
@@ -612,13 +592,45 @@ export function chainText(chain: string, run: string): string {
   return chain.replace(/gt:([^\s/]+)\/([^\s)]+)/g, (_, r: string, t: string) => (r === run ? t : `${r}/${t}`))
 }
 
+/**
+ * When the files a task asks for came back to it by themselves (the yield's queue took them back) since its last
+ * yield: which, and what their reapply did, read off the run's log. Undefined otherwise.
+ */
+async function cameBack(ctx: ToolContext, state: RunState, task: string, files?: string[]): Promise<Retaken | undefined> {
+  let found: Retaken | undefined
+  for (const e of await readLog(ctx.host, state.dir)) {
+    if (e.task !== task) continue
+    if (e.action === "yield") found = undefined
+    else if (e.action === "reclaim") {
+      const back = (Array.isArray(e.files) ? e.files : []).filter((f): f is string => typeof f === "string" && (!files || files.includes(f)))
+      if (!back.length) continue
+      const list = (v: unknown) => (Array.isArray(v) ? v : [])
+      found = {
+        task,
+        files: back,
+        reapply: {
+          applied: list((e as Record<string, unknown>).reapplied).filter((f): f is string => typeof f === "string"),
+          conflicts: list((e as Record<string, unknown>).conflicts) as ReapplyReport["conflicts"],
+          failed: list((e as Record<string, unknown>).failed) as ReapplyReport["failed"],
+        },
+      }
+    }
+  }
+  return found
+}
+
 defineAction(
   "claim",
   async (ctx, args) => {
     const first = await resolveRun(ctx, args)
     const task = findTask(first, taskIdArg(args))
-    const raw = args.positionals.slice(1)
-    if (!raw.length) throw new ToolError(tr("claim.no_file", { id: task.id }), 2)
+    // Without files: what the task yielded (rev. 5.6), the same queue as any claim.
+    const raw = args.positionals.length > 1 ? args.positionals.slice(1) : (task.yielded ?? []).map((y) => y.path)
+    if (!raw.length) {
+      const back = task.status === "in_progress" ? await cameBack(ctx, first, task.id) : undefined
+      if (!back) throw new ToolError(tr("claim.no_file", { id: task.id }), 2)
+      return ok([tr("claim.came_back", { files: back.files.join(", ") }), ...reapplyLines(back.reapply)].join("\n"), { task: task.id, granted: [], ...reapplyData(back.reapply) })
+    }
     if (task.status !== "in_progress") throw new ToolError(tr("claim.not_running", { id: task.id, status: task.status }))
     const platform = ctx.host.platform
     const files: string[] = []
@@ -634,7 +646,11 @@ defineAction(
       const key = normalizeKey(f, first.root, platform)
       return !current.some((k) => covers(k, key))
     })
-    if (!wanted.length) return ok(tr("claim.already", { id: task.id, files: files.join(", ") }), { task: task.id, granted: [] })
+    if (!wanted.length) {
+      const back = await cameBack(ctx, first, task.id, files)
+      const text = [tr("claim.already", { id: task.id, files: files.join(", ") }), ...(back ? [tr("claim.came_back", { files: back.files.join(", ") }), ...reapplyLines(back.reapply)] : [])]
+      return ok(text.join("\n"), { task: task.id, granted: [], ...(back ? reapplyData(back.reapply) : {}) })
+    }
     const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)))
     const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s")
     const began = ctx.host.now().getTime()
@@ -678,21 +694,27 @@ defineAction(
         const copy = clone(state.tasks)
         const t = copy.tasks.find((x) => x.id === task.id)!
         if (t.status !== "in_progress") throw new ToolError(tr("claim.left", { id: task.id, status: t.status }))
-        t.claimed = [...(t.claimed ?? []), ...wanted.filter((f) => !(t.claimed ?? []).includes(f))]
+        // What it had yielded goes back where it was; the rest joins `claimed`.
+        const back = takeBackEntries(t, keys, state.root, platform)
+        const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f))
+        if (more.length) t.claimed = [...(t.claimed ?? []), ...more]
         const hold: Hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" }
         if (resident?.pid !== undefined) hold.pid = resident.pid
         t.holds = [...(t.holds ?? []), hold]
+        const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, keys))
         const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
         await writeTicket(ctx.host, state.dir, tasks, task.id)
-        await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited) })
-        return t
+        await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) })
+        return { t, reapply }
       })
       if (resident) remember(ctx, first, task.id, resident)
-      return ok(tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done).join(", ") }), {
+      const text = [tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done.t).join(", ") }), ...reapplyLines(done.reapply)]
+      return ok(text.join("\n"), {
         task: task.id,
         granted: wanted,
         keys,
         waitedSec: Number(waited),
+        ...reapplyData(done.reapply),
       })
     } catch (error) {
       await releaseHoldsOf(ctx, first.run.id, task.id, resident, keys).catch(() => {})
@@ -700,6 +722,181 @@ defineAction(
     }
   },
   "help.claim",
+)
+
+// ── yield (rev. 5.6) ──────────────────────────────────────────────────────────────────────────────────────────
+
+/** Puts the yielded entries `keys` cover back in the task's ownership, in the lists they came from; answers them. */
+function takeBackEntries(task: Task, keys: string[], root: string, platform: string): string[] {
+  const back: string[] = []
+  const left: Yielded[] = []
+  for (const y of task.yielded ?? []) {
+    if (!keys.some((k) => covers(k, normalizeKey(y.path, root, platform)))) {
+      left.push(y)
+      continue
+    }
+    const list = y.from === "files" ? task.files : (task.claimed ??= [])
+    if (!list.includes(y.path)) list.push(y.path)
+    back.push(y.path)
+  }
+  if (left.length) task.yielded = left
+  else delete task.yielded
+  return back
+}
+
+/** What a reapply did, as lines of an answer. */
+export function reapplyLines(r: ReapplyReport): string[] {
+  const lines: string[] = []
+  if (r.applied.length) lines.push(tr("patch.reapplied", { files: r.applied.join(", ") }))
+  if (r.conflicts.length) lines.push(tr("patch.conflicts", { list: r.conflicts.map((c) => `${c.file} (${c.patch})`).join(", ") }))
+  if (r.failed.length) lines.push(tr("patch.failed", { list: r.failed.map((c) => `${c.file} (${c.patch})`).join(", ") }))
+  return lines
+}
+
+function reapplyData(r: ReapplyReport) {
+  return { reapplied: r.applied, conflicts: r.conflicts, failed: r.failed.map((f) => ({ file: f.file, patch: f.patch })) }
+}
+
+export interface Retaken {
+  task: string
+  files: string[]
+  reapply: ReapplyReport
+}
+
+/**
+ * The queue a `yield` waits in: the keys the run's tasks in progress yielded are taken back without waiting where
+ * they are free now, with their patches reapplied. Runs after another task gives keys back (done, release, skip,
+ * fail), on `next`, and on each pass of a host that stays open (`only` limits it to that host's tasks). Never throws.
+ */
+export async function retakeYielded(ctx: ToolContext, first: RunState, only?: (task: Task) => boolean): Promise<Retaken[]> {
+  const out: Retaken[] = []
+  const platform = ctx.host.platform
+  let state0: RunState
+  try {
+    state0 = await reload(ctx, first)
+  } catch {
+    return out
+  }
+  for (const task of state0.tasks.tasks) {
+    if (task.status !== "in_progress" || !task.yielded?.length || (only && !only(task))) continue
+    try {
+      const keys = canonical(task.yielded.map((y) => y.key))
+      const refused = await takeKeys(ctx, state0, task, keys)
+      const granted = keys.filter((k) => !refused.includes(k))
+      if (!granted.length) continue
+      const back = await withLock(ctx.host, first.dir, async () => {
+        const state = await reload(ctx, first)
+        const copy = clone(state.tasks)
+        const t = copy.tasks.find((x) => x.id === task.id)
+        if (!t || t.status !== "in_progress") return undefined
+        const files = takeBackEntries(t, granted, state.root, platform)
+        t.holds = [...(t.holds ?? []), { keys: granted, startedAt: ctx.host.now().toISOString(), kind: "claim" }]
+        const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, granted))
+        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+        await writeTicket(ctx.host, state.dir, tasks, t.id)
+        await log(ctx, state, { action: "reclaim", task: t.id, keys: granted, files, ...reapplyData(reapply) })
+        return { task: t.id, files, reapply }
+      })
+      if (back) out.push(back)
+      else await jlockReleaseKeys(ctx.host, granted, ownerOf(state0.run.id, task.id)).catch(() => {})
+    } catch {
+      // Left for the next pass.
+    }
+  }
+  return out
+}
+
+/** One line per task that took back what it had yielded. */
+function retakenLines(list: Retaken[]): string[] {
+  return list.map((r) => [tr("yield.came_back", { id: r.task, files: r.files.join(", ") }), ...reapplyLines(r.reapply)].join("; "))
+}
+
+defineAction(
+  "yield",
+  async (ctx, args) => {
+    const first = await resolveRun(ctx, args)
+    const task = findTask(first, taskIdArg(args))
+    if (task.status !== "in_progress") throw new ToolError(tr("yield.not_running", { id: task.id, status: task.status }))
+    if (task.exclusive) throw new ToolError(tr("yield.exclusive", { id: task.id }))
+    const platform = ctx.host.platform
+    const owner = ownerOf(first.run.id, task.id)
+    const current = taskKeys(first.root, task, platform)
+    const keys: string[] = []
+    const raw = args.positionals.slice(1)
+    if (raw.length) {
+      for (const r of raw) {
+        const entry = normalizeFileEntry(r)
+        if (entry.error) throw new ToolError(tr("yield.refused", { errors: entry.error }))
+        const key = normalizeKey(entry.path!, first.root, platform)
+        const outer = current.find((k) => covers(k, key))
+        if (!outer) throw new ToolError(tr("yield.not_owned", { id: task.id, file: r }))
+        if (outer !== key) throw new ToolError(tr("yield.inside", { id: task.id, file: r, folder: describeKey(outer, first.root, platform) }))
+        keys.push(key)
+      }
+    } else {
+      // Without files: the keys of the task that close the cycle of its last claim refused for a deadlock.
+      const chain = await lastDeadlock(ctx.host, first.dir, task.id)
+      keys.push(...(chain ? chainKeys(chain, owner) : []).filter((k) => current.includes(k)))
+      if (!keys.length) throw new ToolError(tr("yield.nothing", { id: task.id }), 2)
+    }
+    const wanted = canonical(keys)
+    const done = await withLock(ctx.host, first.dir, async () => {
+      const state = await reload(ctx, first)
+      const copy = clone(state.tasks)
+      const t = copy.tasks.find((x) => x.id === task.id)!
+      if (t.status !== "in_progress") throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }))
+      const changed = await changedUnder(ctx.host, state, wanted)
+      const { mine, untouched } = await ownFiles(ctx.host, state, t, changed)
+      const report = await keepEdits(ctx.host, state, t, mine, "yield")
+      // A key whose edits could not be kept aside is not given back: the task that takes it would commit them.
+      const given = wanted.filter((k) => !report.kept.some((f) => covers(k, normalizeKey(f, state.root, platform))))
+      const at = ctx.host.now().toISOString()
+      const yielded: Yielded[] = []
+      for (const from of ["files", "claimed"] as const) {
+        const stay: string[] = []
+        for (const e of from === "files" ? t.files : (t.claimed ?? [])) {
+          const key = given.find((g) => covers(g, normalizeKey(e, state.root, platform)))
+          if (key) yielded.push({ path: e, from, key, at })
+          else stay.push(e)
+        }
+        if (from === "files") t.files = stay
+        else if (stay.length) t.claimed = stay
+        else delete t.claimed
+      }
+      if (yielded.length) t.yielded = [...(t.yielded ?? []), ...yielded]
+      if (t.holds) t.holds = t.holds.map((h) => ({ ...h, keys: h.keys.filter((k) => !given.includes(k)) })).filter((h) => h.keys.length)
+      const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+      await writeTicket(ctx.host, state.dir, tasks, t.id)
+      await log(ctx, state, { action: "yield", task: t.id, keys: given, files: yielded.map((y) => y.path), saved: report.saved.map((p) => p.file), untouched, kept: report.kept })
+      return { given, yielded, report, untouched }
+    })
+    if (done.given.length) await jlockReleaseKeys(ctx.host, done.given, owner)
+    const files = done.yielded.map((y) => y.path)
+    const lines: string[] = []
+    if (files.length) {
+      const saved = done.report.saved.length
+        ? tr("yield.saved", { list: done.report.saved.map((p) => `${p.file} → ${join(first.dir, p.patch)}`).join(", ") })
+        : tr("yield.no_edits")
+      lines.push(tr("yield.done", { id: task.id, files: files.join(", "), saved }), tr("yield.hint", { id: task.id }))
+    }
+    if (done.untouched.length) lines.push(tr("yield.untouched", { files: done.untouched.join(", ") }))
+    if (done.report.kept.length) lines.push(tr("yield.kept", { files: done.report.kept.join(", ") }))
+    return {
+      ok: files.length > 0,
+      code: files.length > 0 ? 0 : 1,
+      text: lines.join("\n"),
+      data: {
+        run: first.run.id,
+        task: task.id,
+        yielded: files,
+        keys: done.given,
+        saved: done.report.saved.map((p) => ({ file: p.file, patch: join(first.dir, p.patch) })),
+        untouched: done.untouched,
+        kept: done.report.kept,
+      },
+    }
+  },
+  "help.yield",
 )
 
 // ── done ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -756,6 +953,7 @@ defineAction(
     const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit")
     const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)]
     if (claimed.length) lines.push(tr("done.claimed", { files: claimed.join(", ") }))
+    lines.push(...retakenLines(await retakeYielded(ctx, t.state)))
     return ok(lines.join("\n"), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed })
   },
   "help.done",
@@ -779,7 +977,8 @@ defineAction(
       return { reason }
     })
     const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : ""
-    return ok(`${tr("skip.done", { id: t.task.id, reason: reason! })}${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+    const back = wasRunning ? retakenLines(await retakeYielded(ctx, t.state)) : []
+    return ok([`${tr("skip.done", { id: t.task.id, reason: reason! })}${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
       run: t.state.run.id,
       task: t.task.id,
       uncommitted: left,
@@ -802,7 +1001,8 @@ defineAction(
       return { error }
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
-    return ok(`${tr("fail.done", { id: t.task.id, error: error! })}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+    const back = retakenLines(await retakeYielded(ctx, t.state))
+    return ok([`${tr("fail.done", { id: t.task.id, error: error! })}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
       run: t.state.run.id,
       task: t.task.id,
       uncommitted: left,
@@ -841,7 +1041,8 @@ defineAction(
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts })
-    return ok(`${t.task.id} ${where}; ${released}${changesNote(left)}\n${progressLine(t.tasks.tasks)}`, {
+    const back = retakenLines(await retakeYielded(ctx, t.state))
+    return ok([`${t.task.id} ${where}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
       run: t.state.run.id,
       task: t.task.id,
       status: t.task.status,
@@ -1146,9 +1347,37 @@ async function undoEffect(ctx: ToolContext, root: string, e: Effect, force: bool
       await host.remove(target, { recursive: true })
       return tr("undo.dir_removed", { id: e.id, dir: target })
     }
+    case "remove-file": {
+      // A saved patch (rev. 5.6): wherever it is now, saved or applied.
+      for (const f of e.patch ? [e.patch, appliedPath(e.patch)] : []) await host.remove(f).catch(() => {})
+      return tr("undo.patch_removed", { id: e.id, patch: e.patch ?? "" })
+    }
+    case "apply-patch": {
+      // A file put back to HEAD: its edit comes back from the patch, never over another task's work.
+      const patch = await patchFile(host, e)
+      const file = e.path ?? ""
+      const tasks = await readTasks(host, dir).catch(() => undefined)
+      const other = tasks?.tasks.find((t) => t.status === "in_progress" && t.id !== e.task && inPossession(file, possession(t), caseInsensitive(host.platform)))
+      if (other && !force) throw new ToolError(tr("undo.patch_owned", { id: e.id, file, task: other.id }))
+      if ((await gitStatus(host, root)).some((x) => x.path === file)) throw new ToolError(tr("undo.patch_dirty", { id: e.id, file }))
+      const r = await applyPatch(host, root, patch, [file])
+      if (r.result === "failed") throw new ToolError(tr("undo.patch_failed", { id: e.id, file, message: r.message }))
+      return tr(r.result === "conflict" ? "undo.patch_conflict" : "undo.patch_applied", { id: e.id, file, patch })
+    }
+    case "reverse-patch": {
+      const patch = await patchFile(host, e)
+      if (!(await reversePatch(host, root, patch))) throw new ToolError(tr("undo.reverse_failed", { id: e.id, file: e.path ?? "", patch }))
+      return tr("undo.patch_reversed", { id: e.id, file: e.path ?? "" })
+    }
     default:
       throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }))
   }
+}
+
+/** The patch file of an effect, where it is now (saved, or moved to `applied/`). */
+async function patchFile(host: ToolContext["host"], e: Effect): Promise<string> {
+  for (const f of e.patch ? [e.patch, appliedPath(e.patch)] : []) if (await host.stat(f)) return f
+  throw new ToolError(tr("undo.no_patch", { id: e.id, patch: e.patch ?? "" }))
 }
 
 /** Undoes effects newest first; stops at the first refusal, saying what was already undone. */
@@ -1192,7 +1421,8 @@ defineAction(
       const runId = typeof args.options.run === "string" ? args.options.run : undefined
       if (!runId) throw new ToolError(tr("undo.which"), 2)
       const root = await requireRepo(ctx.host, ctx.cwd)
-      const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active")
+      // Moving an edit between the tree and a patch is undone one by one only (undo <e-id>).
+      const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type))
       if (!effects.length) return ok(tr("undo.run_clean", { run: runId }), { undone: [] })
       const done = await undoMany(ctx, root, effects, force)
       return ok(`${tr("undo.run_done", { run: runId })}\n${done.join("\n")}`, { undone: done })
@@ -1207,7 +1437,7 @@ defineAction(
     }
     const task = findTask(state, taskId)
     if (task.status === "in_progress") throw new ToolError(tr("undo.task_running", { id: task.id }))
-    const effects = all.filter((e) => e.task === task.id && !e.reverts)
+    const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type))
     if (!effects.length) throw new ToolError(tr("undo.task_clean", { id: task.id }))
     const done = await undoMany(ctx, state.root, effects, force)
     const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
@@ -1243,6 +1473,7 @@ defineAction(
       else if (e.type === "exclude") present = await hasExcludeLine(host, root, e.line ?? ".scratch/")
       else if (e.type === "dir") present = !!(await host.stat(e.path!))
       else if (e.type === "archive") present = !!(await host.stat(e.to!))
+      else if (e.type === "patch") present = !!(await host.stat(e.patch!)) || !!(await host.stat(appliedPath(e.patch!)))
       if (!present) {
         await setEffectState(host, runDir(root, e.run), e.run, e.id, "gone")
         gone.push(effectLine({ ...e, state: "gone" }))

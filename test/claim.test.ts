@@ -108,7 +108,7 @@ describe("claim", () => {
     const second = await tasks(repo, ["claim", "T03", "lib/a.ts", "--timeout", "20s"])
     expect(second.ok).toBe(false)
     expect(second.text).toContain("claim recusado: fecharia um ciclo de espera (deadlock): T03 → ")
-    expect(second.text).toContain("Quem pediu por último cede: T03")
+    expect(second.text).toContain("Quem pediu por último cede: jtasks yield T03")
     expect((second.data as { chain: string }).chain).toContain(`gt:${run}/T02`)
     await tasksOk(repo, ["release", "T03"])
     expect((await first).ok).toBe(true)

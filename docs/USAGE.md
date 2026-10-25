@@ -107,7 +107,8 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `resume <run> [--keep-owners] [--from-archive]` | binds the session, leaves pause, releases in-progress tasks whose locks are gone |
 | task | `next [limit]` | the ready tasks (can run in parallel): profile, criteria, ownership, ticket |
 | | `start <id>` | in progress; holds the ownership (`jlock hold --no-wait`) |
-| | `claim <id> <file…> [--timeout 60s]` | one more file; waits in jlock's queue; `timeout` and `deadlock` answered |
+| | `claim <id> [<file…>] [--timeout 60s]` | one more file; waits in jlock's queue; `timeout` and `deadlock` answered; without files, takes back what the task yielded |
+| | `yield <id> [<file…>]` | gives back only the contested files (without files: the ones that close the cycle of its last deadlock); the task stays in progress, its edits of them kept as patches, reapplied when they are its again (see [Deadlock and yield](#deadlock-and-yield)) |
 | | `done <id> --evidence "…"` | checks git and the locks, commits the ownership only (`T04: title`), releases |
 | | `skip <id> --reason "…"` / `fail <id> --error "…"` | skipped (frees dependents) / failed (blocks them) |
 | | `release <id>` | in progress → pending (failed at `maxAttempts`); uncommitted edits stay and are listed |
@@ -146,6 +147,37 @@ back and taken again at once (`jtasks doctor` warns and suggests `jlock update`)
 again (`retake`). `jtasks done`,
 from any host and the CLI, takes back its own expired keys when nobody else took them, and refuses only when someone
 did. The ttl still frees the locks of a window that died, since nobody renews them.
+
+### Deadlock and yield
+
+When tasks pick files up as they go, two of them can wait for each other: T04 holds `core/run/index.ts` and asks for
+`core/plan/adapters.ts`, T05 holds `core/plan/adapters.ts` and asks for `core/run/index.ts`. jlock sees the cycle and
+refuses the last to ask (`claim-deadlock` in `log.jsonl`); the answer tells that task to yield:
+
+```
+jtasks yield T05                      # gives back the keys of T05 that close the cycle (from jlock's chain)
+jtasks yield T05 core/plan/adapters.ts  # or the ones you name (an entry of its ownership, a whole folder)
+```
+
+For each file given back, the uncommitted edit is saved as a patch of the run
+(`.scratch/jtasks/runs/<run>/patches/<task>/<n>-<file>.patch`: the diff against HEAD, or the whole content of a new
+file), the file goes back to HEAD (a new file is deleted), and the key is released in jlock, so the other task gets
+it at once and its commit takes none of these edits. The task stays `in_progress` with its other locks; the entries
+move from `files`/`claimed` to `yielded`, the guard refuses its edits there, `status`, the pane and the sidebar show
+`⏳ cedeu …` (`waits for …`), and no new task starts on those keys meanwhile. They come back to the task:
+
+- by themselves, as soon as they are free: after another task's `done`/`release`/`skip`/`fail`, on `jtasks next`, and
+  on every pass (each minute) of the mod and the plugin;
+- or with `jtasks claim <id>` (no files: what it yielded; it waits in jlock's queue like any claim), which also says
+  when they already came back.
+
+When the key comes back, each patch is reapplied over the new HEAD with `git apply --3way`: clean, the file is edited
+again and the patch moves to `patches/<task>/applied/`; with a conflict, the file keeps the markers, the answer lists
+it, and the patch stays where it was. The index is left at HEAD. Every step is an effect in the ledger: `patch` (the
+patch file), `restore` (the file put back to HEAD; `jtasks undo <e-id>` puts the edit back, never over another task
+in progress, and only on a clean file) and `reapply` (`jtasks undo <e-id>` takes the reapplied edit out). These are
+undone one by one, never by `undo --task` or `undo --run`. A file whose key someone else holds by now is never
+touched (listed as such), and a key whose edit could not be saved is not given back.
 
 ## Variables
 

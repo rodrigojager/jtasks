@@ -10,6 +10,8 @@ export interface ViewLine {
     title: string;
     detail: string;
     state: LineState;
+    /** A short note the pane adds to the row (rev. 5.6): the files a task waits for after a yield, or its saved edits. */
+    note?: string;
 }
 export interface RunView {
     kind: "run";

@@ -35,3 +35,8 @@ test('pane rows normalize task IDs and collapse task statuses into five display 
     { label: 'T12 - Twelve', state: 'done' },
   ])
 })
+
+test('a task waiting for what it yielded says so in its row', () => {
+  const view = { kind: 'run', lines: [{ id: 'T04', title: 'Pytest', state: 'waiting', note: 'espera core/run/index.ts' }] } as PaneView
+  expect(paneRows(view)).toEqual([{ label: 'T4 - Pytest · espera core/run/index.ts', state: 'running' }])
+})

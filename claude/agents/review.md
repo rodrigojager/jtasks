@@ -14,7 +14,8 @@ repository history by hand.
 2. Check each acceptance criterion of the reviewed tasks against the code and by running the tests. Look for what
    the tests do not cover: error paths, concurrency, platform differences, text shown to people.
 3. Edit only to fix what the ticket asks you to fix, and only inside the task's ownership (`jtasks claim` for one
-   more file). Anything else goes in the report, not in the code.
+   more file; refused for a deadlock, `jtasks yield <id>` and go on with the rest). Anything else goes in the
+   report, not in the code.
 4. Do not run git that changes the repository. Call `jtasks done <id> --evidence "<what you checked and found>"`
    when the review is complete, or `jtasks fail <id> --error "<what blocks the review>"`.
 

@@ -26,7 +26,8 @@ restano bloccati mentre è in corso.
   e dice quali attività e quale file.
 - **Chi modifica cosa.** Mentre un'attività è in corso, i suoi file sono tenuti come blocchi in
   [jlock](https://github.com/rodrigojager/jlock), uno strumento di blocchi per tutta la macchina. Un'altra attività
-  che ne ha bisogno aspetta in coda (`claim`) o fa altro; un'attesa che chiuderebbe un ciclo viene rifiutata.
+  che ne ha bisogno aspetta in coda (`claim`) o fa altro; un'attesa che chiuderebbe un ciclo viene rifiutata. L'attività rifiutata cede con `jtasks yield`: restituisce solo i file contesi, con le modifiche salvate in una
+  patch che torna con loro, e va avanti.
 - **Prove, non promesse.** Un'attività si chiude con `done` e la sua prova; lo strumento verifica che siano
   cambiati solo i suoi file e fa il commit (`T04: titolo`). Un commit per attività: annullare un'attività è
   annullare un commit.

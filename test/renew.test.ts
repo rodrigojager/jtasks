@@ -3,7 +3,7 @@ import { chmodSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Resident } from "../src/host.ts"
 import { earliestExpiry, renewRun, renewMargin, ttlMs } from "../src/renew.ts"
-import { takenSince } from "../src/actions.ts"
+import { takenSince } from "../src/keep.ts"
 import type { TasksFile } from "../src/schema.ts"
 import { cleanupTemp, context, foreignHold, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, tempDir, writeFiles } from "./helpers.ts"
 
@@ -161,12 +161,12 @@ describe("holds that outlive the run's holdTtl", () => {
     const t01 = tasksFile(dir).tasks[0]!
     const state = { root: repo, dir, run: { id: run } as never, tasks: tasksFile(dir) }
     const ctx = context(repo)
-    expect(await takenSince(ctx, state, t01, [key])).toEqual([])
+    expect(await takenSince(ctx.host, state.dir, t01.id, [key])).toEqual([])
     // Another task of the run claims the file after T01's hold, then gives it back with its edits on disk.
     const later = new Date(Date.now() + 1000).toISOString()
     const { appendFileSync } = await import("node:fs")
     appendFileSync(join(dir, "log.jsonl"), `${JSON.stringify({ at: later, actor: "cli", action: "claim", task: "T02", keys: [key] })}\n`)
-    expect(await takenSince(ctx, state, t01, [key])).toEqual([key])
+    expect(await takenSince(ctx.host, state.dir, t01.id, [key])).toEqual([key])
     writeFiles(repo, { "src/a.ts": "edits of T02\n" })
     const r = await tasks(repo, ["done", "T01", "--evidence", "ok"])
     expect(r.ok).toBe(false)

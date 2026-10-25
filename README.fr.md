@@ -28,7 +28,8 @@ fichiers sont verrouillés pendant qu'elle tourne.
 - **Qui change quoi.** Pendant qu'une tâche tourne, ses fichiers sont tenus comme verrous dans
   [jlock](https://github.com/rodrigojager/jlock), un outil de verrous pour toute la machine. Une autre tâche qui a
   besoin de l'un d'eux attend dans la file d'attente (`claim`) ou fait autre chose ; une attente qui fermerait un
-  cycle est refusée.
+  cycle est refusée. La tâche refusée cède avec `jtasks yield` : elle rend seulement les fichiers disputés, ses modifications
+  gardées dans un patch qui revient avec eux, et continue.
 - **Des preuves, pas des promesses.** Une tâche se termine avec `done` et sa preuve ; l'outil vérifie que seuls ses
   fichiers ont changé et fait le commit (`T04: titre`). Un commit par tâche : annuler une tâche, c'est annuler un
   commit.

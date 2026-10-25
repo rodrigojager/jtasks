@@ -26,7 +26,8 @@ travados enquanto ela roda.
   diz quais tarefas e qual arquivo.
 - **Quem muda o quê.** Enquanto uma tarefa roda, seus arquivos ficam presos como travas no
   [jlock](https://github.com/rodrigojager/jlock), uma ferramenta de travas para a máquina inteira. Outra tarefa que
-  precise de um deles espera na fila (`claim`) ou faz outra coisa; uma espera que fecharia um ciclo é recusada.
+  precise de um deles espera na fila (`claim`) ou faz outra coisa; uma espera que fecharia um ciclo é recusada. A tarefa recusada cede com `jtasks yield`: devolve só os arquivos disputados, com as edições guardadas num
+  patch que volta com eles, e segue em frente.
 - **Prova, não promessa.** Uma tarefa termina com `done` e sua evidência; a ferramenta confere que só os arquivos
   dela mudaram e faz o commit (`T04: título`). Um commit por tarefa: reverter uma tarefa é reverter um commit.
 - **Retomar.** Em que ponto a execução está é o estado da lista, não a memória do modelo: `jtasks resume` em

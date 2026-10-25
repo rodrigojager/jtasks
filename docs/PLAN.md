@@ -46,6 +46,16 @@ prazo sem soltar a trava: nenhum instante sem trava, o mesmo `hold` segue segura
 Com um jlock anterior, o jtasks segue devolvendo e pegando de novo, e o `jtasks doctor` avisa e sugere
 `jlock update`. Marcado com **[rev. 5.5]** nas seções 4, 18, 19 e 20 (ticket 46).
 
+Revisão 5.6, 25/10/2026: ceder arquivos sem perder trabalho. Na Fase 6 do code-approval-gates, sete tarefas paralelas
+pediram por `claim` os mesmos arquivos de registro; duas fecharam um ciclo, o jlock recusou a última a pedir, e o
+único caminho que o jtasks oferecia, liberar a tarefa inteira, deixou as edições dela no disco: as de arquivos só
+dela ficaram sem dono e bloquearam o `done` das outras, e as de arquivos compartilhados entraram no commit de quem
+os pegou. Agora a tarefa recusada por deadlock cede só os arquivos disputados com `jtasks yield`: a edição de cada um
+vira um patch da execução, o arquivo volta ao HEAD, a chave é solta, a tarefa continua `in_progress` e pega o arquivo
+de volta quando ele fica livre, com o patch reaplicado por `git apply --3way`. O jlock não mudou (ele já solta
+algumas chaves de um `hold` sem derrubar as outras). Marcado com **[rev. 5.6]** nas seções 4, 5, 6, 7, 12, 14, 15,
+16, 17 e 18 (ticket 47).
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -234,6 +244,24 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   o jlock recusa com a cadeia (`deadlock`, código 12, campo `chain`), e a resposta diz quem deve ceder
   (**[rev. 5]** quem pediu por último). Todo `claim` vai para o log; no fim, a ferramenta sugere atualizar o plano
   com o que foi reclamado.
+- **Ceder sem perder [rev. 5.6]:** a resposta ao deadlock sugere `jtasks yield <id>`, que cede só as chaves que
+  fecham o ciclo (as `(held by <dono>)` do `chain` da última recusa da tarefa no `log.jsonl`), ou as que forem
+  nomeadas (uma entrada da posse; um arquivo dentro de uma pasta travada inteira é recusado, cede-se a pasta). Para
+  cada arquivo alterado sob essas chaves, e que ainda é da tarefa (a chave está com ela, ou livre e ninguém a pegou
+  depois), a edição sem commit vira `patches/<tarefa>/<n>-<arquivo>.patch` (o `git diff --binary` contra o HEAD,
+  ou o conteúdo inteiro de um arquivo novo), o arquivo volta ao HEAD (o novo é apagado) e só então a chave é solta
+  no jlock (`jlock release <chaves…> --owner`, que não derruba as outras chaves do mesmo `hold`, com `--detach` ou
+  `--release-on-eof`). Uma chave cuja edição não pôde ser guardada não é cedida. A tarefa continua `in_progress`
+  com o resto da posse; as entradas saem de `files`/`claimed` para `yielded`, a guarda passa a recusar edição nelas,
+  e nenhuma tarefa nova começa sobre essas chaves (a fronteira as trata como reservadas). Elas voltam: sozinhas,
+  sem espera, assim que ficam livres (depois do `done`, `release`, `skip` ou `fail` de outra tarefa, no `next`, e a
+  cada passada de um minuto do mod e do plugin), ou com `jtasks claim <id>` (sem arquivos: o que foi cedido; espera
+  na fila do jlock como qualquer `claim`). Ao voltar, cada patch é reaplicado sobre o HEAD novo com
+  `git apply --3way`: sem conflito, o arquivo fica editado de novo e o patch vai para `applied/`; com conflito, o
+  arquivo fica com os marcadores, a resposta lista o conflito e o patch continua em `patches/`. O índice volta ao
+  HEAD depois (o `--3way` o escreve). A fila de espera do `yield` é esse `claim` pendente que o `next`, o `status`, o
+  painel e a barra mostram ("⏳ cedeu c.ts (com T04)"), e não um processo do jlock esperando: o CLI e o mod não
+  mantêm processos (`DEVIATIONS.md`).
 - **Guarda:** no Claude Code, `tool.call` em `Edit`/`Write`/`NotebookEdit` do subagente é recusado fora da posse,
   com a mensagem "fora da posse de T04; use `jtasks claim`". `Bash` de subagente é recusado quando o comando é
   mutador de git (`commit`, `checkout`, `reset`, `stash`, `add`) ou de arquivos (`rm`, `mv`, `>`, `sed -i`) fora
@@ -357,8 +385,15 @@ branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por
 | `skipped` | pulada com motivo; libera as dependentes | `retry` → `pending` |
 | `failed` | erro ou `maxAttempts`; bloqueia as dependentes | `retry` → `pending`; `skip` → `skipped` |
 
+**[rev. 5.6]** Uma tarefa que cedeu arquivos guarda `yielded: [{ path, from: "files"|"claimed", key, at }]` (o que
+espera pegar de volta) e `patches: [{ file, patch, at, by: "yield"|"release" }]` (as edições guardadas, com o
+caminho relativo à pasta da execução). Os patches ficam em `.scratch/jtasks/runs/<run>/patches/<tarefa>/`, e os
+reaplicados sem conflito em `patches/<tarefa>/applied/`. O `log.jsonl` ganha `yield` (chaves, arquivos, o que foi
+guardado, o que ficou intocado) e `reclaim` (o que voltou e o resultado da reaplicação).
+
 Derivados, nunca gravados: `ready` (pendente, dependências satisfeitas, posse livre), `blocked` (dependência aberta
-ou falha, ou posse em uso) e `waiting` (em andamento, na fila de uma chave de outra tarefa). O painel mostra o
+ou falha, ou posse em uso) e `waiting` (em andamento, na fila de uma chave de outra tarefa, ou **[rev. 5.6]** à
+espera do que cedeu). O painel mostra o
 motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts (**[rev. 5]** ou ⏳ T02: src/, quando o bloqueio vem da pasta).
 
 ### Regras do núcleo
@@ -397,7 +432,8 @@ a execução ligada à sessão.
 | | `status` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas (**[rev. 5]** de `jlock list --group <run> --json`) |
 | tarefa | `next [limit]` | as prontas, com perfil, critérios, posse e caminho do ticket |
 | | `start id` | → em andamento (`attempts+1`); trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta"; **[rev. 5.2]** `--detach --ttl` no CLI e no mod, `--release-on-eof --ttl` no plugin) |
-| | `claim id <arquivo…>` | acrescenta à posse se livre; senão espera até `--timeout` ("em uso por Txx, posição N") ou recusa por deadlock com a cadeia (**[rev. 5]** um `jlock hold` por `claim`) |
+| | `claim id <arquivo…>` | acrescenta à posse se livre; senão espera até `--timeout` ("em uso por Txx, posição N") ou recusa por deadlock com a cadeia (**[rev. 5]** um `jlock hold` por `claim`; **[rev. 5.6]** sem arquivos, pega de volta o que a tarefa cedeu e reaplica os patches) |
+| | `yield id [<arquivo…>]` | **[rev. 5.6]** cede só os arquivos disputados (sem arquivos: os do ciclo da última recusa por deadlock); a tarefa continua em andamento; as edições viram patch e voltam com o arquivo (seção 4) |
 | | `done id --evidence` | confere o status do git e a posse no jlock → commit só da posse → feita → libera a posse (**[rev. 5.2]** `jlock release --group --owner`) |
 | | `skip id --reason` / `fail id --error` | pular ou registrar falha; libera a posse |
 | | `retry id` / `retry --all-failed` | pulada ou falha → pendente |
@@ -431,6 +467,11 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
 
 - Tipos: `exclude`, `branch`, `commit`, `worktree`, `junction`, `dir`, `archive`, `agent-config` (agentes criados no
   `opencode.json`).
+- **[rev. 5.6]** As edições guardadas: `patch` (o arquivo do patch; desfazer = apagá-lo), `restore` (o arquivo
+  voltado ao HEAD; desfazer = `git apply --3way` do patch, só sobre arquivo limpo e nunca na posse de outra tarefa
+  em andamento, a não ser com `--force`) e `reapply` (o patch reaplicado; desfazer = `git apply -R`). `restore` e
+  `reapply` se desfazem um a um (`jtasks undo <e-id>`), nunca pelo `undo --task` nem pelo `undo --run`, que os
+  pulam (o `--task` pula também o `patch`); o `effects --check` acha o patch também em `applied/`.
 - `jtasks ledger` responde "o que está sendo feito" em qualquer momento, por execução ou por projeto, inclusive de
   outras janelas, porque o índice global é um arquivo só.
 - `jtasks undo` desfaz na ordem inversa e marca `state: "undone"`. Recusa quando o alvo tem mudanças não salvas
@@ -548,6 +589,8 @@ Protocolo de execução (texto fixo, injetado no sistema enquanto houver execuç
    cobre), chame jtasks pause e pergunte. Enquanto a execução não está pausada e tem tarefa
    pronta, o host reabre o laço quando o seu turno termina; responda à mensagem "run is idle"
    com jtasks next, não com texto.
+6. [rev. 5.6] Se um claim for recusado por deadlock, rode jtasks yield <id> e faça outras partes;
+   libere só quando nada mais puder andar.
 ```
 
 **[rev. 5.3]** O `/goal` (e o `create_goal` do OpenCode) não percebe um turno que termina com tarefa pronta e nada
@@ -610,6 +653,7 @@ core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 | renovação | **[rev. 5.4]** `$.clock.every(60000)` + `renewRun` do núcleo | as travas das tarefas desta sessão (dono `claude:<sessão>` ou de um subagente dela) não vencem pelo `holdTtl` enquanto a janela está aberta |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
 | agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
+| ceder | **[rev. 5.6]** a ação `yield` do núcleo; a passada de 60 s da renovação também pega de volta o que as tarefas da sessão cederam | a linha da tarefa que cedeu mostra "T4 - título · espera core/run/index.ts" |
 | retomada | **[rev. 5.3]** `on("turn.complete")` sem `e.agentId`, `reason: "answer"`, sessão interativa; agentes vivos por `$.agent.list()` (`pending`/`running`/`waiting`; o mapa `agents` se a lista falhar); `$.prompt.submit`; `on("prompt.submit")` confere de novo a mensagem do próprio jtasks antes de entrar e a descarta se a execução andou; `$.prompt.read` adia a mensagem enquanto há rascunho (o relógio de 2 s a manda depois); `turn.start` cancela o que esperava | reabre o laço; na desistência, `$.ui.toast`, `$.ui.notify`, `$.ui.status` e uma linha no painel |
 
 ```
@@ -643,6 +687,7 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 | agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
 | retomada | **[rev. 5.3]** `session.idle` da sessão raiz, depois de 300 ms à espera do fim da execução (`session.execution.succeeded`/`failed`/`interrupted`); agentes vivos: sessões filhas em execução ou com tarefa iniciada e ainda não encerradas; `ctx.session.synthetic({ delivery: "queue" })` | reabre o laço; na desistência, a linha `notice` da vista na barra lateral e um toast da TUI |
 | renovação | **[rev. 5.4]** `setInterval` de 60 s + `renewRun` do núcleo, nas execuções em que o processo trabalhou | os `hold --release-on-eof` das tarefas iniciadas pelas suas sessões não vencem (nem viram "posse perdida") pelo `holdTtl` |
+| ceder | **[rev. 5.6]** a ação `yield` do núcleo (a chave cedida sai do `hold --release-on-eof`, que segue com as outras); a passada de 60 s pega de volta o que as tarefas das suas sessões cederam | a linha da tarefa que cedeu mostra "título · espera …" na barra lateral |
 | goal | sem espelhar em `update_goal_plan` | objetivo + evidência; o paralelismo é nosso |
 
 ---
@@ -656,7 +701,8 @@ execução, pausa, retomada, falha por `maxAttempts`, guarda de posse e de git, 
 worktrees quando pedidas, `gc` como relatório, limpeza e arquivamento, desenho das interfaces, reinjeção após
 compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto, **[rev. 5.3]** a retomada do
 orquestrador ocioso (quando reabrir o laço, quando desistir e avisar), **[rev. 5.4]** a renovação das travas de
-tarefas longas e a retomada das chaves vencidas no `done`.
+tarefas longas e a retomada das chaves vencidas no `done`, **[rev. 5.6]** quais chaves ceder num deadlock (pelo
+`chain`), guardar e reaplicar as edições, e quando a chave cedida volta.
 
 **Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
@@ -708,6 +754,12 @@ motivo.
   seguinte já vê o prazo novo (`fresh`); com um jlock que se diz 0.1.1 e não tem `renew`, devolve e pega de novo;
   no mod, o relógio de 60 s retoma uma trava vencida; no plugin, uma tarefa com prazo de 3 s segue com a trava
   depois de 6,5 s.
+- **[rev. 5.6] Ceder** (`test/yield.test.ts`, jlock e git reais): o caso real de ponta a ponta (T04 espera `c.ts`,
+  T05 pede `a.ts` e é recusada por deadlock, `yield T05` guarda o patch de `c.ts`, volta o arquivo ao HEAD, T04 pega
+  `c.ts` e faz `done` sem nenhuma linha da T05, a T05 recebe `c.ts` de volta com o patch reaplicado e o commit dela
+  tem a edição); conflito na reaplicação (marcadores no arquivo, patch guardado, índice no HEAD); arquivo novo
+  guardado inteiro, apagado e recriado; `undo` do `restore` e do `reapply`; recusas; a chave cedida reservada na
+  fronteira; o painel do mod com a linha "espera …".
 - Sem gastar tokens de modelo real.
 
 ---
@@ -751,6 +803,9 @@ motivo.
     retomando as próprias chaves vencidas.
 18. **[rev. 5.5] Renovação no lugar** (ticket 46): `jlock renew` quando o jlock é 0.2.0 ou mais novo
     (`canRenew`), vencimento pelo `expires` do `jlock list`, aviso no `jtasks doctor` com jlock anterior.
+19. **[rev. 5.6] Ceder sem perder** (ticket 47): `jtasks yield` com patches (`src/patches.ts`, `src/keep.ts`),
+    efeitos `patch`/`restore`/`reapply` no ledger com desfazer, reaplicação com `--3way`, a chave cedida reservada
+    na fronteira e pega de volta sozinha.
 
 ---
 

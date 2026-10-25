@@ -149,7 +149,8 @@ var en_default = {
   "binding.other_run": "this session is bound to run {run}; --run {asked} is refused",
   "changes.left": "uncommitted edits stayed on disk: {list}",
   "claim.already": "{id} already has {files} in its ownership: nothing to do",
-  "claim.deadlock": "claim refused: it would close a waiting cycle (deadlock): {chain}. Whoever asked last yields: {id}; do another part, or release with jtasks release {id}",
+  "claim.came_back": "they came back by themselves after the yield: {files}",
+  "claim.deadlock": "claim refused: it would close a waiting cycle (deadlock): {chain}. The last to ask yields: jtasks yield {id} gives back only the contested files (your edits are kept as a patch and come back when the file is yours again); do other parts meanwhile. Only if nothing else can move, jtasks release {id}",
   "claim.granted": "{id} got {files} (waited {waited} s); ownership: {own}",
   "claim.left": "{id} stopped being in progress while it waited (it is {status})",
   "claim.no_file": "missing the file: jtasks claim {id} <file…>",
@@ -253,6 +254,8 @@ var en_default = {
   "frontier.inside": "{via} (inside {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · position {position}",
   "frontier.waiting_list": "waiting: {list}",
+  "frontier.yielded": "⏳ yielded {files}",
+  "frontier.yielded_held": "⏳ yielded {files} ({owner} has them)",
   "gc.bad_depth": "invalid --depth: {depth}",
   "gc.confirm": "nothing was removed: confirm with jtasks gc --remove {path} --yes",
   "gc.days": "{n} days",
@@ -276,7 +279,7 @@ var en_default = {
   "guard.outside": "outside the ownership of {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json and the tickets change only through the jtasks tool; never by hand",
   "help.archive": "archive <run>                         moves the run to JTASKS_HOME/archive (resume brings it)",
-  "help.claim": "claim <id> <file…> [--timeout 60s]    asks for one more file; waits in jlock's queue",
+  "help.claim": "claim <id> [<file…>] [--timeout 60s]  one more file (none: what it yielded); waits in the queue",
   "help.clean": "clean <run>|--all [--yes]             deletes the run's folder (listing the active effects first)",
   "help.doctor": "doctor [--fix [--yes]]                is this machine ready? --fix --yes installs what is missing",
   "help.done": 'done <id> --evidence "…"              checks git and ownership; commits the ownership; done',
@@ -310,6 +313,7 @@ var en_default = {
                                         undoes newest first (revert, branch, exclude, folder)`,
   "help.unknown": "no action {action} (see jtasks help)",
   "help.validate": "validate <json|@file|folder>          validates a plan (or a folder of tickets) without writing",
+  "help.yield": "yield <id> [<file…>]                  gives back contested files only; edits kept as patches",
   "import.check_only": "nothing was written (--check)",
   "import.has_errors": "the plan read has {n} error(s):",
   "import.line": "{file} → {id} · {title} · depends on: {deps} · ownership: {own} · {n} criteria",
@@ -375,6 +379,9 @@ var en_default = {
   "keepalive.stalled": "run {run} is stopped with {what} to do and nothing running; {tries} message(s) without progress, the host gave up (jtasks keepalive on watches it again)",
   "keepalive.error": "the run {run} stopped on an error with {what} to do and nothing running; after an error the host sends nothing (send a message to go on)",
   "keepalive.dropped": "jtasks: keepalive message no longer needed (the run moved on)",
+  "patch.conflicts": "reapplied with conflicts (resolve the markers; the patch stays saved): {list}",
+  "patch.failed": "patches that did not apply (nothing changed; they stay saved): {list}",
+  "patch.reapplied": "patches reapplied: {files}",
   "plan.absolute_path": "{path}: use paths relative to the repository",
   "plan.branch": '"branch" must be "run" or "current"',
   "plan.branch_exists": "the branch {branch} already exists",
@@ -501,7 +508,16 @@ var en_default = {
   "undo.no_commit": "{id}: the commit {ref} no longer exists (see jtasks effects --check)",
   "undo.no_effect": "no active effect {id} in run {run} (see jtasks ledger)",
   "undo.no_global": "no active global effect {id} (see jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: the patch {patch} is gone",
   "undo.none": "{id}: there is no automatic undo for {type} ({kind})",
+  "undo.patch_applied": "{id}: the edit of {file} came back (patch {patch})",
+  "undo.patch_conflict": "{id}: the edit of {file} came back with conflicts (patch {patch})",
+  "undo.patch_dirty": "{id}: {file} has uncommitted edits; a saved edit is put back only over a clean file",
+  "undo.patch_failed": "{id}: the patch of {file} did not apply: {message}",
+  "undo.patch_owned": "{id}: {file} is in the ownership of {task}, in progress; the edit is not put back over that task's (--force to do it anyway)",
+  "undo.patch_removed": "{id}: patch {patch} removed",
+  "undo.patch_reversed": "{id}: the reapplied edit of {file} was taken out",
+  "undo.reverse_failed": "{id}: the reapplied edit of {file} could not be taken out (patch {patch}): the file changed since",
   "undo.revert_failed": "{id}: git revert {ref} did not apply cleanly: {message}",
   "undo.reverted": "{id}: revert of {ref} → commit {head}",
   "undo.run_busy": "{id}: the run has tasks in progress ({tasks}); release them first",
@@ -519,7 +535,21 @@ var en_default = {
   "view.no_run": "no bound run",
   "view.no_runs": "no run (jtasks plan)",
   "view.paused": "paused",
-  "view.stalled": "⚠ stopped: {what} to do, nothing running"
+  "view.stalled": "⚠ stopped: {what} to do, nothing running",
+  "view.waits_for": "waits for {files}",
+  "yield.came_back": "{id} took back {files}",
+  "yield.done": "{id} yielded {files} and stays in progress; {saved}",
+  "yield.exclusive": "{id} is exclusive (the whole repository): it has no single files to yield; release it with jtasks release {id}",
+  "yield.hint": "do the parts that do not need them; when you need them again, jtasks claim {id} (it waits in the queue and reapplies your patches; they also come back by themselves once free)",
+  "yield.inside": "{file} is inside {folder}, which {id} holds as a whole: yield the folder (jtasks yield {id} {folder})",
+  "yield.kept": "not yielded (their edits could not be kept aside): {files}",
+  "yield.no_edits": "no uncommitted edits in them",
+  "yield.not_owned": "{file} is not in the ownership of {id}: nothing to yield",
+  "yield.not_running": "{id} is not in progress (it is {status}): yield only during the task",
+  "yield.nothing": "{id} has no claim refused for a deadlock to yield from: name the files, jtasks yield {id} <file…>",
+  "yield.refused": "yield refused: {errors}",
+  "yield.saved": "edits kept as patches: {list}",
+  "yield.untouched": "left as they are (another owner holds them now): {files}"
 };
 // locales/pt-BR.json
 var pt_BR_default = {
@@ -547,7 +577,8 @@ var pt_BR_default = {
   "binding.other_run": "esta sessão está ligada à execução {run}; --run {asked} é recusado",
   "changes.left": "edições não commitadas ficaram no disco: {list}",
   "claim.already": "{id} já tem {files} na posse: nada a fazer",
-  "claim.deadlock": "claim recusado: fecharia um ciclo de espera (deadlock): {chain}. Quem pediu por último cede: {id} — faça outra parte, ou libere com jtasks release {id}",
+  "claim.came_back": "voltaram sozinhos depois do yield: {files}",
+  "claim.deadlock": "claim recusado: fecharia um ciclo de espera (deadlock): {chain}. Quem pediu por último cede: jtasks yield {id} devolve só os arquivos disputados (suas edições ficam guardadas num patch e voltam quando o arquivo for seu de novo); enquanto isso, faça outras partes. Só se nada mais puder andar, jtasks release {id}",
   "claim.granted": "{id} recebeu {files} (esperou {waited} s); posse: {own}",
   "claim.left": "{id} deixou de estar em andamento enquanto esperava (está {status})",
   "claim.no_file": "falta o arquivo: jtasks claim {id} <arquivo…>",
@@ -651,6 +682,8 @@ var pt_BR_default = {
   "frontier.inside": "{via} (dentro de {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · posição {position}",
   "frontier.waiting_list": "aguardando: {list}",
+  "frontier.yielded": "⏳ cedeu {files}",
+  "frontier.yielded_held": "⏳ cedeu {files} (com {owner})",
   "gc.bad_depth": "--depth inválido: {depth}",
   "gc.confirm": "nada foi removido: confirme com jtasks gc --remove {path} --yes",
   "gc.days": "{n} dias",
@@ -674,7 +707,7 @@ var pt_BR_default = {
   "guard.outside": "fora da posse de {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão",
   "help.archive": "archive <run>                         move a execução para JTASKS_HOME/archive (resume a traz)",
-  "help.claim": "claim <id> <arquivo…> [--timeout 60s]  pede mais um arquivo; espera na fila do jlock",
+  "help.claim": "claim <id> [<arquivo…>] [--timeout 60s]  mais um arquivo (sem: o que cedeu); espera na fila",
   "help.clean": "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",
   "help.doctor": "doctor [--fix [--yes]]                a máquina está pronta? --fix --yes instala o que falta",
   "help.done": 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
@@ -708,6 +741,7 @@ var pt_BR_default = {
                                         desfaz na ordem inversa (revert, branch, exclude, pasta)`,
   "help.unknown": "não há a ação {action} (veja jtasks help)",
   "help.validate": "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar",
+  "help.yield": "yield <id> [<arquivo…>]               cede só os arquivos disputados; edições viram patch",
   "import.check_only": "nada foi gravado (--check)",
   "import.has_errors": "o plano lido tem {n} erro(s):",
   "import.line": "{file} → {id} · {title} · depende de: {deps} · posse: {own} · {n} critério(s)",
@@ -773,6 +807,9 @@ var pt_BR_default = {
   "keepalive.stalled": "a execução {run} está parada com {what} por fazer e nada rodando; {tries} mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)",
   "keepalive.error": "a execução {run} parou num erro com {what} por fazer e nada rodando; depois de um erro o host não manda nada (mande uma mensagem para seguir)",
   "keepalive.dropped": "jtasks: a mensagem de retomada não é mais necessária (a execução andou)",
+  "patch.conflicts": "reaplicados com conflito (resolva os marcadores; o patch continua guardado): {list}",
+  "patch.failed": "patches que não aplicaram (nada mudou; continuam guardados): {list}",
+  "patch.reapplied": "patches reaplicados: {files}",
   "plan.absolute_path": "{path}: use caminhos relativos ao repositório",
   "plan.branch": '"branch" deve ser "run" ou "current"',
   "plan.branch_exists": "o branch {branch} já existe",
@@ -899,7 +936,16 @@ var pt_BR_default = {
   "undo.no_commit": "{id}: o commit {ref} não existe mais (veja jtasks effects --check)",
   "undo.no_effect": "não há efeito ativo {id} na execução {run} (veja jtasks ledger)",
   "undo.no_global": "não há efeito global ativo {id} (veja jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: o patch {patch} não existe mais",
   "undo.none": "{id}: não há desfazer automático para {type} ({kind})",
+  "undo.patch_applied": "{id}: a edição de {file} voltou (patch {patch})",
+  "undo.patch_conflict": "{id}: a edição de {file} voltou com conflito (patch {patch})",
+  "undo.patch_dirty": "{id}: {file} tem edições não commitadas; uma edição guardada só volta sobre um arquivo limpo",
+  "undo.patch_failed": "{id}: o patch de {file} não aplicou: {message}",
+  "undo.patch_owned": "{id}: {file} está na posse de {task}, em andamento; a edição não volta por cima da dela (--force para fazer assim mesmo)",
+  "undo.patch_removed": "{id}: patch {patch} removido",
+  "undo.patch_reversed": "{id}: a edição reaplicada de {file} foi tirada",
+  "undo.reverse_failed": "{id}: a edição reaplicada de {file} não pôde ser tirada (patch {patch}): o arquivo mudou desde então",
   "undo.revert_failed": "{id}: git revert {ref} não aplicou limpo: {message}",
   "undo.reverted": "{id}: revert de {ref} → commit {head}",
   "undo.run_busy": "{id}: a execução tem tarefas em andamento ({tasks}); libere-as antes",
@@ -917,7 +963,21 @@ var pt_BR_default = {
   "view.no_run": "sem execução ligada",
   "view.no_runs": "nenhuma execução (jtasks plan)",
   "view.paused": "pausada",
-  "view.stalled": "⚠ parada: {what} por fazer, nada rodando"
+  "view.stalled": "⚠ parada: {what} por fazer, nada rodando",
+  "view.waits_for": "espera {files}",
+  "yield.came_back": "{id} pegou de volta {files}",
+  "yield.done": "{id} cedeu {files} e continua em andamento; {saved}",
+  "yield.exclusive": "{id} é exclusiva (o repositório inteiro): não tem arquivos avulsos para ceder; libere com jtasks release {id}",
+  "yield.hint": "faça as partes que não dependem deles; quando precisar de novo, jtasks claim {id} (espera na fila e reaplica seus patches; eles também voltam sozinhos quando ficarem livres)",
+  "yield.inside": "{file} está dentro de {folder}, que {id} segura inteira: ceda a pasta (jtasks yield {id} {folder})",
+  "yield.kept": "não cedidos (as edições não puderam ser guardadas): {files}",
+  "yield.no_edits": "não havia edições pendentes neles",
+  "yield.not_owned": "{file} não está na posse de {id}: nada a ceder",
+  "yield.not_running": "{id} não está em andamento (está {status}): yield só durante a tarefa",
+  "yield.nothing": "{id} não tem claim recusado por deadlock de onde ceder: diga os arquivos, jtasks yield {id} <arquivo…>",
+  "yield.refused": "yield recusado: {errors}",
+  "yield.saved": "edições guardadas em patch: {list}",
+  "yield.untouched": "deixados como estão (outro dono os segura agora): {files}"
 };
 // locales/es.json
 var es_default = {
@@ -945,7 +1005,8 @@ var es_default = {
   "binding.other_run": "esta sesión está ligada a la ejecución {run}; se rechaza --run {asked}",
   "changes.left": "quedaron ediciones sin commit en el disco: {list}",
   "claim.already": "{id} ya tiene {files} en su posesión: nada que hacer",
-  "claim.deadlock": "claim rechazado: cerraría un ciclo de espera (deadlock): {chain}. Cede quien pidió último: {id}; haz otra parte o libera con jtasks release {id}",
+  "claim.came_back": "volvieron solos después del yield: {files}",
+  "claim.deadlock": "claim rechazado: cerraría un ciclo de espera (deadlock): {chain}. Cede quien pidió último: jtasks yield {id} devuelve solo los archivos disputados (tus ediciones quedan guardadas en un patch y vuelven cuando el archivo sea tuyo otra vez); mientras tanto, haz otras partes. Solo si nada más puede avanzar, jtasks release {id}",
   "claim.granted": "{id} obtuvo {files} (esperó {waited} s); posesión: {own}",
   "claim.left": "{id} dejó de estar en curso mientras esperaba (está {status})",
   "claim.no_file": "falta el archivo: jtasks claim {id} <archivo…>",
@@ -1049,6 +1110,8 @@ var es_default = {
   "frontier.inside": "{via} (dentro de {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · posición {position}",
   "frontier.waiting_list": "esperando: {list}",
+  "frontier.yielded": "⏳ cedió {files}",
+  "frontier.yielded_held": "⏳ cedió {files} (los tiene {owner})",
   "gc.bad_depth": "--depth no válido: {depth}",
   "gc.confirm": "no se eliminó nada: confirma con jtasks gc --remove {path} --yes",
   "gc.days": "{n} días",
@@ -1072,7 +1135,7 @@ var es_default = {
   "guard.outside": "fuera de la posesión de {id}: {rel}; usa jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json y los tickets solo cambian con la herramienta tasks; nunca a mano",
   "help.archive": "archive <run>                         la mueve a JTASKS_HOME/archive (resume la devuelve)",
-  "help.claim": "claim <id> <archivo…> [--timeout 60s]  pide un archivo más; espera en la cola de jlock",
+  "help.claim": "claim <id> [<archivo…>] [--timeout 60s]  un archivo más (sin: lo cedido); espera en la cola",
   "help.clean": "clean <run>|--all [--yes]             borra su carpeta (lista antes los efectos activos)",
   "help.doctor": "doctor [--fix [--yes]]                ¿está lista la máquina? --fix --yes instala lo que falta",
   "help.done": 'done <id> --evidence "…"              comprueba git y posesión; commit de la posesión; hecha',
@@ -1106,6 +1169,7 @@ var es_default = {
                                         deshace en orden inverso (revert, rama, exclude, carpeta)`,
   "help.unknown": "no existe la acción {action} (ver jtasks help)",
   "help.validate": "validate <json|@archivo|carpeta>      valida un plan (o una carpeta de tickets) sin escribir",
+  "help.yield": "yield <id> [<archivo…>]               cede solo los archivos disputados; ediciones como patch",
   "import.check_only": "no se escribió nada (--check)",
   "import.has_errors": "el plan leído tiene {n} error(es):",
   "import.line": "{file} → {id} · {title} · depende de: {deps} · posesión: {own} · {n} criterio(s)",
@@ -1171,6 +1235,9 @@ var es_default = {
   "keepalive.stalled": "la ejecución {run} está detenida con {what} por hacer y nada en marcha; {tries} mensaje(s) sin progreso, el host se rindió (jtasks keepalive on vuelve a vigilarla)",
   "keepalive.error": "la ejecución {run} se detuvo por un error con {what} por hacer y nada en marcha; tras un error el host no envía nada (envía un mensaje para seguir)",
   "keepalive.dropped": "jtasks: el mensaje de reanudación ya no hace falta (la ejecución avanzó)",
+  "patch.conflicts": "reaplicados con conflictos (resuelve los marcadores; el patch sigue guardado): {list}",
+  "patch.failed": "patches que no se aplicaron (nada cambió; siguen guardados): {list}",
+  "patch.reapplied": "patches reaplicados: {files}",
   "plan.absolute_path": "{path}: usa rutas relativas al repositorio",
   "plan.branch": '"branch" debe ser "run" o "current"',
   "plan.branch_exists": "la rama {branch} ya existe",
@@ -1297,7 +1364,16 @@ var es_default = {
   "undo.no_commit": "{id}: el commit {ref} ya no existe (ver jtasks effects --check)",
   "undo.no_effect": "no hay efecto activo {id} en la ejecución {run} (ver jtasks ledger)",
   "undo.no_global": "no hay efecto global activo {id} (ver jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: el patch {patch} ya no existe",
   "undo.none": "{id}: no hay deshacer automático para {type} ({kind})",
+  "undo.patch_applied": "{id}: la edición de {file} volvió (patch {patch})",
+  "undo.patch_conflict": "{id}: la edición de {file} volvió con conflictos (patch {patch})",
+  "undo.patch_dirty": "{id}: {file} tiene ediciones sin commit; una edición guardada solo vuelve sobre un archivo limpio",
+  "undo.patch_failed": "{id}: el patch de {file} no se aplicó: {message}",
+  "undo.patch_owned": "{id}: {file} está en la posesión de {task}, en curso; la edición no vuelve encima de la suya (--force para hacerlo igual)",
+  "undo.patch_removed": "{id}: patch {patch} eliminado",
+  "undo.patch_reversed": "{id}: se quitó la edición reaplicada de {file}",
+  "undo.reverse_failed": "{id}: la edición reaplicada de {file} no se pudo quitar (patch {patch}): el archivo cambió desde entonces",
   "undo.revert_failed": "{id}: git revert {ref} no se aplicó limpiamente: {message}",
   "undo.reverted": "{id}: revert de {ref} → commit {head}",
   "undo.run_busy": "{id}: la ejecución tiene tareas en curso ({tasks}); libéralas antes",
@@ -1315,7 +1391,21 @@ var es_default = {
   "view.no_run": "sin ejecución ligada",
   "view.no_runs": "ninguna ejecución (jtasks plan)",
   "view.paused": "en pausa",
-  "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha"
+  "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha",
+  "view.waits_for": "espera {files}",
+  "yield.came_back": "{id} recuperó {files}",
+  "yield.done": "{id} cedió {files} y sigue en curso; {saved}",
+  "yield.exclusive": "{id} es exclusiva (todo el repositorio): no tiene archivos sueltos para ceder; libérala con jtasks release {id}",
+  "yield.hint": "haz las partes que no los necesitan; cuando los necesites otra vez, jtasks claim {id} (espera en la cola y reaplica tus patches; también vuelven solos cuando queden libres)",
+  "yield.inside": "{file} está dentro de {folder}, que {id} tiene entera: cede la carpeta (jtasks yield {id} {folder})",
+  "yield.kept": "no cedidos (sus ediciones no se pudieron guardar): {files}",
+  "yield.no_edits": "no tenían ediciones pendientes",
+  "yield.not_owned": "{file} no está en la posesión de {id}: nada que ceder",
+  "yield.not_running": "{id} no está en curso (está {status}): yield solo durante la tarea",
+  "yield.nothing": "{id} no tiene un claim rechazado por deadlock del cual ceder: indica los archivos, jtasks yield {id} <archivo…>",
+  "yield.refused": "yield rechazado: {errors}",
+  "yield.saved": "ediciones guardadas como patch: {list}",
+  "yield.untouched": "dejados como están (otro dueño los tiene ahora): {files}"
 };
 // locales/fr.json
 var fr_default = {
@@ -1343,7 +1433,8 @@ var fr_default = {
   "binding.other_run": "cette session est liée à l'exécution {run}; --run {asked} est refusé",
   "changes.left": "des modifications non commitées sont restées sur le disque: {list}",
   "claim.already": "{id} a déjà {files} dans sa possession: rien à faire",
-  "claim.deadlock": "claim refusé: il fermerait un cycle d'attente (deadlock): {chain}. Le dernier à demander cède: {id}; faites une autre partie, ou libérez avec jtasks release {id}",
+  "claim.came_back": "ils sont revenus d'eux-mêmes après le yield: {files}",
+  "claim.deadlock": "claim refusé: il fermerait un cycle d'attente (deadlock): {chain}. Le dernier à demander cède: jtasks yield {id} rend seulement les fichiers disputés (vos modifications sont gardées dans un patch et reviennent quand le fichier est de nouveau à vous); en attendant, faites d'autres parties. Seulement si plus rien ne peut avancer, jtasks release {id}",
   "claim.granted": "{id} a obtenu {files} (attente {waited} s); possession: {own}",
   "claim.left": "{id} a cessé d'être en cours pendant l'attente (elle est {status})",
   "claim.no_file": "fichier manquant: jtasks claim {id} <fichier…>",
@@ -1447,6 +1538,8 @@ var fr_default = {
   "frontier.inside": "{via} (dans {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · position {position}",
   "frontier.waiting_list": "attendent: {list}",
+  "frontier.yielded": "⏳ a cédé {files}",
+  "frontier.yielded_held": "⏳ a cédé {files} ({owner} les a)",
   "gc.bad_depth": "--depth invalide: {depth}",
   "gc.confirm": "rien n'a été retiré: confirmez avec jtasks gc --remove {path} --yes",
   "gc.days": "{n} jours",
@@ -1470,7 +1563,7 @@ var fr_default = {
   "guard.outside": "hors de la possession de {id}: {rel}; utilisez jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json et les tickets ne changent que par l'outil tasks; jamais à la main",
   "help.archive": "archive <run>                         la déplace vers JTASKS_HOME/archive (resume la ramène)",
-  "help.claim": "claim <id> <fichier…> [--timeout 60s]  demande un fichier de plus; attend dans la file de jlock",
+  "help.claim": "claim <id> [<fichier…>] [--timeout 60s]  un fichier de plus (sans: le cédé); attend en file",
   "help.clean": "clean <run>|--all [--yes]             supprime son dossier (liste d'abord les effets actifs)",
   "help.doctor": "doctor [--fix [--yes]]                machine prête? --fix --yes installe ce qui manque",
   "help.done": 'done <id> --evidence "…"              vérifie git et possession; commite la possession; terminée',
@@ -1504,6 +1597,7 @@ var fr_default = {
                                         annule en ordre inverse (revert, branch, exclude, dossier)`,
   "help.unknown": "aucune action {action} (voir jtasks help)",
   "help.validate": "validate <json|@fichier|dossier>      valide un plan (ou un dossier de tickets) sans écrire",
+  "help.yield": "yield <id> [<fichier…>]               cède les fichiers disputés seulement; modifs en patch",
   "import.check_only": "rien n'a été écrit (--check)",
   "import.has_errors": "le plan lu a {n} erreur(s):",
   "import.line": "{file} → {id} · {title} · dépend de: {deps} · possession: {own} · {n} critère(s)",
@@ -1569,6 +1663,9 @@ var fr_default = {
   "keepalive.stalled": "l'exécution {run} est arrêtée avec {what} à faire et rien en cours ; {tries} message(s) sans progrès, l'hôte abandonne (jtasks keepalive on la surveille à nouveau)",
   "keepalive.error": "l'exécution {run} s'est arrêtée sur une erreur avec {what} à faire et rien en cours ; après une erreur l'hôte n'envoie rien (envoyez un message pour continuer)",
   "keepalive.dropped": "jtasks : le message de relance n'est plus nécessaire (l'exécution a avancé)",
+  "patch.conflicts": "réappliqués avec conflits (résolvez les marqueurs; le patch reste gardé): {list}",
+  "patch.failed": "patchs qui ne se sont pas appliqués (rien n'a changé; ils restent gardés): {list}",
+  "patch.reapplied": "patchs réappliqués: {files}",
   "plan.absolute_path": "{path}: utilisez des chemins relatifs au dépôt",
   "plan.branch": '"branch" doit valoir "run" ou "current"',
   "plan.branch_exists": "la branche {branch} existe déjà",
@@ -1695,7 +1792,16 @@ var fr_default = {
   "undo.no_commit": "{id}: le commit {ref} n'existe plus (voir jtasks effects --check)",
   "undo.no_effect": "aucun effet actif {id} dans l'exécution {run} (voir jtasks ledger)",
   "undo.no_global": "aucun effet global actif {id} (voir jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: le patch {patch} n'existe plus",
   "undo.none": "{id}: pas d'annulation automatique pour {type} ({kind})",
+  "undo.patch_applied": "{id}: la modification de {file} est revenue (patch {patch})",
+  "undo.patch_conflict": "{id}: la modification de {file} est revenue avec conflits (patch {patch})",
+  "undo.patch_dirty": "{id}: {file} a des modifications non commitées; une modification gardée ne revient que sur un fichier propre",
+  "undo.patch_failed": "{id}: le patch de {file} ne s'est pas appliqué: {message}",
+  "undo.patch_owned": "{id}: {file} est dans la possession de {task}, en cours; la modification ne revient pas par-dessus la sienne (--force pour le faire quand même)",
+  "undo.patch_removed": "{id}: patch {patch} supprimé",
+  "undo.patch_reversed": "{id}: la modification réappliquée de {file} a été retirée",
+  "undo.reverse_failed": "{id}: la modification réappliquée de {file} n'a pas pu être retirée (patch {patch}): le fichier a changé depuis",
   "undo.revert_failed": "{id}: git revert {ref} ne s'est pas appliqué proprement: {message}",
   "undo.reverted": "{id}: revert de {ref} → commit {head}",
   "undo.run_busy": "{id}: l'exécution a des tâches en cours ({tasks}); libérez-les d'abord",
@@ -1713,7 +1819,21 @@ var fr_default = {
   "view.no_run": "aucune exécution liée",
   "view.no_runs": "aucune exécution (jtasks plan)",
   "view.paused": "en pause",
-  "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours"
+  "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours",
+  "view.waits_for": "attend {files}",
+  "yield.came_back": "{id} a repris {files}",
+  "yield.done": "{id} a cédé {files} et reste en cours; {saved}",
+  "yield.exclusive": "{id} est exclusive (tout le dépôt): elle n'a pas de fichiers isolés à céder; libérez-la avec jtasks release {id}",
+  "yield.hint": "faites les parties qui n'en ont pas besoin; quand vous en avez de nouveau besoin, jtasks claim {id} (attend dans la file et réapplique vos patchs; ils reviennent aussi d'eux-mêmes une fois libres)",
+  "yield.inside": "{file} est dans {folder}, que {id} tient en entier: cédez le dossier (jtasks yield {id} {folder})",
+  "yield.kept": "non cédés (leurs modifications n'ont pas pu être gardées): {files}",
+  "yield.no_edits": "aucune modification en attente dedans",
+  "yield.not_owned": "{file} n'est pas dans la possession de {id}: rien à céder",
+  "yield.not_running": "{id} n'est pas en cours (elle est {status}): yield seulement pendant la tâche",
+  "yield.nothing": "{id} n'a pas de claim refusé pour deadlock d'où céder: nommez les fichiers, jtasks yield {id} <fichier…>",
+  "yield.refused": "yield refusé: {errors}",
+  "yield.saved": "modifications gardées en patch: {list}",
+  "yield.untouched": "laissés tels quels (un autre propriétaire les tient maintenant): {files}"
 };
 // locales/de.json
 var de_default = {
@@ -1741,7 +1861,8 @@ var de_default = {
   "binding.other_run": "diese Sitzung ist an Lauf {run} gebunden; --run {asked} wird abgelehnt",
   "changes.left": "nicht committete Änderungen blieben auf der Festplatte: {list}",
   "claim.already": "{id} hat {files} bereits im Besitz: nichts zu tun",
-  "claim.deadlock": "claim abgelehnt: er würde einen Wartezyklus schließen (Deadlock): {chain}. Wer zuletzt gefragt hat, weicht: {id}; mach einen anderen Teil oder gib frei mit jtasks release {id}",
+  "claim.came_back": "sie kamen nach dem yield von selbst zurück: {files}",
+  "claim.deadlock": "claim abgelehnt: er würde einen Wartezyklus schließen (Deadlock): {chain}. Wer zuletzt gefragt hat, weicht: jtasks yield {id} gibt nur die umkämpften Dateien ab (deine Änderungen werden als Patch aufbewahrt und kommen zurück, sobald die Datei wieder dir gehört); mach inzwischen andere Teile. Nur wenn sonst nichts weitergeht, jtasks release {id}",
   "claim.granted": "{id} hat {files} erhalten ({waited} s gewartet); Besitz: {own}",
   "claim.left": "{id} war während des Wartens nicht mehr in Arbeit (Status {status})",
   "claim.no_file": "Datei fehlt: jtasks claim {id} <datei…>",
@@ -1845,6 +1966,8 @@ var de_default = {
   "frontier.inside": "{via} (in {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · Position {position}",
   "frontier.waiting_list": "wartend: {list}",
+  "frontier.yielded": "⏳ hat {files} abgegeben",
+  "frontier.yielded_held": "⏳ hat {files} abgegeben ({owner} hat sie)",
   "gc.bad_depth": "ungültiges --depth: {depth}",
   "gc.confirm": "nichts wurde entfernt: bestätige mit jtasks gc --remove {path} --yes",
   "gc.days": "{n} Tage",
@@ -1868,7 +1991,7 @@ var de_default = {
   "guard.outside": "außerhalb des Besitzes von {id}: {rel}; nutze jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json und die Tickets ändern sich nur über das Tool tasks; nie von Hand",
   "help.archive": "archive <run>                         verschiebt nach JTASKS_HOME/archive (resume holt zurück)",
-  "help.claim": "claim <id> <datei…> [--timeout 60s]   fordert eine Datei mehr an; wartet in jlocks Warteschlange",
+  "help.claim": "claim <id> [<datei…>] [--timeout 60s] eine Datei mehr (ohne: das Abgegebene); wartet in Reihe",
   "help.clean": "clean <run>|--all [--yes]             löscht den Ordner des Laufs (listet erst aktive Effekte)",
   "help.doctor": "doctor [--fix [--yes]]                ist der Rechner bereit? --fix --yes installiert, was fehlt",
   "help.done": 'done <id> --evidence "…"              prüft git und Besitz; committet den Besitz; erledigt',
@@ -1902,6 +2025,7 @@ var de_default = {
                                         neueste zuerst rückgängig: revert, branch, exclude, Ordner`,
   "help.unknown": "keine Aktion {action} (siehe jtasks help)",
   "help.validate": "validate <json|@datei|ordner>         prüft einen Plan (oder Ticket-Ordner), ohne zu schreiben",
+  "help.yield": "yield <id> [<datei…>]                 gibt nur umkämpfte Dateien ab; Änderungen als Patch",
   "import.check_only": "nichts wurde geschrieben (--check)",
   "import.has_errors": "der gelesene Plan hat {n} Fehler:",
   "import.line": "{file} → {id} · {title} · hängt ab von: {deps} · Besitz: {own} · Kriterien: {n}",
@@ -1967,6 +2091,9 @@ var de_default = {
   "keepalive.stalled": "Lauf {run} steht mit {what} offen und nichts läuft; {tries} Nachricht(en) ohne Fortschritt, der Host gibt auf (jtasks keepalive on beobachtet ihn wieder)",
   "keepalive.error": "Lauf {run} hat bei einem Fehler angehalten, {what} offen, nichts läuft; nach einem Fehler sendet der Host nichts (schick eine Nachricht, um weiterzumachen)",
   "keepalive.dropped": "jtasks: die Wiederaufnahme-Nachricht ist nicht mehr nötig (der Lauf ist weitergegangen)",
+  "patch.conflicts": "mit Konflikten wieder angewendet (löse die Markierungen; der Patch bleibt aufbewahrt): {list}",
+  "patch.failed": "Patches, die nicht angewendet wurden (nichts geändert; sie bleiben aufbewahrt): {list}",
+  "patch.reapplied": "Patches wieder angewendet: {files}",
   "plan.absolute_path": "{path}: nutze Pfade relativ zum Repository",
   "plan.branch": '"branch" muss "run" oder "current" sein',
   "plan.branch_exists": "der Branch {branch} existiert bereits",
@@ -2093,7 +2220,16 @@ var de_default = {
   "undo.no_commit": "{id}: der Commit {ref} existiert nicht mehr (siehe jtasks effects --check)",
   "undo.no_effect": "kein aktiver Effekt {id} in Lauf {run} (siehe jtasks ledger)",
   "undo.no_global": "kein aktiver globaler Effekt {id} (siehe jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: der Patch {patch} existiert nicht mehr",
   "undo.none": "{id}: kein automatisches Rückgängigmachen für {type} ({kind})",
+  "undo.patch_applied": "{id}: die Änderung von {file} kam zurück (Patch {patch})",
+  "undo.patch_conflict": "{id}: die Änderung von {file} kam mit Konflikten zurück (Patch {patch})",
+  "undo.patch_dirty": "{id}: {file} hat nicht committete Änderungen; eine aufbewahrte Änderung kommt nur auf eine saubere Datei zurück",
+  "undo.patch_failed": "{id}: der Patch von {file} wurde nicht angewendet: {message}",
+  "undo.patch_owned": "{id}: {file} ist im Besitz von {task}, in Arbeit; die Änderung wird nicht über deren gelegt (--force, um es trotzdem zu tun)",
+  "undo.patch_removed": "{id}: Patch {patch} entfernt",
+  "undo.patch_reversed": "{id}: die wieder angewendete Änderung von {file} wurde herausgenommen",
+  "undo.reverse_failed": "{id}: die wieder angewendete Änderung von {file} ließ sich nicht herausnehmen (Patch {patch}): die Datei hat sich seitdem geändert",
   "undo.revert_failed": "{id}: git revert {ref} ließ sich nicht sauber anwenden: {message}",
   "undo.reverted": "{id}: Revert von {ref} → Commit {head}",
   "undo.run_busy": "{id}: der Lauf hat Aufgaben in Arbeit ({tasks}); gib sie zuerst frei",
@@ -2111,7 +2247,21 @@ var de_default = {
   "view.no_run": "kein gebundener Lauf",
   "view.no_runs": "kein Lauf (jtasks plan)",
   "view.paused": "pausiert",
-  "view.stalled": "⚠ steht: {what} offen, nichts läuft"
+  "view.stalled": "⚠ steht: {what} offen, nichts läuft",
+  "view.waits_for": "wartet auf {files}",
+  "yield.came_back": "{id} hat {files} zurückgenommen",
+  "yield.done": "{id} hat {files} abgegeben und bleibt in Arbeit; {saved}",
+  "yield.exclusive": "{id} ist exklusiv (das ganze Repository): sie hat keine einzelnen Dateien abzugeben; gib sie frei mit jtasks release {id}",
+  "yield.hint": "mach die Teile, die sie nicht brauchen; wenn du sie wieder brauchst, jtasks claim {id} (wartet in der Warteschlange und wendet deine Patches wieder an; sie kommen auch von selbst zurück, sobald sie frei sind)",
+  "yield.inside": "{file} liegt in {folder}, das {id} als Ganzes hält: gib den Ordner ab (jtasks yield {id} {folder})",
+  "yield.kept": "nicht abgegeben (ihre Änderungen konnten nicht aufbewahrt werden): {files}",
+  "yield.no_edits": "keine offenen Änderungen darin",
+  "yield.not_owned": "{file} ist nicht im Besitz von {id}: nichts abzugeben",
+  "yield.not_running": "{id} ist nicht in Arbeit (sie ist {status}): yield nur während der Aufgabe",
+  "yield.nothing": "{id} hat keinen wegen Deadlock abgelehnten claim, aus dem sie abgeben könnte: nenne die Dateien, jtasks yield {id} <datei…>",
+  "yield.refused": "yield abgelehnt: {errors}",
+  "yield.saved": "Änderungen als Patch aufbewahrt: {list}",
+  "yield.untouched": "so gelassen, wie sie sind (ein anderer Besitzer hält sie jetzt): {files}"
 };
 // locales/it.json
 var it_default = {
@@ -2139,7 +2289,8 @@ var it_default = {
   "binding.other_run": "questa sessione è legata all'esecuzione {run}; --run {asked} rifiutato",
   "changes.left": "modifiche non committate rimaste sul disco: {list}",
   "claim.already": "{id} ha già {files} nel suo possesso: niente da fare",
-  "claim.deadlock": "claim rifiutato: chiuderebbe un ciclo di attesa (deadlock): {chain}. Cede chi ha chiesto per ultimo: {id}; fai un'altra parte, o rilascia con jtasks release {id}",
+  "claim.came_back": "sono tornati da soli dopo lo yield: {files}",
+  "claim.deadlock": "claim rifiutato: chiuderebbe un ciclo di attesa (deadlock): {chain}. Cede chi ha chiesto per ultimo: jtasks yield {id} restituisce solo i file contesi (le tue modifiche restano salvate in una patch e tornano quando il file è di nuovo tuo); nel frattempo, fai altre parti. Solo se nient'altro può andare avanti, jtasks release {id}",
   "claim.granted": "{id} ha ottenuto {files} (atteso {waited} s); possesso: {own}",
   "claim.left": "{id} non è più in corso mentre attendeva (stato: {status})",
   "claim.no_file": "manca il file: jtasks claim {id} <file…>",
@@ -2243,6 +2394,8 @@ var it_default = {
   "frontier.inside": "{via} (dentro {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · posizione {position}",
   "frontier.waiting_list": "in attesa: {list}",
+  "frontier.yielded": "⏳ ha ceduto {files}",
+  "frontier.yielded_held": "⏳ ha ceduto {files} (li ha {owner})",
   "gc.bad_depth": "--depth non valido: {depth}",
   "gc.confirm": "nulla è stato rimosso: conferma con jtasks gc --remove {path} --yes",
   "gc.days": "{n} giorni",
@@ -2266,7 +2419,7 @@ var it_default = {
   "guard.outside": "fuori dal possesso di {id}: {rel}; usa jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e i ticket cambiano solo tramite lo strumento tasks; mai a mano",
   "help.archive": "archive <run>                         la sposta in JTASKS_HOME/archive (resume la riporta)",
-  "help.claim": "claim <id> <file…> [--timeout 60s]    chiede un altro file; attende nella coda di jlock",
+  "help.claim": "claim <id> [<file…>] [--timeout 60s]  un altro file (senza: ciò che ha ceduto); attende in coda",
   "help.clean": "clean <run>|--all [--yes]             elimina la cartella (elencando prima gli effetti attivi)",
   "help.doctor": "doctor [--fix [--yes]]                la macchina è pronta? --fix --yes installa ciò che manca",
   "help.done": 'done <id> --evidence "…"              verifica git e possesso; commit del possesso; done',
@@ -2300,6 +2453,7 @@ var it_default = {
                                         annulla a ritroso (revert, branch, exclude, cartella)`,
   "help.unknown": "nessuna azione {action} (vedi jtasks help)",
   "help.validate": "validate <json|@file|cartella>        convalida un piano (o una cartella di ticket) senza scrivere",
+  "help.yield": "yield <id> [<file…>]                  cede solo i file contesi; modifiche salvate come patch",
   "import.check_only": "nulla è stato scritto (--check)",
   "import.has_errors": "il piano letto ha errori ({n}):",
   "import.line": "{file} → {id} · {title} · dipende da: {deps} · possesso: {own} · criteri: {n}",
@@ -2365,6 +2519,9 @@ var it_default = {
   "keepalive.stalled": "l'esecuzione {run} è ferma con {what} da fare e niente in corso; {tries} messaggio/i senza progressi, l'host rinuncia (jtasks keepalive on la sorveglia di nuovo)",
   "keepalive.error": "l'esecuzione {run} si è fermata per un errore con {what} da fare e niente in corso; dopo un errore l'host non invia nulla (manda un messaggio per proseguire)",
   "keepalive.dropped": "jtasks: il messaggio di ripresa non serve più (l'esecuzione è andata avanti)",
+  "patch.conflicts": "riapplicate con conflitti (risolvi i marcatori; la patch resta salvata): {list}",
+  "patch.failed": "patch che non si sono applicate (nulla è cambiato; restano salvate): {list}",
+  "patch.reapplied": "patch riapplicate: {files}",
   "plan.absolute_path": "{path}: usa percorsi relativi al repository",
   "plan.branch": '"branch" deve essere "run" o "current"',
   "plan.branch_exists": "il branch {branch} esiste già",
@@ -2491,7 +2648,16 @@ var it_default = {
   "undo.no_commit": "{id}: il commit {ref} non esiste più (vedi jtasks effects --check)",
   "undo.no_effect": "nessun effetto attivo {id} nell'esecuzione {run} (vedi jtasks ledger)",
   "undo.no_global": "nessun effetto globale attivo {id} (vedi jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: la patch {patch} non esiste più",
   "undo.none": "{id}: non c'è annullamento automatico per {type} ({kind})",
+  "undo.patch_applied": "{id}: la modifica di {file} è tornata (patch {patch})",
+  "undo.patch_conflict": "{id}: la modifica di {file} è tornata con conflitti (patch {patch})",
+  "undo.patch_dirty": "{id}: {file} ha modifiche non committate; una modifica salvata torna solo su un file pulito",
+  "undo.patch_failed": "{id}: la patch di {file} non si è applicata: {message}",
+  "undo.patch_owned": "{id}: {file} è nel possesso di {task}, in corso; la modifica non torna sopra la sua (--force per farlo comunque)",
+  "undo.patch_removed": "{id}: patch {patch} rimossa",
+  "undo.patch_reversed": "{id}: la modifica riapplicata di {file} è stata tolta",
+  "undo.reverse_failed": "{id}: la modifica riapplicata di {file} non si è potuta togliere (patch {patch}): il file è cambiato da allora",
   "undo.revert_failed": "{id}: git revert {ref} non si è applicato in modo pulito: {message}",
   "undo.reverted": "{id}: revert di {ref} → commit {head}",
   "undo.run_busy": "{id}: l'esecuzione ha attività in corso ({tasks}); rilasciale prima",
@@ -2509,7 +2675,21 @@ var it_default = {
   "view.no_run": "nessuna esecuzione legata",
   "view.no_runs": "nessuna esecuzione (jtasks plan)",
   "view.paused": "in pausa",
-  "view.stalled": "⚠ ferma: {what} da fare, niente in corso"
+  "view.stalled": "⚠ ferma: {what} da fare, niente in corso",
+  "view.waits_for": "attende {files}",
+  "yield.came_back": "{id} ha ripreso {files}",
+  "yield.done": "{id} ha ceduto {files} e resta in corso; {saved}",
+  "yield.exclusive": "{id} è esclusiva (l'intero repository): non ha singoli file da cedere; rilasciala con jtasks release {id}",
+  "yield.hint": "fai le parti che non ne hanno bisogno; quando ti servono di nuovo, jtasks claim {id} (attende nella coda e riapplica le tue patch; tornano anche da soli quando sono liberi)",
+  "yield.inside": "{file} è dentro {folder}, che {id} tiene per intero: cedi la cartella (jtasks yield {id} {folder})",
+  "yield.kept": "non ceduti (le loro modifiche non si sono potute salvare): {files}",
+  "yield.no_edits": "nessuna modifica in sospeso al loro interno",
+  "yield.not_owned": "{file} non è nel possesso di {id}: niente da cedere",
+  "yield.not_running": "{id} non è in corso (è {status}): yield solo durante l'attività",
+  "yield.nothing": "{id} non ha un claim rifiutato per deadlock da cui cedere: indica i file, jtasks yield {id} <file…>",
+  "yield.refused": "yield rifiutato: {errors}",
+  "yield.saved": "modifiche salvate come patch: {list}",
+  "yield.untouched": "lasciati come sono (un altro proprietario li tiene ora): {files}"
 };
 // locales/zh-CN.json
 var zh_CN_default = {
@@ -2537,7 +2717,8 @@ var zh_CN_default = {
   "binding.other_run": "本会话已绑定到运行 {run}；拒绝 --run {asked}",
   "changes.left": "未提交的修改留在磁盘上：{list}",
   "claim.already": "{id} 的所有权中已有 {files}：无需操作",
-  "claim.deadlock": "claim 被拒绝：会形成等待环（死锁）：{chain}。最后请求者让步：{id}；去做其他部分，或用 jtasks release {id} 释放",
+  "claim.came_back": "yield 之后它们已自动回来：{files}",
+  "claim.deadlock": "claim 被拒绝：会形成等待环（死锁）：{chain}。最后请求者让步：jtasks yield {id} 只交还有争用的文件（你的修改保存为补丁，文件重新归你时会恢复）；同时去做其他部分。只有在别的都无法推进时，才用 jtasks release {id}",
   "claim.granted": "{id} 获得 {files}（等待 {waited} 秒）；所有权：{own}",
   "claim.left": "{id} 在等待期间已不再进行中（当前为 {status}）",
   "claim.no_file": "缺少文件：jtasks claim {id} <文件…>",
@@ -2641,6 +2822,8 @@ var zh_CN_default = {
   "frontier.inside": "{via}（在 {asked} 内）",
   "frontier.waiting": "⏳ {owner}：{shown} · 位置 {position}",
   "frontier.waiting_list": "等待中：{list}",
+  "frontier.yielded": "⏳ 已让出 {files}",
+  "frontier.yielded_held": "⏳ 已让出 {files}（在 {owner} 手中）",
   "gc.bad_depth": "无效的 --depth：{depth}",
   "gc.confirm": "未删除任何内容：用 jtasks gc --remove {path} --yes 确认",
   "gc.days": "{n} 天",
@@ -2664,7 +2847,7 @@ var zh_CN_default = {
   "guard.outside": "超出 {id} 的所有权：{rel}；使用 jtasks claim {id} {rel}",
   "guard.run_files": "{rel}：tasks.json、run.json 和工单只能通过 tasks 工具修改；切勿手动修改",
   "help.archive": "archive <run>                         将运行移到 JTASKS_HOME/archive（resume 取回）",
-  "help.claim": "claim <id> <文件…> [--timeout 60s]    再申请一个文件；在 jlock 的队列中等待",
+  "help.claim": "claim <id> [<文件…>] [--timeout 60s]  再申请一个文件（不带：取回让出的）；在队列中等待",
   "help.clean": "clean <run>|--all [--yes]             删除运行的文件夹（先列出生效的副作用）",
   "help.doctor": "doctor [--fix [--yes]]                本机是否就绪？--fix --yes 安装缺少的部分",
   "help.done": 'done <id> --evidence "…"              检查 git 和所有权；提交所有权内的文件；完成',
@@ -2698,6 +2881,7 @@ var zh_CN_default = {
                                         从最新的开始撤销（revert、branch、exclude、文件夹）`,
   "help.unknown": "没有操作 {action}（见 jtasks help）",
   "help.validate": "validate <json|@文件|文件夹>          校验计划（或工单文件夹），不写入",
+  "help.yield": "yield <id> [<文件…>]                  只让出有争用的文件；修改保存为补丁",
   "import.check_only": "未写入任何内容（--check）",
   "import.has_errors": "读取的计划有 {n} 个错误：",
   "import.line": "{file} → {id} · {title} · 依赖：{deps} · 所有权：{own} · {n} 条验收标准",
@@ -2763,6 +2947,9 @@ var zh_CN_default = {
   "keepalive.stalled": "运行 {run} 已停下，还有 {what} 待做且无任何运行；{tries} 条消息没有进展，宿主已放弃(jtasks keepalive on 重新监视)",
   "keepalive.error": "运行 {run} 因错误停下，还有 {what} 待做且无任何运行；出错后宿主不会发送任何消息(发一条消息即可继续)",
   "keepalive.dropped": "jtasks：不再需要自动续跑消息(运行已推进)",
+  "patch.conflicts": "重新应用时有冲突（请解决冲突标记；补丁仍保存着）：{list}",
+  "patch.failed": "未能应用的补丁（没有任何改动；仍保存着）：{list}",
+  "patch.reapplied": "补丁已重新应用：{files}",
   "plan.absolute_path": "{path}：请使用相对于仓库的路径",
   "plan.branch": '"branch" 必须是 "run" 或 "current"',
   "plan.branch_exists": "分支 {branch} 已存在",
@@ -2889,7 +3076,16 @@ var zh_CN_default = {
   "undo.no_commit": "{id}：提交 {ref} 已不存在（见 jtasks effects --check）",
   "undo.no_effect": "运行 {run} 中没有生效的副作用 {id}（见 jtasks ledger）",
   "undo.no_global": "没有生效的全局副作用 {id}（见 jtasks ledger --all-projects）",
+  "undo.no_patch": "{id}：补丁 {patch} 已不存在",
   "undo.none": "{id}：{type}（{kind}）没有自动撤销",
+  "undo.patch_applied": "{id}：{file} 的修改已恢复（补丁 {patch}）",
+  "undo.patch_conflict": "{id}：{file} 的修改已恢复，但有冲突（补丁 {patch}）",
+  "undo.patch_dirty": "{id}：{file} 有未提交的修改；保存的修改只能恢复到干净的文件上",
+  "undo.patch_failed": "{id}：{file} 的补丁未能应用：{message}",
+  "undo.patch_owned": "{id}：{file} 属于进行中的 {task}；不会把修改覆盖到它的修改之上（用 --force 强制执行）",
+  "undo.patch_removed": "{id}：补丁 {patch} 已删除",
+  "undo.patch_reversed": "{id}：已撤出 {file} 重新应用的修改",
+  "undo.reverse_failed": "{id}：无法撤出 {file} 重新应用的修改（补丁 {patch}）：文件此后已改变",
   "undo.revert_failed": "{id}：git revert {ref} 未能干净地应用：{message}",
   "undo.reverted": "{id}：revert {ref} → 提交 {head}",
   "undo.run_busy": "{id}：该运行有进行中的任务（{tasks}）；请先释放",
@@ -2907,7 +3103,21 @@ var zh_CN_default = {
   "view.no_run": "未绑定运行",
   "view.no_runs": "没有运行（jtasks plan）",
   "view.paused": "已暂停",
-  "view.stalled": "⚠ 已停下：{what} 待做，无任何运行"
+  "view.stalled": "⚠ 已停下：{what} 待做，无任何运行",
+  "view.waits_for": "等待 {files}",
+  "yield.came_back": "{id} 取回了 {files}",
+  "yield.done": "{id} 让出了 {files}，仍在进行中；{saved}",
+  "yield.exclusive": "{id} 是独占的（整个仓库）：没有单独的文件可让出；用 jtasks release {id} 释放",
+  "yield.hint": "先做不需要它们的部分；再次需要时，jtasks claim {id}（在队列中等待并重新应用你的补丁；它们空闲后也会自动回来）",
+  "yield.inside": "{file} 位于 {folder} 内，{id} 整体持有该文件夹：请让出文件夹（jtasks yield {id} {folder}）",
+  "yield.kept": "未让出（其修改无法保存）：{files}",
+  "yield.no_edits": "其中没有未提交的修改",
+  "yield.not_owned": "{file} 不在 {id} 的所有权中：没有可让出的",
+  "yield.not_running": "{id} 不在进行中（状态为 {status}）：只能在任务进行中 yield",
+  "yield.nothing": "{id} 没有因死锁被拒绝的 claim 可据以让出：请指定文件，jtasks yield {id} <文件…>",
+  "yield.refused": "yield 被拒绝：{errors}",
+  "yield.saved": "修改已保存为补丁：{list}",
+  "yield.untouched": "保持原样（现在由另一个所有者持有）：{files}"
 };
 // locales/ja.json
 var ja_default = {
@@ -2935,7 +3145,8 @@ var ja_default = {
   "binding.other_run": "このセッションは実行 {run} に結び付いている。--run {asked} は拒否",
   "changes.left": "コミットされていない編集がディスクに残った: {list}",
   "claim.already": "{id} の所有権にはすでに {files} がある: 何もしない",
-  "claim.deadlock": "claim 拒否: 待ちの循環（デッドロック）ができる: {chain}。最後に求めた側が譲る: {id}。別の部分を進めるか、jtasks release {id} で解放する",
+  "claim.came_back": "yield の後、自動で戻った: {files}",
+  "claim.deadlock": "claim 拒否: 待ちの循環（デッドロック）ができる: {chain}。最後に求めた側が譲る: jtasks yield {id} で競合しているファイルだけを返す（編集はパッチとして保存され、ファイルが再び自分のものになると戻る）。その間は別の部分を進める。ほかに何も進められないときだけ jtasks release {id}",
   "claim.granted": "{id} が {files} を取得（{waited} 秒待機）。所有権: {own}",
   "claim.left": "{id} は待機中に進行中でなくなった（現在 {status}）",
   "claim.no_file": "ファイルがない: jtasks claim {id} <ファイル…>",
@@ -3039,6 +3250,8 @@ var ja_default = {
   "frontier.inside": "{via}（{asked} の中）",
   "frontier.waiting": "⏳ {owner}: {shown} · 順番 {position}",
   "frontier.waiting_list": "待機中: {list}",
+  "frontier.yielded": "⏳ {files} を譲った",
+  "frontier.yielded_held": "⏳ {files} を譲った（{owner} が保持）",
   "gc.bad_depth": "不正な --depth: {depth}",
   "gc.confirm": "何も削除していない: jtasks gc --remove {path} --yes で確定する",
   "gc.days": "{n} 日",
@@ -3062,7 +3275,7 @@ var ja_default = {
   "guard.outside": "{id} の所有権外: {rel}。jtasks claim {id} {rel} を使う",
   "guard.run_files": "{rel}: tasks.json、run.json、チケットは tasks ツール経由でのみ変更する。手で編集しない",
   "help.archive": "archive <run>                         実行を JTASKS_HOME/archive へ移す（resume で戻す）",
-  "help.claim": "claim <id> <ファイル…> [--timeout 60s]    ファイルを 1 つ追加で求める。jlock のキューで待つ",
+  "help.claim": "claim <id> [<ファイル…>] [--timeout 60s]  ファイルを追加で求める（なし: 譲ったもの）。キューで待つ",
   "help.clean": "clean <run>|--all [--yes]             実行のフォルダを削除（先に有効な副作用を一覧）",
   "help.doctor": "doctor [--fix [--yes]]                このマシンは準備済みか? --fix --yes で不足分をインストール",
   "help.done": 'done <id> --evidence "…"              git と所有権を確認し、所有権をコミット。完了',
@@ -3096,6 +3309,7 @@ var ja_default = {
                                         新しい順に取り消す（revert, branch, exclude, フォルダ）`,
   "help.unknown": "アクション {action} はない（jtasks help を参照）",
   "help.validate": "validate <json|@ファイル|フォルダ>    計画（またはチケットのフォルダ）を書き込まずに検証",
+  "help.yield": "yield <id> [<ファイル…>]               競合ファイルだけを譲る。編集はパッチで保存",
   "import.check_only": "何も書き込んでいない（--check）",
   "import.has_errors": "読み込んだ計画にエラーが {n} 件:",
   "import.line": "{file} → {id} · {title} · 依存: {deps} · 所有権: {own} · 基準 {n} 件",
@@ -3161,6 +3375,9 @@ var ja_default = {
   "keepalive.stalled": "実行 {run} は {what} が残ったまま停止し、何も動いていません。進捗のないメッセージ {tries} 件でホストは断念しました(jtasks keepalive on で再び監視)",
   "keepalive.error": "実行 {run} はエラーで止まりました。{what} が残り、何も動いていません。エラーの後、ホストは何も送りません(続けるにはメッセージを送ってください)",
   "keepalive.dropped": "jtasks: 自動再開のメッセージは不要になりました(実行が進みました)",
+  "patch.conflicts": "競合ありで再適用（マーカーを解決する。パッチは保存されたまま）: {list}",
+  "patch.failed": "適用できなかったパッチ（何も変わっていない。保存されたまま）: {list}",
+  "patch.reapplied": "パッチを再適用: {files}",
   "plan.absolute_path": "{path}: リポジトリからの相対パスを使う",
   "plan.branch": '"branch" は "run" か "current" でなければならない',
   "plan.branch_exists": "ブランチ {branch} はすでに存在する",
@@ -3287,7 +3504,16 @@ var ja_default = {
   "undo.no_commit": "{id}: コミット {ref} はもう存在しない（jtasks effects --check を参照）",
   "undo.no_effect": "実行 {run} に有効な副作用 {id} はない（jtasks ledger を参照）",
   "undo.no_global": "有効なグローバル副作用 {id} はない（jtasks ledger --all-projects を参照）",
+  "undo.no_patch": "{id}: パッチ {patch} はもうない",
   "undo.none": "{id}: {type}（{kind}）には自動の取り消しがない",
+  "undo.patch_applied": "{id}: {file} の編集が戻った（パッチ {patch}）",
+  "undo.patch_conflict": "{id}: {file} の編集が競合ありで戻った（パッチ {patch}）",
+  "undo.patch_dirty": "{id}: {file} に未コミットの編集がある。保存した編集はクリーンなファイルにだけ戻す",
+  "undo.patch_failed": "{id}: {file} のパッチを適用できなかった: {message}",
+  "undo.patch_owned": "{id}: {file} は進行中の {task} の所有権にある。その編集の上には戻さない（--force で強制）",
+  "undo.patch_removed": "{id}: パッチ {patch} を削除",
+  "undo.patch_reversed": "{id}: {file} に再適用した編集を取り除いた",
+  "undo.reverse_failed": "{id}: {file} に再適用した編集を取り除けなかった（パッチ {patch}）: その後ファイルが変わった",
   "undo.revert_failed": "{id}: git revert {ref} がきれいに適用できなかった: {message}",
   "undo.reverted": "{id}: {ref} を revert → コミット {head}",
   "undo.run_busy": "{id}: 実行に進行中のタスクがある（{tasks}）。先に解放すること",
@@ -3305,7 +3531,21 @@ var ja_default = {
   "view.no_run": "結び付いた実行なし",
   "view.no_runs": "実行なし（jtasks plan）",
   "view.paused": "一時停止中",
-  "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない"
+  "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない",
+  "view.waits_for": "{files} を待機",
+  "yield.came_back": "{id} が {files} を取り戻した",
+  "yield.done": "{id} は {files} を譲り、進行中のまま。{saved}",
+  "yield.exclusive": "{id} は排他（リポジトリ全体）: 譲れる個別のファイルがない。jtasks release {id} で解放する",
+  "yield.hint": "それらを使わない部分を進める。再び必要になったら jtasks claim {id}（キューで待ち、パッチを再適用する。空けば自動でも戻る）",
+  "yield.inside": "{file} は {id} がまるごと持つ {folder} の中にある: フォルダを譲る（jtasks yield {id} {folder}）",
+  "yield.kept": "譲っていない（編集を保存できなかった）: {files}",
+  "yield.no_edits": "未コミットの編集はなかった",
+  "yield.not_owned": "{file} は {id} の所有権にない: 譲るものはない",
+  "yield.not_running": "{id} は進行中ではない（{status}）: yield はタスク中だけ",
+  "yield.nothing": "{id} にはデッドロックで拒否された claim がない: ファイルを指定する、jtasks yield {id} <ファイル…>",
+  "yield.refused": "yield 拒否: {errors}",
+  "yield.saved": "編集をパッチとして保存: {list}",
+  "yield.untouched": "そのまま（いまは別の所有者が持っている）: {files}"
 };
 // locales/ru.json
 var ru_default = {
@@ -3333,7 +3573,8 @@ var ru_default = {
   "binding.other_run": "эта сессия привязана к прогону {run}; --run {asked} отклонён",
   "changes.left": "незакоммиченные правки остались на диске: {list}",
   "claim.already": "у {id} уже есть {files} во владении: делать нечего",
-  "claim.deadlock": "claim отклонён: он замкнул бы цикл ожидания (deadlock): {chain}. Уступает тот, кто попросил последним: {id}; сделайте другую часть или освободите через jtasks release {id}",
+  "claim.came_back": "они вернулись сами после yield: {files}",
+  "claim.deadlock": "claim отклонён: он замкнул бы цикл ожидания (deadlock): {chain}. Уступает тот, кто попросил последним: jtasks yield {id} отдаёт только спорные файлы (ваши правки сохраняются в патче и возвращаются, когда файл снова ваш); тем временем делайте другие части. Только если больше ничего не может двигаться, jtasks release {id}",
   "claim.granted": "{id} получила {files} (ждала {waited} с); владение: {own}",
   "claim.left": "{id} перестала быть в работе, пока ждала (статус: {status})",
   "claim.no_file": "не указан файл: jtasks claim {id} <файл…>",
@@ -3437,6 +3678,8 @@ var ru_default = {
   "frontier.inside": "{via} (внутри {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · позиция {position}",
   "frontier.waiting_list": "ждут: {list}",
+  "frontier.yielded": "⏳ уступила {files}",
+  "frontier.yielded_held": "⏳ уступила {files} (они у {owner})",
   "gc.bad_depth": "неверный --depth: {depth}",
   "gc.confirm": "ничего не удалено: подтвердите через jtasks gc --remove {path} --yes",
   "gc.days": "дней: {n}",
@@ -3460,7 +3703,7 @@ var ru_default = {
   "guard.outside": "вне владения {id}: {rel}; используйте jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json и тикеты меняются только через инструмент tasks; никогда вручную",
   "help.archive": "archive <run>                         переносит прогон в JTASKS_HOME/archive (resume вернёт)",
-  "help.claim": "claim <id> <файл…> [--timeout 60s]    просит ещё один файл; ждёт в очереди jlock",
+  "help.claim": "claim <id> [<файл…>] [--timeout 60s]  ещё один файл (без файла: уступленное); ждёт в очереди",
   "help.clean": "clean <run>|--all [--yes]             удаляет папку прогона (сперва список активных эффектов)",
   "help.doctor": "doctor [--fix [--yes]]                машина готова? --fix --yes устанавливает недостающее",
   "help.done": 'done <id> --evidence "…"              проверяет git и владение; коммитит владение; done',
@@ -3494,6 +3737,7 @@ var ru_default = {
                                         отменяет с конца (revert, branch, exclude, папка)`,
   "help.unknown": "нет действия {action} (см. jtasks help)",
   "help.validate": "validate <json|@файл|папка>           проверяет план (или папку тикетов) без записи",
+  "help.yield": "yield <id> [<файл…>]                  уступает только спорные файлы; правки в патчах",
   "import.check_only": "ничего не записано (--check)",
   "import.has_errors": "в прочитанном плане ошибки ({n}):",
   "import.line": "{file} → {id} · {title} · зависит от: {deps} · владение: {own} · критериев: {n}",
@@ -3559,6 +3803,9 @@ var ru_default = {
   "keepalive.stalled": "прогон {run} стоит, осталось {what}, ничего не выполняется; {tries} сообщ. без прогресса, хост сдался (jtasks keepalive on снова следит за ним)",
   "keepalive.error": "прогон {run} остановился на ошибке, осталось {what}, ничего не выполняется; после ошибки хост ничего не отправляет (напишите сообщение, чтобы продолжить)",
   "keepalive.dropped": "jtasks: сообщение автовозобновления больше не нужно (прогон продвинулся)",
+  "patch.conflicts": "применены заново с конфликтами (разрешите маркеры; патч остаётся сохранённым): {list}",
+  "patch.failed": "патчи, которые не применились (ничего не изменилось; они остаются сохранёнными): {list}",
+  "patch.reapplied": "патчи применены заново: {files}",
   "plan.absolute_path": "{path}: используйте пути относительно репозитория",
   "plan.branch": '"branch" должен быть "run" или "current"',
   "plan.branch_exists": "ветка {branch} уже существует",
@@ -3685,7 +3932,16 @@ var ru_default = {
   "undo.no_commit": "{id}: коммита {ref} больше нет (см. jtasks effects --check)",
   "undo.no_effect": "нет активного эффекта {id} в прогоне {run} (см. jtasks ledger)",
   "undo.no_global": "нет активного глобального эффекта {id} (см. jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: патча {patch} больше нет",
   "undo.none": "{id}: нет автоматической отмены для {type} ({kind})",
+  "undo.patch_applied": "{id}: правка {file} вернулась (патч {patch})",
+  "undo.patch_conflict": "{id}: правка {file} вернулась с конфликтами (патч {patch})",
+  "undo.patch_dirty": "{id}: в {file} есть незакоммиченные правки; сохранённая правка возвращается только в чистый файл",
+  "undo.patch_failed": "{id}: патч {file} не применился: {message}",
+  "undo.patch_owned": "{id}: {file} во владении {task}, которая в работе; правка не возвращается поверх её правок (--force, чтобы сделать всё равно)",
+  "undo.patch_removed": "{id}: патч {patch} удалён",
+  "undo.patch_reversed": "{id}: заново применённая правка {file} убрана",
+  "undo.reverse_failed": "{id}: заново применённую правку {file} не удалось убрать (патч {patch}): файл с тех пор изменился",
   "undo.revert_failed": "{id}: git revert {ref} не применился чисто: {message}",
   "undo.reverted": "{id}: revert {ref} → коммит {head}",
   "undo.run_busy": "{id}: в прогоне есть задачи в работе ({tasks}); сначала освободите их",
@@ -3703,7 +3959,21 @@ var ru_default = {
   "view.no_run": "нет привязанного прогона",
   "view.no_runs": "нет прогонов (jtasks plan)",
   "view.paused": "на паузе",
-  "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется"
+  "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется",
+  "view.waits_for": "ждёт {files}",
+  "yield.came_back": "{id} забрала обратно {files}",
+  "yield.done": "{id} уступила {files} и остаётся в работе; {saved}",
+  "yield.exclusive": "{id} эксклюзивная (весь репозиторий): у неё нет отдельных файлов, чтобы уступить; освободите её через jtasks release {id}",
+  "yield.hint": "делайте части, которым они не нужны; когда понадобятся снова, jtasks claim {id} (ждёт в очереди и заново применяет ваши патчи; они также возвращаются сами, когда освободятся)",
+  "yield.inside": "{file} лежит внутри {folder}, которую {id} держит целиком: уступите папку (jtasks yield {id} {folder})",
+  "yield.kept": "не уступлены (их правки не удалось сохранить): {files}",
+  "yield.no_edits": "незакоммиченных правок в них не было",
+  "yield.not_owned": "{file} не во владении {id}: уступать нечего",
+  "yield.not_running": "{id} не в работе (она {status}): yield только во время задачи",
+  "yield.nothing": "у {id} нет claim, отклонённого из-за deadlock, от которого можно уступить: укажите файлы, jtasks yield {id} <файл…>",
+  "yield.refused": "yield отклонён: {errors}",
+  "yield.saved": "правки сохранены как патчи: {list}",
+  "yield.untouched": "оставлены как есть (теперь их держит другой владелец): {files}"
 };
 // locales/ar.json
 var ar_default = {
@@ -3731,7 +4001,8 @@ var ar_default = {
   "binding.other_run": "هذه الجلسة مرتبطة بالتشغيل {run}؛ رُفض --run {asked}",
   "changes.left": "بقيت على القرص تعديلات غير مودَعة: {list}",
   "claim.already": "لدى {id} بالفعل {files} في ملكيتها: لا شيء لفعله",
-  "claim.deadlock": "رُفض claim: سيغلق دورة انتظار (deadlock): {chain}. يتنازل من طلب أخيرًا: {id}؛ أنجز جزءًا آخر، أو حرّر بالأمر jtasks release {id}",
+  "claim.came_back": "عادت من تلقاء نفسها بعد yield: {files}",
+  "claim.deadlock": "رُفض claim: سيغلق دورة انتظار (deadlock): {chain}. يتنازل من طلب أخيرًا: jtasks yield {id} يعيد الملفات المتنازع عليها فقط (تُحفظ تعديلاتك في رقعة وتعود حين يصبح الملف لك مجددًا)؛ وفي الأثناء أنجز أجزاء أخرى. فقط إن لم يعد شيء آخر قادرًا على التقدم، jtasks release {id}",
   "claim.granted": "حصلت {id} على {files} (انتظرت {waited} ث)؛ الملكية: {own}",
   "claim.left": "لم تعد {id} قيد التنفيذ أثناء انتظارها (الحالة: {status})",
   "claim.no_file": "الملف ناقص: jtasks claim {id} <file…>",
@@ -3835,6 +4106,8 @@ var ar_default = {
   "frontier.inside": "{via} (داخل {asked})",
   "frontier.waiting": "⏳ {owner}: {shown} · الموضع {position}",
   "frontier.waiting_list": "في الانتظار: {list}",
+  "frontier.yielded": "⏳ تنازلت عن {files}",
+  "frontier.yielded_held": "⏳ تنازلت عن {files} (لدى {owner})",
   "gc.bad_depth": "--depth غير صالح: {depth}",
   "gc.confirm": "لم يُزل شيء: أكّد بالأمر jtasks gc --remove {path} --yes",
   "gc.days": "عدد الأيام: {n}",
@@ -3858,7 +4131,7 @@ var ar_default = {
   "guard.outside": "خارج ملكية {id}: {rel}؛ استخدم jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: لا تتغير tasks.json و run.json والتذاكر إلا عبر أداة tasks؛ لا تُعدَّل يدويًا أبدًا",
   "help.archive": "archive <run>                         ينقل التشغيل إلى JTASKS_HOME/archive (يعيده resume)",
-  "help.claim": "claim <id> <file…> [--timeout 60s]    يطلب ملفًا آخر؛ ينتظر في طابور jlock",
+  "help.claim": "claim <id> [<file…>] [--timeout 60s]  ملف آخر (بلا ملف: ما تنازلت عنه)؛ ينتظر في الطابور",
   "help.clean": "clean <run>|--all [--yes]             يحذف مجلد التشغيل (يسرد الآثار النشطة أولًا)",
   "help.doctor": "doctor [--fix [--yes]]                هل الجهاز جاهز؟ --fix --yes يثبّت ما ينقص",
   "help.done": 'done <id> --evidence "…"              يفحص git والملكية؛ يودِع الملكية؛ done',
@@ -3892,6 +4165,7 @@ var ar_default = {
                                         يتراجع من الأحدث أولًا (revert، branch، exclude، مجلد)`,
   "help.unknown": "لا يوجد إجراء {action} (انظر jtasks help)",
   "help.validate": "validate <json|@file|folder>          يتحقق من خطة (أو مجلد تذاكر) دون كتابة",
+  "help.yield": "yield <id> [<file…>]                  يتنازل عن الملفات المتنازع عليها فقط؛ التعديلات كرُقع",
   "import.check_only": "لم يُكتب شيء (--check)",
   "import.has_errors": "في الخطة المقروءة أخطاء ({n}):",
   "import.line": "{file} → {id} · {title} · تعتمد على: {deps} · الملكية: {own} · المعايير: {n}",
@@ -3957,6 +4231,9 @@ var ar_default = {
   "keepalive.stalled": "التشغيل {run} متوقف وما زال {what} ولا شيء يعمل؛ {tries} رسالة بلا تقدّم، وتوقّف المضيف عن المحاولة (jtasks keepalive on يعيد المراقبة)",
   "keepalive.error": "توقّف التشغيل {run} عند خطأ وما زال {what} ولا شيء يعمل؛ بعد الخطأ لا يرسل المضيف شيئًا (أرسل رسالة للمتابعة)",
   "keepalive.dropped": "jtasks: لم تعد رسالة الاستئناف لازمة (تقدّم التشغيل)",
+  "patch.conflicts": "أُعيد تطبيقها مع تعارضات (حُلّ العلامات؛ تبقى الرقعة محفوظة): {list}",
+  "patch.failed": "رُقع لم تُطبَّق (لم يتغير شيء؛ تبقى محفوظة): {list}",
+  "patch.reapplied": "أُعيد تطبيق الرُّقع: {files}",
   "plan.absolute_path": "{path}: استخدم مسارات نسبية إلى المستودع",
   "plan.branch": 'يجب أن يكون "branch" إما "run" أو "current"',
   "plan.branch_exists": "الفرع {branch} موجود بالفعل",
@@ -4083,7 +4360,16 @@ var ar_default = {
   "undo.no_commit": "{id}: الإيداع {ref} لم يعد موجودًا (انظر jtasks effects --check)",
   "undo.no_effect": "لا أثر نشط {id} في التشغيل {run} (انظر jtasks ledger)",
   "undo.no_global": "لا أثر عام نشط {id} (انظر jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: الرقعة {patch} لم تعد موجودة",
   "undo.none": "{id}: لا تراجع تلقائي لـ {type} ({kind})",
+  "undo.patch_applied": "{id}: عاد تعديل {file} (الرقعة {patch})",
+  "undo.patch_conflict": "{id}: عاد تعديل {file} مع تعارضات (الرقعة {patch})",
+  "undo.patch_dirty": "{id}: في {file} تعديلات غير مودَعة؛ لا يعود تعديل محفوظ إلا على ملف نظيف",
+  "undo.patch_failed": "{id}: لم تُطبَّق رقعة {file}: {message}",
+  "undo.patch_owned": "{id}: {file} ضمن ملكية {task} قيد التنفيذ؛ لا يعود التعديل فوق تعديلاتها (--force لفعل ذلك على أي حال)",
+  "undo.patch_removed": "{id}: أُزيلت الرقعة {patch}",
+  "undo.patch_reversed": "{id}: نُزع التعديل المُعاد تطبيقه في {file}",
+  "undo.reverse_failed": "{id}: تعذّر نزع التعديل المُعاد تطبيقه في {file} (الرقعة {patch}): تغيّر الملف منذ ذلك الحين",
   "undo.revert_failed": "{id}: لم يُطبَّق git revert {ref} بنظافة: {message}",
   "undo.reverted": "{id}: revert لـ {ref} → الإيداع {head}",
   "undo.run_busy": "{id}: في التشغيل مهام قيد التنفيذ ({tasks})؛ حرّرها أولًا",
@@ -4101,7 +4387,21 @@ var ar_default = {
   "view.no_run": "لا تشغيل مرتبط",
   "view.no_runs": "لا تشغيل (jtasks plan)",
   "view.paused": "متوقف مؤقتًا",
-  "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل"
+  "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل",
+  "view.waits_for": "تنتظر {files}",
+  "yield.came_back": "استعادت {id} الملفات {files}",
+  "yield.done": "تنازلت {id} عن {files} وبقيت قيد التنفيذ؛ {saved}",
+  "yield.exclusive": "{id} حصرية (المستودع كله): ليست لديها ملفات منفردة تتنازل عنها؛ حرّرها بالأمر jtasks release {id}",
+  "yield.hint": "أنجز الأجزاء التي لا تحتاجها؛ وحين تحتاجها مجددًا، jtasks claim {id} (ينتظر في الطابور ويعيد تطبيق رُقعك؛ وتعود أيضًا من تلقاء نفسها حين تتحرر)",
+  "yield.inside": "{file} داخل {folder}، الذي تمسكه {id} كاملًا: تنازل عن المجلد (jtasks yield {id} {folder})",
+  "yield.kept": "لم يُتنازل عنها (تعذّر حفظ تعديلاتها): {files}",
+  "yield.no_edits": "لم تكن فيها تعديلات معلّقة",
+  "yield.not_owned": "{file} ليس ضمن ملكية {id}: لا شيء للتنازل عنه",
+  "yield.not_running": "{id} ليست قيد التنفيذ (هي {status}): yield فقط أثناء المهمة",
+  "yield.nothing": "ليس لدى {id} طلب claim مرفوض بسبب deadlock للتنازل منه: سمِّ الملفات، jtasks yield {id} <file…>",
+  "yield.refused": "رُفض yield: {errors}",
+  "yield.saved": "حُفظت التعديلات كرُقع: {list}",
+  "yield.untouched": "تُركت كما هي (يمسكها مالك آخر الآن): {files}"
 };
 // locales/hi.json
 var hi_default = {
@@ -4129,7 +4429,8 @@ var hi_default = {
   "binding.other_run": "यह सत्र रन {run} से बँधा है; --run {asked} अस्वीकृत",
   "changes.left": "बिना commit के संपादन डिस्क पर रह गए: {list}",
   "claim.already": "{id} के स्वामित्व में {files} पहले से है: कुछ करने को नहीं",
-  "claim.deadlock": "claim अस्वीकृत: इससे प्रतीक्षा का चक्र (डेडलॉक) बनता: {chain}। जिसने अंत में माँगा वह पीछे हटता है: {id}; कोई और हिस्सा करें, या jtasks release {id} से छोड़ें",
+  "claim.came_back": "yield के बाद वे अपने-आप लौट आईं: {files}",
+  "claim.deadlock": "claim अस्वीकृत: इससे प्रतीक्षा का चक्र (डेडलॉक) बनता: {chain}। जिसने अंत में माँगा वह पीछे हटता है: jtasks yield {id} केवल विवादित फ़ाइलें लौटाता है (आपके संपादन एक patch में सहेजे जाते हैं और फ़ाइल फिर आपकी होने पर लौट आते हैं); तब तक दूसरे हिस्से करें। केवल तब, जब और कुछ आगे न बढ़ सके, jtasks release {id}",
   "claim.granted": "{id} को {files} मिला ({waited} s प्रतीक्षा); स्वामित्व: {own}",
   "claim.left": "प्रतीक्षा के दौरान {id} प्रगति पर नहीं रहा (अब {status} है)",
   "claim.no_file": "फ़ाइल नहीं दी: jtasks claim {id} <फ़ाइल…>",
@@ -4233,6 +4534,8 @@ var hi_default = {
   "frontier.inside": "{via} ({asked} के अंदर)",
   "frontier.waiting": "⏳ {owner}: {shown} · स्थान {position}",
   "frontier.waiting_list": "प्रतीक्षा में: {list}",
+  "frontier.yielded": "⏳ {files} छोड़ीं",
+  "frontier.yielded_held": "⏳ {files} छोड़ीं ({owner} के पास)",
   "gc.bad_depth": "अमान्य --depth: {depth}",
   "gc.confirm": "कुछ नहीं हटाया गया: jtasks gc --remove {path} --yes से पुष्टि करें",
   "gc.days": "{n} दिन",
@@ -4256,7 +4559,7 @@ var hi_default = {
   "guard.outside": "{id} के स्वामित्व के बाहर: {rel}; jtasks claim {id} {rel} चलाएँ",
   "guard.run_files": "{rel}: tasks.json, run.json और टिकट केवल tasks टूल से बदलते हैं; कभी हाथ से नहीं",
   "help.archive": "archive <run>                         रन JTASKS_HOME/archive में भेजता है (resume लौटाता है)",
-  "help.claim": "claim <id> <file…> [--timeout 60s]    एक और फ़ाइल माँगता है; jlock की कतार में रुकता है",
+  "help.claim": "claim <id> [<file…>] [--timeout 60s]  एक और फ़ाइल (बिना फ़ाइल: जो छोड़ा था); कतार में रुकता है",
   "help.clean": "clean <run>|--all [--yes]             रन का फ़ोल्डर हटाता है (पहले सक्रिय प्रभाव दिखाता है)",
   "help.doctor": "doctor [--fix [--yes]]                मशीन तैयार है? --fix --yes जो नहीं है उसे इंस्टॉल करता है",
   "help.done": 'done <id> --evidence "…"              git और स्वामित्व जाँचता है; स्वामित्व commit करता है; पूरा',
@@ -4290,6 +4593,7 @@ var hi_default = {
                                         नया पहले पूर्ववत होता है (revert, branch, exclude, folder)`,
   "help.unknown": "कोई क्रिया {action} नहीं (देखें jtasks help)",
   "help.validate": "validate <json|@file|folder>          बिना लिखे योजना (या टिकटों का फ़ोल्डर) जाँचता है",
+  "help.yield": "yield <id> [<file…>]                  केवल विवादित फ़ाइलें छोड़ता है; संपादन patch में",
   "import.check_only": "कुछ नहीं लिखा गया (--check)",
   "import.has_errors": "पढ़ी गई योजना में {n} त्रुटि(याँ):",
   "import.line": "{file} → {id} · {title} · निर्भर: {deps} · स्वामित्व: {own} · {n} मानदंड",
@@ -4355,6 +4659,9 @@ var hi_default = {
   "keepalive.stalled": "रन {run} रुका है, {what} बाकी है और कुछ नहीं चल रहा; {tries} संदेश बिना प्रगति के, होस्ट ने हार मानी (jtasks keepalive on फिर निगरानी करता है)",
   "keepalive.error": "रन {run} एक त्रुटि पर रुक गया, {what} बाकी है और कुछ नहीं चल रहा; त्रुटि के बाद होस्ट कुछ नहीं भेजता (आगे बढ़ने के लिए संदेश भेजें)",
   "keepalive.dropped": "jtasks: स्वतः पुनरारंभ संदेश की अब ज़रूरत नहीं (रन आगे बढ़ गया)",
+  "patch.conflicts": "टकराव के साथ फिर लागू (मार्कर सुलझाएँ; patch सहेजा रहता है): {list}",
+  "patch.failed": "जो patch लागू नहीं हुए (कुछ नहीं बदला; वे सहेजे रहते हैं): {list}",
+  "patch.reapplied": "patch फिर लागू किए गए: {files}",
   "plan.absolute_path": "{path}: रिपॉज़िटरी के सापेक्ष पथ इस्तेमाल करें",
   "plan.branch": '"branch" "run" या "current" होना चाहिए',
   "plan.branch_exists": "ब्रांच {branch} पहले से मौजूद है",
@@ -4481,7 +4788,16 @@ var hi_default = {
   "undo.no_commit": "{id}: commit {ref} अब मौजूद नहीं (देखें jtasks effects --check)",
   "undo.no_effect": "रन {run} में कोई सक्रिय प्रभाव {id} नहीं (देखें jtasks ledger)",
   "undo.no_global": "कोई सक्रिय वैश्विक प्रभाव {id} नहीं (देखें jtasks ledger --all-projects)",
+  "undo.no_patch": "{id}: patch {patch} अब मौजूद नहीं है",
   "undo.none": "{id}: {type} ({kind}) के लिए कोई स्वचालित पूर्ववत नहीं है",
+  "undo.patch_applied": "{id}: {file} का संपादन लौटा (patch {patch})",
+  "undo.patch_conflict": "{id}: {file} का संपादन टकराव के साथ लौटा (patch {patch})",
+  "undo.patch_dirty": "{id}: {file} में बिना commit के संपादन हैं; सहेजा संपादन केवल साफ़ फ़ाइल पर लौटता है",
+  "undo.patch_failed": "{id}: {file} का patch लागू नहीं हुआ: {message}",
+  "undo.patch_owned": "{id}: {file} प्रगति में चल रहे {task} के स्वामित्व में है; संपादन उसके संपादन के ऊपर नहीं लौटता (फिर भी करने के लिए --force)",
+  "undo.patch_removed": "{id}: patch {patch} हटाया गया",
+  "undo.patch_reversed": "{id}: {file} में फिर लागू किया संपादन हटाया गया",
+  "undo.reverse_failed": "{id}: {file} में फिर लागू किया संपादन हटाया नहीं जा सका (patch {patch}): तब से फ़ाइल बदल गई",
   "undo.revert_failed": "{id}: git revert {ref} साफ़ लागू नहीं हुआ: {message}",
   "undo.reverted": "{id}: {ref} का revert → commit {head}",
   "undo.run_busy": "{id}: रन में कार्य प्रगति पर हैं ({tasks}); पहले उन्हें छोड़ें",
@@ -4499,7 +4815,21 @@ var hi_default = {
   "view.no_run": "कोई बँधा रन नहीं",
   "view.no_runs": "कोई रन नहीं (jtasks plan)",
   "view.paused": "रुका हुआ",
-  "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा"
+  "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा",
+  "view.waits_for": "{files} की प्रतीक्षा",
+  "yield.came_back": "{id} ने {files} वापस लीं",
+  "yield.done": "{id} ने {files} छोड़ीं और प्रगति में बना है; {saved}",
+  "yield.exclusive": "{id} विशेष (पूरा रिपॉज़िटरी) है: छोड़ने के लिए अलग फ़ाइलें नहीं हैं; jtasks release {id} से छोड़ें",
+  "yield.hint": "वे हिस्से करें जिन्हें इनकी ज़रूरत नहीं; जब फिर ज़रूरत हो, jtasks claim {id} (कतार में रुककर आपके patch फिर लागू करता है; खाली होने पर वे अपने-आप भी लौट आती हैं)",
+  "yield.inside": "{file} {folder} के भीतर है, जिसे {id} पूरा रखता है: फ़ोल्डर छोड़ें (jtasks yield {id} {folder})",
+  "yield.kept": "नहीं छोड़ी गईं (उनके संपादन सहेजे नहीं जा सके): {files}",
+  "yield.no_edits": "उनमें कोई लंबित संपादन नहीं था",
+  "yield.not_owned": "{file} {id} के स्वामित्व में नहीं है: छोड़ने को कुछ नहीं",
+  "yield.not_running": "{id} प्रगति में नहीं है (वह {status} है): yield केवल कार्य के दौरान",
+  "yield.nothing": "{id} के पास डेडलॉक से अस्वीकृत कोई claim नहीं है जिससे छोड़ा जाए: फ़ाइलें बताएँ, jtasks yield {id} <file…>",
+  "yield.refused": "yield अस्वीकृत: {errors}",
+  "yield.saved": "संपादन patch के रूप में सहेजे गए: {list}",
+  "yield.untouched": "जैसी थीं वैसी छोड़ी गईं (अब कोई दूसरा स्वामी रखता है): {files}"
 };
 
 // src/i18n.ts
@@ -5188,6 +5518,7 @@ async function appendLog(host, dir, entry) {
 }
 
 // src/ledger.ts
+var PATCH_MOVES = ["restore", "reapply"];
 function globalLedger(host) {
   return join(jtasksHome(host), "ledger.jsonl");
 }
@@ -5251,7 +5582,7 @@ async function effectsOf(host, scope, insensitive) {
   return all.filter((e) => (!scope.repo || norm(e.repo) === norm(scope.repo)) && (!scope.run || e.run === scope.run));
 }
 function effectLine(e) {
-  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` ${tr("ledger.reverts", { id: e.reverts })}` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` ${tr("ledger.from", { from: e.from })}` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.path ?? e.ref ?? "";
+  const what = e.type === "commit" ? `${e.ref}${e.reverts ? ` ${tr("ledger.reverts", { id: e.reverts })}` : ""}` : e.type === "branch" ? `${e.ref}${e.from ? ` ${tr("ledger.from", { from: e.from })}` : ""}` : e.type === "exclude" ? `${e.path}: ${e.line}` : e.type === "archive" ? `${e.path} → ${e.to}` : e.type === "patch" || e.type === "restore" || e.type === "reapply" ? `${e.path} (${e.patch})` : e.path ?? e.ref ?? "";
   const when = e.at.replace("T", " ").slice(0, 16);
   return `${e.id} · ${e.type} · ${what} · ${e.run}${e.task ? `/${e.task}` : ""} · ${when} · ${e.state}`;
 }
@@ -5606,7 +5937,8 @@ function protocolText(run, summary, spawn) {
     `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' + 'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
-    "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.'
+    "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
+    "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move."
   ].join(`
 `);
 }
@@ -6319,10 +6651,18 @@ function assess(state, locks, platform) {
         blockers.push({ kind: "ownership", key, via: lock.key, owner: lock.holder.owner });
         break;
       }
+      const reserved = yieldedKeys(state).find((y) => conflicts(key, y.key));
+      if (reserved) {
+        blockers.push({ kind: "ownership", key, via: reserved.key, owner: ownerOf(state.run.id, reserved.task) });
+        break;
+      }
     }
     out.push({ task, ready: blockers.length === 0, blockers });
   }
   return out;
+}
+function yieldedKeys(state) {
+  return state.tasks.tasks.flatMap((t) => t.status === "in_progress" ? (t.yielded ?? []).map((y) => ({ task: t.id, key: y.key, path: y.path })) : []);
 }
 function selectReady(state, assessments, platform, limit = Infinity) {
   const chosen = [];
@@ -6362,10 +6702,19 @@ function waitingOf(state, locks) {
       });
       break;
     }
+    if (!out.has(task.id) && task.yielded?.length) {
+      const y = task.yielded[0];
+      const blocking = held.find((h) => h.holder.owner !== owner && conflicts(y.key, h.key));
+      out.set(task.id, { key: y.key, holder: blocking?.holder?.owner ?? "", position: 0, via: blocking?.key ?? y.key, yielded: task.yielded.map((x) => x.path) });
+    }
   }
   return out;
 }
 function waitingText(w, state, platform) {
+  if (w.yielded) {
+    const files = w.yielded.join(", ");
+    return w.holder ? tr("frontier.yielded_held", { files, owner: describeOwner(w.holder, state.run.id) }) : tr("frontier.yielded", { files });
+  }
   const asked = describeKey(w.key, state.root, platform);
   const via = describeKey(w.via, state.root, platform);
   const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
@@ -6652,6 +7001,212 @@ async function unarchive(ctx, run) {
   return tr("archive.back", { run, from });
 }
 
+// src/patches.ts
+function escapePath(file) {
+  return file.replace(/[\\/]+/g, "__").replace(/[^A-Za-z0-9._-]/g, "_");
+}
+function patchRel(task, n, file) {
+  return `patches/${task}/${String(n).padStart(3, "0")}-${escapePath(file)}.patch`;
+}
+function appliedPath(patch) {
+  return join(dirname(patch), "applied", basename(patch));
+}
+async function nextPatchNumber(host, runDir, task, saved = []) {
+  const dir = join(runDir, "patches", task);
+  const names = [...(await host.list(dir)).map((e) => e.name), ...(await host.list(join(dir, "applied"))).map((e) => e.name), ...saved.map((p) => basename(p.patch))];
+  return names.reduce((m, n) => Math.max(m, Number(/^(\d+)-/.exec(n)?.[1] ?? 0)), 0) + 1;
+}
+async function inHead(host, root, file) {
+  return (await git(host, root, ["cat-file", "-e", `HEAD:${file}`])).code === 0;
+}
+async function writePatch(host, root, file, patch) {
+  await host.mkdir(dirname(patch));
+  const tracked = await inHead(host, root, file);
+  if (!tracked && !await host.stat(join(root, file)))
+    return false;
+  const argv = tracked ? ["diff", "--binary", "--no-renames", "--no-ext-diff", "--no-color", `--output=${patch}`, "HEAD", "--", file] : ["diff", "--binary", "--no-index", "--no-ext-diff", "--no-color", `--output=${patch}`, "--", "/dev/null", file];
+  const r = await git(host, root, argv);
+  if (r.code !== 0 && !(r.code === 1 && !tracked))
+    throw new Error(`git diff ${file}: ${(r.stderr || r.stdout).trim()}`);
+  const text = await host.readText(patch);
+  if (!text?.trim()) {
+    await host.remove(patch).catch(() => {});
+    return false;
+  }
+  return true;
+}
+async function restoreFile(host, root, file) {
+  if (await inHead(host, root, file)) {
+    const r = await git(host, root, ["checkout", "-q", "HEAD", "--", file]);
+    if (r.code !== 0)
+      throw new Error(`git checkout ${file}: ${(r.stderr || r.stdout).trim()}`);
+    return;
+  }
+  await git(host, root, ["rm", "-q", "--cached", "--ignore-unmatch", "--", file]);
+  await host.remove(join(root, file)).catch(() => {});
+}
+async function applyPatch(host, root, patch, files) {
+  if ((await git(host, root, ["apply", "-R", "--check", patch])).code === 0)
+    return { result: "already", message: "" };
+  const r = await git(host, root, ["apply", "--3way", "--whitespace=nowarn", patch]);
+  const unmerged = (await status(host, root)).some((e) => files.includes(e.path) && /U|AA|DD/.test(e.code));
+  await git(host, root, ["reset", "-q", "--", ...files]);
+  const message = `${r.stderr}${r.stdout}`.trim();
+  if (r.code === 0)
+    return { result: "applied", message };
+  return { result: unmerged ? "conflict" : "failed", message };
+}
+async function reversePatch(host, root, patch) {
+  return (await git(host, root, ["apply", "-R", "--whitespace=nowarn", patch])).code === 0;
+}
+
+// src/keep.ts
+var HOLDING = new Set(["start", "claim", "renew", "retake", "reclaim"]);
+async function readLog(host, dir) {
+  const text = await host.readText(join(dir, "log.jsonl")).catch(() => {
+    return;
+  }) ?? "";
+  const out = [];
+  for (const line of text.split(`
+`)) {
+    if (!line.trim())
+      continue;
+    try {
+      out.push(JSON.parse(line));
+    } catch {}
+  }
+  return out;
+}
+var strings = (v) => Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+async function takenSince(host, dir, task, keys) {
+  let since = "";
+  const others = [];
+  for (const e of await readLog(host, dir)) {
+    if (!e.at || !e.action || !HOLDING.has(e.action))
+      continue;
+    if (e.task === task)
+      since = e.at > since ? e.at : since;
+    else
+      others.push({ at: e.at, keys: strings(e.keys) });
+  }
+  return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))));
+}
+async function changedUnder(host, state, keys) {
+  const out = [];
+  for (const e of await status(host, state.root)) {
+    if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH)
+      continue;
+    const key = normalizeKey(e.path, state.root, host.platform);
+    if (keys.some((k) => covers(k, key)) && !out.includes(e.path))
+      out.push(e.path);
+  }
+  return out;
+}
+async function ownFiles(host, state, task, files) {
+  const keys = taskKeys(state.root, task, host.platform);
+  const owner = ownerOf(state.run.id, task.id);
+  const locks = files.length ? await jlockList(host, { under: state.root }) : [];
+  const live = locks.filter((l) => l.holder && l.holder.stale !== true);
+  const out = { mine: [], untouched: [] };
+  for (const file of files) {
+    const fileKey = normalizeKey(file, state.root, host.platform);
+    const key = keys.find((k) => covers(k, fileKey));
+    const foreign = live.some((l) => l.holder.owner !== owner && conflicts(l.key, fileKey));
+    const ours = key && live.some((l) => l.key === key && l.holder.owner === owner);
+    if (!key || foreign || !ours && (await takenSince(host, state.dir, task.id, [key])).length)
+      out.untouched.push(file);
+    else
+      out.mine.push(file);
+  }
+  return out;
+}
+async function keepEdits(host, state, task, files, by) {
+  const report = { saved: [], kept: [] };
+  for (const file of files) {
+    const n = await nextPatchNumber(host, state.dir, task.id, task.patches);
+    const rel = patchRel(task.id, n, file);
+    const abs = join(state.dir, rel);
+    try {
+      if (!await writePatch(host, state.root, file, abs))
+        continue;
+    } catch {
+      await host.remove(abs).catch(() => {});
+      report.kept.push(file);
+      continue;
+    }
+    const base = { run: state.run.id, task: task.id, repo: state.root, path: file, patch: abs };
+    await recordEffect(host, state.dir, { ...base, type: "patch", undo: { kind: "remove-file" } });
+    try {
+      await restoreFile(host, state.root, file);
+    } catch {
+      report.kept.push(file);
+      continue;
+    }
+    await recordEffect(host, state.dir, { ...base, type: "restore", undo: { kind: "apply-patch" } });
+    const saved = { file, patch: rel, at: host.now().toISOString(), by };
+    task.patches = [...task.patches ?? [], saved];
+    report.saved.push(saved);
+  }
+  return report;
+}
+function emptyReapply() {
+  return { applied: [], conflicts: [], failed: [] };
+}
+async function reapplyPatches(host, state, task, which) {
+  const report = emptyReapply();
+  const left = [];
+  for (const p of task.patches ?? []) {
+    if (!which(p)) {
+      left.push(p);
+      continue;
+    }
+    const abs = join(state.dir, p.patch);
+    if (!await host.stat(abs))
+      continue;
+    const { result, message } = await applyPatch(host, state.root, abs, [p.file]);
+    if (result === "failed") {
+      report.failed.push({ file: p.file, patch: abs, message });
+      left.push(p);
+      continue;
+    }
+    let at = abs;
+    if (result !== "conflict") {
+      at = appliedPath(abs);
+      await host.mkdir(join(at, ".."));
+      await host.rename(abs, at);
+      report.applied.push(p.file);
+    } else
+      report.conflicts.push({ file: p.file, patch: abs });
+    if (result !== "already")
+      await recordEffect(host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } });
+  }
+  if (left.length)
+    task.patches = left;
+  else
+    delete task.patches;
+  return report;
+}
+function patchesUnder(state, platform, keys) {
+  return (p) => keys.some((k) => covers(k, normalizeKey(p.file, state.root, platform)));
+}
+function chainKeys(chain, owner) {
+  const out = [];
+  for (const part of chain.split(" → ")) {
+    const m = /^(.*) \(held by (.+)\)$/.exec(part.trim());
+    if (m && m[2] === owner && !out.includes(m[1]))
+      out.push(m[1]);
+  }
+  return out;
+}
+async function lastDeadlock(host, dir, task) {
+  let chain;
+  for (const e of await readLog(host, dir))
+    if (e.action === "claim-deadlock" && e.task === task && typeof e.chain === "string")
+      chain = e.chain;
+  return chain;
+}
+var RELEASING = new Set(["release", "agent-ended", "resume-release", "lost", "fail", "skip"]);
+
 // src/actions.ts
 async function resolveRun(ctx, args) {
   const root = await requireRepo(ctx.host, ctx.cwd);
@@ -6769,7 +7324,9 @@ async function releaseHolds(ctx, run, task) {
   return released.keys;
 }
 defineAction("next", async (ctx, args) => {
-  const state = await resolveRun(ctx, args);
+  const found = await resolveRun(ctx, args);
+  const back = await retakeYielded(ctx, found);
+  const state = back.length ? await reload(ctx, found) : found;
   const platform = ctx.host.platform;
   const raw = args.positionals[0] ?? (typeof args.options.limit === "string" ? args.options.limit : undefined);
   const limit = raw === undefined ? Infinity : Number(raw);
@@ -6790,7 +7347,7 @@ defineAction("next", async (ctx, args) => {
     exclusive: !!t.exclusive,
     ticket: ticketPath(state.dir, state.tasks.tasks, t.id)
   }));
-  const lines = [];
+  const lines = retakenLines(back);
   if (ready.length) {
     lines.push(tr("next.ready", { n: ready.length, run: state.run.id }));
     for (const t of items) {
@@ -7037,37 +7594,11 @@ async function takeKeys(ctx, state, task, keys) {
       refused.push(key);
   return refused;
 }
-var HOLDING = new Set(["start", "claim", "renew", "retake"]);
-async function takenSince(ctx, state, task, keys) {
-  const text = await ctx.host.readText(join(state.dir, "log.jsonl")).catch(() => {
-    return;
-  }) ?? "";
-  let since = "";
-  const others = [];
-  for (const line of text.split(`
-`)) {
-    if (!line.trim())
-      continue;
-    let e;
-    try {
-      e = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    if (!e.at || !e.action || !HOLDING.has(e.action))
-      continue;
-    if (e.task === task.id)
-      since = e.at > since ? e.at : since;
-    else if (Array.isArray(e.keys))
-      others.push({ at: e.at, keys: e.keys.filter((k) => typeof k === "string") });
-  }
-  return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))));
-}
 async function retakeMissing(ctx, state, task) {
   const missing = await missingKeys(ctx, state, task);
   if (!missing.length)
     return [];
-  const taken = await takenSince(ctx, state, task, missing);
+  const taken = await takenSince(ctx.host, state.dir, task.id, missing);
   const refused = [...taken, ...await takeKeys(ctx, state, task, missing.filter((k) => !taken.includes(k)))];
   const retaken = missing.filter((k) => !refused.includes(k));
   if (retaken.length)
@@ -7132,12 +7663,42 @@ function parseDuration(raw) {
 function chainText(chain, run) {
   return chain.replace(/gt:([^\s/]+)\/([^\s)]+)/g, (_, r, t) => r === run ? t : `${r}/${t}`);
 }
+async function cameBack(ctx, state, task, files) {
+  let found;
+  for (const e of await readLog(ctx.host, state.dir)) {
+    if (e.task !== task)
+      continue;
+    if (e.action === "yield")
+      found = undefined;
+    else if (e.action === "reclaim") {
+      const back = (Array.isArray(e.files) ? e.files : []).filter((f) => typeof f === "string" && (!files || files.includes(f)));
+      if (!back.length)
+        continue;
+      const list = (v) => Array.isArray(v) ? v : [];
+      found = {
+        task,
+        files: back,
+        reapply: {
+          applied: list(e.reapplied).filter((f) => typeof f === "string"),
+          conflicts: list(e.conflicts),
+          failed: list(e.failed)
+        }
+      };
+    }
+  }
+  return found;
+}
 defineAction("claim", async (ctx, args) => {
   const first = await resolveRun(ctx, args);
   const task = findTask(first, taskIdArg(args));
-  const raw = args.positionals.slice(1);
-  if (!raw.length)
-    throw new ToolError(tr("claim.no_file", { id: task.id }), 2);
+  const raw = args.positionals.length > 1 ? args.positionals.slice(1) : (task.yielded ?? []).map((y) => y.path);
+  if (!raw.length) {
+    const back = task.status === "in_progress" ? await cameBack(ctx, first, task.id) : undefined;
+    if (!back)
+      throw new ToolError(tr("claim.no_file", { id: task.id }), 2);
+    return ok([tr("claim.came_back", { files: back.files.join(", ") }), ...reapplyLines(back.reapply)].join(`
+`), { task: task.id, granted: [], ...reapplyData(back.reapply) });
+  }
   if (task.status !== "in_progress")
     throw new ToolError(tr("claim.not_running", { id: task.id, status: task.status }));
   const platform = ctx.host.platform;
@@ -7157,8 +7718,12 @@ defineAction("claim", async (ctx, args) => {
     const key = normalizeKey(f, first.root, platform);
     return !current.some((k) => covers(k, key));
   });
-  if (!wanted.length)
-    return ok(tr("claim.already", { id: task.id, files: files.join(", ") }), { task: task.id, granted: [] });
+  if (!wanted.length) {
+    const back = await cameBack(ctx, first, task.id, files);
+    const text = [tr("claim.already", { id: task.id, files: files.join(", ") }), ...back ? [tr("claim.came_back", { files: back.files.join(", ") }), ...reapplyLines(back.reapply)] : []];
+    return ok(text.join(`
+`), { task: task.id, granted: [], ...back ? reapplyData(back.reapply) : {} });
+  }
   const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)));
   const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s");
   const began = ctx.host.now().getTime();
@@ -7194,29 +7759,208 @@ defineAction("claim", async (ctx, args) => {
       const t = copy.tasks.find((x) => x.id === task.id);
       if (t.status !== "in_progress")
         throw new ToolError(tr("claim.left", { id: task.id, status: t.status }));
-      t.claimed = [...t.claimed ?? [], ...wanted.filter((f) => !(t.claimed ?? []).includes(f))];
+      const back = takeBackEntries(t, keys, state.root, platform);
+      const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f));
+      if (more.length)
+        t.claimed = [...t.claimed ?? [], ...more];
       const hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" };
       if (resident?.pid !== undefined)
         hold.pid = resident.pid;
       t.holds = [...t.holds ?? [], hold];
+      const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, keys));
       const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
       await writeTicket(ctx.host, state.dir, tasks, task.id);
-      await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited) });
-      return t;
+      await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) });
+      return { t, reapply };
     });
     if (resident)
       remember(ctx, first, task.id, resident);
-    return ok(tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done).join(", ") }), {
+    const text = [tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done.t).join(", ") }), ...reapplyLines(done.reapply)];
+    return ok(text.join(`
+`), {
       task: task.id,
       granted: wanted,
       keys,
-      waitedSec: Number(waited)
+      waitedSec: Number(waited),
+      ...reapplyData(done.reapply)
     });
   } catch (error) {
     await releaseHoldsOf(ctx, first.run.id, task.id, resident, keys).catch(() => {});
     throw error;
   }
 }, "help.claim");
+function takeBackEntries(task, keys, root, platform) {
+  const back = [];
+  const left = [];
+  for (const y of task.yielded ?? []) {
+    if (!keys.some((k) => covers(k, normalizeKey(y.path, root, platform)))) {
+      left.push(y);
+      continue;
+    }
+    const list = y.from === "files" ? task.files : task.claimed ??= [];
+    if (!list.includes(y.path))
+      list.push(y.path);
+    back.push(y.path);
+  }
+  if (left.length)
+    task.yielded = left;
+  else
+    delete task.yielded;
+  return back;
+}
+function reapplyLines(r) {
+  const lines = [];
+  if (r.applied.length)
+    lines.push(tr("patch.reapplied", { files: r.applied.join(", ") }));
+  if (r.conflicts.length)
+    lines.push(tr("patch.conflicts", { list: r.conflicts.map((c) => `${c.file} (${c.patch})`).join(", ") }));
+  if (r.failed.length)
+    lines.push(tr("patch.failed", { list: r.failed.map((c) => `${c.file} (${c.patch})`).join(", ") }));
+  return lines;
+}
+function reapplyData(r) {
+  return { reapplied: r.applied, conflicts: r.conflicts, failed: r.failed.map((f) => ({ file: f.file, patch: f.patch })) };
+}
+async function retakeYielded(ctx, first, only) {
+  const out = [];
+  const platform = ctx.host.platform;
+  let state0;
+  try {
+    state0 = await reload(ctx, first);
+  } catch {
+    return out;
+  }
+  for (const task of state0.tasks.tasks) {
+    if (task.status !== "in_progress" || !task.yielded?.length || only && !only(task))
+      continue;
+    try {
+      const keys = canonical(task.yielded.map((y) => y.key));
+      const refused = await takeKeys(ctx, state0, task, keys);
+      const granted = keys.filter((k) => !refused.includes(k));
+      if (!granted.length)
+        continue;
+      const back = await withLock(ctx.host, first.dir, async () => {
+        const state = await reload(ctx, first);
+        const copy = clone(state.tasks);
+        const t = copy.tasks.find((x) => x.id === task.id);
+        if (!t || t.status !== "in_progress")
+          return;
+        const files = takeBackEntries(t, granted, state.root, platform);
+        t.holds = [...t.holds ?? [], { keys: granted, startedAt: ctx.host.now().toISOString(), kind: "claim" }];
+        const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, granted));
+        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+        await writeTicket(ctx.host, state.dir, tasks, t.id);
+        await log(ctx, state, { action: "reclaim", task: t.id, keys: granted, files, ...reapplyData(reapply) });
+        return { task: t.id, files, reapply };
+      });
+      if (back)
+        out.push(back);
+      else
+        await jlockReleaseKeys(ctx.host, granted, ownerOf(state0.run.id, task.id)).catch(() => {});
+    } catch {}
+  }
+  return out;
+}
+function retakenLines(list) {
+  return list.map((r) => [tr("yield.came_back", { id: r.task, files: r.files.join(", ") }), ...reapplyLines(r.reapply)].join("; "));
+}
+defineAction("yield", async (ctx, args) => {
+  const first = await resolveRun(ctx, args);
+  const task = findTask(first, taskIdArg(args));
+  if (task.status !== "in_progress")
+    throw new ToolError(tr("yield.not_running", { id: task.id, status: task.status }));
+  if (task.exclusive)
+    throw new ToolError(tr("yield.exclusive", { id: task.id }));
+  const platform = ctx.host.platform;
+  const owner = ownerOf(first.run.id, task.id);
+  const current = taskKeys(first.root, task, platform);
+  const keys = [];
+  const raw = args.positionals.slice(1);
+  if (raw.length) {
+    for (const r of raw) {
+      const entry = normalizeFileEntry(r);
+      if (entry.error)
+        throw new ToolError(tr("yield.refused", { errors: entry.error }));
+      const key = normalizeKey(entry.path, first.root, platform);
+      const outer = current.find((k) => covers(k, key));
+      if (!outer)
+        throw new ToolError(tr("yield.not_owned", { id: task.id, file: r }));
+      if (outer !== key)
+        throw new ToolError(tr("yield.inside", { id: task.id, file: r, folder: describeKey(outer, first.root, platform) }));
+      keys.push(key);
+    }
+  } else {
+    const chain = await lastDeadlock(ctx.host, first.dir, task.id);
+    keys.push(...(chain ? chainKeys(chain, owner) : []).filter((k) => current.includes(k)));
+    if (!keys.length)
+      throw new ToolError(tr("yield.nothing", { id: task.id }), 2);
+  }
+  const wanted = canonical(keys);
+  const done = await withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const copy = clone(state.tasks);
+    const t = copy.tasks.find((x) => x.id === task.id);
+    if (t.status !== "in_progress")
+      throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }));
+    const changed = await changedUnder(ctx.host, state, wanted);
+    const { mine, untouched } = await ownFiles(ctx.host, state, t, changed);
+    const report = await keepEdits(ctx.host, state, t, mine, "yield");
+    const given = wanted.filter((k) => !report.kept.some((f) => covers(k, normalizeKey(f, state.root, platform))));
+    const at = ctx.host.now().toISOString();
+    const yielded = [];
+    for (const from of ["files", "claimed"]) {
+      const stay = [];
+      for (const e of from === "files" ? t.files : t.claimed ?? []) {
+        const key = given.find((g) => covers(g, normalizeKey(e, state.root, platform)));
+        if (key)
+          yielded.push({ path: e, from, key, at });
+        else
+          stay.push(e);
+      }
+      if (from === "files")
+        t.files = stay;
+      else if (stay.length)
+        t.claimed = stay;
+      else
+        delete t.claimed;
+    }
+    if (yielded.length)
+      t.yielded = [...t.yielded ?? [], ...yielded];
+    if (t.holds)
+      t.holds = t.holds.map((h) => ({ ...h, keys: h.keys.filter((k) => !given.includes(k)) })).filter((h) => h.keys.length);
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+    await writeTicket(ctx.host, state.dir, tasks, t.id);
+    await log(ctx, state, { action: "yield", task: t.id, keys: given, files: yielded.map((y) => y.path), saved: report.saved.map((p) => p.file), untouched, kept: report.kept });
+    return { given, yielded, report, untouched };
+  });
+  if (done.given.length)
+    await jlockReleaseKeys(ctx.host, done.given, owner);
+  const files = done.yielded.map((y) => y.path);
+  const lines = [];
+  if (files.length) {
+    const saved = done.report.saved.length ? tr("yield.saved", { list: done.report.saved.map((p) => `${p.file} → ${join(first.dir, p.patch)}`).join(", ") }) : tr("yield.no_edits");
+    lines.push(tr("yield.done", { id: task.id, files: files.join(", "), saved }), tr("yield.hint", { id: task.id }));
+  }
+  if (done.untouched.length)
+    lines.push(tr("yield.untouched", { files: done.untouched.join(", ") }));
+  if (done.report.kept.length)
+    lines.push(tr("yield.kept", { files: done.report.kept.join(", ") }));
+  return {
+    ok: files.length > 0,
+    code: files.length > 0 ? 0 : 1,
+    text: lines.join(`
+`),
+    data: {
+      run: first.run.id,
+      task: task.id,
+      yielded: files,
+      keys: done.given,
+      saved: done.report.saved.map((p) => ({ file: p.file, patch: join(first.dir, p.patch) })),
+      untouched: done.untouched,
+      kept: done.report.kept
+    }
+  };
+}, "help.yield");
 defineAction("done", async (ctx, args) => {
   const evidence = textArg(args, "evidence");
   let commit = null;
@@ -7262,6 +8006,7 @@ defineAction("done", async (ctx, args) => {
   const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)];
   if (claimed.length)
     lines.push(tr("done.claimed", { files: claimed.join(", ") }));
+  lines.push(...retakenLines(await retakeYielded(ctx, t.state)));
   return ok(lines.join(`
 `), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed });
 }, "help.done");
@@ -7282,8 +8027,9 @@ defineAction("skip", async (ctx, args) => {
     return { reason };
   });
   const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : "";
-  return ok(`${tr("skip.done", { id: t.task.id, reason })}${released}${changesNote(left)}
-${progressLine(t.tasks.tasks)}`, {
+  const back = wasRunning ? retakenLines(await retakeYielded(ctx, t.state)) : [];
+  return ok([`${tr("skip.done", { id: t.task.id, reason })}${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join(`
+`), {
     run: t.state.run.id,
     task: t.task.id,
     uncommitted: left
@@ -7303,8 +8049,9 @@ defineAction("fail", async (ctx, args) => {
     return { error };
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
-  return ok(`${tr("fail.done", { id: t.task.id, error })}; ${released}${changesNote(left)}
-${progressLine(t.tasks.tasks)}`, {
+  const back = retakenLines(await retakeYielded(ctx, t.state));
+  return ok([`${tr("fail.done", { id: t.task.id, error })}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join(`
+`), {
     run: t.state.run.id,
     task: t.task.id,
     uncommitted: left
@@ -7336,8 +8083,9 @@ defineAction("release", async (ctx, args) => {
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
   const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts });
-  return ok(`${t.task.id} ${where}; ${released}${changesNote(left)}
-${progressLine(t.tasks.tasks)}`, {
+  const back = retakenLines(await retakeYielded(ctx, t.state));
+  return ok([`${t.task.id} ${where}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join(`
+`), {
     run: t.state.run.id,
     task: t.task.id,
     status: t.task.status,
@@ -7617,9 +8365,42 @@ async function undoEffect(ctx, root, e, force) {
       await host.remove(target, { recursive: true });
       return tr("undo.dir_removed", { id: e.id, dir: target });
     }
+    case "remove-file": {
+      for (const f of e.patch ? [e.patch, appliedPath(e.patch)] : [])
+        await host.remove(f).catch(() => {});
+      return tr("undo.patch_removed", { id: e.id, patch: e.patch ?? "" });
+    }
+    case "apply-patch": {
+      const patch = await patchFile(host, e);
+      const file = e.path ?? "";
+      const tasks = await readTasks(host, dir).catch(() => {
+        return;
+      });
+      const other = tasks?.tasks.find((t) => t.status === "in_progress" && t.id !== e.task && inPossession(file, possession(t), caseInsensitive(host.platform)));
+      if (other && !force)
+        throw new ToolError(tr("undo.patch_owned", { id: e.id, file, task: other.id }));
+      if ((await status(host, root)).some((x) => x.path === file))
+        throw new ToolError(tr("undo.patch_dirty", { id: e.id, file }));
+      const r = await applyPatch(host, root, patch, [file]);
+      if (r.result === "failed")
+        throw new ToolError(tr("undo.patch_failed", { id: e.id, file, message: r.message }));
+      return tr(r.result === "conflict" ? "undo.patch_conflict" : "undo.patch_applied", { id: e.id, file, patch });
+    }
+    case "reverse-patch": {
+      const patch = await patchFile(host, e);
+      if (!await reversePatch(host, root, patch))
+        throw new ToolError(tr("undo.reverse_failed", { id: e.id, file: e.path ?? "", patch }));
+      return tr("undo.patch_reversed", { id: e.id, file: e.path ?? "" });
+    }
     default:
       throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }));
   }
+}
+async function patchFile(host, e) {
+  for (const f of e.patch ? [e.patch, appliedPath(e.patch)] : [])
+    if (await host.stat(f))
+      return f;
+  throw new ToolError(tr("undo.no_patch", { id: e.id, patch: e.patch ?? "" }));
 }
 async function undoMany(ctx, root, effects, force) {
   const done = [];
@@ -7663,7 +8444,7 @@ defineAction("undo", async (ctx, args) => {
     if (!runId)
       throw new ToolError(tr("undo.which"), 2);
     const root = await requireRepo(ctx.host, ctx.cwd);
-    const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active");
+    const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
     if (!effects.length)
       return ok(tr("undo.run_clean", { run: runId }), { undone: [] });
     const done = await undoMany(ctx, root, effects, force);
@@ -7684,7 +8465,7 @@ ${done.join(`
   const task = findTask(state, taskId);
   if (task.status === "in_progress")
     throw new ToolError(tr("undo.task_running", { id: task.id }));
-  const effects = all.filter((e) => e.task === task.id && !e.reverts);
+  const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type));
   if (!effects.length)
     throw new ToolError(tr("undo.task_clean", { id: task.id }));
   const done = await undoMany(ctx, state.root, effects, force);
@@ -7726,6 +8507,8 @@ defineAction("effects", async (ctx, args) => {
       present = !!await host.stat(e.path);
     else if (e.type === "archive")
       present = !!await host.stat(e.to);
+    else if (e.type === "patch")
+      present = !!await host.stat(e.patch) || !!await host.stat(appliedPath(e.patch));
     if (!present) {
       await setEffectState(host, runDir(root, e.run), e.run, e.id, "gone");
       gone.push(effectLine({ ...e, state: "gone" }));
@@ -7852,6 +8635,7 @@ async function renewRun(ctx, run, mine, every = RENEW_EVERY_MS) {
     }
     out.push({ task: candidate.id, result });
   }
+  await retakeYielded(ctx, first, (t) => !!t.owner && mine(t.owner));
   return out;
 }
 // src/gc.ts
@@ -8206,6 +8990,7 @@ function buildView(state, locks, platform, tool) {
   const lines = state.tasks.tasks.map((t) => {
     let st;
     let detail = "";
+    let note;
     switch (t.status) {
       case "done":
         st = "done";
@@ -8223,6 +9008,8 @@ function buildView(state, locks, platform, tool) {
         const w = waiting.get(t.id);
         st = w ? "waiting" : "running";
         detail = w ? waitingText(w, state, platform) : profileDetail(state.tasks, t, tool);
+        if (w?.yielded)
+          note = tr("view.waits_for", { files: w.yielded.join(", ") });
         break;
       }
       default: {
@@ -8233,7 +9020,10 @@ function buildView(state, locks, platform, tool) {
           detail = `${tr("view.lost")}${detail ? ` · ${detail}` : ""}`;
       }
     }
-    return { mark: MARKS[st], id: t.id, title: t.title, detail, state: st };
+    const line = { mark: MARKS[st], id: t.id, title: t.title, detail, state: st };
+    if (note)
+      line.note = note;
+    return line;
   });
   return {
     kind: "run",
@@ -8586,6 +9376,7 @@ export {
   KEEPALIVE_FILE,
   MIN_JLOCK,
   OPENCODE_AGENTS,
+  PATCH_MOVES,
   RENEW_EVERY_MS,
   RENEW_JLOCK,
   RENEW_MARGIN_MS,
@@ -8713,6 +9504,7 @@ export {
   readRun,
   readTasks,
   readTicketsDir,
+  reapplyLines,
   rearmKeepalive,
   recordEffect,
   recordGlobalEffect,
@@ -8733,6 +9525,7 @@ export {
   resolve,
   resolveRun,
   retakeMissing,
+  retakeYielded,
   runChecks,
   runDir,
   runId,
@@ -8763,7 +9556,6 @@ export {
   systemLocale,
   tags,
   takeKeys,
-  takenSince,
   taskIdArg,
   taskKeys,
   ticketFileName,
@@ -8789,5 +9581,6 @@ export {
   writeTasks,
   writeTicket,
   writeTickets,
+  yieldedKeys,
   yymmdd
 };

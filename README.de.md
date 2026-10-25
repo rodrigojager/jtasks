@@ -28,7 +28,8 @@ Besitz), und diese Dateien sind gesperrt, solange sie läuft.
 - **Wer was ändert.** Solange eine Aufgabe läuft, werden ihre Dateien als Sperren in
   [jlock](https://github.com/rodrigojager/jlock) gehalten, einem rechnerweiten Sperr-Tool. Eine andere Aufgabe, die
   eine davon braucht, wartet in der Warteschlange (`claim`) oder macht etwas anderes; ein Warten, das einen Zyklus
-  schließen würde, wird abgelehnt.
+  schließen würde, wird abgelehnt. Die abgelehnte Aufgabe weicht mit `jtasks yield`: sie gibt nur die umkämpften Dateien ab, ihre Änderungen
+  bleiben als Patch erhalten und kommen mit ihnen zurück, und sie macht weiter.
 - **Nachweise statt Versprechen.** Eine Aufgabe wird mit `done` und ihrem Nachweis abgeschlossen; das Tool prüft,
   dass sich nur ihre Dateien geändert haben, und macht den Commit (`T04: Titel`). Ein Commit pro Aufgabe: Eine
   Aufgabe zurücknehmen heißt einen Commit zurücknehmen.

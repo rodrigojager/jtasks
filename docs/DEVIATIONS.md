@@ -201,3 +201,20 @@ para um jlock anterior, e o `jtasks doctor` então avisa e sugere `jlock update`
 iniciado por um jlock anterior à 0.2.0 não lê o prazo novo e vence no antigo; a passada seguinte o retoma, como
 retomaria uma trava vencida.
 
+
+## 14. A revisão do plano é a 5.6, e a fila do `yield` é um `claim` pendente (ticket 47)
+
+**O que mudou:** o plano de melhoria (`plano-posse-e-ceder.md`) pedia a "revisão 5.4" no topo do `PLAN.md`, mas a
+5.4 e a 5.5 já existiam (tickets 45 e 46); a mudança entrou como **revisão 5.6**, item 19 da seção 18. E o plano
+deixava duas formas para a tarefa que cedeu "entrar de novo na fila": um `--wait` em segundo plano ou um `claim`
+pendente que o `next` e o `status` mostram. Ficou a segunda: as entradas cedidas vão para `yielded` na
+`tasks.json`, e a chave volta sozinha, sem espera, quando fica livre (depois do `done`, `release`, `skip` ou `fail`
+de outra tarefa, no `next` e a cada passada de um minuto do mod e do plugin), ou por `jtasks claim <id>`, que espera
+na fila do jlock como qualquer `claim`. Um processo do jlock esperando em segundo plano não serve ao CLI, que termina
+a cada comando, nem ao mod, que usa `--detach`.
+
+**Consequência:** a tarefa que cedeu não ocupa um lugar na fila do jlock enquanto não pede o arquivo de novo; em
+compensação, nenhuma tarefa nova começa sobre a chave cedida (a fronteira a trata como reservada), e quem a está
+esperando no jlock (a outra ponta do ciclo) a recebe na hora.
+
+**O que fazer:** nada. Para esperar de verdade pelo arquivo, `jtasks claim <id>` (sem arquivos, ou com eles).
