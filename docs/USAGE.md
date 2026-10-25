@@ -106,12 +106,12 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `keepalive on\|off` | the host reopens the loop when the orchestrator stops with ready tasks (default on; see [With `/goal`](#with-goal)) |
 | | `resume <run> [--keep-owners] [--from-archive]` | binds the session, leaves pause, releases in-progress tasks whose locks are gone |
 | task | `next [limit]` | the ready tasks (can run in parallel): profile, criteria, ownership, ticket |
-| | `start <id>` | in progress; holds the ownership (`jlock hold --no-wait`) |
+| | `start <id> [--fresh]` | in progress; holds the ownership (`jlock hold --no-wait`); reapplies the edits an earlier attempt left as patches (`--fresh`: leaves them out) |
 | | `claim <id> [<file…>] [--timeout 60s]` | one more file; waits in jlock's queue; `timeout` and `deadlock` answered; without files, takes back what the task yielded |
 | | `yield <id> [<file…>]` | gives back only the contested files (without files: the ones that close the cycle of its last deadlock); the task stays in progress, its edits of them kept as patches, reapplied when they are its again (see [Deadlock and yield](#deadlock-and-yield)) |
 | | `done <id> --evidence "…"` | checks git and the locks, commits the ownership only (`T04: title`), releases |
 | | `skip <id> --reason "…"` / `fail <id> --error "…"` | skipped (frees dependents) / failed (blocks them) |
-| | `release <id>` | in progress → pending (failed at `maxAttempts`); uncommitted edits stay and are listed |
+| | `release <id>` | in progress → pending (failed at `maxAttempts`); its uncommitted edits are kept as patches and the tree is left clean (see [Releasing keeps the edits](#releasing-keeps-the-edits)) |
 | | `retry <id>` / `retry --all-failed` | skipped or failed → pending |
 | | `exec -- <command…>` | runs a command; one of `serialize` runs through `jlock run name:gt/<repo>/<command>` |
 | ledger | `ledger [--all-projects]` | every effect the tool created, and its state |
@@ -178,6 +178,23 @@ patch file), `restore` (the file put back to HEAD; `jtasks undo <e-id>` puts the
 in progress, and only on a clean file) and `reapply` (`jtasks undo <e-id>` takes the reapplied edit out). These are
 undone one by one, never by `undo --task` or `undo --run`. A file whose key someone else holds by now is never
 touched (listed as such), and a key whose edit could not be saved is not given back.
+
+### Releasing keeps the edits
+
+A task that leaves `in_progress` without a commit (`release`, `release --agent-ended` when its subagent ended,
+`resume` releasing a task whose locks are gone, a lost lock, `maxAttempts`, `fail`, `skip`) does what `yield` does,
+for every file of its ownership with an uncommitted edit: the edit becomes a patch (`by: "release"`), the file goes
+back to HEAD (a new file is deleted), all through the ledger. So the tree is left clean, and no other task's `done`
+is refused for those files or commits them. The next `start` of the task reapplies the patches with `--3way` and
+lists what came back and any conflict; `start <id> --fresh` leaves them out (they stay in the run folder and the
+ledger, for anyone who wants them back with `jtasks undo <e-id>`).
+
+Only the task's own files are touched: those in its `files` and `claimed`, whose key is still its own in jlock (or
+free, and taken by no other task since, by the log). A file whose key another owner holds by now is left as it is,
+and the answer says so. If a patch cannot be made, the file stays on disk and is listed as `uncommitted` in the
+log; another task's `done` then neither refuses for it nor commits it, and says `T04, released, has pending edits
+in: …` (the same for a run from before this). The orchestrator never has to hold such files with a `jlock hold` of
+its own.
 
 ## Variables
 

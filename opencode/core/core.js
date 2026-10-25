@@ -148,6 +148,8 @@ var en_default = {
   "attempts.exhausted": "{why}; attempts used up ({attempts}/{max})",
   "binding.other_run": "this session is bound to run {run}; --run {asked} is refused",
   "changes.left": "uncommitted edits stayed on disk: {list}",
+  "changes.saved": "edits kept as patches (they come back on its next start; --fresh leaves them out): {list}",
+  "changes.untouched": "not touched (another owner holds them now): {list}",
   "claim.already": "{id} already has {files} in its ownership: nothing to do",
   "claim.came_back": "they came back by themselves after the yield: {files}",
   "claim.deadlock": "claim refused: it would close a waiting cycle (deadlock): {chain}. The last to ask yields: jtasks yield {id} gives back only the contested files (your edits are kept as a patch and come back when the file is yours again); do other parts meanwhile. Only if nothing else can move, jtasks release {id}",
@@ -216,6 +218,7 @@ var en_default = {
   "done.no_commit": "no change in its ownership, no commit",
   "done.no_evidence": 'done without evidence is refused: jtasks done {id} --evidence "what proves it is done"',
   "done.outside": "{id} cannot be done: files changed outside its ownership: {files}. Ask for them with jtasks claim {id} <file>, or undo those changes",
+  "done.released_edits": "{id}, released, has pending edits in: {files} (left on disk, out of this commit)",
   "done.wrong_branch": "the checkout is on {branch}, but the run commits on {run_branch}",
   "draft.already_open": "a draft is already open: {ids} (go on with jtasks plan --add, or close it with --commit)",
   "draft.batch_accepted": "batch accepted: {n} task(s) ({ids}); the draft has {total}. Close it with jtasks plan --commit",
@@ -299,13 +302,13 @@ var en_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   opens a draft (a plan in batches)",
   "help.plan.fix": "  plan --fix <id> <json|@file>          replaces one task of the draft",
   "help.plan.show": "  plan --show                           a summary of the draft",
-  "help.release": "release <id>                          in progress → pending (at maxAttempts, failed)",
+  "help.release": "release <id>                          in progress → pending (at maxAttempts, failed); edits kept",
   "help.resume": "resume <run> [--keep-owners]          binds the session, unpauses, releases tasks without locks",
   "help.keepalive": "keepalive on|off                      the host reopens an idle loop that has ready tasks",
   "help.retry": "retry <id> | --all-failed             skipped or failed → pending",
   "help.runs": "runs                                  the repository's runs, with status and progress",
   "help.skip": 'skip <id> --reason "…"                skipped (frees the tasks that depend on it)',
-  "help.start": "start <id>                            in progress; locks the ownership (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  in progress; locks the ownership; reapplies its saved edits",
   "help.status": "status                                done D/T (P%) · … · N left, the frontier and the locks",
   "help.status.run": "  (without --run: the session's run, JTASKS_RUN, or the repository's only active one)",
   "help.title": "jtasks {version}: a task list with dependencies and file ownership (jlock)",
@@ -437,7 +440,6 @@ var en_default = {
   "release.pending": "went back to pending (attempt {attempts}/{max})",
   "release.released": "released",
   "resume.bound": "run {run} resumed in this session",
-  "resume.edits": "edits on disk: {list}",
   "resume.kept_flag": "kept in progress: {list} (--keep-owners)",
   "resume.kept_live": "kept in progress: {list} (live locks)",
   "resume.no_locks_reason": "agent without locks in jlock (window closed)",
@@ -462,6 +464,7 @@ var en_default = {
   "spawn.unknown_profile": 'unknown profile "{profile}" (profiles: {profiles})',
   "start.busy": "{id} was not ready: {key} in use by {holder}{via}; nothing was written",
   "start.depends": "{id} is not ready: it depends on {deps}",
+  "start.fresh": "--fresh: {n} saved patch(es) left out (they stay in {dir} and in the ledger)",
   "start.hint": 'another file: jtasks claim {id} <file>; at the end: jtasks done {id} --evidence "…" (or jtasks fail {id} --error "…")',
   "start.locked": "ownership locked in jlock ({n} key(s), owner {owner})",
   "start.no_files": "no files in its ownership",
@@ -576,6 +579,8 @@ var pt_BR_default = {
   "attempts.exhausted": "{why}; tentativas esgotadas ({attempts}/{max})",
   "binding.other_run": "esta sessão está ligada à execução {run}; --run {asked} é recusado",
   "changes.left": "edições não commitadas ficaram no disco: {list}",
+  "changes.saved": "edições guardadas em patch (voltam no próximo start; --fresh as deixa de fora): {list}",
+  "changes.untouched": "não mexidos (outro dono os segura agora): {list}",
   "claim.already": "{id} já tem {files} na posse: nada a fazer",
   "claim.came_back": "voltaram sozinhos depois do yield: {files}",
   "claim.deadlock": "claim recusado: fecharia um ciclo de espera (deadlock): {chain}. Quem pediu por último cede: jtasks yield {id} devolve só os arquivos disputados (suas edições ficam guardadas num patch e voltam quando o arquivo for seu de novo); enquanto isso, faça outras partes. Só se nada mais puder andar, jtasks release {id}",
@@ -644,6 +649,7 @@ var pt_BR_default = {
   "done.no_commit": "nenhuma mudança na posse, sem commit",
   "done.no_evidence": 'done sem evidência é recusado: jtasks done {id} --evidence "o que prova que está feita"',
   "done.outside": "{id} não pode ser concluída: arquivos modificados fora da posse: {files}. Peça-os com jtasks claim {id} <arquivo>, ou desfaça essas mudanças",
+  "done.released_edits": "{id}, liberada, tem edições pendentes em: {files} (ficam no disco, fora deste commit)",
   "done.wrong_branch": "o checkout está em {branch}, mas a execução commita em {run_branch}",
   "draft.already_open": "já há um rascunho aberto: {ids} (continue com jtasks plan --add, ou feche com --commit)",
   "draft.batch_accepted": "lote aceito: {n} tarefa(s) ({ids}); rascunho com {total}. Feche com jtasks plan --commit",
@@ -727,13 +733,13 @@ var pt_BR_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective texto] [--source ref]   abre um rascunho (plano em lotes)",
   "help.plan.fix": "  plan --fix <id> <json|@arquivo>       troca uma tarefa do rascunho",
   "help.plan.show": "  plan --show                           resumo do rascunho",
-  "help.release": "release <id>                          em andamento → pendente (no maxAttempts, falha)",
+  "help.release": "release <id>                          em andamento → pendente (maxAttempts: falha); guarda edições",
   "help.resume": "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
   "help.keepalive": "keepalive on|off                      o host reabre o laço parado com tarefas prontas",
   "help.retry": "retry <id> | --all-failed             pulada ou falha → pendente",
   "help.runs": "runs                                  execuções do repositório, com status e progresso",
   "help.skip": 'skip <id> --reason "…"                pulada (libera as dependentes)',
-  "help.start": "start <id>                            em andamento; trava a posse (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  em andamento; trava a posse; reaplica as edições guardadas",
   "help.status": "status                                feitas F/T (P%) · … · restam N, fronteira e travas",
   "help.status.run": "  (sem --run: a execução ligada à sessão, JTASKS_RUN, ou a única ativa do repositório)",
   "help.title": "jtasks {version}: lista de tarefas com dependências e posse de arquivos (jlock)",
@@ -865,7 +871,6 @@ var pt_BR_default = {
   "release.pending": "voltou a pendente (tentativa {attempts}/{max})",
   "release.released": "liberada",
   "resume.bound": "execução {run} retomada nesta sessão",
-  "resume.edits": "edições no disco: {list}",
   "resume.kept_flag": "mantidas em andamento: {list} (--keep-owners)",
   "resume.kept_live": "mantidas em andamento: {list} (travas vivas)",
   "resume.no_locks_reason": "agente sem travas no jlock (janela encerrada)",
@@ -890,6 +895,7 @@ var pt_BR_default = {
   "spawn.unknown_profile": 'perfil desconhecido "{profile}" (perfis: {profiles})',
   "start.busy": "{id} não estava pronta: {key} em uso por {holder}{via}; nada foi gravado",
   "start.depends": "{id} não está pronta: depende de {deps}",
+  "start.fresh": "--fresh: {n} patch(es) guardado(s) deixado(s) de fora (continuam em {dir} e no ledger)",
   "start.hint": 'outro arquivo: jtasks claim {id} <arquivo>; no fim: jtasks done {id} --evidence "…" (ou jtasks fail {id} --error "…")',
   "start.locked": "posse travada no jlock ({n} chave(s), dono {owner})",
   "start.no_files": "sem arquivos na posse",
@@ -1004,6 +1010,8 @@ var es_default = {
   "attempts.exhausted": "{why}; intentos agotados ({attempts}/{max})",
   "binding.other_run": "esta sesión está ligada a la ejecución {run}; se rechaza --run {asked}",
   "changes.left": "quedaron ediciones sin commit en el disco: {list}",
+  "changes.saved": "ediciones guardadas como patch (vuelven en el próximo start; --fresh las deja fuera): {list}",
+  "changes.untouched": "no tocados (otro dueño los tiene ahora): {list}",
   "claim.already": "{id} ya tiene {files} en su posesión: nada que hacer",
   "claim.came_back": "volvieron solos después del yield: {files}",
   "claim.deadlock": "claim rechazado: cerraría un ciclo de espera (deadlock): {chain}. Cede quien pidió último: jtasks yield {id} devuelve solo los archivos disputados (tus ediciones quedan guardadas en un patch y vuelven cuando el archivo sea tuyo otra vez); mientras tanto, haz otras partes. Solo si nada más puede avanzar, jtasks release {id}",
@@ -1072,6 +1080,7 @@ var es_default = {
   "done.no_commit": "ningún cambio en su posesión, sin commit",
   "done.no_evidence": 'se rechaza done sin evidencia: jtasks done {id} --evidence "qué prueba que está hecha"',
   "done.outside": "{id} no puede terminarse: archivos cambiados fuera de su posesión: {files}. Pídelos con jtasks claim {id} <archivo>, o deshaz esos cambios",
+  "done.released_edits": "{id}, liberada, tiene ediciones pendientes en: {files} (quedan en el disco, fuera de este commit)",
   "done.wrong_branch": "el checkout está en {branch}, pero la ejecución hace commit en {run_branch}",
   "draft.already_open": "ya hay un borrador abierto: {ids} (sigue con jtasks plan --add, o ciérralo con --commit)",
   "draft.batch_accepted": "lote aceptado: {n} tarea(s) ({ids}); el borrador tiene {total}. Ciérralo con jtasks plan --commit",
@@ -1155,13 +1164,13 @@ var es_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective texto] [--source ref]   abre un borrador (plan por lotes)",
   "help.plan.fix": "  plan --fix <id> <json|@archivo>     reemplaza una tarea del borrador",
   "help.plan.show": "  plan --show                         un resumen del borrador",
-  "help.release": "release <id>                          en curso → pendiente (en maxAttempts, fallida)",
+  "help.release": "release <id>                          en curso → pendiente (maxAttempts: falla); guarda edición",
   "help.resume": "resume <run> [--keep-owners]          liga la sesión, quita la pausa, libera tareas sin bloqueos",
   "help.keepalive": "keepalive on|off                      el host reabre el ciclo parado con tareas listas",
   "help.retry": "retry <id> | --all-failed             omitida o fallida → pendiente",
   "help.runs": "runs                                  las ejecuciones del repositorio, con estado y progreso",
   "help.skip": 'skip <id> --reason "…"                omitida (libera las tareas que dependen de ella)',
-  "help.start": "start <id>                            en curso; bloquea la posesión (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  en curso; bloquea la posesión; reaplica lo guardado",
   "help.status": "status                                hechas H/T (P%) · … · quedan N, la frontera y los bloqueos",
   "help.status.run": "  (sin --run: la ejecución de la sesión, JTASKS_RUN, o la única activa del repositorio)",
   "help.title": "jtasks {version}: una lista de tareas con dependencias y posesión de archivos (jlock)",
@@ -1293,7 +1302,6 @@ var es_default = {
   "release.pending": "volvió a pendiente (intento {attempts}/{max})",
   "release.released": "liberada",
   "resume.bound": "ejecución {run} reanudada en esta sesión",
-  "resume.edits": "ediciones en el disco: {list}",
   "resume.kept_flag": "siguen en curso: {list} (--keep-owners)",
   "resume.kept_live": "siguen en curso: {list} (bloqueos vivos)",
   "resume.no_locks_reason": "agente sin bloqueos en jlock (ventana cerrada)",
@@ -1318,6 +1326,7 @@ var es_default = {
   "spawn.unknown_profile": 'perfil desconocido "{profile}" (perfiles: {profiles})',
   "start.busy": "{id} no estaba lista: {key} en uso por {holder}{via}; no se escribió nada",
   "start.depends": "{id} no está lista: depende de {deps}",
+  "start.fresh": "--fresh: {n} patch(es) guardado(s) dejado(s) fuera (siguen en {dir} y en el ledger)",
   "start.hint": 'otro archivo: jtasks claim {id} <archivo>; al final: jtasks done {id} --evidence "…" (o jtasks fail {id} --error "…")',
   "start.locked": "posesión bloqueada en jlock ({n} clave(s), dueño {owner})",
   "start.no_files": "sin archivos en su posesión",
@@ -1432,6 +1441,8 @@ var fr_default = {
   "attempts.exhausted": "{why}; tentatives épuisées ({attempts}/{max})",
   "binding.other_run": "cette session est liée à l'exécution {run}; --run {asked} est refusé",
   "changes.left": "des modifications non commitées sont restées sur le disque: {list}",
+  "changes.saved": "modifications gardées en patch (elles reviennent au prochain start; --fresh les laisse de côté): {list}",
+  "changes.untouched": "non touchés (un autre propriétaire les tient maintenant): {list}",
   "claim.already": "{id} a déjà {files} dans sa possession: rien à faire",
   "claim.came_back": "ils sont revenus d'eux-mêmes après le yield: {files}",
   "claim.deadlock": "claim refusé: il fermerait un cycle d'attente (deadlock): {chain}. Le dernier à demander cède: jtasks yield {id} rend seulement les fichiers disputés (vos modifications sont gardées dans un patch et reviennent quand le fichier est de nouveau à vous); en attendant, faites d'autres parties. Seulement si plus rien ne peut avancer, jtasks release {id}",
@@ -1500,6 +1511,7 @@ var fr_default = {
   "done.no_commit": "aucun changement dans sa possession, pas de commit",
   "done.no_evidence": `done sans preuve est refusé: jtasks done {id} --evidence "ce qui prouve que c'est fait"`,
   "done.outside": "{id} ne peut pas être terminée: fichiers modifiés hors de sa possession: {files}. Demandez-les avec jtasks claim {id} <fichier>, ou annulez ces changements",
+  "done.released_edits": "{id}, libérée, a des modifications en attente dans: {files} (laissées sur le disque, hors de ce commit)",
   "done.wrong_branch": "le checkout est sur {branch}, mais l'exécution commite sur {run_branch}",
   "draft.already_open": "un brouillon est déjà ouvert: {ids} (continuez avec jtasks plan --add, ou fermez-le avec --commit)",
   "draft.batch_accepted": "lot accepté: {n} tâche(s) ({ids}); le brouillon en a {total}. Fermez-le avec jtasks plan --commit",
@@ -1583,13 +1595,13 @@ var fr_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective texte] [--source ref]   ouvre un brouillon (plan par lots)",
   "help.plan.fix": "  plan --fix <id> <json|@fichier>     remplace une tâche du brouillon",
   "help.plan.show": "  plan --show                         un résumé du brouillon",
-  "help.release": "release <id>                          en cours → en attente (à maxAttempts, en échec)",
+  "help.release": "release <id>                          en cours → en attente (maxAttempts: échouée); modifs gardées",
   "help.resume": "resume <run> [--keep-owners]          lie la session, sort de pause, libère les tâches sans verrou",
   "help.keepalive": "keepalive on|off                      l'hôte relance la boucle arrêtée avec des tâches prêtes",
   "help.retry": "retry <id> | --all-failed             ignorée ou en échec → en attente",
   "help.runs": "runs                                  les exécutions du dépôt, avec état et progression",
   "help.skip": 'skip <id> --reason "…"                ignorée (libère les tâches qui en dépendent)',
-  "help.start": "start <id>                            en cours; verrouille la possession (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  en cours; verrouille; réapplique les modifs gardées",
   "help.status": "status                                terminées D/T (P%) · … · N restantes, frontière et verrous",
   "help.status.run": "  (sans --run: l'exécution de la session, JTASKS_RUN, ou la seule active du dépôt)",
   "help.title": "jtasks {version}: une liste de tâches avec dépendances et possession de fichiers (jlock)",
@@ -1721,7 +1733,6 @@ var fr_default = {
   "release.pending": "revenue en attente (tentative {attempts}/{max})",
   "release.released": "libérée",
   "resume.bound": "exécution {run} reprise dans cette session",
-  "resume.edits": "modifications sur le disque: {list}",
   "resume.kept_flag": "gardées en cours: {list} (--keep-owners)",
   "resume.kept_live": "gardées en cours: {list} (verrous actifs)",
   "resume.no_locks_reason": "agent sans verrous dans jlock (fenêtre fermée)",
@@ -1746,6 +1757,7 @@ var fr_default = {
   "spawn.unknown_profile": 'profil inconnu "{profile}" (profils: {profiles})',
   "start.busy": "{id} n'était pas prête: {key} utilisé par {holder}{via}; rien n'a été écrit",
   "start.depends": "{id} n'est pas prête: elle dépend de {deps}",
+  "start.fresh": "--fresh: {n} patch(s) gardé(s) laissé(s) de côté (ils restent dans {dir} et dans le ledger)",
   "start.hint": 'un autre fichier: jtasks claim {id} <fichier>; à la fin: jtasks done {id} --evidence "…" (ou jtasks fail {id} --error "…")',
   "start.locked": "possession verrouillée dans jlock ({n} clé(s), propriétaire {owner})",
   "start.no_files": "aucun fichier dans sa possession",
@@ -1860,6 +1872,8 @@ var de_default = {
   "attempts.exhausted": "{why}; Versuche aufgebraucht ({attempts}/{max})",
   "binding.other_run": "diese Sitzung ist an Lauf {run} gebunden; --run {asked} wird abgelehnt",
   "changes.left": "nicht committete Änderungen blieben auf der Festplatte: {list}",
+  "changes.saved": "Änderungen als Patch aufbewahrt (sie kommen beim nächsten start zurück; --fresh lässt sie weg): {list}",
+  "changes.untouched": "nicht angefasst (ein anderer Besitzer hält sie jetzt): {list}",
   "claim.already": "{id} hat {files} bereits im Besitz: nichts zu tun",
   "claim.came_back": "sie kamen nach dem yield von selbst zurück: {files}",
   "claim.deadlock": "claim abgelehnt: er würde einen Wartezyklus schließen (Deadlock): {chain}. Wer zuletzt gefragt hat, weicht: jtasks yield {id} gibt nur die umkämpften Dateien ab (deine Änderungen werden als Patch aufbewahrt und kommen zurück, sobald die Datei wieder dir gehört); mach inzwischen andere Teile. Nur wenn sonst nichts weitergeht, jtasks release {id}",
@@ -1928,6 +1942,7 @@ var de_default = {
   "done.no_commit": "keine Änderung im Besitz, kein Commit",
   "done.no_evidence": 'done ohne Nachweis wird abgelehnt: jtasks done {id} --evidence "was beweist, dass es erledigt ist"',
   "done.outside": "{id} kann nicht abgeschlossen werden: Dateien außerhalb ihres Besitzes geändert: {files}. Fordere sie mit jtasks claim {id} <datei> an oder mach diese Änderungen rückgängig",
+  "done.released_edits": "{id}, freigegeben, hat offene Änderungen in: {files} (bleiben auf der Festplatte, nicht in diesem Commit)",
   "done.wrong_branch": "der Checkout steht auf {branch}, aber der Lauf committet auf {run_branch}",
   "draft.already_open": "ein Entwurf ist bereits offen: {ids} (weiter mit jtasks plan --add oder schließen mit --commit)",
   "draft.batch_accepted": "Batch angenommen: {n} Aufgabe(n) ({ids}); der Entwurf hat {total}. Schließ ihn mit jtasks plan --commit",
@@ -2011,13 +2026,13 @@ var de_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   öffnet einen Entwurf (Batch-Plan)",
   "help.plan.fix": "  plan --fix <id> <json|@datei>       ersetzt eine Aufgabe des Entwurfs",
   "help.plan.show": "  plan --show                         eine Zusammenfassung des Entwurfs",
-  "help.release": "release <id>                          in Arbeit → ausstehend (bei maxAttempts fehlgeschlagen)",
+  "help.release": "release <id>                          in Arbeit → offen (maxAttempts: gescheitert); behält Edits",
   "help.resume": "resume <run> [--keep-owners]          bindet Sitzung, hebt Pause auf, gibt sperrlose Aufgaben frei",
   "help.keepalive": "keepalive on|off                      Host öffnet die stehende Schleife mit bereiten Aufgaben neu",
   "help.retry": "retry <id> | --all-failed             übersprungen oder fehlgeschlagen → ausstehend",
   "help.runs": "runs                                  die Läufe des Repositorys, mit Status und Fortschritt",
   "help.skip": 'skip <id> --reason "…"                übersprungen (gibt die abhängigen Aufgaben frei)',
-  "help.start": "start <id>                            in Arbeit; sperrt den Besitz (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  in Arbeit; sperrt den Besitz; wendet Patches wieder an",
   "help.status": "status                                erledigt E/G (P%) · … · N offen, nächste Aufgaben, Sperren",
   "help.status.run": "  (ohne --run: der Lauf der Sitzung, JTASKS_RUN oder der einzige aktive des Repositorys)",
   "help.title": "jtasks {version}: eine Aufgabenliste mit Abhängigkeiten und Dateibesitz (jlock)",
@@ -2149,7 +2164,6 @@ var de_default = {
   "release.pending": "wieder ausstehend (Versuch {attempts}/{max})",
   "release.released": "freigegeben",
   "resume.bound": "Lauf {run} in dieser Sitzung fortgesetzt",
-  "resume.edits": "Änderungen auf der Festplatte: {list}",
   "resume.kept_flag": "bleiben in Arbeit: {list} (--keep-owners)",
   "resume.kept_live": "bleiben in Arbeit: {list} (lebende Sperren)",
   "resume.no_locks_reason": "Agent ohne Sperren in jlock (Fenster geschlossen)",
@@ -2174,6 +2188,7 @@ var de_default = {
   "spawn.unknown_profile": 'unbekanntes Profil "{profile}" (Profile: {profiles})',
   "start.busy": "{id} war nicht bereit: {key} belegt von {holder}{via}; nichts wurde geschrieben",
   "start.depends": "{id} ist nicht bereit: hängt ab von {deps}",
+  "start.fresh": "--fresh: {n} aufbewahrte(r) Patch(es) weggelassen (bleiben in {dir} und im Ledger)",
   "start.hint": 'weitere Datei: jtasks claim {id} <datei>; am Ende: jtasks done {id} --evidence "…" (oder jtasks fail {id} --error "…")',
   "start.locked": "Besitz in jlock gesperrt ({n} Schlüssel, Besitzer {owner})",
   "start.no_files": "keine Dateien im Besitz",
@@ -2288,6 +2303,8 @@ var it_default = {
   "attempts.exhausted": "{why}; tentativi esauriti ({attempts}/{max})",
   "binding.other_run": "questa sessione è legata all'esecuzione {run}; --run {asked} rifiutato",
   "changes.left": "modifiche non committate rimaste sul disco: {list}",
+  "changes.saved": "modifiche salvate come patch (tornano al prossimo start; --fresh le lascia fuori): {list}",
+  "changes.untouched": "non toccati (un altro proprietario li tiene ora): {list}",
   "claim.already": "{id} ha già {files} nel suo possesso: niente da fare",
   "claim.came_back": "sono tornati da soli dopo lo yield: {files}",
   "claim.deadlock": "claim rifiutato: chiuderebbe un ciclo di attesa (deadlock): {chain}. Cede chi ha chiesto per ultimo: jtasks yield {id} restituisce solo i file contesi (le tue modifiche restano salvate in una patch e tornano quando il file è di nuovo tuo); nel frattempo, fai altre parti. Solo se nient'altro può andare avanti, jtasks release {id}",
@@ -2356,6 +2373,7 @@ var it_default = {
   "done.no_commit": "nessuna modifica nel suo possesso, nessun commit",
   "done.no_evidence": 'done senza prova è rifiutato: jtasks done {id} --evidence "cosa prova che è fatta"',
   "done.outside": "{id} non può essere completata: file modificati fuori dal suo possesso: {files}. Chiedili con jtasks claim {id} <file>, o annulla quelle modifiche",
+  "done.released_edits": "{id}, rilasciata, ha modifiche in sospeso in: {files} (restano sul disco, fuori da questo commit)",
   "done.wrong_branch": "il checkout è su {branch}, ma l'esecuzione fa commit su {run_branch}",
   "draft.already_open": "c'è già una bozza aperta: {ids} (continua con jtasks plan --add, o chiudila con --commit)",
   "draft.batch_accepted": "lotto accettato: {n} attività ({ids}); la bozza ne ha {total}. Chiudila con jtasks plan --commit",
@@ -2439,13 +2457,13 @@ var it_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective testo] [--source ref]   apre una bozza (un piano a lotti)",
   "help.plan.fix": "  plan --fix <id> <json|@file>        sostituisce un'attività della bozza",
   "help.plan.show": "  plan --show                         un riepilogo della bozza",
-  "help.release": "release <id>                          in corso → in sospeso (a maxAttempts, fallita)",
+  "help.release": "release <id>                          in corso → in attesa (maxAttempts: fallita); salva modifiche",
   "help.resume": "resume <run> [--keep-owners]          lega la sessione, riprende, rilascia attività senza blocchi",
   "help.keepalive": "keepalive on|off                      l'host riapre il ciclo fermo con attività pronte",
   "help.retry": "retry <id> | --all-failed             saltata o fallita → in sospeso",
   "help.runs": "runs                                  le esecuzioni del repository, con stato e avanzamento",
   "help.skip": 'skip <id> --reason "…"                saltata (libera le attività che ne dipendono)',
-  "help.start": "start <id>                            in corso; blocca il possesso (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  in corso; blocca il possesso; riapplica le modifiche",
   "help.status": "status                                completate D/T (P%) · … · N rimaste, frontiera e blocchi",
   "help.status.run": "  (senza --run: l'esecuzione della sessione, JTASKS_RUN, o l'unica attiva del repository)",
   "help.title": "jtasks {version}: lista di attività con dipendenze e possesso dei file (jlock)",
@@ -2577,7 +2595,6 @@ var it_default = {
   "release.pending": "tornata in sospeso (tentativo {attempts}/{max})",
   "release.released": "rilasciata",
   "resume.bound": "esecuzione {run} ripresa in questa sessione",
-  "resume.edits": "modifiche sul disco: {list}",
   "resume.kept_flag": "mantenute in corso: {list} (--keep-owners)",
   "resume.kept_live": "mantenute in corso: {list} (blocchi attivi)",
   "resume.no_locks_reason": "agente senza blocchi in jlock (finestra chiusa)",
@@ -2602,6 +2619,7 @@ var it_default = {
   "spawn.unknown_profile": 'profilo sconosciuto "{profile}" (profili: {profiles})',
   "start.busy": "{id} non era pronta: {key} tenuta da {holder}{via}; nulla è stato scritto",
   "start.depends": "{id} non è pronta: dipende da {deps}",
+  "start.fresh": "--fresh: {n} patch salvata/e lasciata/e fuori (restano in {dir} e nel ledger)",
   "start.hint": 'un altro file: jtasks claim {id} <file>; alla fine: jtasks done {id} --evidence "…" (o jtasks fail {id} --error "…")',
   "start.locked": "possesso bloccato in jlock (chiavi: {n}, proprietario {owner})",
   "start.no_files": "nessun file nel suo possesso",
@@ -2716,6 +2734,8 @@ var zh_CN_default = {
   "attempts.exhausted": "{why}；尝试次数已用完（{attempts}/{max}）",
   "binding.other_run": "本会话已绑定到运行 {run}；拒绝 --run {asked}",
   "changes.left": "未提交的修改留在磁盘上：{list}",
+  "changes.saved": "修改已保存为补丁（下次 start 时恢复；--fresh 不恢复）：{list}",
+  "changes.untouched": "未改动（现在由另一个所有者持有）：{list}",
   "claim.already": "{id} 的所有权中已有 {files}：无需操作",
   "claim.came_back": "yield 之后它们已自动回来：{files}",
   "claim.deadlock": "claim 被拒绝：会形成等待环（死锁）：{chain}。最后请求者让步：jtasks yield {id} 只交还有争用的文件（你的修改保存为补丁，文件重新归你时会恢复）；同时去做其他部分。只有在别的都无法推进时，才用 jtasks release {id}",
@@ -2784,6 +2804,7 @@ var zh_CN_default = {
   "done.no_commit": "所有权内无改动，未提交",
   "done.no_evidence": '没有证据的 done 会被拒绝：jtasks done {id} --evidence "证明已完成的内容"',
   "done.outside": "{id} 无法完成：所有权之外的文件被修改：{files}。用 jtasks claim {id} <文件> 申请，或撤回这些修改",
+  "done.released_edits": "已释放的 {id} 在以下文件中有未完成的修改：{files}（留在磁盘上，不进入此次提交）",
   "done.wrong_branch": "当前检出在 {branch}，但该运行提交到 {run_branch}",
   "draft.already_open": "已有打开的草稿：{ids}（用 jtasks plan --add 继续，或用 --commit 关闭）",
   "draft.batch_accepted": "批次已接受：{n} 个任务（{ids}）；草稿共 {total} 个。用 jtasks plan --commit 关闭",
@@ -2867,13 +2888,13 @@ var zh_CN_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective 文本] [--source ref]   打开草稿（分批编写计划）",
   "help.plan.fix": "  plan --fix <id> <json|@文件>          替换草稿中的一个任务",
   "help.plan.show": "  plan --show                           草稿摘要",
-  "help.release": "release <id>                          进行中 → 待处理（达到 maxAttempts 则失败）",
+  "help.release": "release <id>                          进行中 → 待处理（达到 maxAttempts 则失败）；保存修改",
   "help.resume": "resume <run> [--keep-owners]          绑定会话、取消暂停、释放没有锁的任务",
   "help.keepalive": "keepalive on|off                      有就绪任务时，宿主会重启停下的循环",
   "help.retry": "retry <id> | --all-failed             已跳过或失败 → 待处理",
   "help.runs": "runs                                  仓库中的运行，含状态和进度",
   "help.skip": 'skip <id> --reason "…"                跳过（解除依赖它的任务的阻塞）',
-  "help.start": "start <id>                            进行中；锁定所有权（jlock hold --no-wait）",
+  "help.start": "start <id> [--fresh]                  进行中；锁定所有权；重新应用保存的修改",
   "help.status": "status                                完成 D/T (P%) · … · 剩余 N、前沿和锁",
   "help.status.run": "  （不带 --run：会话的运行、JTASKS_RUN，或仓库中唯一活动的运行）",
   "help.title": "jtasks {version}：带依赖和文件所有权（jlock）的任务列表",
@@ -3005,7 +3026,6 @@ var zh_CN_default = {
   "release.pending": "已回到待处理（尝试 {attempts}/{max}）",
   "release.released": "已释放",
   "resume.bound": "运行 {run} 已在本会话中恢复",
-  "resume.edits": "磁盘上的修改：{list}",
   "resume.kept_flag": "保持进行中：{list}（--keep-owners）",
   "resume.kept_live": "保持进行中：{list}（锁仍有效）",
   "resume.no_locks_reason": "智能体在 jlock 中没有锁（窗口已关闭）",
@@ -3030,6 +3050,7 @@ var zh_CN_default = {
   "spawn.unknown_profile": '未知配置 "{profile}"（可用配置：{profiles}）',
   "start.busy": "{id} 未就绪：{key} 正被 {holder}{via} 使用；未写入任何内容",
   "start.depends": "{id} 未就绪：它依赖 {deps}",
+  "start.fresh": "--fresh：{n} 个保存的补丁未恢复（仍保留在 {dir} 和账本中）",
   "start.hint": '需要其他文件：jtasks claim {id} <文件>；结束时：jtasks done {id} --evidence "…"（或 jtasks fail {id} --error "…"）',
   "start.locked": "所有权已在 jlock 中锁定（{n} 个键，所有者 {owner}）",
   "start.no_files": "所有权中没有文件",
@@ -3144,6 +3165,8 @@ var ja_default = {
   "attempts.exhausted": "{why}。試行回数を使い切った（{attempts}/{max}）",
   "binding.other_run": "このセッションは実行 {run} に結び付いている。--run {asked} は拒否",
   "changes.left": "コミットされていない編集がディスクに残った: {list}",
+  "changes.saved": "編集をパッチとして保存（次の start で戻る。--fresh なら戻さない）: {list}",
+  "changes.untouched": "触れていない（いまは別の所有者が持っている）: {list}",
   "claim.already": "{id} の所有権にはすでに {files} がある: 何もしない",
   "claim.came_back": "yield の後、自動で戻った: {files}",
   "claim.deadlock": "claim 拒否: 待ちの循環（デッドロック）ができる: {chain}。最後に求めた側が譲る: jtasks yield {id} で競合しているファイルだけを返す（編集はパッチとして保存され、ファイルが再び自分のものになると戻る）。その間は別の部分を進める。ほかに何も進められないときだけ jtasks release {id}",
@@ -3212,6 +3235,7 @@ var ja_default = {
   "done.no_commit": "所有権内に変更なし、コミットなし",
   "done.no_evidence": '証拠のない done は拒否: jtasks done {id} --evidence "完了を示すもの"',
   "done.outside": "{id} は完了できない: 所有権外のファイルが変更された: {files}。jtasks claim {id} <ファイル> で求めるか、その変更を元に戻す",
+  "done.released_edits": "解放された {id} に未完了の編集がある: {files}（ディスクに残し、このコミットには含めない）",
   "done.wrong_branch": "チェックアウトは {branch} だが、この実行は {run_branch} にコミットする",
   "draft.already_open": "下書きがすでに開いている: {ids}（jtasks plan --add で続けるか、--commit で閉じる）",
   "draft.batch_accepted": "バッチを受理: タスク {n} 件（{ids}）。下書きは計 {total} 件。jtasks plan --commit で閉じる",
@@ -3295,13 +3319,13 @@ var ja_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective テキスト] [--source ref]   下書きを開く（バッチ計画）",
   "help.plan.fix": "  plan --fix <id> <json|@ファイル>      下書きのタスクを 1 つ置き換える",
   "help.plan.show": "  plan --show                           下書きの概要",
-  "help.release": "release <id>                          進行中 → 未着手（maxAttempts に達したら失敗）",
+  "help.release": "release <id>                          進行中 → 保留（maxAttempts で失敗）。編集は保存",
   "help.resume": "resume <run> [--keep-owners]          セッションに結び付け、再開し、ロックのないタスクを解放",
   "help.keepalive": "keepalive on|off                      準備済みタスクがあれば止まったループをホストが再開",
   "help.retry": "retry <id> | --all-failed             スキップまたは失敗 → 未着手",
   "help.runs": "runs                                  リポジトリの実行一覧（状態と進捗つき）",
   "help.skip": 'skip <id> --reason "…"                スキップ（依存するタスクのブロックを解除）',
-  "help.start": "start <id>                            進行中にし、所有権をロック（jlock hold --no-wait）",
+  "help.start": "start <id> [--fresh]                  進行中にし所有権をロック。保存した編集を再適用",
   "help.status": "status                                完了 D/T (P%) · … · 残り N、フロンティアとロック",
   "help.status.run": "  （--run なし: セッションの実行、JTASKS_RUN、またはリポジトリで唯一の有効な実行）",
   "help.title": "jtasks {version}: 依存関係とファイル所有権（jlock）を持つタスクリスト",
@@ -3433,7 +3457,6 @@ var ja_default = {
   "release.pending": "未着手に戻った（試行 {attempts}/{max}）",
   "release.released": "解放した",
   "resume.bound": "実行 {run} をこのセッションで再開",
-  "resume.edits": "ディスク上の編集: {list}",
   "resume.kept_flag": "進行中のまま: {list}（--keep-owners）",
   "resume.kept_live": "進行中のまま: {list}（ロックが生きている）",
   "resume.no_locks_reason": "jlock にロックを持たないエージェント（ウィンドウが閉じた）",
@@ -3458,6 +3481,7 @@ var ja_default = {
   "spawn.unknown_profile": '不明なプロファイル "{profile}"（プロファイル: {profiles}）',
   "start.busy": "{id} は準備できていなかった: {key} を {holder}{via} が使用中。何も書き込んでいない",
   "start.depends": "{id} は準備できていない: {deps} に依存している",
+  "start.fresh": "--fresh: 保存済みパッチ {n} 件を除外（{dir} と台帳に残る）",
   "start.hint": '別のファイル: jtasks claim {id} <ファイル>。終わったら: jtasks done {id} --evidence "…"（または jtasks fail {id} --error "…"）',
   "start.locked": "所有権を jlock でロック（キー {n} 個、所有者 {owner}）",
   "start.no_files": "所有権にファイルなし",
@@ -3572,6 +3596,8 @@ var ru_default = {
   "attempts.exhausted": "{why}; попытки исчерпаны ({attempts}/{max})",
   "binding.other_run": "эта сессия привязана к прогону {run}; --run {asked} отклонён",
   "changes.left": "незакоммиченные правки остались на диске: {list}",
+  "changes.saved": "правки сохранены как патчи (вернутся при следующем start; --fresh их не возвращает): {list}",
+  "changes.untouched": "не тронуты (теперь их держит другой владелец): {list}",
   "claim.already": "у {id} уже есть {files} во владении: делать нечего",
   "claim.came_back": "они вернулись сами после yield: {files}",
   "claim.deadlock": "claim отклонён: он замкнул бы цикл ожидания (deadlock): {chain}. Уступает тот, кто попросил последним: jtasks yield {id} отдаёт только спорные файлы (ваши правки сохраняются в патче и возвращаются, когда файл снова ваш); тем временем делайте другие части. Только если больше ничего не может двигаться, jtasks release {id}",
@@ -3640,6 +3666,7 @@ var ru_default = {
   "done.no_commit": "нет изменений во владении, без коммита",
   "done.no_evidence": 'done без доказательства отклоняется: jtasks done {id} --evidence "что доказывает, что готово"',
   "done.outside": "{id} нельзя завершить: файлы изменены вне её владения: {files}. Запросите их через jtasks claim {id} <файл> или отмените эти изменения",
+  "done.released_edits": "у освобождённой {id} есть незавершённые правки в: {files} (остаются на диске, вне этого коммита)",
   "done.wrong_branch": "checkout на {branch}, но прогон коммитит в {run_branch}",
   "draft.already_open": "черновик уже открыт: {ids} (продолжайте через jtasks plan --add или закройте через --commit)",
   "draft.batch_accepted": "пакет принят, задач: {n} ({ids}); всего в черновике: {total}. Закройте через jtasks plan --commit",
@@ -3723,13 +3750,13 @@ var ru_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective текст] [--source ref]   открывает черновик (план пакетами)",
   "help.plan.fix": "  plan --fix <id> <json|@файл>        заменяет одну задачу черновика",
   "help.plan.show": "  plan --show                         сводка черновика",
-  "help.release": "release <id>                          в работе → в ожидании (при maxAttempts — провал)",
+  "help.release": "release <id>                          в работе → ожидает (maxAttempts: сбой); правки сохраняются",
   "help.resume": "resume <run> [--keep-owners]          привязка сессии, снятие паузы, сброс задач без блокировок",
   "help.keepalive": "keepalive on|off                      хост перезапускает простаивающий цикл с готовыми задачами",
   "help.retry": "retry <id> | --all-failed             пропущена или провалена → в ожидании",
   "help.runs": "runs                                  прогоны репозитория со статусом и прогрессом",
   "help.skip": 'skip <id> --reason "…"                пропущена (освобождает зависящие от неё задачи)',
-  "help.start": "start <id>                            в работе; блокирует владение (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  в работу; блокирует владение; возвращает правки",
   "help.status": "status                                выполнено D/T (P%) · … · осталось: N, фронтир и блокировки",
   "help.status.run": "  (без --run: прогон сессии, JTASKS_RUN или единственный активный в репозитории)",
   "help.title": "jtasks {version}: список задач с зависимостями и владением файлами (jlock)",
@@ -3861,7 +3888,6 @@ var ru_default = {
   "release.pending": "вернулась в ожидание (попытка {attempts}/{max})",
   "release.released": "освобождена",
   "resume.bound": "прогон {run} возобновлён в этой сессии",
-  "resume.edits": "правки на диске: {list}",
   "resume.kept_flag": "оставлены в работе: {list} (--keep-owners)",
   "resume.kept_live": "оставлены в работе: {list} (живые блокировки)",
   "resume.no_locks_reason": "агент без блокировок в jlock (окно закрыто)",
@@ -3886,6 +3912,7 @@ var ru_default = {
   "spawn.unknown_profile": 'неизвестный профиль "{profile}" (профили: {profiles})',
   "start.busy": "{id} не была готова: {key} держит {holder}{via}; ничего не записано",
   "start.depends": "{id} не готова: зависит от {deps}",
+  "start.fresh": "--fresh: сохранённых патчей оставлено в стороне: {n} (они остаются в {dir} и в журнале)",
   "start.hint": 'другой файл: jtasks claim {id} <файл>; в конце: jtasks done {id} --evidence "…" (или jtasks fail {id} --error "…")',
   "start.locked": "владение заблокировано в jlock (ключей: {n}, владелец {owner})",
   "start.no_files": "во владении нет файлов",
@@ -4000,6 +4027,8 @@ var ar_default = {
   "attempts.exhausted": "{why}؛ استُنفدت المحاولات ({attempts}/{max})",
   "binding.other_run": "هذه الجلسة مرتبطة بالتشغيل {run}؛ رُفض --run {asked}",
   "changes.left": "بقيت على القرص تعديلات غير مودَعة: {list}",
+  "changes.saved": "حُفظت التعديلات كرُقع (تعود في start التالي؛ --fresh يتركها جانبًا): {list}",
+  "changes.untouched": "لم تُمسّ (يمسكها مالك آخر الآن): {list}",
   "claim.already": "لدى {id} بالفعل {files} في ملكيتها: لا شيء لفعله",
   "claim.came_back": "عادت من تلقاء نفسها بعد yield: {files}",
   "claim.deadlock": "رُفض claim: سيغلق دورة انتظار (deadlock): {chain}. يتنازل من طلب أخيرًا: jtasks yield {id} يعيد الملفات المتنازع عليها فقط (تُحفظ تعديلاتك في رقعة وتعود حين يصبح الملف لك مجددًا)؛ وفي الأثناء أنجز أجزاء أخرى. فقط إن لم يعد شيء آخر قادرًا على التقدم، jtasks release {id}",
@@ -4068,6 +4097,7 @@ var ar_default = {
   "done.no_commit": "لا تغيير في ملكيتها، لا إيداع",
   "done.no_evidence": 'يُرفض done بلا دليل: jtasks done {id} --evidence "ما يثبت أنها أُنجزت"',
   "done.outside": "لا يمكن إنجاز {id}: ملفات تغيّرت خارج ملكيتها: {files}. اطلبها بالأمر jtasks claim {id} <file>، أو تراجع عن تلك التغييرات",
+  "done.released_edits": "لدى {id} المحرَّرة تعديلات معلّقة في: {files} (تبقى على القرص، خارج هذا الإيداع)",
   "done.wrong_branch": "الـ checkout على {branch}، لكن التشغيل يودِع على {run_branch}",
   "draft.already_open": "توجد مسودة مفتوحة بالفعل: {ids} (تابع بالأمر jtasks plan --add، أو أغلقها بـ --commit)",
   "draft.batch_accepted": "قُبلت الدفعة، المهام: {n} ({ids})؛ في المسودة الآن: {total}. أغلقها بالأمر jtasks plan --commit",
@@ -4151,13 +4181,13 @@ var ar_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   يفتح مسودة (خطة على دفعات)",
   "help.plan.fix": "  plan --fix <id> <json|@file>        يستبدل مهمة واحدة في المسودة",
   "help.plan.show": "  plan --show                         ملخص المسودة",
-  "help.release": "release <id>                          قيد التنفيذ → معلّقة (عند maxAttempts، فاشلة)",
+  "help.release": "release <id>                          قيد التنفيذ ← معلّقة (فاشلة عند maxAttempts)؛ تحفظ التعديلات",
   "help.resume": "resume <run> [--keep-owners]          يربط الجلسة، يلغي الإيقاف، يحرّر المهام بلا أقفال",
   "help.keepalive": "keepalive on|off                      يعيد المضيف فتح الحلقة المتوقفة ذات المهام الجاهزة",
   "help.retry": "retry <id> | --all-failed             متخطاة أو فاشلة → معلّقة",
   "help.runs": "runs                                  تشغيلات المستودع، مع الحالة والتقدم",
   "help.skip": 'skip <id> --reason "…"                متخطاة (تُطلق المهام المعتمدة عليها)',
-  "help.start": "start <id>                            قيد التنفيذ؛ يقفل الملكية (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  قيد التنفيذ؛ يقفل الملكية؛ يعيد تطبيق التعديلات المحفوظة",
   "help.status": "status                                المنجزة D/T (P%) · … · المتبقي: N، الواجهة والأقفال",
   "help.status.run": "  (بدون --run: تشغيل الجلسة، أو JTASKS_RUN، أو التشغيل النشط الوحيد في المستودع)",
   "help.title": "jtasks {version}: قائمة مهام بتبعيات وملكية ملفات (jlock)",
@@ -4289,7 +4319,6 @@ var ar_default = {
   "release.pending": "عادت معلّقة (المحاولة {attempts}/{max})",
   "release.released": "حُرّرت",
   "resume.bound": "استُؤنف التشغيل {run} في هذه الجلسة",
-  "resume.edits": "تعديلات على القرص: {list}",
   "resume.kept_flag": "أُبقيت قيد التنفيذ: {list} (--keep-owners)",
   "resume.kept_live": "أُبقيت قيد التنفيذ: {list} (أقفال حية)",
   "resume.no_locks_reason": "وكيل بلا أقفال في jlock (النافذة مغلقة)",
@@ -4314,6 +4343,7 @@ var ar_default = {
   "spawn.unknown_profile": 'ملف تعريفي غير معروف "{profile}" (الملفات التعريفية: {profiles})',
   "start.busy": "لم تكن {id} جاهزة: {key} لدى {holder}{via}؛ لم يُكتب شيء",
   "start.depends": "{id} ليست جاهزة: تعتمد على {deps}",
+  "start.fresh": "--fresh: تُركت {n} من الرقع المحفوظة جانبًا (تبقى في {dir} وفي السجل)",
   "start.hint": 'ملف آخر: jtasks claim {id} <file>؛ في النهاية: jtasks done {id} --evidence "…" (أو jtasks fail {id} --error "…")',
   "start.locked": "قُفلت الملكية في jlock (المفاتيح: {n}، المالك {owner})",
   "start.no_files": "لا ملفات في ملكيتها",
@@ -4428,6 +4458,8 @@ var hi_default = {
   "attempts.exhausted": "{why}; प्रयास खत्म ({attempts}/{max})",
   "binding.other_run": "यह सत्र रन {run} से बँधा है; --run {asked} अस्वीकृत",
   "changes.left": "बिना commit के संपादन डिस्क पर रह गए: {list}",
+  "changes.saved": "संपादन patch के रूप में सहेजे गए (अगले start पर लौटते हैं; --fresh उन्हें छोड़ देता है): {list}",
+  "changes.untouched": "छुए नहीं गए (अब कोई दूसरा स्वामी रखता है): {list}",
   "claim.already": "{id} के स्वामित्व में {files} पहले से है: कुछ करने को नहीं",
   "claim.came_back": "yield के बाद वे अपने-आप लौट आईं: {files}",
   "claim.deadlock": "claim अस्वीकृत: इससे प्रतीक्षा का चक्र (डेडलॉक) बनता: {chain}। जिसने अंत में माँगा वह पीछे हटता है: jtasks yield {id} केवल विवादित फ़ाइलें लौटाता है (आपके संपादन एक patch में सहेजे जाते हैं और फ़ाइल फिर आपकी होने पर लौट आते हैं); तब तक दूसरे हिस्से करें। केवल तब, जब और कुछ आगे न बढ़ सके, jtasks release {id}",
@@ -4496,6 +4528,7 @@ var hi_default = {
   "done.no_commit": "स्वामित्व में कोई बदलाव नहीं, कोई commit नहीं",
   "done.no_evidence": 'बिना सबूत के done अस्वीकृत: jtasks done {id} --evidence "क्या साबित करता है कि यह पूरा है"',
   "done.outside": "{id} पूरा नहीं हो सकता: स्वामित्व के बाहर फ़ाइलें बदलीं: {files}। उन्हें jtasks claim {id} <फ़ाइल> से माँगें, या वे बदलाव वापस लें",
+  "done.released_edits": "छोड़े गए {id} के लंबित संपादन इनमें हैं: {files} (डिस्क पर रहते हैं, इस commit से बाहर)",
   "done.wrong_branch": "checkout {branch} पर है, पर रन {run_branch} पर commit करता है",
   "draft.already_open": "एक ड्राफ़्ट पहले से खुला है: {ids} (jtasks plan --add से जारी रखें, या --commit से बंद करें)",
   "draft.batch_accepted": "बैच स्वीकृत: {n} कार्य ({ids}); ड्राफ़्ट में कुल {total}। jtasks plan --commit से बंद करें",
@@ -4579,13 +4612,13 @@ var hi_default = {
   "help.plan.draft": "plan --draft [--name slug] [--objective text] [--source ref]   ड्राफ़्ट खोलता है (बैचों में योजना)",
   "help.plan.fix": "  plan --fix <id> <json|@file>          ड्राफ़्ट का एक कार्य बदलता है",
   "help.plan.show": "  plan --show                           ड्राफ़्ट का सारांश",
-  "help.release": "release <id>                          प्रगति पर → लंबित (maxAttempts पर, विफल)",
+  "help.release": "release <id>                          प्रगति में → लंबित (maxAttempts पर विफल); संपादन सहेजता है",
   "help.resume": "resume <run> [--keep-owners]          सत्र बाँधता, विराम हटाता, बिना लॉक वाले कार्य छोड़ता है",
   "help.keepalive": "keepalive on|off                      तैयार कार्य हों तो होस्ट रुका लूप फिर खोलता है",
   "help.retry": "retry <id> | --all-failed             स्किप या विफल → लंबित",
   "help.runs": "runs                                  रिपॉज़िटरी के रन, स्थिति और प्रगति के साथ",
   "help.skip": 'skip <id> --reason "…"                स्किप (इस पर निर्भर कार्यों को मुक्त करता है)',
-  "help.start": "start <id>                            प्रगति पर; स्वामित्व लॉक करता है (jlock hold --no-wait)",
+  "help.start": "start <id> [--fresh]                  प्रगति में; स्वामित्व लॉक; सहेजे संपादन फिर लागू करता है",
   "help.status": "status                                पूरे D/T (P%) · … · N शेष, फ़्रंटियर और लॉक",
   "help.status.run": "  (--run के बिना: सत्र का रन, JTASKS_RUN, या रिपॉज़िटरी का एकमात्र सक्रिय रन)",
   "help.title": "jtasks {version}: निर्भरताओं और फ़ाइल स्वामित्व (jlock) वाली कार्य सूची",
@@ -4717,7 +4750,6 @@ var hi_default = {
   "release.pending": "लंबित में लौटा (प्रयास {attempts}/{max})",
   "release.released": "छोड़ा गया",
   "resume.bound": "रन {run} इस सत्र में फिर शुरू हुआ",
-  "resume.edits": "डिस्क पर संपादन: {list}",
   "resume.kept_flag": "प्रगति पर रखे गए: {list} (--keep-owners)",
   "resume.kept_live": "प्रगति पर रखे गए: {list} (लॉक अभी जीवित)",
   "resume.no_locks_reason": "jlock में बिना लॉक का एजेंट (विंडो बंद हुई)",
@@ -4742,6 +4774,7 @@ var hi_default = {
   "spawn.unknown_profile": 'अज्ञात प्रोफ़ाइल "{profile}" (प्रोफ़ाइलें: {profiles})',
   "start.busy": "{id} तैयार नहीं था: {key} {holder}{via} के उपयोग में; कुछ नहीं लिखा गया",
   "start.depends": "{id} तैयार नहीं है: यह {deps} पर निर्भर है",
+  "start.fresh": "--fresh: सहेजे गए {n} patch छोड़े गए (वे {dir} और लेजर में रहते हैं)",
   "start.hint": 'दूसरी फ़ाइल: jtasks claim {id} <फ़ाइल>; अंत में: jtasks done {id} --evidence "…" (या jtasks fail {id} --error "…")',
   "start.locked": "स्वामित्व jlock में लॉक ({n} कुंजी, स्वामी {owner})",
   "start.no_files": "स्वामित्व में कोई फ़ाइल नहीं",
@@ -5696,7 +5729,9 @@ var BOOLEAN_FLAGS = new Set([
   "force",
   "help",
   "add",
-  "agent-ended"
+  "agent-ended",
+  "fresh",
+  "claims"
 ]);
 var OPTIONAL_VALUE = new Set(["fix"]);
 function parseArgs(argv) {
@@ -7091,6 +7126,9 @@ async function takenSince(host, dir, task, keys) {
   }
   return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))));
 }
+function ownKeys(state, task, platform) {
+  return task.exclusive ? [normalizeKey(state.root, state.root, platform)] : taskKeys(state.root, task, platform);
+}
 async function changedUnder(host, state, keys) {
   const out = [];
   for (const e of await status(host, state.root)) {
@@ -7103,16 +7141,17 @@ async function changedUnder(host, state, keys) {
   return out;
 }
 async function ownFiles(host, state, task, files) {
-  const keys = taskKeys(state.root, task, host.platform);
+  const keys = ownKeys(state, task, host.platform);
   const owner = ownerOf(state.run.id, task.id);
-  const locks = files.length ? await jlockList(host, { under: state.root }) : [];
+  const locks = files.length ? await jlockList(host, task.exclusive ? {} : { under: state.root }) : [];
   const live = locks.filter((l) => l.holder && l.holder.stale !== true);
+  const held = (key, l) => l.key === key || l.key === ALL && task.exclusive;
   const out = { mine: [], untouched: [] };
   for (const file of files) {
     const fileKey = normalizeKey(file, state.root, host.platform);
     const key = keys.find((k) => covers(k, fileKey));
     const foreign = live.some((l) => l.holder.owner !== owner && conflicts(l.key, fileKey));
-    const ours = key && live.some((l) => l.key === key && l.holder.owner === owner);
+    const ours = key && live.some((l) => held(key, l) && l.holder.owner === owner);
     if (!key || foreign || !ours && (await takenSince(host, state.dir, task.id, [key])).length)
       out.untouched.push(file);
     else
@@ -7206,6 +7245,29 @@ async function lastDeadlock(host, dir, task) {
   return chain;
 }
 var RELEASING = new Set(["release", "agent-ended", "resume-release", "lost", "fail", "skip"]);
+async function releasedEdits(host, state) {
+  const out = new Map;
+  const running = new Set(state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id));
+  const insensitive = caseInsensitive(host.platform);
+  const keyOf = (f) => normalizeKey(f, state.root, host.platform);
+  for (const e of await readLog(host, state.dir)) {
+    if (!e.action)
+      continue;
+    if (RELEASING.has(e.action) && e.task && !running.has(e.task)) {
+      for (const [f, t] of out)
+        if (t === e.task)
+          out.delete(f);
+      for (const f of strings(e.uncommitted))
+        out.set(insensitive ? f.toLowerCase() : f, e.task);
+    } else if (HOLDING.has(e.action)) {
+      const keys = strings(e.keys);
+      for (const f of [...out.keys()])
+        if (keys.some((k) => covers(k, keyOf(f))))
+          out.delete(f);
+    }
+  }
+  return out;
+}
 
 // src/actions.ts
 async function resolveRun(ctx, args) {
@@ -7279,11 +7341,12 @@ async function markLost(ctx, first, id) {
     if (!task || task.status !== "in_progress")
       return false;
     const now = ctx.host.now().toISOString();
+    const kept = await keepTask(ctx, state, task);
     const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now);
     task.lost = now;
     const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
     await writeTicket(ctx.host, state.dir, tasks, id);
-    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to });
+    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to, ...keptLog(kept) });
     return true;
   });
   if (changed)
@@ -7422,8 +7485,9 @@ defineAction("start", async (ctx, args) => {
     t.holds = hold ? [hold] : [];
     delete t.finishedAt;
     delete t.lost;
+    let written;
     try {
-      const written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision);
+      written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision);
       await writeTicket(ctx.host, state.dir, written, task.id);
     } catch (error) {
       if (keys.length)
@@ -7433,14 +7497,33 @@ defineAction("start", async (ctx, args) => {
     if (resident)
       remember(ctx, state, task.id, resident);
     await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys });
+    const saved = t.patches ?? [];
+    let reapply;
+    const extra = [];
+    if (saved.length) {
+      const again = clone(written);
+      const u = again.tasks.find((x) => x.id === task.id);
+      if (args.options.fresh) {
+        delete u.patches;
+        extra.push(tr("start.fresh", { n: saved.length, dir: join(state.dir, "patches", task.id) }));
+        await log(ctx, state, { action: "fresh", task: task.id, dropped: saved.map((p) => p.patch) });
+      } else {
+        reapply = await reapplyPatches(ctx.host, { ...state, tasks: written }, u, () => true);
+        extra.push(...reapplyLines(reapply));
+        await log(ctx, state, { action: "reapply", task: task.id, ...reapplyData(reapply) });
+      }
+      written = await writeTasks(ctx.host, state.dir, again, written.revision);
+      await writeTicket(ctx.host, state.dir, written, task.id);
+    }
     const ticket = ticketPath(state.dir, changed.tasks, task.id);
     const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, task.id) }) : tr("start.no_files");
     return ok([
       tr("start.started", { id: task.id, attempt: t.attempts, own }),
+      ...extra,
       `ticket: ${ticket}`,
       tr("start.hint", { id: task.id })
     ].join(`
-`), { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket });
+`), { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket, ...reapply ? reapplyData(reapply) : {} });
   });
 }, "help.start");
 async function releaseHoldsOf(ctx, run, task, resident, keys) {
@@ -7545,7 +7628,8 @@ async function splitChanges(ctx, state, task, withOthers = true) {
       if (l.holder && l.holder.owner !== owner && l.holder.stale !== true)
         otherKeys.push(l.key);
   }
-  const out = { inside: [], others: [], outside: [] };
+  const out = { inside: [], others: [], outside: [], released: [] };
+  const left = withOthers ? await releasedEdits(ctx.host, state) : new Map;
   for (const e of await status(ctx.host, state.root)) {
     if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH)
       continue;
@@ -7556,8 +7640,15 @@ async function splitChanges(ctx, state, task, withOthers = true) {
       list = out.others;
     else {
       const key = normalizeKey(e.path, state.root, ctx.host.platform);
+      const by = left.get(insensitive ? e.path.toLowerCase() : e.path);
       if (otherKeys.some((k) => covers(k, key)))
         list = out.others;
+      else if (by) {
+        let group = out.released.find((g) => g.task === by);
+        if (!group)
+          out.released.push(group = { task: by, files: [] });
+        list = group.files;
+      }
     }
     if (!list.includes(e.path))
       list.push(e.path);
@@ -7641,9 +7732,27 @@ function closeTask(task, status, now) {
   task.finishedAt = now;
   delete task.holds;
 }
-function changesNote(changes) {
-  return changes.length ? `; ${tr("changes.left", { list: changes.join(", ") })}` : "";
+async function keepTask(ctx, state, task) {
+  const changed = await changedUnder(ctx.host, state, ownKeys(state, task, ctx.host.platform));
+  const { mine, untouched } = await ownFiles(ctx.host, state, task, changed);
+  const report = await keepEdits(ctx.host, state, task, mine, "release");
+  takeBackEntries(task, (task.yielded ?? []).map((y) => y.key), state.root, ctx.host.platform);
+  return { saved: report.saved.map((p) => p.file), left: report.kept, untouched };
 }
+function keptNote(k) {
+  const parts = [];
+  if (k.saved.length)
+    parts.push(tr("changes.saved", { list: k.saved.join(", ") }));
+  if (k.left.length)
+    parts.push(tr("changes.left", { list: k.left.join(", ") }));
+  if (k.untouched.length)
+    parts.push(tr("changes.untouched", { list: k.untouched.join(", ") }));
+  return parts.map((p) => `; ${p}`).join("");
+}
+function keptLog(k) {
+  return { uncommitted: k.left, saved: k.saved, untouched: k.untouched };
+}
+var NOTHING_KEPT = { saved: [], left: [], untouched: [] };
 async function giveBack(ctx, run, task) {
   try {
     await releaseHolds(ctx, run, task);
@@ -7965,6 +8074,7 @@ defineAction("done", async (ctx, args) => {
   const evidence = textArg(args, "evidence");
   let commit = null;
   let claimed = [];
+  let leftByOthers = [];
   const t = await transition(ctx, args, "done", async (task, state) => {
     if (task.status !== "in_progress")
       throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
@@ -7974,6 +8084,7 @@ defineAction("done", async (ctx, args) => {
     if (branch !== state.run.repo.branch)
       throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }));
     const split = await splitChanges(ctx, state, task);
+    leftByOthers = split.released;
     if (split.outside.length)
       throw new ToolError(tr("done.outside", { id: task.id, files: split.outside.join(", ") }), 1, { outside: split.outside });
     const missing = await retakeMissing(ctx, state, task);
@@ -8006,14 +8117,16 @@ defineAction("done", async (ctx, args) => {
   const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)];
   if (claimed.length)
     lines.push(tr("done.claimed", { files: claimed.join(", ") }));
+  for (const g of leftByOthers)
+    lines.push(tr("done.released_edits", { id: g.task, files: g.files.join(", ") }));
   lines.push(...retakenLines(await retakeYielded(ctx, t.state)));
   return ok(lines.join(`
-`), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed });
+`), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed, releasedEdits: leftByOthers });
 }, "help.done");
 defineAction("skip", async (ctx, args) => {
   const reason = textArg(args, "reason");
   let wasRunning = false;
-  let left = [];
+  let kept = NOTHING_KEPT;
   const t = await transition(ctx, args, "skip", async (task, state) => {
     if (!["pending", "in_progress", "failed"].includes(task.status))
       throw new ToolError(tr("skip.cannot", { id: task.id, status: task.status }));
@@ -8021,40 +8134,40 @@ defineAction("skip", async (ctx, args) => {
       throw new ToolError(tr("skip.no_reason", { id: task.id }), 2);
     wasRunning = task.status === "in_progress";
     if (wasRunning)
-      left = (await splitChanges(ctx, state, task)).inside;
+      kept = await keepTask(ctx, state, task);
     closeTask(task, "skipped", ctx.host.now().toISOString());
     task.reason = reason;
-    return { reason };
+    return { reason, ...keptLog(kept) };
   });
   const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : "";
   const back = wasRunning ? retakenLines(await retakeYielded(ctx, t.state)) : [];
-  return ok([`${tr("skip.done", { id: t.task.id, reason })}${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join(`
+  return ok([`${tr("skip.done", { id: t.task.id, reason })}${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join(`
 `), {
     run: t.state.run.id,
     task: t.task.id,
-    uncommitted: left
+    ...keptLog(kept)
   });
 }, "help.skip");
 defineAction("fail", async (ctx, args) => {
   const error = textArg(args, "error");
-  let left = [];
+  let kept = NOTHING_KEPT;
   const t = await transition(ctx, args, "fail", async (task, state) => {
     if (task.status !== "in_progress")
       throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
     if (!error)
       throw new ToolError(tr("fail.no_error", { id: task.id }), 2);
-    left = (await splitChanges(ctx, state, task)).inside;
+    kept = await keepTask(ctx, state, task);
     closeTask(task, "failed", ctx.host.now().toISOString());
     task.error = error;
-    return { error };
+    return { error, ...keptLog(kept) };
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
   const back = retakenLines(await retakeYielded(ctx, t.state));
-  return ok([`${tr("fail.done", { id: t.task.id, error })}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join(`
+  return ok([`${tr("fail.done", { id: t.task.id, error })}; ${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join(`
 `), {
     run: t.state.run.id,
     task: t.task.id,
-    uncommitted: left
+    ...keptLog(kept)
   });
 }, "help.fail");
 function backToPending(task, maxAttempts, why, now) {
@@ -8071,25 +8184,25 @@ function backToPending(task, maxAttempts, why, now) {
   return "pending";
 }
 defineAction("release", async (ctx, args) => {
-  let left = [];
+  let kept = NOTHING_KEPT;
   let to = "pending";
   const ended = !!args.options["agent-ended"];
   const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
     if (task.status !== "in_progress")
       throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
-    left = (await splitChanges(ctx, state, task)).inside;
+    kept = await keepTask(ctx, state, task);
     to = backToPending(task, state.run.maxAttempts, tr(ended ? "release.agent_ended" : "release.released"), ctx.host.now().toISOString());
-    return { uncommitted: left };
+    return keptLog(kept);
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
   const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts });
   const back = retakenLines(await retakeYielded(ctx, t.state));
-  return ok([`${t.task.id} ${where}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join(`
+  return ok([`${t.task.id} ${where}; ${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join(`
 `), {
     run: t.state.run.id,
     task: t.task.id,
     status: t.task.status,
-    uncommitted: left
+    ...keptLog(kept)
   });
 }, "help.release");
 function reopen(task) {
@@ -8191,16 +8304,16 @@ defineAction("resume", async (ctx, args) => {
         kept.push(task.id);
         continue;
       }
-      const uncommitted = (await splitChanges(ctx, state, task, false)).inside;
+      const edits = await keepTask(ctx, state, task);
       const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now);
-      released.push({ id: task.id, to, uncommitted });
+      released.push({ id: task.id, to, uncommitted: edits.left, kept: edits });
     }
     const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks;
     if (JSON.stringify(run) !== JSON.stringify(state.run))
       await writeRun(ctx.host, state.dir, run);
     for (const r of released) {
       await writeTicket(ctx.host, state.dir, tasks, r.id);
-      await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted });
+      await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) });
     }
     await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept });
     if (state.run.status === "paused")
@@ -8211,13 +8324,14 @@ defineAction("resume", async (ctx, args) => {
     await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
   const lines = [...back ? [back] : [], tr("resume.bound", { run: state.run.id })];
   for (const r of released)
-    lines.push(`${tr("resume.released", { id: r.id, to: r.to })}${r.uncommitted.length ? `; ${tr("resume.edits", { list: r.uncommitted.join(", ") })}` : ""}`);
+    lines.push(`${tr("resume.released", { id: r.id, to: r.to })}${keptNote(r.kept)}`);
   if (kept.length)
     lines.push(tr(keepOwners ? "resume.kept_flag" : "resume.kept_live", { list: kept.join(", ") }));
   const s = await statusOf(ctx, state);
   lines.push(s.text);
+  const releasedData = released.map((r) => ({ id: r.id, to: r.to, ...keptLog(r.kept) }));
   return ok(lines.join(`
-`), { ...s.data, released, kept }, { bind: state.run.id });
+`), { ...s.data, released: releasedData, kept }, { bind: state.run.id });
 }, "help.resume");
 defineAction("keepalive", async (ctx, args) => {
   const wanted = args.positionals[0];

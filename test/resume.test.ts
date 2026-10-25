@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Resident } from "../src/host.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
@@ -91,7 +91,7 @@ describe("resume after a dead window", () => {
 
     const r = await tasksOk(repo, ["resume", run], { tool: "claude", session: "nova-janela" })
     expect(r.bind).toBe(run)
-    expect(r.text).toContain("T01 liberada (sem travas no jlock) → pending; edições no disco: src/a.ts")
+    expect(r.text).toContain("T01 liberada (sem travas no jlock) → pending; edições guardadas em patch (voltam no próximo start; --fresh as deixa de fora): src/a.ts")
     expect(r.text).toContain("mantidas em andamento: T02 (travas vivas)")
     const t = tasksFile(dir)
     expect(t.tasks.map((x) => [x.id, x.status])).toEqual([
@@ -100,9 +100,11 @@ describe("resume after a dead window", () => {
       ["T03", "pending"],
     ])
     expect(runFile(dir).sessions).toMatchObject([{ tool: "claude", id: "nova-janela" }])
-    expect(readFileSync(join(repo, "src/a.ts"), "utf8")).toBe("metade\n")
-    // The next window starts it again.
+    // The half-done edit is a patch now, out of the tree until T01 starts again.
+    expect(existsSync(join(repo, "src/a.ts"))).toBe(false)
+    // The next window starts it again, and gets its edit back.
     await tasksOk(repo, ["start", "T01"])
+    expect(readFileSync(join(repo, "src/a.ts"), "utf8")).toBe("metade\n")
     expect(tasksFile(dir).tasks[0]!.attempts).toBe(2)
   })
 

@@ -216,11 +216,15 @@ describe("OpenCode plugin", () => {
     h.addSession("c1", "s1")
     expect((await h.call("c1", "start T01")).ok).toBe(true)
     expect(locks()).toHaveLength(1)
+    // Its half-done edit (rev. 5.6) is kept as a patch, not left on disk for another task to inherit.
+    writeFiles(repo, { "src/move.ts": "export const half = 1\n" })
     h.emit("session.idle", { sessionID: "c1" })
     // The release writes pending first, then gives the lock back: wait for both.
     await until(() => tasksOf()[0]!.status === "pending" && locks().length === 0)
     const log = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l))
-    expect(log.at(-1)).toMatchObject({ action: "agent-ended", task: "T01", from: "in_progress", to: "pending" })
+    expect(log.at(-1)).toMatchObject({ action: "agent-ended", task: "T01", from: "in_progress", to: "pending", saved: ["src/move.ts"] })
+    expect(sh(repo, "git", "status", "--porcelain", "--untracked-files=all").trim()).toBe("")
+    expect((tasksOf()[0] as { patches?: { file: string }[] }).patches?.map((p) => p.file)).toEqual(["src/move.ts"])
 
     // The root session going idle is the orchestrator waiting: nothing happens.
     h.addSession("c2", "s1")

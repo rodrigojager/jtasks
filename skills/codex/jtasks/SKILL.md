@@ -63,7 +63,10 @@ messages already sent); `jtasks status` says when it is off or has given up.
 - **Ownership lost** (`jtasks status` shows it, or `done` refuses): someone broke the lock, or its time limit ran
   out. A long task is not a reason by itself: the mod and the plugin renew the locks of tasks in progress, and
   `done` takes back its own expired keys when nobody took them. If `done` still refuses, someone else holds them
-  now: `jtasks resume <run>` gives the task back to the queue; the edits stay on disk for the next attempt.
+  now: `jtasks resume <run>` gives the task back to the queue; its edits are kept as patches (a file someone else
+  holds now is left alone), and the next `jtasks start <id>` reapplies them (`--fresh` starts without them).
+- **A task you start again** (after a release, a failure or a lost lock) gets its earlier edits back: the answer of
+  `start` lists the patches reapplied and any file left with conflict markers; resolve those before `done`.
 - **`done` refused for files outside the ownership**: `jtasks claim` them, or undo those changes.
 - **A task failed**: the tasks that depend on it stay blocked; the rest goes on. `jtasks retry <id>` reopens it.
 

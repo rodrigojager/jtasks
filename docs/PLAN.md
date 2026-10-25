@@ -53,8 +53,12 @@ dela ficaram sem dono e bloquearam o `done` das outras, e as de arquivos compart
 os pegou. Agora a tarefa recusada por deadlock cede só os arquivos disputados com `jtasks yield`: a edição de cada um
 vira um patch da execução, o arquivo volta ao HEAD, a chave é solta, a tarefa continua `in_progress` e pega o arquivo
 de volta quando ele fica livre, com o patch reaplicado por `git apply --3way`. O jlock não mudou (ele já solta
-algumas chaves de um `hold` sem derrubar as outras). Marcado com **[rev. 5.6]** nas seções 4, 5, 6, 7, 12, 14, 15,
-16, 17 e 18 (ticket 47).
+algumas chaves de um `hold` sem derrubar as outras). E liberar a tarefa inteira (`release`, fim de subagente,
+`resume`, posse perdida, `maxAttempts`, e também `fail` e `skip`) passa a fazer o mesmo para todos os arquivos da
+posse: a árvore fica limpa, nenhuma outra tarefa herda edição alheia, e o próximo `start` reaplica os patches
+(`start --fresh` os deixa de fora); o que ainda sobrar no disco (um patch que não pôde ser feito, uma execução
+antiga) é reconhecido no `done` das outras como edição da tarefa liberada, e não as bloqueia. Marcado com
+**[rev. 5.6]** nas seções 4, 5, 6, 7, 9, 12, 14, 15, 16, 17 e 18 (tickets 47 e 48).
 
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
@@ -314,7 +318,11 @@ mostrar contenção que a pré-refatoração não resolva.
 No `done`, a ferramenta confere o `git status` e separa as mudanças em três grupos (**[rev. 5.2]**, porque as
 tarefas paralelas trabalham no mesmo checkout): da posse da tarefa → vão para o commit; da posse de outra tarefa em
 andamento da execução, ou de uma chave que outro dono segura no jlock sob o repositório → ficam no disco, fora do
-commit; de ninguém → recusa, lista e pede `claim` ou `release`. Dentro da posse → `git add <arquivos>` e
+commit; **[rev. 5.6]** listadas no `uncommitted` do último `release` (ou `agent-ended`, `resume-release`, `lost`,
+`fail`, `skip`) de uma tarefa que não está em andamento, no `log.jsonl`, e que ninguém pegou depois → também ficam no
+disco, fora do commit, e a resposta avisa "T04, liberada, tem edições pendentes em: …" (o orquestrador nunca precisa
+segurá-las com um `jlock hold` próprio); de ninguém → recusa, lista e pede `claim` ou `release`. Dentro da posse →
+`git add <arquivos>` e
 `git commit -m "T04: título"` no branch da execução
 (`gt/<run>`, criado a partir do branch atual no `plan`). O hash entra no ledger. Se você preferir trabalhar no
 branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por tarefa.
@@ -402,6 +410,12 @@ motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts (**[rev. 5]** ou ⏳ T02: src/, q
 - `start` falha se não pronta, com dono, posse em uso, ou execução pausada.
 - `done` sem evidência é recusado; com arquivos modificados que não são de ninguém também (os da posse de outra
   tarefa em andamento ficam no disco, fora do commit; seção 4, "Commit por tarefa").
+- **[rev. 5.6]** Uma tarefa que sai de `in_progress` sem commit (`release`, `--agent-ended`, `resume`, posse
+  perdida, `maxAttempts`, `fail`, `skip`) guarda as edições dos arquivos da sua posse como patches (`by: "release"`)
+  e os volta ao HEAD, pelo ledger. Só os da própria posse (`files` e `claimed`), e só se a chave ainda é dela no
+  jlock, ou está livre e nenhuma outra tarefa a pegou depois (o `log.jsonl`); um arquivo cuja chave outro dono
+  segura não é tocado, e a resposta avisa. O que tinha cedido volta à posse (o próximo `start` pega tudo). O
+  `log.jsonl` registra `saved`, `uncommitted` (o que não pôde virar patch e ficou no disco) e `untouched`.
 - Gravação atômica (`.tmp` + `rename`), releitura antes de escrever, `revision` incremental, e **[rev. 5.2]** uma
   trava curta por execução em volta de cada leitura-mudança-escrita (a pasta `.write.lock`, criada de forma
   exclusiva; com mais de 10 s é de um processo morto e é quebrada): sem ela, dois processos que leem a mesma revisão
@@ -431,13 +445,13 @@ a execução ligada à sessão.
 | | `pause` / `unpause` | pausa: `start` recusado; o protocolo manda parar |
 | | `status` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas (**[rev. 5]** de `jlock list --group <run> --json`) |
 | tarefa | `next [limit]` | as prontas, com perfil, critérios, posse e caminho do ticket |
-| | `start id` | → em andamento (`attempts+1`); trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta"; **[rev. 5.2]** `--detach --ttl` no CLI e no mod, `--release-on-eof --ttl` no plugin) |
+| | `start id [--fresh]` | → em andamento (`attempts+1`); trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta"; **[rev. 5.2]** `--detach --ttl` no CLI e no mod, `--release-on-eof --ttl` no plugin); **[rev. 5.6]** reaplica com `--3way` os patches de uma tentativa anterior e lista o que voltou e os conflitos; `--fresh` os deixa de fora (continuam na pasta e no ledger) |
 | | `claim id <arquivo…>` | acrescenta à posse se livre; senão espera até `--timeout` ("em uso por Txx, posição N") ou recusa por deadlock com a cadeia (**[rev. 5]** um `jlock hold` por `claim`; **[rev. 5.6]** sem arquivos, pega de volta o que a tarefa cedeu e reaplica os patches) |
 | | `yield id [<arquivo…>]` | **[rev. 5.6]** cede só os arquivos disputados (sem arquivos: os do ciclo da última recusa por deadlock); a tarefa continua em andamento; as edições viram patch e voltam com o arquivo (seção 4) |
 | | `done id --evidence` | confere o status do git e a posse no jlock → commit só da posse → feita → libera a posse (**[rev. 5.2]** `jlock release --group --owner`) |
 | | `skip id --reason` / `fail id --error` | pular ou registrar falha; libera a posse |
 | | `retry id` / `retry --all-failed` | pulada ou falha → pendente |
-| | `release id` | em andamento → pendente (no `maxAttempts` vira `failed`); edições não commitadas ficam no disco e são listadas |
+| | `release id` | em andamento → pendente (no `maxAttempts` vira `failed`); **[rev. 5.6]** as edições não commitadas viram patch e a árvore fica limpa (seção 5, "Regras do núcleo") |
 | máquina | `doctor [--json] [--fix [--yes]]` | **[rev. 5.2]** diagnóstico da máquina (seção 22); `--fix --yes` instala o que falta, pelo ledger global |
 | | `help [ação]`, `--lang <tag>` | **[rev. 5.2]** ajuda e idioma (seção 21) |
 | ledger | `ledger [--all-projects]` | tudo que a ferramenta criou: tipo, caminho, execução, tarefa, hora, estado (ativo/desfeito) |
@@ -504,8 +518,9 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
 ## 9. Retomar, pausar, tentar de novo
 
 - **Retomar:** `jtasks resume <run>` em qualquer janela. A posição é a fronteira; `next` devolve as primeiras não
-  executadas. Tarefas em andamento de agentes mortos são liberadas (as edições não commitadas ficam no disco e são
-  listadas para a próxima tentativa aproveitar ou descartar). **[rev. 5]** Como: `resume` compara cada tarefa
+  executadas. Tarefas em andamento de agentes mortos são liberadas (**[rev. 5.6]** as edições não commitadas viram
+  patch, a árvore fica limpa, e o próximo `start` as reaplica; `start --fresh` as descarta, e elas seguem no ledger
+  para quem quiser recuperar). **[rev. 5]** Como: `resume` compara cada tarefa
   `in_progress` com `jlock list --group <run> --json`: sem as suas travas → `release` automático (a tentativa já
   foi contada no `start`; no `maxAttempts` vira `failed`). **[rev. 5.2]** As travas da janela morta somem na hora
   no plugin (`--release-on-eof`) e no prazo `holdTtl` no CLI e no mod. Uma tarefa que ainda tem as travas (janela
@@ -652,7 +667,7 @@ core/core.js                 a cópia do núcleo (e dos catálogos de idioma)
 | perfil | `on("agent.spawn")` | modelo do subagente pelo perfil |
 | renovação | **[rev. 5.4]** `$.clock.every(60000)` + `renewRun` do núcleo | as travas das tarefas desta sessão (dono `claude:<sessão>` ou de um subagente dela) não vencem pelo `holdTtl` enquanto a janela está aberta |
 | guarda de posse | `on("tool.call", { tool: "Edit" \| "Write" \| "NotebookEdit" \| "Bash" })` com `e.agentId` | recusa edição fora da posse; recusa git mutador e escrita por shell fora da posse; recusa edição direta de `tasks.json` |
-| agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s) |
+| agente morto | `on("turn.complete")` com `e.agentId` | `release` da tarefa que ficou em andamento (**[rev. 5]** e `release` aos seus `hold`s; **[rev. 5.6]** as edições viram patch pelo `release --agent-ended` do núcleo) |
 | ceder | **[rev. 5.6]** a ação `yield` do núcleo; a passada de 60 s da renovação também pega de volta o que as tarefas da sessão cederam | a linha da tarefa que cedeu mostra "T4 - título · espera core/run/index.ts" |
 | retomada | **[rev. 5.3]** `on("turn.complete")` sem `e.agentId`, `reason: "answer"`, sessão interativa; agentes vivos por `$.agent.list()` (`pending`/`running`/`waiting`; o mapa `agents` se a lista falhar); `$.prompt.submit`; `on("prompt.submit")` confere de novo a mensagem do próprio jtasks antes de entrar e a descarta se a execução andou; `$.prompt.read` adia a mensagem enquanto há rascunho (o relógio de 2 s a manda depois); `turn.start` cancela o que esperava | reabre o laço; na desistência, `$.ui.toast`, `$.ui.notify`, `$.ui.status` e uma linha no painel |
 
@@ -684,7 +699,7 @@ Recolhido: `▸ Tasks 7/12 · 58%`. Pausado: `Tasks · pausada`. Sem ligação: 
 | dados | RPC `jtasks.state` (`ctx.rpc.register`; o id do RPC é o do plugin) + releitura após `session.tool.success` e a cada 2 s com tarefa em andamento | a TUI nunca toca o arquivo |
 | perfis | `agent.transform` (modelo do perfil) + `tool.hook("execute.before")` (agente da tarefa na chamada `subagent`) | agentes `execute`/`execute-deep`/`review` existentes (seção 13) |
 | guarda de posse | `ctx.permission.hook("evaluate")` (`edit` e `shell`) | mesmas regras do mod, pela regra do núcleo |
-| agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` |
+| agente morto | **[rev. 5.2]** `ctx.event.subscribe` em `session.idle` (sessão filha) e `session.deleted` | tarefa ainda em andamento → `release`, log `agent-ended` (**[rev. 5.6]** com as edições guardadas como patch) |
 | retomada | **[rev. 5.3]** `session.idle` da sessão raiz, depois de 300 ms à espera do fim da execução (`session.execution.succeeded`/`failed`/`interrupted`); agentes vivos: sessões filhas em execução ou com tarefa iniciada e ainda não encerradas; `ctx.session.synthetic({ delivery: "queue" })` | reabre o laço; na desistência, a linha `notice` da vista na barra lateral e um toast da TUI |
 | renovação | **[rev. 5.4]** `setInterval` de 60 s + `renewRun` do núcleo, nas execuções em que o processo trabalhou | os `hold --release-on-eof` das tarefas iniciadas pelas suas sessões não vencem (nem viram "posse perdida") pelo `holdTtl` |
 | ceder | **[rev. 5.6]** a ação `yield` do núcleo (a chave cedida sai do `hold --release-on-eof`, que segue com as outras); a passada de 60 s pega de volta o que as tarefas das suas sessões cederam | a linha da tarefa que cedeu mostra "título · espera …" na barra lateral |
@@ -702,7 +717,8 @@ worktrees quando pedidas, `gc` como relatório, limpeza e arquivamento, desenho 
 compactação, modelo do subagente pelo perfil, liberação de tarefa de agente morto, **[rev. 5.3]** a retomada do
 orquestrador ocioso (quando reabrir o laço, quando desistir e avisar), **[rev. 5.4]** a renovação das travas de
 tarefas longas e a retomada das chaves vencidas no `done`, **[rev. 5.6]** quais chaves ceder num deadlock (pelo
-`chain`), guardar e reaplicar as edições, e quando a chave cedida volta.
+`chain`), guardar e reaplicar as edições, e quando a chave cedida volta; que nenhuma tarefa liberada deixa edição
+para outra herdar.
 
 **Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
@@ -760,6 +776,12 @@ motivo.
   tem a edição); conflito na reaplicação (marcadores no arquivo, patch guardado, índice no HEAD); arquivo novo
   guardado inteiro, apagado e recriado; `undo` do `restore` e do `reapply`; recusas; a chave cedida reservada na
   fronteira; o painel do mod com a linha "espera …".
+- **[rev. 5.6] Liberar guardando** (`test/release.test.ts`): `release` deixa a árvore limpa, guarda os patches
+  (inclusive de arquivo novo) e o `start` seguinte os reaplica; `start --fresh` não; o `undo` do `restore` traz a
+  edição de volta; `fail`, `--agent-ended` e `skip` fazem o mesmo; nunca volta ao HEAD um arquivo cuja chave outro
+  dono segura; o fallback (uma edição listada no `uncommitted` de uma tarefa liberada) não bloqueia nem entra no
+  `done` de outra. No mod, o subagente que termina com a tarefa em andamento guarda os patches; no plugin, o
+  `session.idle` da filha também.
 - Sem gastar tokens de modelo real.
 
 ---
@@ -806,6 +828,9 @@ motivo.
 19. **[rev. 5.6] Ceder sem perder** (ticket 47): `jtasks yield` com patches (`src/patches.ts`, `src/keep.ts`),
     efeitos `patch`/`restore`/`reapply` no ledger com desfazer, reaplicação com `--3way`, a chave cedida reservada
     na fronteira e pega de volta sozinha.
+20. **[rev. 5.6] Liberar guardando as edições** (ticket 48): `release`, `--agent-ended`, `resume`, posse perdida,
+    `maxAttempts`, `fail` e `skip` guardam os patches e deixam a árvore limpa; `start` os reaplica e
+    `start --fresh` os deixa de fora; o fallback do `splitChanges` para o que sobrar no disco.
 
 ---
 
@@ -826,7 +851,7 @@ motivo.
 | **[rev. 5.2]** `doctor --fix` instala o jlock pelo instalador oficial | O instalador do jlock acrescenta a pasta ao `PATH` do usuário (comportamento dele, documentado); o jtasks não mexe no `PATH` por conta própria e registra o binário instalado no ledger global para o desfazer. |
 | **[rev. 5]** Windows primeiro | O jlock só foi validado no Windows; o jtasks nasce com a mesma restrição, dita no README. Linux e macOS vêm quando o plano Linux/macOS do jlock for executado; nada no jtasks depende de API do Windows. |
 | **[rev. 5]** Um processo `hold` por tarefa e por `claim` | Dezenas de processos de ~1 MB, dormindo; aceitável. Se pesar, o jlock pode ganhar depois um `hold` que renove várias chaves de donos diferentes; o jtasks não muda. |
-| **[rev. 5]** Posse perdida no meio (`hold` saiu com 14) | A tarefa volta a `pending` com `attempts+1`; as edições ficam no disco e são listadas; o painel mostra "posse perdida"; o log diz quem forçou (vem do `log.jsonl` do jlock, campo `by`). |
+| **[rev. 5]** Posse perdida no meio (`hold` saiu com 14) | A tarefa volta a `pending` com `attempts+1`; as edições ficam no disco e são listadas (**[rev. 5.6]** viram patch, menos as de arquivo que outro dono já segura); o painel mostra "posse perdida"; o log diz quem forçou (vem do `log.jsonl` do jlock, campo `by`). |
 
 Fontes consultadas em 23/10/2026: tipos dos mods do Claude Code (build 2.1.309) e as ferramentas
 `EnterWorktree`/`ExitWorktree`/`Agent`; API de plugin do OpenCode 2.1.3; plugin de goal do OpenCode 0.1.68; Codex

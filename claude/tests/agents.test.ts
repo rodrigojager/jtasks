@@ -120,6 +120,22 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(JSON.parse(machine.read(file)!).tasks[0].status).toBe('pending')
   })
 
+  test(`a subagent that ends with its task in progress keeps its edits as patches and leaves the tree clean · ${os}`, async ($, on) => {
+    const { machine, run, file } = await scene($, on)
+    await $.agent.spawn({ prompt: `--run ${run} --task T01 x`, description: 'T01', subagentType: 'general-purpose' } as never)
+    const tasks = JSON.parse(machine.read(file)!)
+    Object.assign(tasks.tasks[0], { status: 'in_progress', owner: 'claude:session-1/agent:agent-1', attempts: 1 })
+    machine.write(file, JSON.stringify(tasks))
+    machine.dirty.set('src/a.ts', 'half done')
+    await $.turn.complete({ answer: 'parei', durationMs: 10, isAborted: false, turnId: 't1', agentId: 'agent-1', reason: 'answer' } as never)
+    const t01 = JSON.parse(machine.read(file)!).tasks[0]
+    expect(t01).toMatchObject({ status: 'pending', patches: [{ file: 'src/a.ts', patch: 'patches/T01/001-src__a.ts.patch', by: 'release' }] })
+    expect(machine.dirty.size).toBe(0)
+    expect(machine.read(`${ROOT}/.scratch/jtasks/runs/${run}/patches/T01/001-src__a.ts.patch`)).toContain('+half done')
+    const log = machine.read(`${ROOT}/.scratch/jtasks/runs/${run}/log.jsonl`)!.trim().split('\n').map((l) => JSON.parse(l))
+    expect(log.at(-1)).toMatchObject({ action: 'agent-ended', task: 'T01', saved: ['src/a.ts'], uncommitted: [] })
+  })
+
   test(`the holds of this session's tasks are taken again when they expire (every minute); others' are left alone · ${os}`, async ($, on) => {
     const machine = installMachine(on, ROOT)
     const { clock } = installSession(on, ROOT)

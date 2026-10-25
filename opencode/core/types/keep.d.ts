@@ -17,6 +17,8 @@ export declare function readLog(host: Host, dir: string): Promise<LogLine[]>;
  * read off the run's log: taking them back, or touching their files, would mix that task's edits with this one's.
  */
 export declare function takenSince(host: Host, dir: string, task: string, keys: string[]): Promise<string[]>;
+/** The task's keys as paths: `*` (an exclusive task) is the repository root. */
+export declare function ownKeys(state: RunState, task: Task, platform: string): string[];
 /** The task's changed files (relative), from `git status`, inside the given keys; the run's own folder never counts. */
 export declare function changedUnder(host: Host, state: RunState, keys: string[]): Promise<string[]>;
 /**

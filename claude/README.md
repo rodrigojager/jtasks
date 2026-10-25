@@ -88,4 +88,6 @@ tasks { "command": "plan --add", "json": [ { "id": "T05", "title": "…", "files
 `help` lists every action. A session bound to a run refuses `--run` naming another one. A claim refused for a
 deadlock is answered with `yield`: the task gives back only the contested files, its edits kept as patches, and stays
 in progress; the pane shows "T4 - title · espera c.ts" until it gets them back, which happens by itself as soon as they are free (each minute, or when another task finishes)
-or with `claim T05`.
+or with `claim T05`. A subagent whose loop ends with its task still in progress gives the task back
+(`release --agent-ended`): its edits are kept as patches, the tree is left clean, and the next `start` of the task
+reapplies them (`start T04 --fresh` leaves them out).

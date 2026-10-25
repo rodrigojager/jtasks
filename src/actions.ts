@@ -39,7 +39,7 @@ import {
   type JlockLock,
 } from "./jlock.ts"
 import { unarchive } from "./housekeeping.ts"
-import { chainKeys, changedUnder, keepEdits, lastDeadlock, ownFiles, patchesUnder, readLog, reapplyPatches, takenSince, type ReapplyReport } from "./keep.ts"
+import { chainKeys, changedUnder, keepEdits, lastDeadlock, ownFiles, ownKeys, patchesUnder, readLog, reapplyPatches, releasedEdits, takenSince, type ReapplyReport } from "./keep.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { slugify } from "./ids.ts"
 import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
@@ -129,7 +129,8 @@ export function remember(ctx: ToolContext, state: RunState, task: string, reside
 
 /**
  * A hold ended with 14 (someone forced the lock, or it expired with the machine asleep): an involuntary release.
- * The task goes back to pending (or failed at maxAttempts), the edits stay on disk, the log says `lost`.
+ * The task goes back to pending (or failed at maxAttempts), its own edits kept as patches (rev. 5.6; a file someone
+ * else holds now is not touched), the log says `lost`.
  */
 export async function markLost(ctx: ToolContext, first: RunState, id: string): Promise<boolean> {
   const changed = await withLock(ctx.host, first.dir, async () => {
@@ -138,11 +139,12 @@ export async function markLost(ctx: ToolContext, first: RunState, id: string): P
     const task = copy.tasks.find((t) => t.id === id)
     if (!task || task.status !== "in_progress") return false
     const now = ctx.host.now().toISOString()
+    const kept = await keepTask(ctx, state, task)
     const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now)
     task.lost = now
     const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
     await writeTicket(ctx.host, state.dir, tasks, id)
-    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to })
+    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to, ...keptLog(kept) })
     return true
   })
   if (changed) await releaseHolds(ctx, first.run.id, id).catch(() => {})
@@ -305,8 +307,9 @@ defineAction(
       t.holds = hold ? [hold] : []
       delete t.finishedAt
       delete t.lost
+      let written: TasksFile
       try {
-        const written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision)
+        written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision)
         await writeTicket(ctx.host, state.dir, written, task.id)
       } catch (error) {
         if (keys.length) await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys)
@@ -314,15 +317,35 @@ defineAction(
       }
       if (resident) remember(ctx, state, task.id, resident)
       await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys })
+      // The edits an earlier attempt left as patches (rev. 5.6) come back now, unless --fresh.
+      const saved = t.patches ?? []
+      let reapply: ReapplyReport | undefined
+      const extra: string[] = []
+      if (saved.length) {
+        const again = clone(written)
+        const u = again.tasks.find((x) => x.id === task.id)!
+        if (args.options.fresh) {
+          delete u.patches
+          extra.push(tr("start.fresh", { n: saved.length, dir: join(state.dir, "patches", task.id) }))
+          await log(ctx, state, { action: "fresh", task: task.id, dropped: saved.map((p) => p.patch) })
+        } else {
+          reapply = await reapplyPatches(ctx.host, { ...state, tasks: written }, u, () => true)
+          extra.push(...reapplyLines(reapply))
+          await log(ctx, state, { action: "reapply", task: task.id, ...reapplyData(reapply) })
+        }
+        written = await writeTasks(ctx.host, state.dir, again, written.revision)
+        await writeTicket(ctx.host, state.dir, written, task.id)
+      }
       const ticket = ticketPath(state.dir, changed.tasks, task.id)
       const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, task.id) }) : tr("start.no_files")
       return ok(
         [
           tr("start.started", { id: task.id, attempt: t.attempts, own }),
+          ...extra,
           `ticket: ${ticket}`,
           tr("start.hint", { id: task.id }),
         ].join("\n"),
-        { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket },
+        { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket, ...(reapply ? reapplyData(reapply) : {}) },
       )
     })
   },
@@ -433,6 +456,11 @@ export interface TreeSplit {
   others: string[]
   /** Changes nobody owns: they block the task's done. */
   outside: string[]
+  /**
+   * Changes a released task left on disk (rev. 5.6: the fallback when they could not be kept as patches, or a run
+   * from before): they neither block the done nor go in its commit.
+   */
+  released: { task: string; files: string[] }[]
 }
 
 /**
@@ -451,7 +479,8 @@ export async function splitChanges(ctx: ToolContext, state: RunState, task: Task
     for (const l of await jlockList(ctx.host, { under: state.root }))
       if (l.holder && l.holder.owner !== owner && l.holder.stale !== true) otherKeys.push(l.key)
   }
-  const out: TreeSplit = { inside: [], others: [], outside: [] }
+  const out: TreeSplit = { inside: [], others: [], outside: [], released: [] }
+  const left = withOthers ? await releasedEdits(ctx.host, state) : new Map<string, string>()
   for (const e of await gitStatus(ctx.host, state.root)) {
     if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH) continue
     let list = out.outside
@@ -459,7 +488,13 @@ export async function splitChanges(ctx: ToolContext, state: RunState, task: Task
     else if (inPossession(e.path, otherOwn, insensitive)) list = out.others
     else {
       const key = normalizeKey(e.path, state.root, ctx.host.platform)
+      const by = left.get(insensitive ? e.path.toLowerCase() : e.path)
       if (otherKeys.some((k) => covers(k, key))) list = out.others
+      else if (by) {
+        let group = out.released.find((g) => g.task === by)
+        if (!group) out.released.push((group = { task: by, files: [] }))
+        list = group.files
+      }
     }
     if (!list.includes(e.path)) list.push(e.path)
   }
@@ -563,9 +598,43 @@ function closeTask(task: Task, status: Task["status"], now: string) {
   delete task.holds
 }
 
-function changesNote(changes: string[]): string {
-  return changes.length ? `; ${tr("changes.left", { list: changes.join(", ") })}` : ""
+/** What a task leaving `in_progress` without a commit did with its edits (rev. 5.6). */
+export interface Kept {
+  /** Files whose edit is now a patch (back to HEAD in the tree). */
+  saved: string[]
+  /** Files left on disk: their patch could not be made. */
+  left: string[]
+  /** Files never touched: their key is someone else's now. */
+  untouched: string[]
 }
+
+/**
+ * A task leaving `in_progress` without a commit (release, agent-ended, resume, lost, fail, skip): the edits of its
+ * own files are kept as patches and the files go back to HEAD, so no other task inherits them; what it had yielded
+ * goes back into its ownership. Edits the copy of the task; the caller writes tasks.json.
+ */
+async function keepTask(ctx: ToolContext, state: RunState, task: Task): Promise<Kept> {
+  const changed = await changedUnder(ctx.host, state, ownKeys(state, task, ctx.host.platform))
+  const { mine, untouched } = await ownFiles(ctx.host, state, task, changed)
+  const report = await keepEdits(ctx.host, state, task, mine, "release")
+  takeBackEntries(task, (task.yielded ?? []).map((y) => y.key), state.root, ctx.host.platform)
+  return { saved: report.saved.map((p) => p.file), left: report.kept, untouched }
+}
+
+/** The answer's tail about the edits of a task that left `in_progress`. */
+function keptNote(k: Kept): string {
+  const parts: string[] = []
+  if (k.saved.length) parts.push(tr("changes.saved", { list: k.saved.join(", ") }))
+  if (k.left.length) parts.push(tr("changes.left", { list: k.left.join(", ") }))
+  if (k.untouched.length) parts.push(tr("changes.untouched", { list: k.untouched.join(", ") }))
+  return parts.map((p) => `; ${p}`).join("")
+}
+
+function keptLog(k: Kept) {
+  return { uncommitted: k.left, saved: k.saved, untouched: k.untouched }
+}
+
+const NOTHING_KEPT: Kept = { saved: [], left: [], untouched: [] }
 
 async function giveBack(ctx: ToolContext, run: string, task: string): Promise<string> {
   try {
@@ -907,6 +976,7 @@ defineAction(
     const evidence = textArg(args, "evidence")
     let commit: string | null = null
     let claimed: string[] = []
+    let leftByOthers: TreeSplit["released"] = []
     const t = await transition(ctx, args, "done", async (task, state) => {
       if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
       if (!evidence) throw new ToolError(tr("done.no_evidence", { id: task.id }), 2)
@@ -914,6 +984,7 @@ defineAction(
       if (branch !== state.run.repo.branch)
         throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }))
       const split = await splitChanges(ctx, state, task)
+      leftByOthers = split.released
       if (split.outside.length)
         throw new ToolError(
           tr("done.outside", { id: task.id, files: split.outside.join(", ") }),
@@ -953,8 +1024,9 @@ defineAction(
     const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit")
     const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)]
     if (claimed.length) lines.push(tr("done.claimed", { files: claimed.join(", ") }))
+    for (const g of leftByOthers) lines.push(tr("done.released_edits", { id: g.task, files: g.files.join(", ") }))
     lines.push(...retakenLines(await retakeYielded(ctx, t.state)))
-    return ok(lines.join("\n"), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed })
+    return ok(lines.join("\n"), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed, releasedEdits: leftByOthers })
   },
   "help.done",
 )
@@ -966,22 +1038,22 @@ defineAction(
   async (ctx, args) => {
     const reason = textArg(args, "reason")
     let wasRunning = false
-    let left: string[] = []
+    let kept = NOTHING_KEPT
     const t = await transition(ctx, args, "skip", async (task, state) => {
       if (!["pending", "in_progress", "failed"].includes(task.status)) throw new ToolError(tr("skip.cannot", { id: task.id, status: task.status }))
       if (!reason) throw new ToolError(tr("skip.no_reason", { id: task.id }), 2)
       wasRunning = task.status === "in_progress"
-      if (wasRunning) left = (await splitChanges(ctx, state, task)).inside
+      if (wasRunning) kept = await keepTask(ctx, state, task)
       closeTask(task, "skipped", ctx.host.now().toISOString())
       task.reason = reason
-      return { reason }
+      return { reason, ...keptLog(kept) }
     })
     const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : ""
     const back = wasRunning ? retakenLines(await retakeYielded(ctx, t.state)) : []
-    return ok([`${tr("skip.done", { id: t.task.id, reason: reason! })}${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
+    return ok([`${tr("skip.done", { id: t.task.id, reason: reason! })}${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
       run: t.state.run.id,
       task: t.task.id,
-      uncommitted: left,
+      ...keptLog(kept),
     })
   },
   "help.skip",
@@ -991,27 +1063,27 @@ defineAction(
   "fail",
   async (ctx, args) => {
     const error = textArg(args, "error")
-    let left: string[] = []
+    let kept = NOTHING_KEPT
     const t = await transition(ctx, args, "fail", async (task, state) => {
       if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
       if (!error) throw new ToolError(tr("fail.no_error", { id: task.id }), 2)
-      left = (await splitChanges(ctx, state, task)).inside
+      kept = await keepTask(ctx, state, task)
       closeTask(task, "failed", ctx.host.now().toISOString())
       task.error = error
-      return { error }
+      return { error, ...keptLog(kept) }
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const back = retakenLines(await retakeYielded(ctx, t.state))
-    return ok([`${tr("fail.done", { id: t.task.id, error: error! })}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
+    return ok([`${tr("fail.done", { id: t.task.id, error: error! })}; ${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
       run: t.state.run.id,
       task: t.task.id,
-      uncommitted: left,
+      ...keptLog(kept),
     })
   },
   "help.fail",
 )
 
-/** In progress → pending (or failed at maxAttempts), keeping the edits on disk. Used by release, resume, lost. */
+/** In progress → pending (or failed at maxAttempts). Used by release, resume, lost (their edits: `keepTask`). */
 export function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed" {
   task.owner = null
   delete task.holds
@@ -1029,24 +1101,24 @@ export function backToPending(task: Task, maxAttempts: number, why: string, now:
 defineAction(
   "release",
   async (ctx, args) => {
-    let left: string[] = []
+    let kept = NOTHING_KEPT
     let to: string = "pending"
     // --agent-ended: the host saw the subagent's loop end with its task still in progress (logged as such).
     const ended = !!args.options["agent-ended"]
     const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
       if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
-      left = (await splitChanges(ctx, state, task)).inside
+      kept = await keepTask(ctx, state, task)
       to = backToPending(task, state.run.maxAttempts, tr(ended ? "release.agent_ended" : "release.released"), ctx.host.now().toISOString())
-      return { uncommitted: left }
+      return keptLog(kept)
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts })
     const back = retakenLines(await retakeYielded(ctx, t.state))
-    return ok([`${t.task.id} ${where}; ${released}${changesNote(left)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
+    return ok([`${t.task.id} ${where}; ${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
       run: t.state.run.id,
       task: t.task.id,
       status: t.task.status,
-      uncommitted: left,
+      ...keptLog(kept),
     })
   },
   "help.release",
@@ -1142,7 +1214,7 @@ defineAction(
     }
     const first = await resolveRun(ctx, { ...args, options: { ...args.options, ...(wanted ? { run: wanted } : {}) } })
     const keepOwners = !!args.options["keep-owners"]
-    const released: { id: string; to: string; uncommitted: string[] }[] = []
+    const released: { id: string; to: string; uncommitted: string[]; kept: Kept }[] = []
     const kept: string[] = []
     const state = await withLock(ctx.host, first.dir, async () => {
       const state = await reload(ctx, first)
@@ -1160,15 +1232,15 @@ defineAction(
           kept.push(task.id)
           continue
         }
-        const uncommitted = (await splitChanges(ctx, state, task, false)).inside
+        const edits = await keepTask(ctx, state, task)
         const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now)
-        released.push({ id: task.id, to, uncommitted })
+        released.push({ id: task.id, to, uncommitted: edits.left, kept: edits })
       }
       const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks
       if (JSON.stringify(run) !== JSON.stringify(state.run)) await writeRun(ctx.host, state.dir, run)
       for (const r of released) {
         await writeTicket(ctx.host, state.dir, tasks, r.id)
-        await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, uncommitted: r.uncommitted })
+        await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) })
       }
       await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept })
       // Only a resume that leaves a pause starts the count over (released tasks are progress anyway).
@@ -1179,13 +1251,12 @@ defineAction(
     for (const r of released) await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {})
     const lines = [...(back ? [back] : []), tr("resume.bound", { run: state.run.id })]
     for (const r of released)
-      lines.push(
-        `${tr("resume.released", { id: r.id, to: r.to })}${r.uncommitted.length ? `; ${tr("resume.edits", { list: r.uncommitted.join(", ") })}` : ""}`,
-      )
+      lines.push(`${tr("resume.released", { id: r.id, to: r.to })}${keptNote(r.kept)}`)
     if (kept.length) lines.push(tr(keepOwners ? "resume.kept_flag" : "resume.kept_live", { list: kept.join(", ") }))
     const s = await statusOf(ctx, state)
     lines.push(s.text)
-    return ok(lines.join("\n"), { ...s.data, released, kept }, { bind: state.run.id })
+    const releasedData = released.map((r) => ({ id: r.id, to: r.to, ...keptLog(r.kept) }))
+    return ok(lines.join("\n"), { ...s.data, released: releasedData, kept }, { bind: state.run.id })
   },
   "help.resume",
 )

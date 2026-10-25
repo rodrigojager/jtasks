@@ -8,7 +8,7 @@ import { ownerOf, taskKeys, type RunState } from "./frontier.ts"
 import { status as gitStatus } from "./git.ts"
 import type { Host } from "./host.ts"
 import { jlockList } from "./jlock.ts"
-import { conflicts, covers, normalizeKey } from "./keys.ts"
+import { ALL, conflicts, covers, normalizeKey } from "./keys.ts"
 import { recordEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, nextPatchNumber, patchRel, restoreFile, writePatch } from "./patches.ts"
 import { caseInsensitive, join } from "./paths.ts"
@@ -58,6 +58,11 @@ export async function takenSince(host: Host, dir: string, task: string, keys: st
   return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))))
 }
 
+/** The task's keys as paths: `*` (an exclusive task) is the repository root. */
+export function ownKeys(state: RunState, task: Task, platform: string): string[] {
+  return task.exclusive ? [normalizeKey(state.root, state.root, platform)] : taskKeys(state.root, task, platform)
+}
+
 /** The task's changed files (relative), from `git status`, inside the given keys; the run's own folder never counts. */
 export async function changedUnder(host: Host, state: RunState, keys: string[]): Promise<string[]> {
   const out: string[] = []
@@ -75,16 +80,17 @@ export async function changedUnder(host: Host, state: RunState, keys: string[]):
  * and another owner took it) is `untouched`: never put back, never saved.
  */
 export async function ownFiles(host: Host, state: RunState, task: Task, files: string[]): Promise<{ mine: string[]; untouched: string[] }> {
-  const keys = taskKeys(state.root, task, host.platform)
+  const keys = ownKeys(state, task, host.platform)
   const owner = ownerOf(state.run.id, task.id)
-  const locks = files.length ? await jlockList(host, { under: state.root }) : []
+  const locks = files.length ? await jlockList(host, task.exclusive ? {} : { under: state.root }) : []
   const live = locks.filter((l) => l.holder && l.holder.stale !== true)
+  const held = (key: string, l: { key: string }) => l.key === key || (l.key === ALL && task.exclusive)
   const out = { mine: [] as string[], untouched: [] as string[] }
   for (const file of files) {
     const fileKey = normalizeKey(file, state.root, host.platform)
     const key = keys.find((k) => covers(k, fileKey))
     const foreign = live.some((l) => l.holder!.owner !== owner && conflicts(l.key, fileKey))
-    const ours = key && live.some((l) => l.key === key && l.holder!.owner === owner)
+    const ours = key && live.some((l) => held(key, l) && l.holder!.owner === owner)
     if (!key || foreign || (!ours && (await takenSince(host, state.dir, task.id, [key])).length)) out.untouched.push(file)
     else out.mine.push(file)
   }

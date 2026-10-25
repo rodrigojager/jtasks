@@ -91,6 +91,8 @@ const BOOLEAN_FLAGS = new Set([
   "help",
   "add",
   "agent-ended",
+  "fresh",
+  "claims",
 ])
 
 /** Flags that take a value when one follows, and are a plain flag otherwise. */

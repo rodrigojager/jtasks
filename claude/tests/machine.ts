@@ -36,6 +36,8 @@ export interface Machine {
   branch: () => string
   locks: { key: string; owner: string; group: string }[]
   releases: string[]
+  /** Files changed in the working tree (relative to the root): what `git status` lists, `git diff` saves, `git checkout HEAD` puts back. */
+  dirty: Map<string, string>
 }
 
 export function installMachine(on: On, root: string): Machine {
@@ -107,9 +109,21 @@ export function installMachine(on: On, root: string): Machine {
       current = args[2]!
       return ok()
     }
-    if (a.startsWith('status ')) return ok('')
+    if (a.startsWith('status ')) return ok([...dirty.keys()].map((f) => ` M ${f}\0`).join(''))
+    if (args[0] === 'cat-file') return ok()
+    if (args[0] === 'diff') {
+      const out = args.find((x) => x.startsWith('--output='))!.slice(9)
+      const f = args[args.length - 1]!
+      write(out, `diff --git a/${f} b/${f}\n--- a/${f}\n+++ b/${f}\n@@ -1 +1 @@\n-old\n+${dirty.get(f) ?? ''}\n`)
+      return ok()
+    }
+    if (args[0] === 'checkout') {
+      dirty.delete(args[args.length - 1]!)
+      return ok()
+    }
     return ok('')
   }
+  const dirty = new Map<string, string>()
   const jlock = (args: readonly string[]) => {
     if (args[0] === '--version') return ok('jlock 0.1.1\n')
     if (args[0] === 'hold') {
@@ -208,6 +222,7 @@ export function installMachine(on: On, root: string): Machine {
     branch: () => current,
     locks,
     releases,
+    dirty,
   }
 }
 

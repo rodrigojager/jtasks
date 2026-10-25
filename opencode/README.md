@@ -88,7 +88,8 @@ or with `claim T05`.
 
 A subagent's session that goes idle (or is deleted) while its task is still in progress gives the task back to the
 queue: `release --agent-ended` (the attempt was counted at `start`; at `maxAttempts` the task fails), its locks are
-released, the edits stay on disk and the log says `agent-ended`. The root session going idle is the orchestrator
+released, its edits are kept as patches (the tree is left clean; the next `start` of the task reapplies them) and
+the log says `agent-ended`. The root session going idle is the orchestrator
 waiting and changes nothing. If OpenCode itself dies, each `jlock hold --release-on-eof` reads the end of its input
 and the locks are freed at once; `jtasks status` then shows `posse perdida` and `jtasks resume` gives the tasks back.
 

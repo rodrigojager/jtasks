@@ -18,7 +18,8 @@ export declare function log(ctx: ToolContext, state: RunState, entry: Record<str
 export declare function remember(ctx: ToolContext, state: RunState, task: string, resident: Resident): void;
 /**
  * A hold ended with 14 (someone forced the lock, or it expired with the machine asleep): an involuntary release.
- * The task goes back to pending (or failed at maxAttempts), the edits stay on disk, the log says `lost`.
+ * The task goes back to pending (or failed at maxAttempts), its own edits kept as patches (rev. 5.6; a file someone
+ * else holds now is not touched), the log says `lost`.
  */
 export declare function markLost(ctx: ToolContext, first: RunState, id: string): Promise<boolean>;
 export declare function identity(ctx: ToolContext, state: RunState, task: Task): Identity;
@@ -76,6 +77,14 @@ export interface TreeSplit {
     others: string[];
     /** Changes nobody owns: they block the task's done. */
     outside: string[];
+    /**
+     * Changes a released task left on disk (rev. 5.6: the fallback when they could not be kept as patches, or a run
+     * from before): they neither block the done nor go in its commit.
+     */
+    released: {
+        task: string;
+        files: string[];
+    }[];
 }
 /**
  * The working tree's changes, split by ownership: the task's own; another in-progress task's of this run, or
@@ -95,6 +104,15 @@ export declare function takeKeys(ctx: ToolContext, state: RunState, task: Task, 
  * meanwhile; answers the ones still missing.
  */
 export declare function retakeMissing(ctx: ToolContext, state: RunState, task: Task): Promise<string[]>;
+/** What a task leaving `in_progress` without a commit did with its edits (rev. 5.6). */
+export interface Kept {
+    /** Files whose edit is now a patch (back to HEAD in the tree). */
+    saved: string[];
+    /** Files left on disk: their patch could not be made. */
+    left: string[];
+    /** Files never touched: their key is someone else's now. */
+    untouched: string[];
+}
 /** `60s`, `2m`, `500ms`, `90` (seconds). */
 export declare function parseDuration(raw: string): number;
 /** jlock's deadlock chain with our owners shortened (`gt:<run>/T04` → `T04`). */
@@ -112,7 +130,7 @@ export interface Retaken {
  * fail), on `next`, and on each pass of a host that stays open (`only` limits it to that host's tasks). Never throws.
  */
 export declare function retakeYielded(ctx: ToolContext, first: RunState, only?: (task: Task) => boolean): Promise<Retaken[]>;
-/** In progress → pending (or failed at maxAttempts), keeping the edits on disk. Used by release, resume, lost. */
+/** In progress → pending (or failed at maxAttempts). Used by release, resume, lost (their edits: `keepTask`). */
 export declare function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed";
 /** The `serialize` entry a command line falls under: the same command, or one with more arguments. */
 export declare function serializeEntry(serialize: string[], command: string): string | undefined;
