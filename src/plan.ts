@@ -45,6 +45,7 @@ export function toTask(p: PlanTask, profiles: Record<string, Profile>, source?: 
   if (p.source || source) task.source = (p.source || source)!
   if (p.exclusive) task.exclusive = true
   if (p.boundary) task.boundary = p.boundary
+  if (p.touchesShared?.length) task.touchesShared = [...p.touchesShared]
   return task
 }
 
@@ -97,6 +98,8 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
     keepalive: plan.keepalive !== false,
+    ...(plan.shared?.length ? { shared: plan.shared } : {}),
+    ...(plan.sharedPolicy ? { sharedPolicy: plan.sharedPolicy } : {}),
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : [],
   }
   const tasks: TasksFile = {
@@ -149,18 +152,24 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
   }
 }
 
-export function createdText(created: CreatedRun): string {
+export function createdText(created: CreatedRun, warnings: string[] = []): string {
   const { run, tasks, tickets } = created
   const branch = run.repo.branch === run.repo.baseBranch ? tr("plan.current_branch", { branch: run.repo.branch }) : `branch ${run.repo.branch}`
   return [
     tr("plan.created", { run: run.id, n: tasks.tasks.length, branch }),
     tr("plan.tickets", { n: tickets.length, dir: join(created.dir, "tickets") }),
+    ...warningLines(warnings),
     tr("plan.next_step"),
   ].join("\n")
 }
 
+/** The warnings of a valid plan (rev. 5.6), as answer lines. */
+export function warningLines(warnings: string[]): string[] {
+  return warnings.length ? [tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`)] : []
+}
+
 export async function planFromJson(ctx: ToolContext, raw: unknown, options: CreateRunOptions = {}): Promise<ToolResult> {
-  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
+  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform })
   if (errors.length > 0)
     return {
       ok: false,
@@ -169,7 +178,7 @@ export async function planFromJson(ctx: ToolContext, raw: unknown, options: Crea
       data: { errors },
     }
   const created = await createRun(ctx, plan, options)
-  return ok(createdText(created), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch }, { bind: created.run.id })
+  return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id })
 }
 
 // ── Plan in batches (rev. 5.1): a draft that is not a run yet ─────────────────────────────────────────────────
@@ -187,6 +196,8 @@ export interface Draft {
   holdTtl?: string
   keepalive?: boolean
   branch?: "run" | "current"
+  shared?: string[]
+  sharedPolicy?: PlanInput["sharedPolicy"]
   tasks: PlanTask[]
 }
 
@@ -235,6 +246,8 @@ function draftPlan(draft: Draft): PlanInput {
   if (draft.holdTtl !== undefined) plan.holdTtl = draft.holdTtl
   if (draft.keepalive !== undefined) plan.keepalive = draft.keepalive
   if (draft.branch !== undefined) plan.branch = draft.branch
+  if (draft.shared !== undefined) plan.shared = draft.shared
+  if (draft.sharedPolicy !== undefined) plan.sharedPolicy = draft.sharedPolicy
   return plan
 }
 
@@ -310,7 +323,7 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const errors = [...read.errors, ...batch.errors, ...earlier]
     if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch"] as const)
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")
@@ -367,13 +380,13 @@ async function draftCommit(ctx: ToolContext, args: ParsedArgs): Promise<ToolResu
   return withLock(ctx.host, dir, async () => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     if (current.tasks.length === 0) throw new ToolError(tr("draft.empty"))
-    const { plan, errors } = validatePlan(draftPlan(current), { platform: ctx.host.platform })
+    const { plan, errors, warnings } = validatePlan(draftPlan(current), { platform: ctx.host.platform })
     if (errors.length > 0) return refused(tr("draft.commit_refused"), errors)
     const created = await createRun(ctx, plan, { id: current.id })
     await ctx.host.remove(draftFile(dir))
     return ok(
-      createdText(created),
-      { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch },
+      createdText(created, warnings),
+      { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings },
       { bind: created.run.id },
     )
   })

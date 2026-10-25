@@ -21,7 +21,9 @@ ticket 46): com o jlock 0.2.0, a renovação é `jlock renew`, no lugar, sem sol
 ticket 47): `jtasks yield` cede só os arquivos disputados num deadlock, com as edições guardadas como patch
 (`src/patches.ts`, `src/keep.ts`) e reaplicadas com `git apply --3way` quando o arquivo volta; ticket 48: liberar
 (release, fim de subagente, resume, posse perdida, fail, skip) também guarda as edições, o `start` as reaplica
-(`--fresh` não) e o `done` não é bloqueado pelo que uma tarefa liberada deixou no disco.
+(`--fresh` não) e o `done` não é bloqueado pelo que uma tarefa liberada deixou no disco; ticket 49: `shared`,
+`touchesShared` e `sharedPolicy` no plano (avisos no `validate`, mutex na fronteira com `serialize`) e
+`status --claims`.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

@@ -31,8 +31,20 @@ export declare function ancestors(tasks: PlanTask[]): Map<string, Set<string>>;
 export interface FullResult {
     plan: PlanInput;
     errors: string[];
+    /** What does not refuse the plan but deserves a look (rev. 5.6: shared files in parallel tasks). */
+    warnings: string[];
 }
 /** The complete validation (`validate`, `plan`, `plan --commit`). */
 export declare function validatePlan(raw: unknown, options?: ValidateOptions): FullResult;
+/** The `shared` entries a task touches: in `touchesShared`, or overlapping its `files` (claimed ones too, in a run). */
+export declare function sharedTouched(shared: string[], task: Pick<PlanTask, "files" | "touchesShared"> & {
+    claimed?: string[];
+}, insensitive: boolean): string[];
+/**
+ * Two tasks with no dependency path between them that touch the same `shared` file: a warning that says how to
+ * order them. None with `sharedPolicy: "serialize"`, where the frontier keeps them apart; none for two that own it
+ * in `files` (that is already an error).
+ */
+export declare function sharedWarnings(plan: PlanInput, options?: ValidateOptions): string[];
 /** Checks that need the whole set: dependencies, cycles, ownership shared by independent tasks. */
 export declare function validateGraph(tasks: PlanTask[], options?: ValidateOptions): string[];

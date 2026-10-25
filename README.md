@@ -20,7 +20,8 @@ file only the tool writes; each task declares the files it owns, and those files
 ## The problem, precisely
 
 - **What can run now.** A task is ready when its dependencies are done and its files are free. Two tasks with no
-  dependency between them must not share a file: the tool refuses such a plan and says which tasks and which file.
+  dependency between them must not share a file: the tool refuses such a plan and says which tasks and which file. Registry files that many tasks touch go in the plan's `shared`: the tool warns
+  when two parallel tasks touch one, and `"sharedPolicy": "serialize"` keeps them apart.
 - **Who changes what.** While a task runs, its files are held as locks in [jlock](https://github.com/rodrigojager/jlock),
   a machine-wide lock tool. Another task that needs one of them waits in line (`claim`) or does something else; a
   wait that would close a cycle is refused. The task refused yields with `jtasks yield`: it gives back only the contested files, its edits kept as a patch

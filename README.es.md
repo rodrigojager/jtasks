@@ -23,7 +23,8 @@ esos archivos quedan bloqueados mientras se ejecuta.
 
 - **Qué puede ejecutarse ahora.** Una tarea está lista cuando sus dependencias están hechas y sus archivos están
   libres. Dos tareas sin dependencia entre ellas no pueden compartir un archivo: la herramienta rechaza un plan así
-  y dice qué tareas y qué archivo.
+  y dice qué tareas y qué archivo. Los archivos de registro que tocan muchas tareas van en el `shared` del plan: la
+  herramienta avisa cuando dos tareas paralelas tocan uno, y `"sharedPolicy": "serialize"` las mantiene separadas.
 - **Quién cambia qué.** Mientras una tarea se ejecuta, sus archivos se mantienen como bloqueos en
   [jlock](https://github.com/rodrigojager/jlock), una herramienta de bloqueos para toda la máquina. Otra tarea que
   necesite uno de ellos espera en la cola (`claim`) o hace otra cosa; una espera que cerraría un ciclo se rechaza. La tarea rechazada cede con `jtasks yield`: devuelve solo los archivos disputados, con sus ediciones guardadas

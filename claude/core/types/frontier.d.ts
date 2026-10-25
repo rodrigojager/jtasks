@@ -23,6 +23,10 @@ export type Blocker = {
     key: string;
     via: string;
     owner: string;
+} | {
+    kind: "shared";
+    path: string;
+    task: string;
 };
 export interface Assessment {
     task: Task;
@@ -31,6 +35,13 @@ export interface Assessment {
 }
 /** Why each pending task is (not) ready. `locks` is what jlock holds now (at least under the repository). */
 export declare function assess(state: RunState, locks: JlockLock[], platform: string): Assessment[];
+/** The run's `shared` files a task touches (rev. 5.6): in its `touchesShared`, or overlapping its files and claims. */
+export declare function sharedOf(state: RunState, task: Task, platform: string): string[];
+/**
+ * With `sharedPolicy: "serialize"`, the mutex per shared file: a task waits while another task in progress touches a
+ * shared file it touches too. The only implementation, used by the frontier (`next`, `status`, the views) and `start`.
+ */
+export declare function sharedBlocker(state: RunState, task: Task, platform: string): Blocker | undefined;
 /** The keys the run's tasks in progress gave back with `yield` and wait to take back. */
 export declare function yieldedKeys(state: RunState): {
     task: string;

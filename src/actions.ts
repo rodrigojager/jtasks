@@ -1,6 +1,6 @@
 // The run's actions: next, start, status (this ticket) and, later, done/skip/fail/release/retry/claim/pause/resume.
 
-import { assess, blockerText, ownerOf, selectReady, taskKeys, waitingOf, waitingText, type RunState } from "./frontier.ts"
+import { assess, blockerText, ownerOf, selectReady, sharedBlocker, taskKeys, waitingOf, waitingText, type RunState } from "./frontier.ts"
 import { counts, progressLine } from "./format.ts"
 import {
   branchExists,
@@ -39,7 +39,7 @@ import {
   type JlockLock,
 } from "./jlock.ts"
 import { unarchive } from "./housekeeping.ts"
-import { chainKeys, changedUnder, keepEdits, lastDeadlock, ownFiles, ownKeys, patchesUnder, readLog, reapplyPatches, releasedEdits, takenSince, type ReapplyReport } from "./keep.ts"
+import { chainKeys, changedUnder, claimStats, keepEdits, lastDeadlock, ownFiles, ownKeys, patchesUnder, readLog, reapplyPatches, releasedEdits, takenSince, type ReapplyReport } from "./keep.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { slugify } from "./ids.ts"
 import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
@@ -276,6 +276,8 @@ defineAction(
       const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]))
       const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""))
       if (open.length) throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }))
+      const mutex = sharedBlocker(state, task, ctx.host.platform)
+      if (mutex?.kind === "shared") throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }))
 
       const keys = taskKeys(state.root, task, ctx.host.platform)
       const now = ctx.host.now().toISOString()
@@ -427,10 +429,23 @@ defineAction(
   async (ctx, args) => {
     const state = await resolveRun(ctx, args)
     const s = await statusOf(ctx, state)
-    return ok(s.text, s.data)
+    if (!args.options.claims) return ok(s.text, s.data)
+    // --claims (rev. 5.6): the run's most contested files, from its log.
+    const claims = await claimStats(ctx.host, state, (k) => describeKey(k, state.root, ctx.host.platform))
+    const lines = [s.text, claims.length ? tr("status.claims", { run: state.run.id }) : tr("status.claims_none")]
+    for (const c of claims) {
+      const parts = [tr("status.claims_claims", { n: c.claims })]
+      if (c.timeouts) parts.push(tr("status.claims_timeouts", { n: c.timeouts }))
+      if (c.deadlocks) parts.push(tr("status.claims_deadlocks", { n: c.deadlocks }))
+      if (c.yields) parts.push(tr("status.claims_yields", { n: c.yields }))
+      lines.push(`  ${c.file}: ${parts.join(" · ")} (${c.tasks.join(", ")})`)
+    }
+    return ok(lines.join("\n"), { ...s.data, claims })
   },
   "help.status",
 )
+
+addUsage("help.status.claims")
 
 addUsage("help.status.run")
 

@@ -237,3 +237,44 @@ export async function releasedEdits(host: Host, state: RunState): Promise<Map<st
   }
   return out
 }
+
+export interface ClaimStat {
+  /** The file or folder, relative to the repository when inside it. */
+  file: string
+  claims: number
+  timeouts: number
+  deadlocks: number
+  yields: number
+  /** The tasks involved, in the order they first appear. */
+  tasks: string[]
+}
+
+const CONTESTED: Record<string, keyof Pick<ClaimStat, "claims" | "timeouts" | "deadlocks" | "yields">> = {
+  claim: "claims",
+  "claim-timeout": "timeouts",
+  "claim-deadlock": "deadlocks",
+  yield: "yields",
+}
+
+/**
+ * The run's most contested files (rev. 5.6), from its log: per key, the claims granted, timed out and refused for a
+ * deadlock, and the yields, with the tasks involved; most events first. What the next breakdown into tasks should
+ * look at (`jtasks status --claims`).
+ */
+export async function claimStats(host: Host, state: RunState, describe: (key: string) => string): Promise<ClaimStat[]> {
+  const byFile = new Map<string, ClaimStat>()
+  for (const e of await readLog(host, state.dir)) {
+    const field = e.action ? CONTESTED[e.action] : undefined
+    if (!field) continue
+    for (const key of strings(e.keys)) {
+      const file = describe(key)
+      let stat = byFile.get(file)
+      if (!stat) byFile.set(file, (stat = { file, claims: 0, timeouts: 0, deadlocks: 0, yields: 0, tasks: [] }))
+      stat[field]++
+      if (e.task && !stat.tasks.includes(e.task)) stat.tasks.push(e.task)
+    }
+  }
+  const total = (s: ClaimStat) => s.claims + s.timeouts + s.deadlocks + s.yields
+  const weight = (s: ClaimStat) => s.deadlocks * 4 + s.timeouts * 2 + s.yields + s.tasks.length
+  return [...byFile.values()].sort((a, b) => weight(b) - weight(a) || total(b) - total(a) || a.file.localeCompare(b.file))
+}

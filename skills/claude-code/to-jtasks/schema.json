@@ -25,6 +25,12 @@
         "holdTtl": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h|d)$", "description": "How long a task's locks live if nobody renews or gives them back, e.g. 2h (the default): the ttl of every jlock hold. The mod and the plugin renew the locks of tasks in progress, so it only frees a window that died." },
         "keepalive": { "type": "boolean", "description": "False creates the run with the keepalive off: the host does not reopen the loop when the orchestrator stops with ready tasks (default true)." },
         "branch": { "enum": ["run", "current"], "description": "Commit on gt/<run> (default) or on the current branch." },
+        "shared": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },
+          "description": "Registry files, indexes, schemas and central types several tasks touch. jtasks validate warns about two tasks with no dependency between them touching one (in files or touchesShared)."
+        },
+        "sharedPolicy": { "enum": ["warn", "serialize"], "description": "warn (the default): only the warning; serialize: two tasks touching the same shared file never run at the same time (the frontier holds one back), without the file entering both ownerships." },
         "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
       },
       "required": ["tasks"],
@@ -48,7 +54,12 @@
         "acceptance": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Acceptance criteria: each one observable, false at the commit the task starts from, and made true by this task alone." },
         "profile": { "type": "string", "description": "Name of a profile (default execute)." },
         "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
-        "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." }
+        "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." },
+        "touchesShared": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },
+          "description": "Files of the plan's shared this task touches without owning them (it claims them when it needs them)."
+        }
       },
       "required": ["id", "title", "what", "acceptance"],
       "additionalProperties": false

@@ -55,10 +55,12 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   "objective": "Login por link mágico",
   "source": "https://github.com/acme/app/issues/42",
   "serialize": ["bun test"],
+  "shared": ["src/session/types.ts"],
+  "sharedPolicy": "serialize",
   "profiles": { "execute": { "claude": { "agent": "jtasks:execute", "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
-    { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"] },
+    { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"], "touchesShared": ["src/session/types.ts"] },
     { "id": "T03", "title": "Integração", "dependsOn": ["T02"], "exclusive": true, "profile": "execute" }
   ]
 }
@@ -70,6 +72,14 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
   the other). `exclusive: true` holds `*` and runs alone.
+- `shared`: the registry files, indexes, schemas and central types several tasks touch (the manifest every adapter
+  adds a line to, say). A task that touches one without owning it lists it in `touchesShared` (it claims it when it
+  needs it; an entry outside `shared` is an error). `validate` and `plan` **warn** when two tasks with no dependency
+  between them touch the same shared file, and say how to order them: chain them with `dependsOn`, leave the file to
+  one of them, or `"sharedPolicy": "serialize"`. With `serialize` there is no warning: the frontier never runs two
+  tasks touching the same shared file at the same time (`next` holds the second back with `🔗 T01: <file>
+  (compartilhado)`, and its `start` is refused), and the file enters neither ownership. The default, `"warn"`, only
+  warns. After a run, `jtasks status --claims` lists the files that were most contested: the next plan's `shared`.
 - Without `profiles`: `execute`, `execute-deep`, `review`. Their agents come with the packages: in OpenCode the
   agents of the same names (`opencode/agents/`, installed by `jtasks doctor --fix`); in Claude Code the mod's own
   `jtasks:execute`, `jtasks:execute-deep`, `jtasks:review` (`claude/agents/`, generated from the OpenCode ones). A
@@ -92,7 +102,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 
 | Group | Action | What it does |
 |---|---|---|
-| plan | `validate <json\|@file\|dir>` | validates a plan (or a folder of tickets) without writing |
+| plan | `validate <json\|@file\|dir>` | validates a plan (or a folder of tickets) without writing; prints the warnings about shared files |
 | | `plan <json\|@file> [--name slug]` | creates the run: `run.json`, `tasks.json`, tickets, branch `gt/<run>`, `.scratch/` in `.git/info/exclude`, ledger |
 | | `plan --draft [--name s] [--objective t] [--source r]` | opens a draft (not a run yet) |
 | | `plan --add <json\|@file>` | adds a batch; refused whole on any error of the batch |
@@ -101,7 +111,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `plan --commit` | complete validation; creates the run and removes the draft |
 | | `import <dir> [--check\|--yes]` | Markdown tickets → run (a ticket without Files becomes `exclusive`) |
 | run | `runs` | the runs of the repository, with status and progress |
-| | `status` | `feitas F/T (P%) · … · restam N`, waits, ready and blocked tasks, active locks |
+| | `status [--claims]` | `feitas F/T (P%) · … · restam N`, waits, ready and blocked tasks, active locks; `--claims` adds the run's most contested files, from its log (claims, timeouts, deadlocks and yields per file, with the tasks; `claims` in `--json`) |
 | | `pause` / `unpause` | paused: `start` refused, and the keepalive stays quiet |
 | | `keepalive on\|off` | the host reopens the loop when the orchestrator stops with ready tasks (default on; see [With `/goal`](#with-goal)) |
 | | `resume <run> [--keep-owners] [--from-archive]` | binds the session, leaves pause, releases in-progress tasks whose locks are gone |

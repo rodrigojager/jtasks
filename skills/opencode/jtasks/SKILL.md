@@ -68,6 +68,9 @@ messages already sent); `jtasks status` says when it is off or has given up.
 - **A task you start again** (after a release, a failure or a lost lock) gets its earlier edits back: the answer of
   `start` lists the patches reapplied and any file left with conflict markers; resolve those before `done`.
 - **`done` refused for files outside the ownership**: `jtasks claim` them, or undo those changes.
+- **`start` refused for a shared file** (`🔗` in `next` and `status`): the plan's `sharedPolicy` is `serialize` and
+  another task in progress touches the same shared file; take another ready task. After the run,
+  `jtasks status --claims` lists the most contested files, for the next plan's `shared`.
 - **A task failed**: the tasks that depend on it stay blocked; the rest goes on. `jtasks retry <id>` reopens it.
 
 ## Orchestrating

@@ -255,6 +255,7 @@ var en_default = {
   "frontier.blocked": "blocked: {list}",
   "frontier.failed_dependency": "⛔ {ids} (failed)",
   "frontier.inside": "{via} (inside {asked})",
+  "frontier.shared": "🔗 {id}: {path} (shared)",
   "frontier.waiting": "⏳ {owner}: {shown} · position {position}",
   "frontier.waiting_list": "waiting: {list}",
   "frontier.yielded": "⏳ yielded {files}",
@@ -310,6 +311,7 @@ var en_default = {
   "help.skip": 'skip <id> --reason "…"                skipped (frees the tasks that depend on it)',
   "help.start": "start <id> [--fresh]                  in progress; locks the ownership; reapplies its saved edits",
   "help.status": "status                                done D/T (P%) · … · N left, the frontier and the locks",
+  "help.status.claims": "  status --claims                     the run's most contested files: claims, timeouts, deadlocks",
   "help.status.run": "  (without --run: the session's run, JTASKS_RUN, or the repository's only active one)",
   "help.title": "jtasks {version}: a task list with dependencies and file ownership (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -414,6 +416,9 @@ var en_default = {
   "plan.serialize_list": '"serialize" must be a list of commands',
   "plan.shape": 'the plan must be a list of tasks or an object with "tasks"',
   "plan.shared": "{a} and {b} touch {path}{cover} and may run together: add a dependency or split the file",
+  "plan.shared_list": "shared must be a list of paths",
+  "plan.shared_parallel": '{a} and {b} both touch the shared file {path} and no dependency orders them: chain them with dependsOn, leave the file to one of them, or set "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy must be "warn" or "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" must be a list of criteria (text)',
   "plan.task_depends_list": '{name}: "dependsOn" must be a list of ids',
   "plan.task_exclusive": '{name}: "exclusive" must be true or false',
@@ -421,8 +426,10 @@ var en_default = {
   "plan.task_missing": '{name}: missing "{field}"',
   "plan.task_object": "{name}: each task must be an object",
   "plan.task_text": '{name}: "{field}" must be text',
+  "plan.task_touches_list": "{name}: touchesShared must be a list of paths",
   "plan.task_unknown_field": '{name}: unknown field "{field}"',
   "plan.tickets": "tickets: {n} in {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} is not in the plan's shared; list it there too",
   "plan.unknown_field": 'unknown field in the plan: "{field}"',
   "plan.unknown_profile": '{id}: unknown profile "{profile}" (profiles: {profiles})',
   "profiles.agent_missing": 'warning: the profile "{profile}" names the agent "{agent}", which does not exist: install the jtasks agents with jtasks doctor --fix, or name one of your agents in the plan',
@@ -472,7 +479,14 @@ var en_default = {
   "start.other_owner": "another owner",
   "start.owner": "(owner: {owner})",
   "start.paused": "run {run} is paused: do not start tasks",
+  "start.shared": "{id} is not ready: the shared file {path} is touched by {other}, in progress (sharedPolicy serialize)",
   "start.started": "{id} in progress (attempt {attempt}): {own}",
+  "status.claims": "most contested files of {run}:",
+  "status.claims_claims": "{n} claim(s)",
+  "status.claims_deadlocks": "{n} deadlock(s)",
+  "status.claims_none": "no claim in this run's log yet",
+  "status.claims_timeouts": "{n} timeout(s)",
+  "status.claims_yields": "{n} yield(s)",
   "status.failed": "failed: {list}",
   "status.free": "free",
   "status.locks": "active locks (jlock --group {run}): {list}",
@@ -540,6 +554,7 @@ var en_default = {
   "view.paused": "paused",
   "view.stalled": "⚠ stopped: {what} to do, nothing running",
   "view.waits_for": "waits for {files}",
+  "warnings.count": "{n} warning(s):",
   "yield.came_back": "{id} took back {files}",
   "yield.done": "{id} yielded {files} and stays in progress; {saved}",
   "yield.exclusive": "{id} is exclusive (the whole repository): it has no single files to yield; release it with jtasks release {id}",
@@ -686,6 +701,7 @@ var pt_BR_default = {
   "frontier.blocked": "bloqueadas: {list}",
   "frontier.failed_dependency": "⛔ {ids} (falha)",
   "frontier.inside": "{via} (dentro de {asked})",
+  "frontier.shared": "🔗 {id}: {path} (compartilhado)",
   "frontier.waiting": "⏳ {owner}: {shown} · posição {position}",
   "frontier.waiting_list": "aguardando: {list}",
   "frontier.yielded": "⏳ cedeu {files}",
@@ -741,6 +757,7 @@ var pt_BR_default = {
   "help.skip": 'skip <id> --reason "…"                pulada (libera as dependentes)',
   "help.start": "start <id> [--fresh]                  em andamento; trava a posse; reaplica as edições guardadas",
   "help.status": "status                                feitas F/T (P%) · … · restam N, fronteira e travas",
+  "help.status.claims": "  status --claims                     os arquivos mais disputados: claims, esperas, deadlocks",
   "help.status.run": "  (sem --run: a execução ligada à sessão, JTASKS_RUN, ou a única ativa do repositório)",
   "help.title": "jtasks {version}: lista de tarefas com dependências e posse de arquivos (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -845,6 +862,9 @@ var pt_BR_default = {
   "plan.serialize_list": '"serialize" deve ser uma lista de comandos',
   "plan.shape": 'o plano deve ser uma lista de tarefas ou um objeto com "tasks"',
   "plan.shared": "{a} e {b} tocam {path}{cover} e podem rodar juntas: adicione uma dependência ou separe o arquivo",
+  "plan.shared_list": "shared deve ser uma lista de caminhos",
+  "plan.shared_parallel": '{a} e {b} tocam o arquivo compartilhado {path} e nenhuma dependência as ordena: encadeie-as com dependsOn, deixe o arquivo com uma delas, ou use "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy deve ser "warn" ou "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" deve ser uma lista de critérios (texto)',
   "plan.task_depends_list": '{name}: "dependsOn" deve ser uma lista de ids',
   "plan.task_exclusive": '{name}: "exclusive" deve ser true ou false',
@@ -852,8 +872,10 @@ var pt_BR_default = {
   "plan.task_missing": '{name}: falta "{field}"',
   "plan.task_object": "{name}: cada tarefa deve ser um objeto",
   "plan.task_text": '{name}: "{field}" deve ser texto',
+  "plan.task_touches_list": "{name}: touchesShared deve ser uma lista de caminhos",
   "plan.task_unknown_field": '{name}: campo desconhecido "{field}"',
   "plan.tickets": "tickets: {n} em {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} não está no shared do plano; liste-o lá também",
   "plan.unknown_field": 'campo desconhecido no plano: "{field}"',
   "plan.unknown_profile": '{id}: perfil desconhecido "{profile}" (perfis: {profiles})',
   "profiles.agent_missing": 'aviso: o perfil "{profile}" aponta o agente "{agent}", que não existe: instale os agentes do jtasks com jtasks doctor --fix, ou aponte um agente seu no plano',
@@ -903,7 +925,14 @@ var pt_BR_default = {
   "start.other_owner": "outro dono",
   "start.owner": "(dono: {owner})",
   "start.paused": "a execução {run} está pausada: não inicie tarefas",
+  "start.shared": "{id} não está pronta: o arquivo compartilhado {path} é tocado por {other}, em andamento (sharedPolicy serialize)",
   "start.started": "{id} em andamento (tentativa {attempt}): {own}",
+  "status.claims": "arquivos mais disputados de {run}:",
+  "status.claims_claims": "{n} claim(s)",
+  "status.claims_deadlocks": "{n} deadlock(s)",
+  "status.claims_none": "nenhum claim no log desta execução ainda",
+  "status.claims_timeouts": "{n} espera(s) vencida(s)",
+  "status.claims_yields": "{n} yield(s)",
   "status.failed": "falhas: {list}",
   "status.free": "livre",
   "status.locks": "travas ativas (jlock --group {run}): {list}",
@@ -971,6 +1000,7 @@ var pt_BR_default = {
   "view.paused": "pausada",
   "view.stalled": "⚠ parada: {what} por fazer, nada rodando",
   "view.waits_for": "espera {files}",
+  "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} pegou de volta {files}",
   "yield.done": "{id} cedeu {files} e continua em andamento; {saved}",
   "yield.exclusive": "{id} é exclusiva (o repositório inteiro): não tem arquivos avulsos para ceder; libere com jtasks release {id}",
@@ -1117,6 +1147,7 @@ var es_default = {
   "frontier.blocked": "bloqueadas: {list}",
   "frontier.failed_dependency": "⛔ {ids} (fallida)",
   "frontier.inside": "{via} (dentro de {asked})",
+  "frontier.shared": "🔗 {id}: {path} (compartido)",
   "frontier.waiting": "⏳ {owner}: {shown} · posición {position}",
   "frontier.waiting_list": "esperando: {list}",
   "frontier.yielded": "⏳ cedió {files}",
@@ -1172,6 +1203,7 @@ var es_default = {
   "help.skip": 'skip <id> --reason "…"                omitida (libera las tareas que dependen de ella)',
   "help.start": "start <id> [--fresh]                  en curso; bloquea la posesión; reaplica lo guardado",
   "help.status": "status                                hechas H/T (P%) · … · quedan N, la frontera y los bloqueos",
+  "help.status.claims": "  status --claims                     los archivos más disputados: claims, esperas, deadlocks",
   "help.status.run": "  (sin --run: la ejecución de la sesión, JTASKS_RUN, o la única activa del repositorio)",
   "help.title": "jtasks {version}: una lista de tareas con dependencias y posesión de archivos (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -1276,6 +1308,9 @@ var es_default = {
   "plan.serialize_list": '"serialize" debe ser una lista de comandos',
   "plan.shape": 'el plan debe ser una lista de tareas o un objeto con "tasks"',
   "plan.shared": "{a} y {b} tocan {path}{cover} y pueden ejecutarse a la vez: añade una dependencia o divide el archivo",
+  "plan.shared_list": "shared debe ser una lista de rutas",
+  "plan.shared_parallel": '{a} y {b} tocan el archivo compartido {path} y ninguna dependencia las ordena: encadénalas con dependsOn, deja el archivo a una de ellas o usa "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy debe ser "warn" o "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" debe ser una lista de criterios (texto)',
   "plan.task_depends_list": '{name}: "dependsOn" debe ser una lista de ids',
   "plan.task_exclusive": '{name}: "exclusive" debe ser true o false',
@@ -1283,8 +1318,10 @@ var es_default = {
   "plan.task_missing": '{name}: falta "{field}"',
   "plan.task_object": "{name}: cada tarea debe ser un objeto",
   "plan.task_text": '{name}: "{field}" debe ser texto',
+  "plan.task_touches_list": "{name}: touchesShared debe ser una lista de rutas",
   "plan.task_unknown_field": '{name}: campo desconocido "{field}"',
   "plan.tickets": "tickets: {n} en {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} no está en el shared del plan; agrégalo allí también",
   "plan.unknown_field": 'campo desconocido en el plan: "{field}"',
   "plan.unknown_profile": '{id}: perfil desconocido "{profile}" (perfiles: {profiles})',
   "profiles.agent_missing": 'aviso: el perfil "{profile}" nombra al agente "{agent}", que no existe: instala los agentes de jtasks con jtasks doctor --fix, o nombra en el plan uno de tus agentes',
@@ -1334,7 +1371,14 @@ var es_default = {
   "start.other_owner": "otro dueño",
   "start.owner": "(dueño: {owner})",
   "start.paused": "la ejecución {run} está en pausa: no inicies tareas",
+  "start.shared": "{id} no está lista: el archivo compartido {path} lo toca {other}, en curso (sharedPolicy serialize)",
   "start.started": "{id} en curso (intento {attempt}): {own}",
+  "status.claims": "archivos más disputados de {run}:",
+  "status.claims_claims": "{n} claim(s)",
+  "status.claims_deadlocks": "{n} deadlock(s)",
+  "status.claims_none": "todavía no hay claims en el log de esta ejecución",
+  "status.claims_timeouts": "{n} espera(s) vencida(s)",
+  "status.claims_yields": "{n} yield(s)",
   "status.failed": "fallidas: {list}",
   "status.free": "libre",
   "status.locks": "bloqueos activos (jlock --group {run}): {list}",
@@ -1402,6 +1446,7 @@ var es_default = {
   "view.paused": "en pausa",
   "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha",
   "view.waits_for": "espera {files}",
+  "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} recuperó {files}",
   "yield.done": "{id} cedió {files} y sigue en curso; {saved}",
   "yield.exclusive": "{id} es exclusiva (todo el repositorio): no tiene archivos sueltos para ceder; libérala con jtasks release {id}",
@@ -1548,6 +1593,7 @@ var fr_default = {
   "frontier.blocked": "bloquées: {list}",
   "frontier.failed_dependency": "⛔ {ids} (en échec)",
   "frontier.inside": "{via} (dans {asked})",
+  "frontier.shared": "🔗 {id}: {path} (partagé)",
   "frontier.waiting": "⏳ {owner}: {shown} · position {position}",
   "frontier.waiting_list": "attendent: {list}",
   "frontier.yielded": "⏳ a cédé {files}",
@@ -1603,6 +1649,7 @@ var fr_default = {
   "help.skip": 'skip <id> --reason "…"                ignorée (libère les tâches qui en dépendent)',
   "help.start": "start <id> [--fresh]                  en cours; verrouille; réapplique les modifs gardées",
   "help.status": "status                                terminées D/T (P%) · … · N restantes, frontière et verrous",
+  "help.status.claims": "  status --claims                     les fichiers les plus disputés: claims, attentes, deadlocks",
   "help.status.run": "  (sans --run: l'exécution de la session, JTASKS_RUN, ou la seule active du dépôt)",
   "help.title": "jtasks {version}: une liste de tâches avec dépendances et possession de fichiers (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -1707,6 +1754,9 @@ var fr_default = {
   "plan.serialize_list": '"serialize" doit être une liste de commandes',
   "plan.shape": 'le plan doit être une liste de tâches ou un objet avec "tasks"',
   "plan.shared": "{a} et {b} touchent {path}{cover} et peuvent tourner ensemble: ajoutez une dépendance ou découpez le fichier",
+  "plan.shared_list": "shared doit être une liste de chemins",
+  "plan.shared_parallel": `{a} et {b} touchent le fichier partagé {path} et aucune dépendance ne les ordonne: enchaînez-les avec dependsOn, laissez le fichier à l'une d'elles, ou mettez "sharedPolicy": "serialize"`,
+  "plan.shared_policy": 'sharedPolicy doit être "warn" ou "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" doit être une liste de critères (texte)',
   "plan.task_depends_list": `{name}: "dependsOn" doit être une liste d'ids`,
   "plan.task_exclusive": '{name}: "exclusive" doit valoir true ou false',
@@ -1714,8 +1764,10 @@ var fr_default = {
   "plan.task_missing": '{name}: "{field}" manquant',
   "plan.task_object": "{name}: chaque tâche doit être un objet",
   "plan.task_text": '{name}: "{field}" doit être du texte',
+  "plan.task_touches_list": "{name}: touchesShared doit être une liste de chemins",
   "plan.task_unknown_field": '{name}: champ inconnu "{field}"',
   "plan.tickets": "tickets: {n} dans {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} n'est pas dans le shared du plan; listez-le là aussi",
   "plan.unknown_field": 'champ inconnu dans le plan: "{field}"',
   "plan.unknown_profile": '{id}: profil inconnu "{profile}" (profils: {profiles})',
   "profiles.agent_missing": `attention: le profil "{profile}" désigne l'agent "{agent}", qui n'existe pas: installez les agents de jtasks avec jtasks doctor --fix, ou désignez l'un de vos agents dans le plan`,
@@ -1765,7 +1817,14 @@ var fr_default = {
   "start.other_owner": "un autre propriétaire",
   "start.owner": "(propriétaire: {owner})",
   "start.paused": "l'exécution {run} est en pause: ne démarrez pas de tâches",
+  "start.shared": "{id} n'est pas prête: le fichier partagé {path} est touché par {other}, en cours (sharedPolicy serialize)",
   "start.started": "{id} en cours (tentative {attempt}): {own}",
+  "status.claims": "fichiers les plus disputés de {run}:",
+  "status.claims_claims": "{n} claim(s)",
+  "status.claims_deadlocks": "{n} deadlock(s)",
+  "status.claims_none": "aucun claim dans le log de cette exécution pour l'instant",
+  "status.claims_timeouts": "{n} attente(s) expirée(s)",
+  "status.claims_yields": "{n} yield(s)",
   "status.failed": "en échec: {list}",
   "status.free": "libre",
   "status.locks": "verrous actifs (jlock --group {run}): {list}",
@@ -1833,6 +1892,7 @@ var fr_default = {
   "view.paused": "en pause",
   "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours",
   "view.waits_for": "attend {files}",
+  "warnings.count": "{n} avertissement(s):",
   "yield.came_back": "{id} a repris {files}",
   "yield.done": "{id} a cédé {files} et reste en cours; {saved}",
   "yield.exclusive": "{id} est exclusive (tout le dépôt): elle n'a pas de fichiers isolés à céder; libérez-la avec jtasks release {id}",
@@ -1979,6 +2039,7 @@ var de_default = {
   "frontier.blocked": "blockiert: {list}",
   "frontier.failed_dependency": "⛔ {ids} (fehlgeschlagen)",
   "frontier.inside": "{via} (in {asked})",
+  "frontier.shared": "🔗 {id}: {path} (geteilt)",
   "frontier.waiting": "⏳ {owner}: {shown} · Position {position}",
   "frontier.waiting_list": "wartend: {list}",
   "frontier.yielded": "⏳ hat {files} abgegeben",
@@ -2034,6 +2095,7 @@ var de_default = {
   "help.skip": 'skip <id> --reason "…"                übersprungen (gibt die abhängigen Aufgaben frei)',
   "help.start": "start <id> [--fresh]                  in Arbeit; sperrt den Besitz; wendet Patches wieder an",
   "help.status": "status                                erledigt E/G (P%) · … · N offen, nächste Aufgaben, Sperren",
+  "help.status.claims": "  status --claims                     die meistumkämpften Dateien: claims, Timeouts, Deadlocks",
   "help.status.run": "  (ohne --run: der Lauf der Sitzung, JTASKS_RUN oder der einzige aktive des Repositorys)",
   "help.title": "jtasks {version}: eine Aufgabenliste mit Abhängigkeiten und Dateibesitz (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -2138,6 +2200,9 @@ var de_default = {
   "plan.serialize_list": '"serialize" muss eine Liste von Befehlen sein',
   "plan.shape": 'der Plan muss eine Liste von Aufgaben oder ein Objekt mit "tasks" sein',
   "plan.shared": "{a} und {b} berühren {path}{cover} und können gleichzeitig laufen: füge eine Abhängigkeit hinzu oder teile die Datei auf",
+  "plan.shared_list": "shared muss eine Liste von Pfaden sein",
+  "plan.shared_parallel": '{a} und {b} berühren beide die geteilte Datei {path}, und keine Abhängigkeit ordnet sie: verkette sie mit dependsOn, überlass die Datei einer von beiden, oder setze "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy muss "warn" oder "serialize" sein',
   "plan.task_acceptance": '{name}: "acceptance" muss eine Liste von Kriterien (Text) sein',
   "plan.task_depends_list": '{name}: "dependsOn" muss eine Liste von ids sein',
   "plan.task_exclusive": '{name}: "exclusive" muss true oder false sein',
@@ -2145,8 +2210,10 @@ var de_default = {
   "plan.task_missing": '{name}: "{field}" fehlt',
   "plan.task_object": "{name}: jede Aufgabe muss ein Objekt sein",
   "plan.task_text": '{name}: "{field}" muss Text sein',
+  "plan.task_touches_list": "{name}: touchesShared muss eine Liste von Pfaden sein",
   "plan.task_unknown_field": '{name}: unbekanntes Feld "{field}"',
   "plan.tickets": "Tickets: {n} in {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} steht nicht im shared des Plans; führe ihn dort auch auf",
   "plan.unknown_field": 'unbekanntes Feld im Plan: "{field}"',
   "plan.unknown_profile": '{id}: unbekanntes Profil "{profile}" (Profile: {profiles})',
   "profiles.agent_missing": 'Warnung: das Profil "{profile}" nennt den Agenten "{agent}", den es nicht gibt: installiere die jtasks-Agenten mit jtasks doctor --fix oder nenne im Plan einen deiner Agenten',
@@ -2196,7 +2263,14 @@ var de_default = {
   "start.other_owner": "ein anderer Besitzer",
   "start.owner": "(Besitzer: {owner})",
   "start.paused": "Lauf {run} ist pausiert: starte keine Aufgaben",
+  "start.shared": "{id} ist nicht bereit: die geteilte Datei {path} berührt {other}, in Arbeit (sharedPolicy serialize)",
   "start.started": "{id} in Arbeit (Versuch {attempt}): {own}",
+  "status.claims": "meistumkämpfte Dateien von {run}:",
+  "status.claims_claims": "{n} claim(s)",
+  "status.claims_deadlocks": "{n} Deadlock(s)",
+  "status.claims_none": "noch kein claim im Log dieses Laufs",
+  "status.claims_timeouts": "{n} Timeout(s)",
+  "status.claims_yields": "{n} yield(s)",
   "status.failed": "fehlgeschlagen: {list}",
   "status.free": "frei",
   "status.locks": "aktive Sperren (jlock --group {run}): {list}",
@@ -2264,6 +2338,7 @@ var de_default = {
   "view.paused": "pausiert",
   "view.stalled": "⚠ steht: {what} offen, nichts läuft",
   "view.waits_for": "wartet auf {files}",
+  "warnings.count": "{n} Warnung(en):",
   "yield.came_back": "{id} hat {files} zurückgenommen",
   "yield.done": "{id} hat {files} abgegeben und bleibt in Arbeit; {saved}",
   "yield.exclusive": "{id} ist exklusiv (das ganze Repository): sie hat keine einzelnen Dateien abzugeben; gib sie frei mit jtasks release {id}",
@@ -2410,6 +2485,7 @@ var it_default = {
   "frontier.blocked": "bloccate: {list}",
   "frontier.failed_dependency": "⛔ {ids} (fallite)",
   "frontier.inside": "{via} (dentro {asked})",
+  "frontier.shared": "🔗 {id}: {path} (condiviso)",
   "frontier.waiting": "⏳ {owner}: {shown} · posizione {position}",
   "frontier.waiting_list": "in attesa: {list}",
   "frontier.yielded": "⏳ ha ceduto {files}",
@@ -2465,6 +2541,7 @@ var it_default = {
   "help.skip": 'skip <id> --reason "…"                saltata (libera le attività che ne dipendono)',
   "help.start": "start <id> [--fresh]                  in corso; blocca il possesso; riapplica le modifiche",
   "help.status": "status                                completate D/T (P%) · … · N rimaste, frontiera e blocchi",
+  "help.status.claims": "  status --claims                     i file più contesi: claim, attese, deadlock",
   "help.status.run": "  (senza --run: l'esecuzione della sessione, JTASKS_RUN, o l'unica attiva del repository)",
   "help.title": "jtasks {version}: lista di attività con dipendenze e possesso dei file (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -2569,6 +2646,9 @@ var it_default = {
   "plan.serialize_list": '"serialize" deve essere una lista di comandi',
   "plan.shape": 'il piano deve essere una lista di attività o un oggetto con "tasks"',
   "plan.shared": "{a} e {b} toccano {path}{cover} e possono andare insieme: aggiungi una dipendenza o dividi il file",
+  "plan.shared_list": "shared deve essere una lista di percorsi",
+  "plan.shared_parallel": '{a} e {b} toccano entrambe il file condiviso {path} e nessuna dipendenza le ordina: concatenale con dependsOn, lascia il file a una delle due, o usa "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy deve essere "warn" o "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" deve essere una lista di criteri (testo)',
   "plan.task_depends_list": '{name}: "dependsOn" deve essere una lista di id',
   "plan.task_exclusive": '{name}: "exclusive" deve essere true o false',
@@ -2576,8 +2656,10 @@ var it_default = {
   "plan.task_missing": '{name}: manca "{field}"',
   "plan.task_object": "{name}: ogni attività deve essere un oggetto",
   "plan.task_text": '{name}: "{field}" deve essere testo',
+  "plan.task_touches_list": "{name}: touchesShared deve essere una lista di percorsi",
   "plan.task_unknown_field": '{name}: campo sconosciuto "{field}"',
   "plan.tickets": "ticket: {n} in {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} non è nello shared del piano; elencalo anche lì",
   "plan.unknown_field": 'campo sconosciuto nel piano: "{field}"',
   "plan.unknown_profile": '{id}: profilo sconosciuto "{profile}" (profili: {profiles})',
   "profiles.agent_missing": `attenzione: il profilo "{profile}" indica l'agente "{agent}", che non esiste: installa gli agenti di jtasks con jtasks doctor --fix, o indica nel piano uno dei tuoi agenti`,
@@ -2627,7 +2709,14 @@ var it_default = {
   "start.other_owner": "un altro proprietario",
   "start.owner": "(proprietario: {owner})",
   "start.paused": "l'esecuzione {run} è in pausa: non avviare attività",
+  "start.shared": "{id} non è pronta: il file condiviso {path} è toccato da {other}, in corso (sharedPolicy serialize)",
   "start.started": "{id} in corso (tentativo {attempt}): {own}",
+  "status.claims": "file più contesi di {run}:",
+  "status.claims_claims": "{n} claim",
+  "status.claims_deadlocks": "{n} deadlock",
+  "status.claims_none": "ancora nessun claim nel log di questa esecuzione",
+  "status.claims_timeouts": "{n} attesa/e scaduta/e",
+  "status.claims_yields": "{n} yield",
   "status.failed": "fallite: {list}",
   "status.free": "libero",
   "status.locks": "blocchi attivi (jlock --group {run}): {list}",
@@ -2695,6 +2784,7 @@ var it_default = {
   "view.paused": "in pausa",
   "view.stalled": "⚠ ferma: {what} da fare, niente in corso",
   "view.waits_for": "attende {files}",
+  "warnings.count": "{n} avviso/i:",
   "yield.came_back": "{id} ha ripreso {files}",
   "yield.done": "{id} ha ceduto {files} e resta in corso; {saved}",
   "yield.exclusive": "{id} è esclusiva (l'intero repository): non ha singoli file da cedere; rilasciala con jtasks release {id}",
@@ -2841,6 +2931,7 @@ var zh_CN_default = {
   "frontier.blocked": "被阻塞：{list}",
   "frontier.failed_dependency": "⛔ {ids}（失败）",
   "frontier.inside": "{via}（在 {asked} 内）",
+  "frontier.shared": "🔗 {id}：{path}（共享）",
   "frontier.waiting": "⏳ {owner}：{shown} · 位置 {position}",
   "frontier.waiting_list": "等待中：{list}",
   "frontier.yielded": "⏳ 已让出 {files}",
@@ -2896,6 +2987,7 @@ var zh_CN_default = {
   "help.skip": 'skip <id> --reason "…"                跳过（解除依赖它的任务的阻塞）',
   "help.start": "start <id> [--fresh]                  进行中；锁定所有权；重新应用保存的修改",
   "help.status": "status                                完成 D/T (P%) · … · 剩余 N、前沿和锁",
+  "help.status.claims": "  status --claims                     本次运行争用最多的文件：claim、超时、死锁",
   "help.status.run": "  （不带 --run：会话的运行、JTASKS_RUN，或仓库中唯一活动的运行）",
   "help.title": "jtasks {version}：带依赖和文件所有权（jlock）的任务列表",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -3000,6 +3092,9 @@ var zh_CN_default = {
   "plan.serialize_list": '"serialize" 必须是命令列表',
   "plan.shape": '计划必须是任务列表，或带有 "tasks" 的对象',
   "plan.shared": "{a} 和 {b} 都涉及 {path}{cover}，且可能同时运行：添加依赖或拆分该文件",
+  "plan.shared_list": "shared 必须是路径列表",
+  "plan.shared_parallel": '{a} 和 {b} 都会修改共享文件 {path}，且没有依赖关系为它们排序：用 dependsOn 串联它们、把该文件交给其中一个，或设置 "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy 必须是 "warn" 或 "serialize"',
   "plan.task_acceptance": '{name}："acceptance" 必须是验收标准（文本）的列表',
   "plan.task_depends_list": '{name}："dependsOn" 必须是 id 列表',
   "plan.task_exclusive": '{name}："exclusive" 必须是 true 或 false',
@@ -3007,8 +3102,10 @@ var zh_CN_default = {
   "plan.task_missing": '{name}：缺少 "{field}"',
   "plan.task_object": "{name}：每个任务必须是对象",
   "plan.task_text": '{name}："{field}" 必须是文本',
+  "plan.task_touches_list": "{name}：touchesShared 必须是路径列表",
   "plan.task_unknown_field": '{name}：未知字段 "{field}"',
   "plan.tickets": "工单：{n} 个，位于 {dir}",
+  "plan.touches_not_shared": "{id}：touchesShared {path} 不在计划的 shared 中；也请在那里列出",
   "plan.unknown_field": '计划中的未知字段："{field}"',
   "plan.unknown_profile": '{id}：未知配置 "{profile}"（可用配置：{profiles}）',
   "profiles.agent_missing": '警告：配置 "{profile}" 指定的智能体 "{agent}" 不存在：用 jtasks doctor --fix 安装 jtasks 的智能体，或在计划中指定你自己的智能体',
@@ -3058,7 +3155,14 @@ var zh_CN_default = {
   "start.other_owner": "其他所有者",
   "start.owner": "（所有者：{owner}）",
   "start.paused": "运行 {run} 已暂停：不要开始任务",
+  "start.shared": "{id} 尚未就绪：共享文件 {path} 正被进行中的 {other} 修改（sharedPolicy serialize）",
   "start.started": "{id} 进行中（第 {attempt} 次尝试）：{own}",
+  "status.claims": "{run} 中争用最多的文件：",
+  "status.claims_claims": "claim {n} 次",
+  "status.claims_deadlocks": "死锁 {n} 次",
+  "status.claims_none": "本次运行的日志中还没有 claim",
+  "status.claims_timeouts": "超时 {n} 次",
+  "status.claims_yields": "yield {n} 次",
   "status.failed": "失败：{list}",
   "status.free": "空闲",
   "status.locks": "活动的锁（jlock --group {run}）：{list}",
@@ -3126,6 +3230,7 @@ var zh_CN_default = {
   "view.paused": "已暂停",
   "view.stalled": "⚠ 已停下：{what} 待做，无任何运行",
   "view.waits_for": "等待 {files}",
+  "warnings.count": "{n} 个警告：",
   "yield.came_back": "{id} 取回了 {files}",
   "yield.done": "{id} 让出了 {files}，仍在进行中；{saved}",
   "yield.exclusive": "{id} 是独占的（整个仓库）：没有单独的文件可让出；用 jtasks release {id} 释放",
@@ -3272,6 +3377,7 @@ var ja_default = {
   "frontier.blocked": "ブロック中: {list}",
   "frontier.failed_dependency": "⛔ {ids}（失敗）",
   "frontier.inside": "{via}（{asked} の中）",
+  "frontier.shared": "🔗 {id}: {path}（共有）",
   "frontier.waiting": "⏳ {owner}: {shown} · 順番 {position}",
   "frontier.waiting_list": "待機中: {list}",
   "frontier.yielded": "⏳ {files} を譲った",
@@ -3327,6 +3433,7 @@ var ja_default = {
   "help.skip": 'skip <id> --reason "…"                スキップ（依存するタスクのブロックを解除）',
   "help.start": "start <id> [--fresh]                  進行中にし所有権をロック。保存した編集を再適用",
   "help.status": "status                                完了 D/T (P%) · … · 残り N、フロンティアとロック",
+  "help.status.claims": "  status --claims                     最も競合したファイル: claim、タイムアウト、デッドロック",
   "help.status.run": "  （--run なし: セッションの実行、JTASKS_RUN、またはリポジトリで唯一の有効な実行）",
   "help.title": "jtasks {version}: 依存関係とファイル所有権（jlock）を持つタスクリスト",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -3431,6 +3538,9 @@ var ja_default = {
   "plan.serialize_list": '"serialize" はコマンドのリストでなければならない',
   "plan.shape": '計画はタスクのリストか、"tasks" を持つオブジェクトでなければならない',
   "plan.shared": "{a} と {b} が {path}{cover} に触れ、同時に実行されうる: 依存を追加するかファイルを分割する",
+  "plan.shared_list": "shared はパスのリストでなければならない",
+  "plan.shared_parallel": '{a} と {b} がどちらも共有ファイル {path} に触れるが、順序を決める依存がない: dependsOn でつなぐか、ファイルを片方に任せるか、"sharedPolicy": "serialize" にする',
+  "plan.shared_policy": 'sharedPolicy は "warn" か "serialize" でなければならない',
   "plan.task_acceptance": '{name}: "acceptance" は基準（テキスト）のリストでなければならない',
   "plan.task_depends_list": '{name}: "dependsOn" は id のリストでなければならない',
   "plan.task_exclusive": '{name}: "exclusive" は true か false でなければならない',
@@ -3438,8 +3548,10 @@ var ja_default = {
   "plan.task_missing": '{name}: "{field}" がない',
   "plan.task_object": "{name}: 各タスクはオブジェクトでなければならない",
   "plan.task_text": '{name}: "{field}" はテキストでなければならない',
+  "plan.task_touches_list": "{name}: touchesShared はパスのリストでなければならない",
   "plan.task_unknown_field": '{name}: 不明なフィールド "{field}"',
   "plan.tickets": "チケット: {n} 件（{dir}）",
+  "plan.touches_not_shared": "{id}: touchesShared の {path} が計画の shared にない。そこにも書く",
   "plan.unknown_field": '計画に不明なフィールド: "{field}"',
   "plan.unknown_profile": '{id}: 不明なプロファイル "{profile}"（プロファイル: {profiles}）',
   "profiles.agent_missing": '警告: プロファイル "{profile}" が指すエージェント "{agent}" は存在しない: jtasks doctor --fix で jtasks のエージェントをインストールするか、計画で自分のエージェントを指定する',
@@ -3489,7 +3601,14 @@ var ja_default = {
   "start.other_owner": "別の所有者",
   "start.owner": "（所有者: {owner}）",
   "start.paused": "実行 {run} は一時停止中: タスクを開始しない",
+  "start.shared": "{id} はまだ準備できていない: 共有ファイル {path} に進行中の {other} が触れている（sharedPolicy serialize）",
   "start.started": "{id} 進行中（試行 {attempt}）: {own}",
+  "status.claims": "{run} で最も競合したファイル:",
+  "status.claims_claims": "claim {n} 回",
+  "status.claims_deadlocks": "デッドロック {n} 回",
+  "status.claims_none": "この実行のログにはまだ claim がない",
+  "status.claims_timeouts": "タイムアウト {n} 回",
+  "status.claims_yields": "yield {n} 回",
   "status.failed": "失敗: {list}",
   "status.free": "空き",
   "status.locks": "有効なロック（jlock --group {run}）: {list}",
@@ -3557,6 +3676,7 @@ var ja_default = {
   "view.paused": "一時停止中",
   "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない",
   "view.waits_for": "{files} を待機",
+  "warnings.count": "警告 {n} 件:",
   "yield.came_back": "{id} が {files} を取り戻した",
   "yield.done": "{id} は {files} を譲り、進行中のまま。{saved}",
   "yield.exclusive": "{id} は排他（リポジトリ全体）: 譲れる個別のファイルがない。jtasks release {id} で解放する",
@@ -3703,6 +3823,7 @@ var ru_default = {
   "frontier.blocked": "заблокированы: {list}",
   "frontier.failed_dependency": "⛔ {ids} (провал)",
   "frontier.inside": "{via} (внутри {asked})",
+  "frontier.shared": "🔗 {id}: {path} (общий)",
   "frontier.waiting": "⏳ {owner}: {shown} · позиция {position}",
   "frontier.waiting_list": "ждут: {list}",
   "frontier.yielded": "⏳ уступила {files}",
@@ -3758,6 +3879,7 @@ var ru_default = {
   "help.skip": 'skip <id> --reason "…"                пропущена (освобождает зависящие от неё задачи)',
   "help.start": "start <id> [--fresh]                  в работу; блокирует владение; возвращает правки",
   "help.status": "status                                выполнено D/T (P%) · … · осталось: N, фронтир и блокировки",
+  "help.status.claims": "  status --claims                     самые спорные файлы прогона: claim, таймауты, deadlock",
   "help.status.run": "  (без --run: прогон сессии, JTASKS_RUN или единственный активный в репозитории)",
   "help.title": "jtasks {version}: список задач с зависимостями и владением файлами (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -3862,6 +3984,9 @@ var ru_default = {
   "plan.serialize_list": '"serialize" должен быть списком команд',
   "plan.shape": 'план должен быть списком задач или объектом с "tasks"',
   "plan.shared": "{a} и {b} трогают {path}{cover} и могут идти одновременно: добавьте зависимость или разделите файл",
+  "plan.shared_list": "shared должен быть списком путей",
+  "plan.shared_parallel": '{a} и {b} обе трогают общий файл {path}, и никакая зависимость их не упорядочивает: свяжите их через dependsOn, оставьте файл одной из них или задайте "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'sharedPolicy должен быть "warn" или "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" должен быть списком критериев (текст)',
   "plan.task_depends_list": '{name}: "dependsOn" должен быть списком id',
   "plan.task_exclusive": '{name}: "exclusive" должен быть true или false',
@@ -3869,8 +3994,10 @@ var ru_default = {
   "plan.task_missing": '{name}: нет "{field}"',
   "plan.task_object": "{name}: каждая задача должна быть объектом",
   "plan.task_text": '{name}: "{field}" должно быть текстом',
+  "plan.task_touches_list": "{name}: touchesShared должен быть списком путей",
   "plan.task_unknown_field": '{name}: неизвестное поле "{field}"',
   "plan.tickets": "тикеты: {n} в {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} нет в shared плана; укажите его и там",
   "plan.unknown_field": 'неизвестное поле в плане: "{field}"',
   "plan.unknown_profile": '{id}: неизвестный профиль "{profile}" (профили: {profiles})',
   "profiles.agent_missing": 'внимание: профиль "{profile}" указывает агента "{agent}", которого нет: установите агентов jtasks через jtasks doctor --fix или укажите в плане одного из своих агентов',
@@ -3920,7 +4047,14 @@ var ru_default = {
   "start.other_owner": "другой владелец",
   "start.owner": "(владелец: {owner})",
   "start.paused": "прогон {run} на паузе: не начинайте задачи",
+  "start.shared": "{id} не готова: общий файл {path} трогает {other}, которая в работе (sharedPolicy serialize)",
   "start.started": "{id} в работе (попытка {attempt}): {own}",
+  "status.claims": "самые спорные файлы {run}:",
+  "status.claims_claims": "claim: {n}",
+  "status.claims_deadlocks": "deadlock: {n}",
+  "status.claims_none": "в журнале этого прогона пока нет claim",
+  "status.claims_timeouts": "таймаутов: {n}",
+  "status.claims_yields": "yield: {n}",
   "status.failed": "провалены: {list}",
   "status.free": "свободно",
   "status.locks": "активные блокировки (jlock --group {run}): {list}",
@@ -3988,6 +4122,7 @@ var ru_default = {
   "view.paused": "на паузе",
   "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется",
   "view.waits_for": "ждёт {files}",
+  "warnings.count": "предупреждений: {n}",
   "yield.came_back": "{id} забрала обратно {files}",
   "yield.done": "{id} уступила {files} и остаётся в работе; {saved}",
   "yield.exclusive": "{id} эксклюзивная (весь репозиторий): у неё нет отдельных файлов, чтобы уступить; освободите её через jtasks release {id}",
@@ -4134,6 +4269,7 @@ var ar_default = {
   "frontier.blocked": "محجوبة: {list}",
   "frontier.failed_dependency": "⛔ {ids} (فاشلة)",
   "frontier.inside": "{via} (داخل {asked})",
+  "frontier.shared": "🔗 {id}: {path} (مشترك)",
   "frontier.waiting": "⏳ {owner}: {shown} · الموضع {position}",
   "frontier.waiting_list": "في الانتظار: {list}",
   "frontier.yielded": "⏳ تنازلت عن {files}",
@@ -4189,6 +4325,7 @@ var ar_default = {
   "help.skip": 'skip <id> --reason "…"                متخطاة (تُطلق المهام المعتمدة عليها)',
   "help.start": "start <id> [--fresh]                  قيد التنفيذ؛ يقفل الملكية؛ يعيد تطبيق التعديلات المحفوظة",
   "help.status": "status                                المنجزة D/T (P%) · … · المتبقي: N، الواجهة والأقفال",
+  "help.status.claims": "  status --claims                     أكثر الملفات تنازعًا في التشغيل: claim، المهل، deadlock",
   "help.status.run": "  (بدون --run: تشغيل الجلسة، أو JTASKS_RUN، أو التشغيل النشط الوحيد في المستودع)",
   "help.title": "jtasks {version}: قائمة مهام بتبعيات وملكية ملفات (jlock)",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -4293,6 +4430,9 @@ var ar_default = {
   "plan.serialize_list": 'يجب أن يكون "serialize" قائمة أوامر',
   "plan.shape": 'يجب أن تكون الخطة قائمة مهام أو كائنًا فيه "tasks"',
   "plan.shared": "{a} و {b} تمسّان {path}{cover} وقد تعملان معًا: أضف تبعية أو قسّم الملف",
+  "plan.shared_list": "يجب أن يكون shared قائمة مسارات",
+  "plan.shared_parallel": '{a} و{b} تلمسان كلتاهما الملف المشترك {path} ولا تبعية ترتّبهما: اربطهما بـ dependsOn، أو اترك الملف لإحداهما، أو اضبط "sharedPolicy": "serialize"',
+  "plan.shared_policy": 'يجب أن يكون sharedPolicy إما "warn" أو "serialize"',
   "plan.task_acceptance": '{name}: يجب أن يكون "acceptance" قائمة معايير (نص)',
   "plan.task_depends_list": '{name}: يجب أن يكون "dependsOn" قائمة معرّفات',
   "plan.task_exclusive": '{name}: يجب أن يكون "exclusive" إما true أو false',
@@ -4300,8 +4440,10 @@ var ar_default = {
   "plan.task_missing": '{name}: ينقص "{field}"',
   "plan.task_object": "{name}: يجب أن تكون كل مهمة كائنًا",
   "plan.task_text": '{name}: يجب أن يكون "{field}" نصًا',
+  "plan.task_touches_list": "{name}: يجب أن يكون touchesShared قائمة مسارات",
   "plan.task_unknown_field": '{name}: حقل غير معروف "{field}"',
   "plan.tickets": "التذاكر: {n} في {dir}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} ليس ضمن shared في الخطة؛ أدرجه هناك أيضًا",
   "plan.unknown_field": 'حقل غير معروف في الخطة: "{field}"',
   "plan.unknown_profile": '{id}: ملف تعريفي غير معروف "{profile}" (الملفات التعريفية: {profiles})',
   "profiles.agent_missing": 'تحذير: الملف التعريفي "{profile}" يسمّي الوكيل "{agent}"، وهو غير موجود: ثبّت وكلاء jtasks بالأمر jtasks doctor --fix، أو سمِّ أحد وكلائك في الخطة',
@@ -4351,7 +4493,14 @@ var ar_default = {
   "start.other_owner": "مالك آخر",
   "start.owner": "(المالك: {owner})",
   "start.paused": "التشغيل {run} متوقف مؤقتًا: لا تبدأ مهام",
+  "start.shared": "{id} ليست جاهزة: الملف المشترك {path} تلمسه {other} قيد التنفيذ (sharedPolicy serialize)",
   "start.started": "{id} قيد التنفيذ (المحاولة {attempt}): {own}",
+  "status.claims": "أكثر الملفات تنازعًا في {run}:",
+  "status.claims_claims": "claim: {n}",
+  "status.claims_deadlocks": "deadlock: {n}",
+  "status.claims_none": "لا يوجد claim في سجل هذا التشغيل بعد",
+  "status.claims_timeouts": "مهل منتهية: {n}",
+  "status.claims_yields": "yield: {n}",
   "status.failed": "الفاشلة: {list}",
   "status.free": "حر",
   "status.locks": "الأقفال النشطة (jlock --group {run}): {list}",
@@ -4419,6 +4568,7 @@ var ar_default = {
   "view.paused": "متوقف مؤقتًا",
   "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل",
   "view.waits_for": "تنتظر {files}",
+  "warnings.count": "تحذيرات ({n}):",
   "yield.came_back": "استعادت {id} الملفات {files}",
   "yield.done": "تنازلت {id} عن {files} وبقيت قيد التنفيذ؛ {saved}",
   "yield.exclusive": "{id} حصرية (المستودع كله): ليست لديها ملفات منفردة تتنازل عنها؛ حرّرها بالأمر jtasks release {id}",
@@ -4565,6 +4715,7 @@ var hi_default = {
   "frontier.blocked": "अवरुद्ध: {list}",
   "frontier.failed_dependency": "⛔ {ids} (विफल)",
   "frontier.inside": "{via} ({asked} के अंदर)",
+  "frontier.shared": "🔗 {id}: {path} (साझा)",
   "frontier.waiting": "⏳ {owner}: {shown} · स्थान {position}",
   "frontier.waiting_list": "प्रतीक्षा में: {list}",
   "frontier.yielded": "⏳ {files} छोड़ीं",
@@ -4620,6 +4771,7 @@ var hi_default = {
   "help.skip": 'skip <id> --reason "…"                स्किप (इस पर निर्भर कार्यों को मुक्त करता है)',
   "help.start": "start <id> [--fresh]                  प्रगति में; स्वामित्व लॉक; सहेजे संपादन फिर लागू करता है",
   "help.status": "status                                पूरे D/T (P%) · … · N शेष, फ़्रंटियर और लॉक",
+  "help.status.claims": "  status --claims                     रन की सबसे विवादित फ़ाइलें: claim, टाइमआउट, डेडलॉक",
   "help.status.run": "  (--run के बिना: सत्र का रन, JTASKS_RUN, या रिपॉज़िटरी का एकमात्र सक्रिय रन)",
   "help.title": "jtasks {version}: निर्भरताओं और फ़ाइल स्वामित्व (jlock) वाली कार्य सूची",
   "help.undo": `undo <e-id> | --task <id> | --run <run> [--force]
@@ -4724,6 +4876,9 @@ var hi_default = {
   "plan.serialize_list": '"serialize" कमांडों की सूची होनी चाहिए',
   "plan.shape": 'योजना कार्यों की सूची या "tasks" वाला ऑब्जेक्ट होनी चाहिए',
   "plan.shared": "{a} और {b} दोनों {path}{cover} को छूते हैं और साथ चल सकते हैं: एक निर्भरता जोड़ें या फ़ाइल को बाँटें",
+  "plan.shared_list": "shared पथों की सूची होनी चाहिए",
+  "plan.shared_parallel": '{a} और {b} दोनों साझा फ़ाइल {path} को छूते हैं और कोई निर्भरता उन्हें क्रम नहीं देती: dependsOn से जोड़ें, फ़ाइल उनमें से एक को दें, या "sharedPolicy": "serialize" रखें',
+  "plan.shared_policy": 'sharedPolicy "warn" या "serialize" होना चाहिए',
   "plan.task_acceptance": '{name}: "acceptance" मानदंडों (टेक्स्ट) की सूची होनी चाहिए',
   "plan.task_depends_list": '{name}: "dependsOn" id की सूची होनी चाहिए',
   "plan.task_exclusive": '{name}: "exclusive" true या false होना चाहिए',
@@ -4731,8 +4886,10 @@ var hi_default = {
   "plan.task_missing": '{name}: "{field}" नहीं है',
   "plan.task_object": "{name}: हर कार्य एक ऑब्जेक्ट होना चाहिए",
   "plan.task_text": '{name}: "{field}" टेक्स्ट होना चाहिए',
+  "plan.task_touches_list": "{name}: touchesShared पथों की सूची होनी चाहिए",
   "plan.task_unknown_field": '{name}: अज्ञात फ़ील्ड "{field}"',
   "plan.tickets": "टिकट: {dir} में {n}",
+  "plan.touches_not_shared": "{id}: touchesShared {path} योजना के shared में नहीं है; उसे वहाँ भी लिखें",
   "plan.unknown_field": 'योजना में अज्ञात फ़ील्ड: "{field}"',
   "plan.unknown_profile": '{id}: अज्ञात प्रोफ़ाइल "{profile}" (प्रोफ़ाइलें: {profiles})',
   "profiles.agent_missing": 'चेतावनी: प्रोफ़ाइल "{profile}" एजेंट "{agent}" का नाम लेती है, जो मौजूद नहीं है: jtasks doctor --fix से jtasks के एजेंट इंस्टॉल करें, या योजना में अपने किसी एजेंट का नाम दें',
@@ -4782,7 +4939,14 @@ var hi_default = {
   "start.other_owner": "दूसरा स्वामी",
   "start.owner": "(स्वामी: {owner})",
   "start.paused": "रन {run} रुका हुआ है: कार्य शुरू न करें",
+  "start.shared": "{id} तैयार नहीं है: साझा फ़ाइल {path} को प्रगति में चल रहा {other} छूता है (sharedPolicy serialize)",
   "start.started": "{id} प्रगति पर (प्रयास {attempt}): {own}",
+  "status.claims": "{run} की सबसे विवादित फ़ाइलें:",
+  "status.claims_claims": "claim: {n}",
+  "status.claims_deadlocks": "डेडलॉक: {n}",
+  "status.claims_none": "इस रन के लॉग में अभी कोई claim नहीं",
+  "status.claims_timeouts": "टाइमआउट: {n}",
+  "status.claims_yields": "yield: {n}",
   "status.failed": "विफल: {list}",
   "status.free": "मुक्त",
   "status.locks": "सक्रिय लॉक (jlock --group {run}): {list}",
@@ -4850,6 +5014,7 @@ var hi_default = {
   "view.paused": "रुका हुआ",
   "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा",
   "view.waits_for": "{files} की प्रतीक्षा",
+  "warnings.count": "{n} चेतावनी:",
   "yield.came_back": "{id} ने {files} वापस लीं",
   "yield.done": "{id} ने {files} छोड़ीं और प्रगति में बना है; {saved}",
   "yield.exclusive": "{id} विशेष (पूरा रिपॉज़िटरी) है: छोड़ने के लिए अलग फ़ाइलें नहीं हैं; jtasks release {id} से छोड़ें",
@@ -4953,8 +5118,8 @@ function width(text) {
 }
 
 // src/validate.ts
-var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "tasks"]);
+var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"]);
 var GLOB = /[*?[\]{}]/;
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
@@ -5059,6 +5224,18 @@ function readPlan(raw) {
     else
       errors.push(tr("plan.branch"));
   }
+  if (obj.shared !== undefined) {
+    if (isStringList(obj.shared))
+      plan.shared = obj.shared;
+    else
+      errors.push(tr("plan.shared_list"));
+  }
+  if (obj.sharedPolicy !== undefined) {
+    if (obj.sharedPolicy === "warn" || obj.sharedPolicy === "serialize")
+      plan.sharedPolicy = obj.sharedPolicy;
+    else
+      errors.push(tr("plan.shared_policy"));
+  }
   if (!Array.isArray(obj.tasks)) {
     errors.push(tr("plan.no_tasks"));
     return { plan, errors };
@@ -5086,6 +5263,8 @@ function readPlan(raw) {
       errors.push(tr("plan.task_depends_list", { name }));
     if (t.files !== undefined && !isStringList(t.files))
       errors.push(tr("plan.task_files_list", { name }));
+    if (t.touchesShared !== undefined && !isStringList(t.touchesShared))
+      errors.push(tr("plan.task_touches_list", { name }));
     if (t.profile !== undefined && typeof t.profile !== "string")
       errors.push(tr("plan.task_text", { name, field: "profile" }));
     if (t.boundary !== undefined && typeof t.boundary !== "string")
@@ -5113,17 +5292,24 @@ function validateBatch(tasks, ctx = {}) {
     seen.add(task.id);
     if (task.profile !== undefined && !(task.profile in profiles))
       errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }));
-    const files = [];
-    for (const raw of task.files ?? []) {
-      const entry = normalizeFileEntry(raw);
-      if (entry.error)
-        errors.push(`${task.id}: ${entry.error}`);
-      else if (entry.path && !files.includes(entry.path))
-        files.push(entry.path);
-    }
+    const paths = (list) => {
+      const out = [];
+      for (const raw of list) {
+        const entry = normalizeFileEntry(raw);
+        if (entry.error)
+          errors.push(`${task.id}: ${entry.error}`);
+        else if (entry.path && !out.includes(entry.path))
+          out.push(entry.path);
+      }
+      return out;
+    };
+    const files = paths(task.files ?? []);
     if (task.dependsOn?.includes(task.id))
       errors.push(tr("plan.self_dependency", { id: task.id }));
-    out.push({ ...task, files });
+    const checked = { ...task, files };
+    if (task.touchesShared)
+      checked.touchesShared = paths(task.touchesShared);
+    out.push(checked);
   }
   return { tasks: out, errors };
 }
@@ -5190,8 +5376,55 @@ function validatePlan(raw, options = {}) {
   const batch = validateBatch(read.plan.tasks, { ...options, profiles });
   errors.push(...batch.errors);
   const plan = { ...read.plan, tasks: batch.tasks };
+  if (plan.shared) {
+    const shared = [];
+    for (const raw of plan.shared) {
+      const entry = normalizeFileEntry(raw);
+      if (entry.error)
+        errors.push(`shared: ${entry.error}`);
+      else if (entry.path && !shared.includes(entry.path))
+        shared.push(entry.path);
+    }
+    plan.shared = shared;
+  }
   errors.push(...validateGraph(plan.tasks, options));
-  return { plan, errors };
+  const insensitive = caseInsensitive(options.platform ?? "win32");
+  for (const t of plan.tasks)
+    for (const p of t.touchesShared ?? [])
+      if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive)))
+        errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }));
+  return { plan, errors, warnings: sharedWarnings(plan, options) };
+}
+function relCovers(outer, inner, insensitive) {
+  const o = insensitive ? outer.toLowerCase() : outer;
+  const i = insensitive ? inner.toLowerCase() : inner;
+  return o === "." || o === i || i.startsWith(`${o}/`);
+}
+function sharedTouched(shared, task, insensitive) {
+  return shared.filter((s) => (task.touchesShared ?? []).some((p) => relConflicts(s, p, insensitive)) || [...task.files ?? [], ...task.claimed ?? []].some((f) => relConflicts(s, f, insensitive)));
+}
+function sharedWarnings(plan, options = {}) {
+  const shared = plan.shared ?? [];
+  if (!shared.length || plan.sharedPolicy === "serialize")
+    return [];
+  const insensitive = caseInsensitive(options.platform ?? "win32");
+  const anc = ancestors(plan.tasks);
+  const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
+  const out = [];
+  const touched = new Map(plan.tasks.map((t) => [t.id, t.exclusive ? [] : sharedTouched(shared, t, insensitive)]));
+  for (let i = 0;i < plan.tasks.length; i++)
+    for (let j = i + 1;j < plan.tasks.length; j++) {
+      const a = plan.tasks[i];
+      const b = plan.tasks[j];
+      if (related(a.id, b.id))
+        continue;
+      for (const s of touched.get(a.id).filter((x) => touched.get(b.id).includes(x))) {
+        if (sharedPath(a.files ?? [], b.files ?? [], insensitive))
+          continue;
+        out.push(tr("plan.shared_parallel", { a: a.id, b: b.id, path: s }));
+      }
+    }
+  return out;
 }
 function validateGraph(tasks, options = {}) {
   const errors = [];
@@ -5866,12 +6099,16 @@ defineAction("validate", async (ctx, args) => {
   const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? isAbsolute(arg) ? arg : join(ctx.cwd, arg) : undefined;
   const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir";
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir)).map((t) => t.task) } : await readJsonArg(ctx, arg);
-  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
+  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform });
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
-`)}`, data: { errors } };
-  return ok(tr("validate.ok", { n: plan.tasks.length }), { errors: [], tasks: plan.tasks.length });
+`)}`, data: { errors, warnings } };
+  const lines = [tr("validate.ok", { n: plan.tasks.length })];
+  if (warnings.length)
+    lines.push(tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`));
+  return ok(lines.join(`
+`), { errors: [], warnings, tasks: plan.tasks.length });
 }, "help.validate");
 async function runTool(ctx, argv) {
   const choice = select({ lang: langArg(argv) ?? ctx.lang, env: (name) => ctx.host.env(name), system: systemLocale() });
@@ -6102,6 +6339,8 @@ function toTask(p, profiles, source) {
     task.exclusive = true;
   if (p.boundary)
     task.boundary = p.boundary;
+  if (p.touchesShared?.length)
+    task.touchesShared = [...p.touchesShared];
   return task;
 }
 async function createRun(ctx, plan, options = {}) {
@@ -6140,6 +6379,8 @@ async function createRun(ctx, plan, options = {}) {
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
     keepalive: plan.keepalive !== false,
+    ...plan.shared?.length ? { shared: plan.shared } : {},
+    ...plan.sharedPolicy ? { sharedPolicy: plan.sharedPolicy } : {},
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : []
   };
   const tasks = {
@@ -6191,18 +6432,22 @@ async function createRun(ctx, plan, options = {}) {
     throw error;
   }
 }
-function createdText(created) {
+function createdText(created, warnings = []) {
   const { run, tasks, tickets } = created;
   const branch = run.repo.branch === run.repo.baseBranch ? tr("plan.current_branch", { branch: run.repo.branch }) : `branch ${run.repo.branch}`;
   return [
     tr("plan.created", { run: run.id, n: tasks.tasks.length, branch }),
     tr("plan.tickets", { n: tickets.length, dir: join(created.dir, "tickets") }),
+    ...warningLines(warnings),
     tr("plan.next_step")
   ].join(`
 `);
 }
+function warningLines(warnings) {
+  return warnings.length ? [tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`)] : [];
+}
 async function planFromJson(ctx, raw, options = {}) {
-  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
+  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform });
   if (errors.length > 0)
     return {
       ok: false,
@@ -6213,7 +6458,7 @@ ${errors.map((e) => `- ${e}`).join(`
       data: { errors }
     };
   const created = await createRun(ctx, plan, options);
-  return ok(createdText(created), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch }, { bind: created.run.id });
+  return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id });
 }
 var draftFile = (dir) => join(dir, "draft.json");
 async function listDrafts(ctx, root) {
@@ -6273,6 +6518,10 @@ function draftPlan(draft) {
     plan.keepalive = draft.keepalive;
   if (draft.branch !== undefined)
     plan.branch = draft.branch;
+  if (draft.shared !== undefined)
+    plan.shared = draft.shared;
+  if (draft.sharedPolicy !== undefined)
+    plan.sharedPolicy = draft.sharedPolicy;
   return plan;
 }
 async function saveDraft(ctx, dir, draft) {
@@ -6344,7 +6593,7 @@ async function draftAdd(ctx, args) {
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current, tasks: [...current.tasks, ...batch.tasks] };
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch"])
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx, dir, next);
@@ -6406,12 +6655,12 @@ async function draftCommit(ctx, args) {
     const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
     if (current.tasks.length === 0)
       throw new ToolError(tr("draft.empty"));
-    const { plan, errors } = validatePlan(draftPlan(current), { platform: ctx.host.platform });
+    const { plan, errors, warnings } = validatePlan(draftPlan(current), { platform: ctx.host.platform });
     if (errors.length > 0)
       return refused(tr("draft.commit_refused"), errors);
     const created = await createRun(ctx, plan, { id: current.id });
     await ctx.host.remove(draftFile(dir));
-    return ok(createdText(created), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch }, { bind: created.run.id });
+    return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id });
   });
 }
 defineAction("plan", async (ctx, args) => {
@@ -6679,6 +6928,9 @@ function assess(state, locks, platform) {
       blockers.push({ kind: "dependency", ids: open });
     if (state.run.status === "paused")
       blockers.push({ kind: "paused" });
+    const mutex = sharedBlocker(state, task, platform);
+    if (mutex)
+      blockers.push(mutex);
     const own = ownerOf(state.run.id, task.id);
     for (const key of taskKeys(state.root, task, platform)) {
       const lock = held.find((l) => l.holder.owner !== own && conflicts(key, l.key));
@@ -6696,12 +6948,32 @@ function assess(state, locks, platform) {
   }
   return out;
 }
+function sharedOf(state, task, platform) {
+  return task.exclusive ? [] : sharedTouched(state.run.shared ?? [], task, caseInsensitive(platform));
+}
+function sharedBlocker(state, task, platform) {
+  if (state.run.sharedPolicy !== "serialize")
+    return;
+  const mine = sharedOf(state, task, platform);
+  if (!mine.length)
+    return;
+  for (const other of state.tasks.tasks) {
+    if (other.id === task.id || other.status !== "in_progress")
+      continue;
+    const hit = sharedOf(state, other, platform).find((s) => mine.includes(s));
+    if (hit)
+      return { kind: "shared", path: hit, task: other.id };
+  }
+  return;
+}
 function yieldedKeys(state) {
   return state.tasks.tasks.flatMap((t) => t.status === "in_progress" ? (t.yielded ?? []).map((y) => ({ task: t.id, key: y.key, path: y.path })) : []);
 }
 function selectReady(state, assessments, platform, limit = Infinity) {
   const chosen = [];
   const taken = [];
+  const serialize = state.run.sharedPolicy === "serialize";
+  const sharedTaken = [];
   for (const a of assessments) {
     if (!a.ready || chosen.length >= limit)
       continue;
@@ -6710,8 +6982,12 @@ function selectReady(state, assessments, platform, limit = Infinity) {
       continue;
     if (a.task.exclusive && chosen.length > 0)
       continue;
+    const shared = serialize ? sharedOf(state, a.task, platform) : [];
+    if (shared.some((s) => sharedTaken.includes(s)))
+      continue;
     chosen.push(a.task);
     taken.push(...keys);
+    sharedTaken.push(...shared);
     if (a.task.exclusive)
       break;
   }
@@ -6763,6 +7039,8 @@ function blockerText(b, state, platform) {
       return `⛔ ${b.ids.join(", ")}`;
     case "paused":
       return tr("view.paused");
+    case "shared":
+      return tr("frontier.shared", { id: b.task, path: b.path });
     case "ownership": {
       const key = describeKey(b.key, state.root, platform);
       const via = b.via !== b.key ? ` (via ${describeKey(b.via, state.root, platform)})` : "";
@@ -7268,6 +7546,32 @@ async function releasedEdits(host, state) {
   }
   return out;
 }
+var CONTESTED = {
+  claim: "claims",
+  "claim-timeout": "timeouts",
+  "claim-deadlock": "deadlocks",
+  yield: "yields"
+};
+async function claimStats(host, state, describe) {
+  const byFile = new Map;
+  for (const e of await readLog(host, state.dir)) {
+    const field = e.action ? CONTESTED[e.action] : undefined;
+    if (!field)
+      continue;
+    for (const key of strings(e.keys)) {
+      const file = describe(key);
+      let stat = byFile.get(file);
+      if (!stat)
+        byFile.set(file, stat = { file, claims: 0, timeouts: 0, deadlocks: 0, yields: 0, tasks: [] });
+      stat[field]++;
+      if (e.task && !stat.tasks.includes(e.task))
+        stat.tasks.push(e.task);
+    }
+  }
+  const total = (s) => s.claims + s.timeouts + s.deadlocks + s.yields;
+  const weight = (s) => s.deadlocks * 4 + s.timeouts * 2 + s.yields + s.tasks.length;
+  return [...byFile.values()].sort((a, b) => weight(b) - weight(a) || total(b) - total(a) || a.file.localeCompare(b.file));
+}
 
 // src/actions.ts
 async function resolveRun(ctx, args) {
@@ -7458,6 +7762,9 @@ defineAction("start", async (ctx, args) => {
     const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""));
     if (open.length)
       throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }));
+    const mutex = sharedBlocker(state, task, ctx.host.platform);
+    if (mutex?.kind === "shared")
+      throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }));
     const keys = taskKeys(state.root, task, ctx.host.platform);
     const now = ctx.host.now().toISOString();
     let hold;
@@ -7601,8 +7908,24 @@ async function statusOf(ctx, state) {
 defineAction("status", async (ctx, args) => {
   const state = await resolveRun(ctx, args);
   const s = await statusOf(ctx, state);
-  return ok(s.text, s.data);
+  if (!args.options.claims)
+    return ok(s.text, s.data);
+  const claims = await claimStats(ctx.host, state, (k) => describeKey(k, state.root, ctx.host.platform));
+  const lines = [s.text, claims.length ? tr("status.claims", { run: state.run.id }) : tr("status.claims_none")];
+  for (const c of claims) {
+    const parts = [tr("status.claims_claims", { n: c.claims })];
+    if (c.timeouts)
+      parts.push(tr("status.claims_timeouts", { n: c.timeouts }));
+    if (c.deadlocks)
+      parts.push(tr("status.claims_deadlocks", { n: c.deadlocks }));
+    if (c.yields)
+      parts.push(tr("status.claims_yields", { n: c.yields }));
+    lines.push(`  ${c.file}: ${parts.join(" · ")} (${c.tasks.join(", ")})`);
+  }
+  return ok(lines.join(`
+`), { ...s.data, claims });
 }, "help.status");
+addUsage("help.status.claims");
 addUsage("help.status.run");
 function possession(task) {
   return task.exclusive ? ["."] : [...task.files, ...task.claimed ?? []];
@@ -9653,6 +9976,10 @@ export {
   serializeEntry,
   serializeKey,
   setEffectState,
+  sharedBlocker,
+  sharedOf,
+  sharedTouched,
+  sharedWarnings,
   shellSegments,
   shortHead,
   skillHosts,
@@ -9688,6 +10015,7 @@ export {
   viewLines,
   waitingOf,
   waitingText,
+  warningLines,
   width,
   withLock,
   writeKeepalive,

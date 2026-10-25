@@ -24,7 +24,8 @@ fichiers sont verrouillés pendant qu'elle tourne.
 
 - **Ce qui peut tourner maintenant.** Une tâche est prête quand ses dépendances sont terminées et ses fichiers
   libres. Deux tâches sans dépendance entre elles ne doivent pas partager un fichier : l'outil refuse un tel plan
-  et dit quelles tâches et quel fichier.
+  et dit quelles tâches et quel fichier. Les fichiers de registre que beaucoup de tâches touchent vont dans le `shared` du
+  plan : l'outil avertit quand deux tâches parallèles en touchent un, et `"sharedPolicy": "serialize"` les tient à l'écart.
 - **Qui change quoi.** Pendant qu'une tâche tourne, ses fichiers sont tenus comme verrous dans
   [jlock](https://github.com/rodrigojager/jlock), un outil de verrous pour toute la machine. Une autre tâche qui a
   besoin de l'un d'eux attend dans la file d'attente (`claim`) ou fait autre chose ; une attente qui fermerait un

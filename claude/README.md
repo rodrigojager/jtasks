@@ -90,4 +90,6 @@ deadlock is answered with `yield`: the task gives back only the contested files,
 in progress; the pane shows "T4 - title · espera c.ts" until it gets them back, which happens by itself as soon as they are free (each minute, or when another task finishes)
 or with `claim T05`. A subagent whose loop ends with its task still in progress gives the task back
 (`release --agent-ended`): its edits are kept as patches, the tree is left clean, and the next `start` of the task
-reapplies them (`start T04 --fresh` leaves them out).
+reapplies them (`start T04 --fresh` leaves them out). A plan may list in `shared` the registry files several tasks touch; with
+`"sharedPolicy": "serialize"` two tasks touching the same one never run together, and `status --claims` shows the
+most contested files of a run.

@@ -69,6 +69,8 @@ export interface Task {
     yielded?: Yielded[];
     /** Edits kept aside, reapplied when their file is the task's again: on its claim, or on the next start. */
     patches?: SavedPatch[];
+    /** Files of the run's `shared` the task touches without owning them (rev. 5.6): it will claim them. */
+    touchesShared?: string[];
 }
 export interface ClaudeProfile {
     /** The subagent type the spawn becomes, e.g. `jtasks:execute`, one of the agents the mod ships. */
@@ -122,8 +124,13 @@ export interface RunFile {
     holdTtl: string;
     /** False: the host does not reopen the loop when the orchestrator stops with ready tasks (`jtasks keepalive off`). */
     keepalive?: boolean;
+    /** Registry files, indexes, schemas and central types several tasks touch (rev. 5.6). */
+    shared?: string[];
+    /** `serialize`: two tasks touching the same `shared` file never run together (decided by the frontier). */
+    sharedPolicy?: SharedPolicy;
     sessions: Session[];
 }
+export type SharedPolicy = "warn" | "serialize";
 /** One task as the planner writes it. */
 export interface PlanTask {
     id: string;
@@ -139,6 +146,8 @@ export interface PlanTask {
     profile?: string;
     boundary?: string;
     exclusive?: boolean;
+    /** Files of the plan's `shared` this task touches without owning them (it claims them when it needs them). */
+    touchesShared?: string[];
 }
 /** The whole plan, or one batch of it (`plan --add`). */
 export interface PlanInput {
@@ -153,6 +162,10 @@ export interface PlanInput {
     /** False creates the run with the keepalive off. */
     keepalive?: boolean;
     branch?: "run" | "current";
+    /** Registry files several tasks touch: `validate` warns about two parallel tasks touching one (rev. 5.6). */
+    shared?: string[];
+    /** `warn` (the default): only the warning; `serialize`: the frontier never runs two of them together. */
+    sharedPolicy?: SharedPolicy;
     tasks: PlanTask[];
 }
 export declare const DEFAULT_PROFILES: Record<string, Profile>;

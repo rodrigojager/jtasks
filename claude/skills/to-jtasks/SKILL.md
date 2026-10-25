@@ -91,6 +91,7 @@ Each task becomes one ticket, the only thing its subagent reads before starting.
   criterion already true today, one that only another task can make true, and one that restates the request instead
   of deriving from the result. The subagent finishes the task with evidence for these criteria.
 - **`files`**: the files and folders the task touches (its ownership; step 5 says how).
+- **`touchesShared`**, when the task will touch a file of the plan's `shared` it does not own (step 5).
 - **`boundary`**, when it helps: what this task does not do, so the subagent does not drift into the next one.
 - **`source`**, only when this task came from somewhere other than the plan's source.
 
@@ -114,6 +115,16 @@ The ownership is what lets tasks run in parallel in the same checkout, so get it
   the order now (add a dependency) or split the file.
 - A **hub** file many slices touch (a central `types.ts`, a giant `routes.ts`) serializes everything: prefactor it
   into modules in an early task, so the ownership of the rest is fine-grained again.
+- **Registry files** are the hubs that are hard to see: the manifest of adapters, the index that registers each
+  module, the schema of the result, the central run types. Each parallel slice adds one line to them, so each slice
+  will claim them mid-run, and two slices waiting for each other's registry file is a deadlock. Ask now which
+  registries, indexes, schemas and central types several tasks will touch, and list them in the plan's **`shared`**.
+  Then, for each one, either give it to a single task (`files`, and the others depend on it), chain the tasks that
+  touch it (`dependsOn`), or keep them parallel and declare the touch: the task lists it in **`touchesShared`** (it
+  will claim it when it needs it) and the plan sets **`"sharedPolicy": "serialize"`**, so two tasks touching the same
+  shared file never run at the same time. `jtasks validate` (and `plan`) warns about two parallel tasks touching one
+  shared file without any of this. After a run, `jtasks status --claims` lists the files that were most contested:
+  they are the next plan's `shared`.
 - A task that touches too much or unknown files is `"exclusive": true`: it runs alone.
 
 Ask the user:
@@ -121,7 +132,8 @@ Ask the user:
 - Does the granularity feel right? (too coarse / too fine) Over-decomposition is the usual mistake: tasks too small
   to demo anything on their own should be merged.
 - Are the blocking edges correct: does each task only depend on tasks that genuinely gate it?
-- Is each task's ownership right (files and folders it will touch)?
+- Is each task's ownership right (files and folders it will touch)? Which registry files, indexes, schemas and
+  central types will several of them touch, and how is each one ordered (`shared`, step 5)?
 - Does any task contradict an ADR, or need a person (a decision, a credential, a manual check)? Settle it now.
 - Should any tasks be merged or split further?
 

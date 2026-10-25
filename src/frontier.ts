@@ -5,6 +5,8 @@ import { canonical, conflicts, covers, normalizeKey, ALL } from "./keys.ts"
 import { describeKey, describeOwner, type JlockLock } from "./jlock.ts"
 import type { RunFile, Task, TasksFile, WaitingFor } from "./schema.ts"
 import { tr } from "./i18n.ts"
+import { caseInsensitive } from "./paths.ts"
+import { sharedTouched } from "./validate.ts"
 
 export interface RunState {
   root: string
@@ -28,6 +30,7 @@ export type Blocker =
   | { kind: "failed"; ids: string[] }
   | { kind: "paused" }
   | { kind: "ownership"; key: string; via: string; owner: string }
+  | { kind: "shared"; path: string; task: string }
 
 export interface Assessment {
   task: Task
@@ -52,6 +55,8 @@ export function assess(state: RunState, locks: JlockLock[], platform: string): A
     if (failed.length) blockers.push({ kind: "failed", ids: failed })
     if (open.length) blockers.push({ kind: "dependency", ids: open })
     if (state.run.status === "paused") blockers.push({ kind: "paused" })
+    const mutex = sharedBlocker(state, task, platform)
+    if (mutex) blockers.push(mutex)
     const own = ownerOf(state.run.id, task.id)
     for (const key of taskKeys(state.root, task, platform)) {
       const lock = held.find((l) => l.holder!.owner !== own && conflicts(key, l.key))
@@ -71,6 +76,27 @@ export function assess(state: RunState, locks: JlockLock[], platform: string): A
   return out
 }
 
+/** The run's `shared` files a task touches (rev. 5.6): in its `touchesShared`, or overlapping its files and claims. */
+export function sharedOf(state: RunState, task: Task, platform: string): string[] {
+  return task.exclusive ? [] : sharedTouched(state.run.shared ?? [], task, caseInsensitive(platform))
+}
+
+/**
+ * With `sharedPolicy: "serialize"`, the mutex per shared file: a task waits while another task in progress touches a
+ * shared file it touches too. The only implementation, used by the frontier (`next`, `status`, the views) and `start`.
+ */
+export function sharedBlocker(state: RunState, task: Task, platform: string): Blocker | undefined {
+  if (state.run.sharedPolicy !== "serialize") return undefined
+  const mine = sharedOf(state, task, platform)
+  if (!mine.length) return undefined
+  for (const other of state.tasks.tasks) {
+    if (other.id === task.id || other.status !== "in_progress") continue
+    const hit = sharedOf(state, other, platform).find((s) => mine.includes(s))
+    if (hit) return { kind: "shared", path: hit, task: other.id }
+  }
+  return undefined
+}
+
 /** The keys the run's tasks in progress gave back with `yield` and wait to take back. */
 export function yieldedKeys(state: RunState): { task: string; key: string; path: string }[] {
   return state.tasks.tasks.flatMap((t) => (t.status === "in_progress" ? (t.yielded ?? []).map((y) => ({ task: t.id, key: y.key, path: y.path })) : []))
@@ -80,13 +106,19 @@ export function yieldedKeys(state: RunState): { task: string; key: string; path:
 export function selectReady(state: RunState, assessments: Assessment[], platform: string, limit = Infinity): Task[] {
   const chosen: Task[] = []
   const taken: string[] = []
+  const serialize = state.run.sharedPolicy === "serialize"
+  const sharedTaken: string[] = []
   for (const a of assessments) {
     if (!a.ready || chosen.length >= limit) continue
     const keys = taskKeys(state.root, a.task, platform)
     if (keys.some((k) => taken.some((t) => conflicts(k, t)))) continue
     if (a.task.exclusive && chosen.length > 0) continue
+    // Two tasks touching the same shared file never start together under `serialize`.
+    const shared = serialize ? sharedOf(state, a.task, platform) : []
+    if (shared.some((s) => sharedTaken.includes(s))) continue
     chosen.push(a.task)
     taken.push(...keys)
+    sharedTaken.push(...shared)
     if (a.task.exclusive) break
   }
   return chosen
@@ -145,6 +177,8 @@ export function blockerText(b: Blocker, state: RunState, platform: string): stri
       return `⛔ ${b.ids.join(", ")}`
     case "paused":
       return tr("view.paused")
+    case "shared":
+      return tr("frontier.shared", { id: b.task, path: b.path })
     case "ownership": {
       const key = describeKey(b.key, state.root, platform)
       const via = b.via !== b.key ? ` (via ${describeKey(b.via, state.root, platform)})` : ""

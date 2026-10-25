@@ -82,7 +82,9 @@ tasks { "command": "plan --add", "json": [ { "id": "T05", "title": "…", "files
 `help` lists every action. A session bound to a run refuses `--run` naming another one. A claim refused for a
 deadlock is answered with `yield`: the task gives back only the contested files, its edits kept as patches, and stays
 in progress; the sidebar shows "title · espera c.ts" until it gets them back, which happens by itself as soon as they are free (each minute, or when another task finishes)
-or with `claim T05`.
+or with `claim T05`. A plan may list in `shared` the registry files several tasks touch; with
+`"sharedPolicy": "serialize"` two tasks touching the same one never run together, and `status --claims` shows the
+most contested files of a run.
 
 ## When a subagent or OpenCode dies
 

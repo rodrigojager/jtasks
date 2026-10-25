@@ -23,7 +23,8 @@ travados enquanto ela roda.
 
 - **O que pode rodar agora.** Uma tarefa está pronta quando suas dependências estão feitas e seus arquivos estão
   livres. Duas tarefas sem dependência entre si não podem dividir um arquivo: a ferramenta recusa um plano assim e
-  diz quais tarefas e qual arquivo.
+  diz quais tarefas e qual arquivo. Arquivos de registro que muitas tarefas tocam vão no `shared` do plano: a
+  ferramenta avisa quando duas tarefas paralelas tocam um deles, e `"sharedPolicy": "serialize"` as mantém separadas.
 - **Quem muda o quê.** Enquanto uma tarefa roda, seus arquivos ficam presos como travas no
   [jlock](https://github.com/rodrigojager/jlock), uma ferramenta de travas para a máquina inteira. Outra tarefa que
   precise de um deles espera na fila (`claim`) ou faz outra coisa; uma espera que fecharia um ciclo é recusada. A tarefa recusada cede com `jtasks yield`: devolve só os arquivos disputados, com as edições guardadas num

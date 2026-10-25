@@ -24,7 +24,8 @@ Besitz), und diese Dateien sind gesperrt, solange sie läuft.
 
 - **Was jetzt laufen kann.** Eine Aufgabe ist bereit, wenn ihre Abhängigkeiten erledigt und ihre Dateien frei sind.
   Zwei Aufgaben ohne Abhängigkeit zwischen sich dürfen keine Datei teilen: Das Tool lehnt einen solchen Plan ab und
-  nennt die Aufgaben und die Datei.
+  nennt die Aufgaben und die Datei. Registerdateien, die viele Aufgaben berühren, kommen in das `shared` des Plans: das
+  Werkzeug warnt, wenn zwei parallele Aufgaben eine davon berühren, und `"sharedPolicy": "serialize"` hält sie auseinander.
 - **Wer was ändert.** Solange eine Aufgabe läuft, werden ihre Dateien als Sperren in
   [jlock](https://github.com/rodrigojager/jlock) gehalten, einem rechnerweiten Sperr-Tool. Eine andere Aufgabe, die
   eine davon braucht, wartet in der Warteschlange (`claim`) oder macht etwas anderes; ein Warten, das einen Zyklus

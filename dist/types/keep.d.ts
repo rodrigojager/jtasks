@@ -79,4 +79,20 @@ export declare function lastDeadlock(host: Host, dir: string, task: string): Pro
  * file afterwards. Only tasks that are not in progress count.
  */
 export declare function releasedEdits(host: Host, state: RunState): Promise<Map<string, string>>;
+export interface ClaimStat {
+    /** The file or folder, relative to the repository when inside it. */
+    file: string;
+    claims: number;
+    timeouts: number;
+    deadlocks: number;
+    yields: number;
+    /** The tasks involved, in the order they first appear. */
+    tasks: string[];
+}
+/**
+ * The run's most contested files (rev. 5.6), from its log: per key, the claims granted, timed out and refused for a
+ * deadlock, and the yields, with the tasks involved; most events first. What the next breakdown into tasks should
+ * look at (`jtasks status --claims`).
+ */
+export declare function claimStats(host: Host, state: RunState, describe: (key: string) => string): Promise<ClaimStat[]>;
 export {};

@@ -23,7 +23,8 @@ restano bloccati mentre è in corso.
 
 - **Cosa può partire adesso.** Un'attività è pronta quando le sue dipendenze sono completate e i suoi file sono
   liberi. Due attività senza dipendenza tra loro non devono condividere un file: lo strumento rifiuta un piano così
-  e dice quali attività e quale file.
+  e dice quali attività e quale file. I file di registro che molte attività toccano vanno nello `shared` del piano: lo
+  strumento avvisa quando due attività parallele ne toccano uno, e `"sharedPolicy": "serialize"` le tiene separate.
 - **Chi modifica cosa.** Mentre un'attività è in corso, i suoi file sono tenuti come blocchi in
   [jlock](https://github.com/rodrigojager/jlock), uno strumento di blocchi per tutta la macchina. Un'altra attività
   che ne ha bisogno aspetta in coda (`claim`) o fa altro; un'attesa che chiuderebbe un ciclo viene rifiutata. L'attività rifiutata cede con `jtasks yield`: restituisce solo i file contesi, con le modifiche salvate in una

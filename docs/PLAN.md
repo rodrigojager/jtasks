@@ -57,8 +57,11 @@ algumas chaves de um `hold` sem derrubar as outras). E liberar a tarefa inteira 
 `resume`, posse perdida, `maxAttempts`, e também `fail` e `skip`) passa a fazer o mesmo para todos os arquivos da
 posse: a árvore fica limpa, nenhuma outra tarefa herda edição alheia, e o próximo `start` reaplica os patches
 (`start --fresh` os deixa de fora); o que ainda sobrar no disco (um patch que não pôde ser feito, uma execução
-antiga) é reconhecido no `done` das outras como edição da tarefa liberada, e não as bloqueia. Marcado com
-**[rev. 5.6]** nas seções 4, 5, 6, 7, 9, 12, 14, 15, 16, 17 e 18 (tickets 47 e 48).
+antiga) é reconhecido no `done` das outras como edição da tarefa liberada, e não as bloqueia. A contenção passa a
+ser planejada: o plano declara em `shared` os arquivos de registro que várias tarefas tocam, o `validate` avisa
+quando duas tarefas paralelas tocam o mesmo, `"sharedPolicy": "serialize"` faz a fronteira não soltá-las juntas, e
+`jtasks status --claims` mostra, depois da execução, os arquivos mais disputados. Marcado com **[rev. 5.6]** nas
+seções 3, 4, 5, 6, 7, 9, 12, 14, 15, 16, 17 e 18 (tickets 47, 48 e 49).
 
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
@@ -168,6 +171,16 @@ README.md, README.<tag>.md   onze idiomas (seção 23)
   juntas: adicione uma dependência ou separe o arquivo"), **[rev. 5]** padrão em `files` ("`src/*.ts`: o jlock trava
   arquivos e pastas, não padrões; liste os arquivos ou use a pasta `src`"; a forma `pasta/**` é aceita e vira a
   pasta). O modelo corrige e chama de novo. Nada é gravado até passar.
+- **Arquivos compartilhados [rev. 5.6].** O plano pode ter `shared: ["caminho", …]`, os arquivos de registro,
+  índices, schemas e tipos centrais que várias tarefas tocam; uma tarefa que toca um sem possuí-lo o lista em
+  `touchesShared` (fora do `shared` é erro). O `validate`, o `plan` e o `plan --commit` dão um **aviso** (não erro)
+  quando duas tarefas sem caminho de dependência entre si tocam o mesmo arquivo de `shared` (em `files`,
+  `touchesShared` ou, numa execução, `claimed`): "T01 e T02 tocam o arquivo compartilhado `src/manifests.ts` e nenhuma
+  dependência as ordena: encadeie-as com `dependsOn`, deixe o arquivo com uma delas, ou use
+  `"sharedPolicy": "serialize"`". As duas opções: só avisar (`"warn"`, o padrão), ou `"serialize"`, que não avisa e
+  faz a fronteira nunca soltar juntas duas tarefas que tocam o mesmo arquivo de `shared` (um mutex por arquivo,
+  decidido no `next` e conferido no `start`, sem o arquivo entrar na posse das duas). A `to-jtasks` pergunta, no
+  passo dos arquivos, quais registros, índices, schemas e tipos centrais várias tarefas vão tocar.
 - Ao passar, grava `tasks.json` e gera `tickets/NN-slug.md` (com uma seção Files). O ticket é visão; o JSON é a
   verdade.
 - **Em lotes [rev. 5.1].** Um plano grande não precisa caber numa resposta do modelo:
@@ -248,6 +261,11 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   o jlock recusa com a cadeia (`deadlock`, código 12, campo `chain`), e a resposta diz quem deve ceder
   (**[rev. 5]** quem pediu por último). Todo `claim` vai para o log; no fim, a ferramenta sugere atualizar o plano
   com o que foi reclamado.
+- **Mutex de arquivo compartilhado [rev. 5.6]:** com `"sharedPolicy": "serialize"`, uma tarefa pendente que toca
+  um arquivo de `shared` (seção 3) não fica pronta enquanto outra em andamento toca o mesmo (bloqueio
+  "🔗 T01: src/manifests.ts (compartilhado)"), e o `selectReady` nunca escolhe duas assim na mesma passada. É a mesma
+  fronteira do `next` (`sharedBlocker` em `src/frontier.ts`, usado também pelo `start`, pelo `status` e pelas
+  vistas); o arquivo não entra na posse de nenhuma das duas, que o pegam por `claim` quando precisam.
 - **Ceder sem perder [rev. 5.6]:** a resposta ao deadlock sugere `jtasks yield <id>`, que cede só as chaves que
   fecham o ciclo (as `(held by <dono>)` do `chain` da última recusa da tarefa no `log.jsonl`), ou as que forem
   nomeadas (uma entrada da posse; um arquivo dentro de uma pasta travada inteira é recusado, cede-se a pasta). Para
@@ -346,6 +364,8 @@ branch atual, `run.json` aceita `branch: "current"`; os commits continuam um por
   "serialize": ["bun test"],
   "maxAttempts": 2,
   "holdTtl": "2h",                           // [rev. 5.2] prazo dos hold; a trava expira sozinha se ninguém a devolver
+  "shared": ["src/adapters/manifests.ts"],   // [rev. 5.6] arquivos de registro que várias tarefas tocam (seção 3)
+  "sharedPolicy": "serialize",               // [rev. 5.6] "warn" (padrão) ou "serialize" (mutex na fronteira)
   "sessions": [ { "tool": "claude", "id": "a8ec2aca…", "boundAt": "…" } ]
 }
 ```
@@ -439,11 +459,11 @@ a execução ligada à sessão.
 | plano | `plan` | cria a execução a partir do JSON validado (inclusive conflito de posse); gera os tickets; cria o branch; liga à sessão; exclui `.scratch/` do git localmente (efeito no ledger) |
 | | `plan --draft` / `--add <json>` / `--fix <id> <json>` / `--show` / `--commit` | **[rev. 5.1]** o mesmo, em lotes: rascunho, lote validado, correção de uma tarefa, resumo, validação completa e gravação |
 | | `import <dir> [--check\|--yes]` | tickets Markdown antigos → nova execução (tarefas sem posse viram `exclusive`) |
-| | `validate <json\|dir>` | valida sem gravar |
+| | `validate <json\|dir>` | valida sem gravar (**[rev. 5.6]** com os avisos de `shared`) |
 | execução | `runs` | lista as execuções do projeto com status e progresso |
 | | `resume <run> [--keep-owners]` | liga a sessão, tira de `paused`, libera tarefas de agentes que já não existem, mostra status e fronteira |
 | | `pause` / `unpause` | pausa: `start` recusado; o protocolo manda parar |
-| | `status` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas (**[rev. 5]** de `jlock list --group <run> --json`) |
+| | `status [--claims]` | `feitas 7/12 (58%) · 1 pulada · 1 falha · 2 em andamento · restam 3` + fronteira + travas ativas (**[rev. 5]** de `jlock list --group <run> --json`); **[rev. 5.6]** `--claims` acrescenta os arquivos mais disputados da execução, contados no `log.jsonl` (`claim`, `claim-timeout`, `claim-deadlock` e `yield` por arquivo, com as tarefas envolvidas; no `--json`, `claims`), para a próxima quebra em tarefas |
 | tarefa | `next [limit]` | as prontas, com perfil, critérios, posse e caminho do ticket |
 | | `start id [--fresh]` | → em andamento (`attempts+1`); trava a posse (**[rev. 5]** sobe `jlock hold <chaves…> --no-wait --json`; `queued` → "não estava pronta"; **[rev. 5.2]** `--detach --ttl` no CLI e no mod, `--release-on-eof --ttl` no plugin); **[rev. 5.6]** reaplica com `--3way` os patches de uma tentativa anterior e lista o que voltou e os conflitos; `--fresh` os deixa de fora (continuam na pasta e no ledger) |
 | | `claim id <arquivo…>` | acrescenta à posse se livre; senão espera até `--timeout` ("em uso por Txx, posição N") ou recusa por deadlock com a cadeia (**[rev. 5]** um `jlock hold` por `claim`; **[rev. 5.6]** sem arquivos, pega de volta o que a tarefa cedeu e reaplica os patches) |
@@ -718,7 +738,7 @@ compactação, modelo do subagente pelo perfil, liberação de tarefa de agente 
 orquestrador ocioso (quando reabrir o laço, quando desistir e avisar), **[rev. 5.4]** a renovação das travas de
 tarefas longas e a retomada das chaves vencidas no `done`, **[rev. 5.6]** quais chaves ceder num deadlock (pelo
 `chain`), guardar e reaplicar as edições, e quando a chave cedida volta; que nenhuma tarefa liberada deixa edição
-para outra herdar.
+para outra herdar; os avisos de arquivo compartilhado e o mutex do `sharedPolicy: "serialize"`.
 
 **Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
@@ -782,6 +802,10 @@ motivo.
   dono segura; o fallback (uma edição listada no `uncommitted` de uma tarefa liberada) não bloqueia nem entra no
   `done` de outra. No mod, o subagente que termina com a tarefa em andamento guarda os patches; no plugin, o
   `session.idle` da filha também.
+- **[rev. 5.6] Contenção planejada** (`test/shared.test.ts`): o aviso de `shared` com tarefas paralelas, nenhum com
+  `dependsOn` nem com `serialize`; `touchesShared` fora do `shared` é erro; com `serialize`, o `next` nunca devolve
+  duas tarefas que tocam o mesmo arquivo compartilhado e o `start` da segunda é recusado; o `status --claims` conta
+  `claim`, `claim-timeout`, `claim-deadlock` e `yield` por arquivo a partir de um `log.jsonl` de exemplo.
 - Sem gastar tokens de modelo real.
 
 ---
@@ -831,6 +855,9 @@ motivo.
 20. **[rev. 5.6] Liberar guardando as edições** (ticket 48): `release`, `--agent-ended`, `resume`, posse perdida,
     `maxAttempts`, `fail` e `skip` guardam os patches e deixam a árvore limpa; `start` os reaplica e
     `start --fresh` os deixa de fora; o fallback do `splitChanges` para o que sobrar no disco.
+21. **[rev. 5.6] Contenção planejada** (ticket 49): `shared`, `touchesShared` e `sharedPolicy` no plano e no
+    schema, os avisos do `validate`/`plan`, o mutex na fronteira, `status --claims` e a `to-jtasks` perguntando
+    pelos arquivos de registro.
 
 ---
 

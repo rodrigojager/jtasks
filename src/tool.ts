@@ -233,10 +233,12 @@ defineAction("validate", async (ctx, args) => {
   const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? (isAbsolute(arg) ? arg : join(ctx.cwd, arg)) : undefined
   const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir"
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir!)).map((t) => t.task) } : await readJsonArg(ctx, arg)
-  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
+  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform })
   if (errors.length > 0)
-    return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
-  return ok(tr("validate.ok", { n: plan.tasks.length }), { errors: [], tasks: plan.tasks.length })
+    return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors, warnings } }
+  const lines = [tr("validate.ok", { n: plan.tasks.length })]
+  if (warnings.length) lines.push(tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`))
+  return ok(lines.join("\n"), { errors: [], warnings, tasks: plan.tasks.length })
 }, "help.validate")
 
 /** Runs one command of the tool. Never throws: errors come back as `{ ok: false }`. */

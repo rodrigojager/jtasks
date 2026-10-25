@@ -16,7 +16,9 @@ export interface CreatedRun {
 }
 /** Builds the run from a plan that already passed the complete validation. */
 export declare function createRun(ctx: ToolContext, plan: PlanInput, options?: CreateRunOptions): Promise<CreatedRun>;
-export declare function createdText(created: CreatedRun): string;
+export declare function createdText(created: CreatedRun, warnings?: string[]): string;
+/** The warnings of a valid plan (rev. 5.6), as answer lines. */
+export declare function warningLines(warnings: string[]): string[];
 export declare function planFromJson(ctx: ToolContext, raw: unknown, options?: CreateRunOptions): Promise<ToolResult>;
 export interface Draft {
     version: 1;
@@ -31,6 +33,8 @@ export interface Draft {
     holdTtl?: string;
     keepalive?: boolean;
     branch?: "run" | "current";
+    shared?: string[];
+    sharedPolicy?: PlanInput["sharedPolicy"];
     tasks: PlanTask[];
 }
 /** Open drafts of the repository: run folders with a `draft.json` and no `run.json` yet. */

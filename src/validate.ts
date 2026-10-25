@@ -6,8 +6,8 @@ import { caseInsensitive, isAbsolute, normalize, slash } from "./paths.ts"
 import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
-const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive"])
-const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "tasks"])
+const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared"])
+const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"])
 const GLOB = /[*?[\]{}]/
 
 export interface ValidateOptions {
@@ -105,6 +105,14 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (obj.branch === "run" || obj.branch === "current") plan.branch = obj.branch
     else errors.push(tr("plan.branch"))
   }
+  if (obj.shared !== undefined) {
+    if (isStringList(obj.shared)) plan.shared = obj.shared
+    else errors.push(tr("plan.shared_list"))
+  }
+  if (obj.sharedPolicy !== undefined) {
+    if (obj.sharedPolicy === "warn" || obj.sharedPolicy === "serialize") plan.sharedPolicy = obj.sharedPolicy
+    else errors.push(tr("plan.shared_policy"))
+  }
   if (!Array.isArray(obj.tasks)) {
     errors.push(tr("plan.no_tasks"))
     return { plan, errors }
@@ -125,6 +133,7 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (t.source !== undefined && typeof t.source !== "string") errors.push(tr("plan.task_text", { name, field: "source" }))
     if (t.dependsOn !== undefined && !isStringList(t.dependsOn)) errors.push(tr("plan.task_depends_list", { name }))
     if (t.files !== undefined && !isStringList(t.files)) errors.push(tr("plan.task_files_list", { name }))
+    if (t.touchesShared !== undefined && !isStringList(t.touchesShared)) errors.push(tr("plan.task_touches_list", { name }))
     if (t.profile !== undefined && typeof t.profile !== "string") errors.push(tr("plan.task_text", { name, field: "profile" }))
     if (t.boundary !== undefined && typeof t.boundary !== "string") errors.push(tr("plan.task_text", { name, field: "boundary" }))
     if (t.exclusive !== undefined && typeof t.exclusive !== "boolean") errors.push(tr("plan.task_exclusive", { name }))
@@ -159,14 +168,20 @@ export function validateBatch(tasks: PlanTask[], ctx: BatchContext = {}): { task
     seen.add(task.id)
     if (task.profile !== undefined && !(task.profile in profiles))
       errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }))
-    const files: string[] = []
-    for (const raw of task.files ?? []) {
-      const entry = normalizeFileEntry(raw)
-      if (entry.error) errors.push(`${task.id}: ${entry.error}`)
-      else if (entry.path && !files.includes(entry.path)) files.push(entry.path)
+    const paths = (list: string[]) => {
+      const out: string[] = []
+      for (const raw of list) {
+        const entry = normalizeFileEntry(raw)
+        if (entry.error) errors.push(`${task.id}: ${entry.error}`)
+        else if (entry.path && !out.includes(entry.path)) out.push(entry.path)
+      }
+      return out
     }
+    const files = paths(task.files ?? [])
     if (task.dependsOn?.includes(task.id)) errors.push(tr("plan.self_dependency", { id: task.id }))
-    out.push({ ...task, files })
+    const checked: PlanTask = { ...task, files }
+    if (task.touchesShared) checked.touchesShared = paths(task.touchesShared)
+    out.push(checked)
   }
   return { tasks: out, errors }
 }
@@ -225,6 +240,8 @@ export function ancestors(tasks: PlanTask[]): Map<string, Set<string>> {
 export interface FullResult {
   plan: PlanInput
   errors: string[]
+  /** What does not refuse the plan but deserves a look (rev. 5.6: shared files in parallel tasks). */
+  warnings: string[]
 }
 
 /** The complete validation (`validate`, `plan`, `plan --commit`). */
@@ -235,8 +252,62 @@ export function validatePlan(raw: unknown, options: ValidateOptions = {}): FullR
   const batch = validateBatch(read.plan.tasks, { ...options, profiles })
   errors.push(...batch.errors)
   const plan: PlanInput = { ...read.plan, tasks: batch.tasks }
+  if (plan.shared) {
+    const shared: string[] = []
+    for (const raw of plan.shared) {
+      const entry = normalizeFileEntry(raw)
+      if (entry.error) errors.push(`shared: ${entry.error}`)
+      else if (entry.path && !shared.includes(entry.path)) shared.push(entry.path)
+    }
+    plan.shared = shared
+  }
   errors.push(...validateGraph(plan.tasks, options))
-  return { plan, errors }
+  const insensitive = caseInsensitive(options.platform ?? "win32")
+  for (const t of plan.tasks)
+    for (const p of t.touchesShared ?? [])
+      if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive))) errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }))
+  return { plan, errors, warnings: sharedWarnings(plan, options) }
+}
+
+function relCovers(outer: string, inner: string, insensitive: boolean): boolean {
+  const o = insensitive ? outer.toLowerCase() : outer
+  const i = insensitive ? inner.toLowerCase() : inner
+  return o === "." || o === i || i.startsWith(`${o}/`)
+}
+
+/** The `shared` entries a task touches: in `touchesShared`, or overlapping its `files` (claimed ones too, in a run). */
+export function sharedTouched(shared: string[], task: Pick<PlanTask, "files" | "touchesShared"> & { claimed?: string[] }, insensitive: boolean): string[] {
+  return shared.filter(
+    (s) =>
+      (task.touchesShared ?? []).some((p) => relConflicts(s, p, insensitive)) ||
+      [...(task.files ?? []), ...(task.claimed ?? [])].some((f) => relConflicts(s, f, insensitive)),
+  )
+}
+
+/**
+ * Two tasks with no dependency path between them that touch the same `shared` file: a warning that says how to
+ * order them. None with `sharedPolicy: "serialize"`, where the frontier keeps them apart; none for two that own it
+ * in `files` (that is already an error).
+ */
+export function sharedWarnings(plan: PlanInput, options: ValidateOptions = {}): string[] {
+  const shared = plan.shared ?? []
+  if (!shared.length || plan.sharedPolicy === "serialize") return []
+  const insensitive = caseInsensitive(options.platform ?? "win32")
+  const anc = ancestors(plan.tasks)
+  const related = (a: string, b: string) => anc.get(a)?.has(b) || anc.get(b)?.has(a)
+  const out: string[] = []
+  const touched = new Map(plan.tasks.map((t) => [t.id, t.exclusive ? [] : sharedTouched(shared, t, insensitive)]))
+  for (let i = 0; i < plan.tasks.length; i++)
+    for (let j = i + 1; j < plan.tasks.length; j++) {
+      const a = plan.tasks[i]!
+      const b = plan.tasks[j]!
+      if (related(a.id, b.id)) continue
+      for (const s of touched.get(a.id)!.filter((x) => touched.get(b.id)!.includes(x))) {
+        if (sharedPath(a.files ?? [], b.files ?? [], insensitive)) continue
+        out.push(tr("plan.shared_parallel", { a: a.id, b: b.id, path: s }))
+      }
+    }
+  return out
 }
 
 /** Checks that need the whole set: dependencies, cycles, ownership shared by independent tasks. */
