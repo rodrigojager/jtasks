@@ -156,6 +156,7 @@
   "guard.git": "الوكيل الفرعي لا يشغّل git {sub}: الإيداع يصنعه jtasks done {id}",
   "guard.outside": "خارج ملكية {id}: {rel}؛ استخدم jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: لا تتغير tasks.json و run.json والتذاكر إلا عبر أداة tasks؛ لا تُعدَّل يدويًا أبدًا",
+  "guard.unresolved": "{id}: المسار {raw} فيه متغير أو استبدال أو glob ولا يمكن التحقق منه؛ استخدم المسار الحرفي، أو Edit/Write",
   "help.archive": "archive <run>                         ينقل التشغيل إلى JTASKS_HOME/archive (يعيده resume)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  ملف آخر (بلا ملف: ما تنازلت عنه)؛ ينتظر في الطابور",
   "help.clean": "clean <run>|--all [--yes]             يحذف مجلد التشغيل (يسرد الآثار النشطة أولًا)",

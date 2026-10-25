@@ -218,3 +218,16 @@ compensação, nenhuma tarefa nova começa sobre a chave cedida (a fronteira a t
 esperando no jlock (a outra ponta do ciclo) a recebe na hora.
 
 **O que fazer:** nada. Para esperar de verdade pelo arquivo, `jtasks claim <id>` (sem arquivos, ou com eles).
+
+## 15. `fail` e `skip` também guardam as edições, e o `claim` sem arquivos pega o que foi cedido (tickets 47 e 48)
+
+**O que mudou:** o plano listava, para guardar as edições ao liberar, o `release`, o `--agent-ended`, o `resume` e o
+`maxAttempts`. A posse perdida (`hold` que sai com 14), o `fail` e o `skip` deixavam no disco o mesmo tipo de edição
+sem dono, com o mesmo efeito nas outras tarefas; os sete caminhos usam agora a mesma função (`keepTask`). E o
+`jtasks claim <id>` sem arquivos, antes um erro de uso, pega de volta o que a tarefa cedeu.
+
+**Consequência:** depois de um `fail` ou de um `skip`, a árvore fica limpa: a edição pela metade não está mais no
+disco, e sim num patch da execução, reaplicado se a tarefa for reaberta (`retry`) e começar de novo. Quem quiser a
+edição de volta sem reabrir a tarefa: `jtasks undo <e-id>` do efeito `restore` (lista em `jtasks ledger`).
+
+**O que fazer:** nada; para começar uma tarefa reaberta do zero, `jtasks start <id> --fresh`.

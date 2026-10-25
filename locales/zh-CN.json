@@ -156,6 +156,7 @@
   "guard.git": "子智能体不运行 git {sub}：提交由 jtasks done {id} 完成",
   "guard.outside": "超出 {id} 的所有权：{rel}；使用 jtasks claim {id} {rel}",
   "guard.run_files": "{rel}：tasks.json、run.json 和工单只能通过 tasks 工具修改；切勿手动修改",
+  "guard.unresolved": "{id}：路径 {raw} 含有变量、命令替换或通配符，无法检查；请使用字面路径，或 Edit/Write",
   "help.archive": "archive <run>                         将运行移到 JTASKS_HOME/archive（resume 取回）",
   "help.claim": "claim <id> [<文件…>] [--timeout 60s]  再申请一个文件（不带：取回让出的）；在队列中等待",
   "help.clean": "clean <run>|--all [--yes]             删除运行的文件夹（先列出生效的副作用）",

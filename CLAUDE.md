@@ -23,7 +23,8 @@ ticket 47): `jtasks yield` cede só os arquivos disputados num deadlock, com as 
 (release, fim de subagente, resume, posse perdida, fail, skip) também guarda as edições, o `start` as reaplica
 (`--fresh` não) e o `done` não é bloqueado pelo que uma tarefa liberada deixou no disco; ticket 49: `shared`,
 `touchesShared` e `sharedPolicy` no plano (avisos no `validate`, mutex na fronteira com `serialize`) e
-`status --claims`.
+`status --claims`; ticket 50: a guarda de shell lê o comando como o shell (aspas, heredoc, descritores, variáveis
+atribuídas no comando, `~`, `cd`, `sed -i`, `cp`) e recusa com `guard.unresolved` o caminho que não dá para conferir.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

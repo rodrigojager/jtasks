@@ -17,7 +17,7 @@ export async function judgeCall(host: Host, cwd: string, bound: BoundRun, agent:
     const tasks = await readTasks(host, runDir(bound.root, bound.run))
     task = tasks?.tasks.find((t) => t.id === agent.task && t.status === 'in_progress')
   }
-  const ctx = { root: bound.root, platform: host.platform, cwd, task }
+  const ctx = { root: bound.root, platform: host.platform, cwd, task, home: host.env('HOME') ?? host.env('USERPROFILE') }
   if (call.tool === 'Bash') return checkShell(ctx, call.command)
   return checkEdit(ctx, call.tool === 'NotebookEdit' ? call.notebook_path : call.file_path)
 }

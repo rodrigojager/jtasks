@@ -60,8 +60,10 @@ posse: a árvore fica limpa, nenhuma outra tarefa herda edição alheia, e o pr�
 antiga) é reconhecido no `done` das outras como edição da tarefa liberada, e não as bloqueia. A contenção passa a
 ser planejada: o plano declara em `shared` os arquivos de registro que várias tarefas tocam, o `validate` avisa
 quando duas tarefas paralelas tocam o mesmo, `"sharedPolicy": "serialize"` faz a fronteira não soltá-las juntas, e
-`jtasks status --claims` mostra, depois da execução, os arquivos mais disputados. Marcado com **[rev. 5.6]** nas
-seções 3, 4, 5, 6, 7, 9, 12, 14, 15, 16, 17 e 18 (tickets 47, 48 e 49).
+`jtasks status --claims` mostra, depois da execução, os arquivos mais disputados. E a guarda de shell resolve o que
+dá (variáveis atribuídas no próprio comando, `~`, heredoc, `sed -i`, `cd`) e recusa com o motivo certo o que não
+dá, sem sugerir `claim` de caminho com `$`. Marcado com **[rev. 5.6]** nas seções 3, 4, 5, 6, 7, 9, 12, 14, 15, 16, 17
+e 18 (tickets 47 a 50).
 
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
@@ -291,7 +293,17 @@ skill fica: hoje em `~\.agents\skills`; para o Claude Code, dentro do próprio p
   **[rev. 5]** A guarda decide pela `tasks.json` (`files` + `claimed`), sem chamar o jlock a cada edição (um
   processo por edição seria lento e desnecessário): o jlock é o juiz entre processos, a `tasks.json` é a cópia local
   da posse, e o `done` reconcilia as duas (`jlock list --group <run> --json` tem de conter todas as chaves da posse
-  da tarefa; se faltar alguma, a posse foi perdida e o `done` é recusado dizendo qual).
+  da tarefa; se faltar alguma, a posse foi perdida e o `done` é recusado dizendo qual). **[rev. 5.6]** A guarda de
+  shell (`checkShell` em `src/guard.ts`, a mesma no mod e no plugin) lê o comando como o shell: aspas, separadores,
+  redirecionamentos com descritor (`2>&1` e `>&-` não são arquivos; `&>`, `>|` e `<>` são), comentários e o corpo de
+  um heredoc (dados, não comandos; o alvo de `cat > arquivo <<'EOF'` é conferido como qualquer escrita). Expande as
+  variáveis atribuídas no próprio comando (`S=/tmp/x; … > $S/f`, `export S=…`, `S=… cmd`), `~` e `$HOME` (o `HOME`
+  do host), e segue o `cd`. No `sed -i` (também `-i.bak`, `-ni`, `--in-place`, o `-i ''` do BSD) só os arquivos
+  contam, nunca o script de `-e`/`-f`/`--expression`; no `cp`, só o destino. Um caminho que continua com variável
+  não resolvida, `$(…)`, crase ou glob não pode ser conferido: passa se está claramente fora do repositório (prefixo
+  literal absoluto, numa pasta que não é o repositório nem está acima dele), e é recusado com
+  `guard.unresolved` ("o caminho … não pode ser conferido; use o caminho literal, ou Edit/Write"), que nunca sugere
+  `claim` de um caminho com `$`.
 - **Builds e testes que colidem** (mesma pasta de saída, mesma porta): a tarefa declara `exclusive: true` ou a
   execução define um `serialize: ["bun test", "dotnet build"]`, e **[rev. 5]** a ferramenta roda cada um desses
   comandos como `jlock run name:gt/<repo-slug>/<comando-slug> -- <comando>`: só um roda por vez na máquina, os
@@ -738,7 +750,8 @@ compactação, modelo do subagente pelo perfil, liberação de tarefa de agente 
 orquestrador ocioso (quando reabrir o laço, quando desistir e avisar), **[rev. 5.4]** a renovação das travas de
 tarefas longas e a retomada das chaves vencidas no `done`, **[rev. 5.6]** quais chaves ceder num deadlock (pelo
 `chain`), guardar e reaplicar as edições, e quando a chave cedida volta; que nenhuma tarefa liberada deixa edição
-para outra herdar; os avisos de arquivo compartilhado e o mutex do `sharedPolicy: "serialize"`.
+para outra herdar; os avisos de arquivo compartilhado e o mutex do `sharedPolicy: "serialize"`; e o que a guarda de
+shell consegue resolver num comando.
 
 **Interpretativo (modelo):** quebrar o plano em tarefas e dizer quais arquivos cada uma toca (`to-jtasks`),
 executar cada tarefa, pedir um arquivo a mais (`claim`), decidir que está feita e escrever a evidência, pular com
@@ -806,6 +819,10 @@ motivo.
   `dependsOn` nem com `serialize`; `touchesShared` fora do `shared` é erro; com `serialize`, o `next` nunca devolve
   duas tarefas que tocam o mesmo arquivo compartilhado e o `start` da segunda é recusado; o `status --claims` conta
   `claim`, `claim-timeout`, `claim-deadlock` e `yield` por arquivo a partir de um `log.jsonl` de exemplo.
+- **[rev. 5.6] Guarda de shell** (`test/guard.test.ts`): `S=/tmp/x; echo > $S/f` passa (fora do repositório);
+  `echo > $X/f` sem atribuição recusa com `guard.unresolved`, sem sugerir `claim`; `$(…)`, crase, glob e `cd $X`
+  também; um heredoc e um `sed -i -e 's/a/b/' arquivo` na posse passam, fora dela recusam com `guard.outside`; o corpo
+  do heredoc não é julgado; `2>&1`, a origem do `cp`, `cd` e opções com valor. No mod e no plugin, a mesma regra.
 - Sem gastar tokens de modelo real.
 
 ---
@@ -858,6 +875,9 @@ motivo.
 21. **[rev. 5.6] Contenção planejada** (ticket 49): `shared`, `touchesShared` e `sharedPolicy` no plano e no
     schema, os avisos do `validate`/`plan`, o mutex na fronteira, `status --claims` e a `to-jtasks` perguntando
     pelos arquivos de registro.
+22. **[rev. 5.6] A guarda de shell resolve o que dá** (ticket 50): um leitor de shell em `src/guard.ts` com aspas,
+    heredoc, descritores, variáveis atribuídas no comando, `~`/`$HOME`, `cd`, `sed -i` e `cp`; `guard.unresolved`
+    para o que não dá para conferir.
 
 ---
 

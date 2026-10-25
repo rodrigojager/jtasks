@@ -156,6 +156,7 @@
   "guard.git": "सबएजेंट git {sub} नहीं चलाता: commit jtasks done {id} करता है",
   "guard.outside": "{id} के स्वामित्व के बाहर: {rel}; jtasks claim {id} {rel} चलाएँ",
   "guard.run_files": "{rel}: tasks.json, run.json और टिकट केवल tasks टूल से बदलते हैं; कभी हाथ से नहीं",
+  "guard.unresolved": "{id}: पथ {raw} में चर, प्रतिस्थापन या glob है और उसे जाँचा नहीं जा सकता; शाब्दिक पथ, या Edit/Write इस्तेमाल करें",
   "help.archive": "archive <run>                         रन JTASKS_HOME/archive में भेजता है (resume लौटाता है)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  एक और फ़ाइल (बिना फ़ाइल: जो छोड़ा था); कतार में रुकता है",
   "help.clean": "clean <run>|--all [--yes]             रन का फ़ोल्डर हटाता है (पहले सक्रिय प्रभाव दिखाता है)",

@@ -156,6 +156,7 @@
   "guard.git": "ein Subagent führt git {sub} nicht aus: den Commit macht jtasks done {id}",
   "guard.outside": "außerhalb des Besitzes von {id}: {rel}; nutze jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json und die Tickets ändern sich nur über das Tool tasks; nie von Hand",
+  "guard.unresolved": "{id}: der Pfad {raw} enthält eine Variable, eine Ersetzung oder ein Glob und lässt sich nicht prüfen; nimm den wörtlichen Pfad, oder Edit/Write",
   "help.archive": "archive <run>                         verschiebt nach JTASKS_HOME/archive (resume holt zurück)",
   "help.claim": "claim <id> [<datei…>] [--timeout 60s] eine Datei mehr (ohne: das Abgegebene); wartet in Reihe",
   "help.clean": "clean <run>|--all [--yes]             löscht den Ordner des Laufs (listet erst aktive Effekte)",

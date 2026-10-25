@@ -59,6 +59,9 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(commit.deny).toContain('subagente não roda git commit: o commit é feito por jtasks done T01')
     expect((await $.tool.call({ tool: 'Bash', command: 'echo x > src/other.ts', agentId: 'agent-1' } as never)).deny).toContain("jtasks: ")
     expect((await $.tool.call({ tool: 'Bash', command: 'git status && bun test', agentId: 'agent-1' } as never)).deny).toBeUndefined()
+    // rev. 5.6: the core's new rule in the mod too.
+    expect((await $.tool.call({ tool: 'Bash', command: 'S=/tmp/jt; bun test > $S/run.log 2>&1', agentId: 'agent-1' } as never)).deny).toBeUndefined()
+    expect((await $.tool.call({ tool: 'Bash', command: 'echo x > $OUT/a.ts', agentId: 'agent-1' } as never)).deny).toContain('não pode ser conferido')
     expect((await $.tool.call({ tool: 'Bash', command: 'git commit -am "x"' } as never)).deny).toBeUndefined()
     expect((await $.tool.call(edit(`${ROOT}/src/other.ts`) as never)).deny).toBeUndefined()
   })

@@ -65,4 +65,92 @@ describe("shell guard", () => {
   test("segments", () => {
     expect(shellSegments('a "b c" && d | e; f > g')).toEqual([["a", "b c"], ["d"], ["e"], ["f", ">", "g"]])
   })
+
+  // rev. 5.6: what the guard resolves, and the right reason for what it cannot.
+  const posix: GuardContext = {
+    root: "/work/proj",
+    platform: "linux",
+    cwd: "/work/proj",
+    home: "/home/me",
+    task: { id: "T02", files: ["src/adapters/pytest", "tests/pytest.test.ts"] },
+  }
+
+  test("variables the command assigns itself are expanded; outside the repository passes", () => {
+    for (const c of [
+      "S=/tmp/x; echo hi > $S/f",
+      "S=/tmp/run-1; mkdir -p $S && bun test > $S/arquivo.log 2>&1",
+      "export OUT=/tmp/o; bun test > ${OUT}/t.log",
+      "LOG=/tmp/l.txt bun test > $LOG",
+      "echo x > ~/notes.md",
+      'echo x > "$HOME/notes.md"',
+    ])
+      expect(checkShell(posix, c), c).toEqual({ allow: true })
+    expect(checkShell(posix, "D=src/adapters/pytest; echo x > $D/a.py")).toEqual({ allow: true })
+    expect(checkShell(posix, "D=src/other; echo x > $D/a.py")).toEqual({
+      allow: false,
+      reason: "fora da posse de T02: src/other/a.py; use jtasks claim T02 src/other/a.py",
+    })
+  })
+
+  test("a path that keeps a variable, a substitution or a glob: guard.unresolved, never a claim with $", () => {
+    const r = checkShell(posix, "echo > $X/f")
+    expect(r).toEqual({ allow: false, reason: "T02: o caminho $X/f tem variável, substituição ou glob e não pode ser conferido; use o caminho literal, ou Edit/Write" })
+    expect((r as { reason: string }).reason).not.toContain("claim")
+    for (const c of ["echo > $(pwd)/f", "echo > `pwd`/f", "rm src/*.py", "cd $X && echo > y"]) {
+      const v = checkShell(posix, c)
+      expect(v.allow, c).toBe(false)
+      expect((v as { reason: string }).reason, c).toContain("não pode ser conferido")
+    }
+    // Plainly outside the repository even with a variable: allowed, as any outside path.
+    expect(checkShell(posix, "echo > /tmp/$X/f").allow).toBe(true)
+    // Above the repository is not plainly outside: it could be inside.
+    expect(checkShell(posix, "echo > /work/$X/f").allow).toBe(false)
+    // In single quotes a $ is literal; the main agent is not judged on it.
+    expect(checkShell(posix, "echo > '/tmp/$X'").allow).toBe(true)
+    expect(checkShell({ ...posix, task: undefined }, "echo > $X/f").allow).toBe(true)
+  })
+
+  test("heredocs: the target is a write like any other, and the body is data", () => {
+    const heredoc = "cat > src/adapters/pytest/run.py <<'EOF'\nrm -rf src\necho > /etc/x > src/other.py\nEOF\necho done"
+    expect(checkShell(posix, heredoc)).toEqual({ allow: true })
+    expect(checkShell(posix, "tee tests/pytest.test.ts <<EOF\nimport x\nEOF").allow).toBe(true)
+    expect(checkShell(posix, "cat > src/other.py <<'EOF'\nx\nEOF")).toEqual({
+      allow: false,
+      reason: "fora da posse de T02: src/other.py; use jtasks claim T02 src/other.py",
+    })
+    // What follows the delimiter is a command again.
+    expect(checkShell(posix, "cat > src/adapters/pytest/a.py <<EOF\nx\nEOF\nrm src/other.py").allow).toBe(false)
+  })
+
+  test("sed -i: -e/-f/--expression scripts are not files, -i.bak and -i '' are in-place; inside passes, outside refused", () => {
+    for (const c of [
+      "sed -i -e 's/a/b/' src/adapters/pytest/a.py",
+      "sed -i 's/a/b/' src/adapters/pytest/a.py",
+      "sed -i.bak -e s/a/b/ -e s/c/d/ src/adapters/pytest/a.py",
+      "sed --in-place --expression='s/a|b/c/' src/adapters/pytest/a.py",
+      "sed -i '' 's/a/b/' src/adapters/pytest/a.py",
+      "sed -ni 's/a/b/p' src/adapters/pytest/a.py",
+      "sed -n 's/a/b/p' src/other.py > /tmp/out",
+    ])
+      expect(checkShell(posix, c), c).toEqual({ allow: true })
+    expect(checkShell(posix, "sed -i -e 's/a/b/' src/other.py")).toEqual({
+      allow: false,
+      reason: "fora da posse de T02: src/other.py; use jtasks claim T02 src/other.py",
+    })
+  })
+
+  test("redirections to descriptors, cp's source, cd and options with values", () => {
+    expect(checkShell(posix, "bun test 2>&1 | tee /tmp/x.log").allow).toBe(true)
+    expect(checkShell(posix, "bun test >&2").allow).toBe(true)
+    expect(checkShell(posix, "cp src/other.py src/adapters/pytest/copy.py").allow).toBe(true)
+    expect(checkShell(posix, "cp src/adapters/pytest/a.py src/other.py").allow).toBe(false)
+    expect(checkShell(posix, "cd src/adapters/pytest && echo x > a.py").allow).toBe(true)
+    expect(checkShell(posix, "cd /tmp && echo x > a.py").allow).toBe(true)
+    expect(checkShell(posix, "cd src && echo x > a.py").allow).toBe(false)
+    expect(checkShell(posix, "truncate -s 0 src/adapters/pytest/a.py").allow).toBe(true)
+    expect(checkShell(posix, "mkdir -m 755 src/adapters/pytest/sub").allow).toBe(true)
+    expect(checkShell(posix, "cat < src/other.py > /tmp/x").allow).toBe(true)
+    expect(checkShell(posix, "echo '>' src/other.py # a comment > src/x").allow).toBe(true)
+  })
 })
+

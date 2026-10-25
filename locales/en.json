@@ -156,6 +156,7 @@
   "guard.git": "a subagent does not run git {sub}: the commit is made by jtasks done {id}",
   "guard.outside": "outside the ownership of {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json and the tickets change only through the jtasks tool; never by hand",
+  "guard.unresolved": "{id}: the path {raw} has a variable, a substitution or a glob and cannot be checked; use the literal path, or Edit/Write",
   "help.archive": "archive <run>                         moves the run to JTASKS_HOME/archive (resume brings it)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  one more file (none: what it yielded); waits in the queue",
   "help.clean": "clean <run>|--all [--yes]             deletes the run's folder (listing the active effects first)",

@@ -206,6 +206,19 @@ log; another task's `done` then neither refuses for it nor commits it, and says 
 in: …` (the same for a run from before this). The orchestrator never has to hold such files with a `jlock hold` of
 its own.
 
+### The guard
+
+In the mod and the plugin, a subagent bound to a task edits only inside its ownership: an `Edit`/`Write` outside it
+is refused with `jtasks claim <id> <file>` as the way out, git that changes the repository is refused, and nobody
+edits `tasks.json`, `run.json` or the tickets by hand. A `Bash` (or OpenCode `shell`) command is read like the shell
+reads it: quotes, `&&`/`||`/`;`/`|`, comments, redirections (`>`, `>>`, `&>`, `>|`; `2>&1` and `>&-` are not files),
+heredocs (the body is data; `cat > file <<'EOF'` writes `file`), `cd`, the variables the command assigns itself
+(`S=/tmp/x; bun test > $S/run.log`, `export S=…`, `S=… cmd`), `~` and `$HOME`. `sed -i` writes only its files (not
+the `-e`/`-f` script; `-i.bak`, `-i ''` too) and `cp` only its destination. A path that keeps a variable, a `$(…)`, a
+backquote or a glob cannot be checked: it passes when it is plainly outside the repository (`/tmp/$X/f`), and is
+refused otherwise with "the path … cannot be checked; use the literal path, or Edit/Write", never with a `claim` of a
+path with `$`. The main agent is only kept out of the run's own files.
+
 ## Variables
 
 | Variable | Default | Use |

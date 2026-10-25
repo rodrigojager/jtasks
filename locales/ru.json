@@ -156,6 +156,7 @@
   "guard.git": "субагент не запускает git {sub}: коммит делает jtasks done {id}",
   "guard.outside": "вне владения {id}: {rel}; используйте jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json и тикеты меняются только через инструмент tasks; никогда вручную",
+  "guard.unresolved": "{id}: путь {raw} содержит переменную, подстановку или glob и не может быть проверен; используйте буквальный путь или Edit/Write",
   "help.archive": "archive <run>                         переносит прогон в JTASKS_HOME/archive (resume вернёт)",
   "help.claim": "claim <id> [<файл…>] [--timeout 60s]  ещё один файл (без файла: уступленное); ждёт в очереди",
   "help.clean": "clean <run>|--all [--yes]             удаляет папку прогона (сперва список активных эффектов)",

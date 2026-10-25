@@ -156,6 +156,7 @@
   "guard.git": "サブエージェントは git {sub} を実行しない: コミットは jtasks done {id} が行う",
   "guard.outside": "{id} の所有権外: {rel}。jtasks claim {id} {rel} を使う",
   "guard.run_files": "{rel}: tasks.json、run.json、チケットは tasks ツール経由でのみ変更する。手で編集しない",
+  "guard.unresolved": "{id}: パス {raw} には変数、置換、またはグロブがあり確認できない。リテラルのパスか Edit/Write を使う",
   "help.archive": "archive <run>                         実行を JTASKS_HOME/archive へ移す（resume で戻す）",
   "help.claim": "claim <id> [<ファイル…>] [--timeout 60s]  ファイルを追加で求める（なし: 譲ったもの）。キューで待つ",
   "help.clean": "clean <run>|--all [--yes]             実行のフォルダを削除（先に有効な副作用を一覧）",

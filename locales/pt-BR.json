@@ -156,6 +156,7 @@
   "guard.git": "subagente não roda git {sub}: o commit é feito por jtasks done {id}",
   "guard.outside": "fora da posse de {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão",
+  "guard.unresolved": "{id}: o caminho {raw} tem variável, substituição ou glob e não pode ser conferido; use o caminho literal, ou Edit/Write",
   "help.archive": "archive <run>                         move a execução para JTASKS_HOME/archive (resume a traz)",
   "help.claim": "claim <id> [<arquivo…>] [--timeout 60s]  mais um arquivo (sem: o que cedeu); espera na fila",
   "help.clean": "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",

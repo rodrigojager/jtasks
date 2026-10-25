@@ -14,12 +14,20 @@ export interface GuardContext {
     cwd: string;
     /** The task the caller works on; absent for the main agent. */
     task?: Pick<Task, "id" | "files" | "claimed" | "exclusive">;
+    /** The host's home (`HOME`, or `USERPROFILE`): what `~` and `$HOME` stand for in a shell command. */
+    home?: string;
 }
 /** The path relative to the repository (`/`), or undefined when it lies outside. */
 export declare function repoRelative(ctx: GuardContext, path: string): string | undefined;
 /** An edit (Edit, Write, NotebookEdit, OpenCode's edit/write/patch) of one path. */
 export declare function checkEdit(ctx: GuardContext, path: string): Verdict;
-/** Splits a shell command into simple commands (`&&`, `||`, `;`, `|`, newlines) and words, keeping quotes. */
+/** Splits a shell command into simple commands and words, quotes taken off (`>` stands for an output redirection). */
 export declare function shellSegments(command: string): string[][];
-/** A shell command of a subagent: git mutators always refused; writes outside the ownership refused. */
+/**
+ * A shell command: git mutators of a subagent always refused; writes outside the ownership refused. Variables the
+ * command assigns itself (`S=/tmp/x; … > $S/f`, `export S=…`, `S=… cmd`), `~` and `$HOME` (the host's) are expanded,
+ * `cd` is followed, heredoc bodies are data, and `sed -i` writes only its files. A path that still has a variable, a
+ * substitution or a glob cannot be checked: allowed when it is plainly outside the repository, refused otherwise with
+ * `guard.unresolved` (never a `claim` of a path with `$`).
+ */
 export declare function checkShell(ctx: GuardContext, command: string): Verdict;

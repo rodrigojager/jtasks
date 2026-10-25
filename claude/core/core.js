@@ -282,6 +282,7 @@ var en_default = {
   "guard.git": "a subagent does not run git {sub}: the commit is made by jtasks done {id}",
   "guard.outside": "outside the ownership of {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json and the tickets change only through the jtasks tool; never by hand",
+  "guard.unresolved": "{id}: the path {raw} has a variable, a substitution or a glob and cannot be checked; use the literal path, or Edit/Write",
   "help.archive": "archive <run>                         moves the run to JTASKS_HOME/archive (resume brings it)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  one more file (none: what it yielded); waits in the queue",
   "help.clean": "clean <run>|--all [--yes]             deletes the run's folder (listing the active effects first)",
@@ -728,6 +729,7 @@ var pt_BR_default = {
   "guard.git": "subagente não roda git {sub}: o commit é feito por jtasks done {id}",
   "guard.outside": "fora da posse de {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão",
+  "guard.unresolved": "{id}: o caminho {raw} tem variável, substituição ou glob e não pode ser conferido; use o caminho literal, ou Edit/Write",
   "help.archive": "archive <run>                         move a execução para JTASKS_HOME/archive (resume a traz)",
   "help.claim": "claim <id> [<arquivo…>] [--timeout 60s]  mais um arquivo (sem: o que cedeu); espera na fila",
   "help.clean": "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",
@@ -1174,6 +1176,7 @@ var es_default = {
   "guard.git": "un subagente no ejecuta git {sub}: el commit lo hace jtasks done {id}",
   "guard.outside": "fuera de la posesión de {id}: {rel}; usa jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json y los tickets solo cambian con la herramienta tasks; nunca a mano",
+  "guard.unresolved": "{id}: la ruta {raw} tiene una variable, una sustitución o un glob y no se puede comprobar; usa la ruta literal, o Edit/Write",
   "help.archive": "archive <run>                         la mueve a JTASKS_HOME/archive (resume la devuelve)",
   "help.claim": "claim <id> [<archivo…>] [--timeout 60s]  un archivo más (sin: lo cedido); espera en la cola",
   "help.clean": "clean <run>|--all [--yes]             borra su carpeta (lista antes los efectos activos)",
@@ -1620,6 +1623,7 @@ var fr_default = {
   "guard.git": "un sous-agent ne lance pas git {sub}: le commit est fait par jtasks done {id}",
   "guard.outside": "hors de la possession de {id}: {rel}; utilisez jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json et les tickets ne changent que par l'outil tasks; jamais à la main",
+  "guard.unresolved": "{id}: le chemin {raw} contient une variable, une substitution ou un glob et ne peut pas être vérifié; utilisez le chemin littéral, ou Edit/Write",
   "help.archive": "archive <run>                         la déplace vers JTASKS_HOME/archive (resume la ramène)",
   "help.claim": "claim <id> [<fichier…>] [--timeout 60s]  un fichier de plus (sans: le cédé); attend en file",
   "help.clean": "clean <run>|--all [--yes]             supprime son dossier (liste d'abord les effets actifs)",
@@ -2066,6 +2070,7 @@ var de_default = {
   "guard.git": "ein Subagent führt git {sub} nicht aus: den Commit macht jtasks done {id}",
   "guard.outside": "außerhalb des Besitzes von {id}: {rel}; nutze jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json und die Tickets ändern sich nur über das Tool tasks; nie von Hand",
+  "guard.unresolved": "{id}: der Pfad {raw} enthält eine Variable, eine Ersetzung oder ein Glob und lässt sich nicht prüfen; nimm den wörtlichen Pfad, oder Edit/Write",
   "help.archive": "archive <run>                         verschiebt nach JTASKS_HOME/archive (resume holt zurück)",
   "help.claim": "claim <id> [<datei…>] [--timeout 60s] eine Datei mehr (ohne: das Abgegebene); wartet in Reihe",
   "help.clean": "clean <run>|--all [--yes]             löscht den Ordner des Laufs (listet erst aktive Effekte)",
@@ -2512,6 +2517,7 @@ var it_default = {
   "guard.git": "un subagente non esegue git {sub}: il commit lo fa jtasks done {id}",
   "guard.outside": "fuori dal possesso di {id}: {rel}; usa jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e i ticket cambiano solo tramite lo strumento tasks; mai a mano",
+  "guard.unresolved": "{id}: il percorso {raw} ha una variabile, una sostituzione o un glob e non si può verificare; usa il percorso letterale, o Edit/Write",
   "help.archive": "archive <run>                         la sposta in JTASKS_HOME/archive (resume la riporta)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  un altro file (senza: ciò che ha ceduto); attende in coda",
   "help.clean": "clean <run>|--all [--yes]             elimina la cartella (elencando prima gli effetti attivi)",
@@ -2958,6 +2964,7 @@ var zh_CN_default = {
   "guard.git": "子智能体不运行 git {sub}：提交由 jtasks done {id} 完成",
   "guard.outside": "超出 {id} 的所有权：{rel}；使用 jtasks claim {id} {rel}",
   "guard.run_files": "{rel}：tasks.json、run.json 和工单只能通过 tasks 工具修改；切勿手动修改",
+  "guard.unresolved": "{id}：路径 {raw} 含有变量、命令替换或通配符，无法检查；请使用字面路径，或 Edit/Write",
   "help.archive": "archive <run>                         将运行移到 JTASKS_HOME/archive（resume 取回）",
   "help.claim": "claim <id> [<文件…>] [--timeout 60s]  再申请一个文件（不带：取回让出的）；在队列中等待",
   "help.clean": "clean <run>|--all [--yes]             删除运行的文件夹（先列出生效的副作用）",
@@ -3404,6 +3411,7 @@ var ja_default = {
   "guard.git": "サブエージェントは git {sub} を実行しない: コミットは jtasks done {id} が行う",
   "guard.outside": "{id} の所有権外: {rel}。jtasks claim {id} {rel} を使う",
   "guard.run_files": "{rel}: tasks.json、run.json、チケットは tasks ツール経由でのみ変更する。手で編集しない",
+  "guard.unresolved": "{id}: パス {raw} には変数、置換、またはグロブがあり確認できない。リテラルのパスか Edit/Write を使う",
   "help.archive": "archive <run>                         実行を JTASKS_HOME/archive へ移す（resume で戻す）",
   "help.claim": "claim <id> [<ファイル…>] [--timeout 60s]  ファイルを追加で求める（なし: 譲ったもの）。キューで待つ",
   "help.clean": "clean <run>|--all [--yes]             実行のフォルダを削除（先に有効な副作用を一覧）",
@@ -3850,6 +3858,7 @@ var ru_default = {
   "guard.git": "субагент не запускает git {sub}: коммит делает jtasks done {id}",
   "guard.outside": "вне владения {id}: {rel}; используйте jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json и тикеты меняются только через инструмент tasks; никогда вручную",
+  "guard.unresolved": "{id}: путь {raw} содержит переменную, подстановку или glob и не может быть проверен; используйте буквальный путь или Edit/Write",
   "help.archive": "archive <run>                         переносит прогон в JTASKS_HOME/archive (resume вернёт)",
   "help.claim": "claim <id> [<файл…>] [--timeout 60s]  ещё один файл (без файла: уступленное); ждёт в очереди",
   "help.clean": "clean <run>|--all [--yes]             удаляет папку прогона (сперва список активных эффектов)",
@@ -4296,6 +4305,7 @@ var ar_default = {
   "guard.git": "الوكيل الفرعي لا يشغّل git {sub}: الإيداع يصنعه jtasks done {id}",
   "guard.outside": "خارج ملكية {id}: {rel}؛ استخدم jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: لا تتغير tasks.json و run.json والتذاكر إلا عبر أداة tasks؛ لا تُعدَّل يدويًا أبدًا",
+  "guard.unresolved": "{id}: المسار {raw} فيه متغير أو استبدال أو glob ولا يمكن التحقق منه؛ استخدم المسار الحرفي، أو Edit/Write",
   "help.archive": "archive <run>                         ينقل التشغيل إلى JTASKS_HOME/archive (يعيده resume)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  ملف آخر (بلا ملف: ما تنازلت عنه)؛ ينتظر في الطابور",
   "help.clean": "clean <run>|--all [--yes]             يحذف مجلد التشغيل (يسرد الآثار النشطة أولًا)",
@@ -4742,6 +4752,7 @@ var hi_default = {
   "guard.git": "सबएजेंट git {sub} नहीं चलाता: commit jtasks done {id} करता है",
   "guard.outside": "{id} के स्वामित्व के बाहर: {rel}; jtasks claim {id} {rel} चलाएँ",
   "guard.run_files": "{rel}: tasks.json, run.json और टिकट केवल tasks टूल से बदलते हैं; कभी हाथ से नहीं",
+  "guard.unresolved": "{id}: पथ {raw} में चर, प्रतिस्थापन या glob है और उसे जाँचा नहीं जा सकता; शाब्दिक पथ, या Edit/Write इस्तेमाल करें",
   "help.archive": "archive <run>                         रन JTASKS_HOME/archive में भेजता है (resume लौटाता है)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  एक और फ़ाइल (बिना फ़ाइल: जो छोड़ा था); कतार में रुकता है",
   "help.clean": "clean <run>|--all [--yes]             रन का फ़ोल्डर हटाता है (पहले सक्रिय प्रभाव दिखाता है)",
@@ -9314,52 +9325,388 @@ var GIT_MUTATORS = new Set([
   "worktree"
 ]);
 var WRITERS = new Set(["rm", "mv", "cp", "del", "erase", "rmdir", "rd", "move", "copy", "touch", "tee", "truncate", "mkdir", "ni", "new-item", "remove-item", "set-content", "out-file"]);
+var BREAKS = new Set([" ", "\t", "\r", `
+`, ";", "&", "|", "(", ")", "<", ">"]);
+function lex(command) {
+  const out = [];
+  const heredocs = [];
+  const n = command.length;
+  let i = 0;
+  const readWord = () => {
+    const parts = [];
+    let cur = "";
+    const flush = () => {
+      if (cur)
+        parts.push({ text: cur, quote: "" });
+      cur = "";
+    };
+    while (i < n) {
+      const c = command[i];
+      if (BREAKS.has(c))
+        break;
+      if (c === "\\") {
+        cur += command[i + 1] === `
+` ? "" : command[i + 1] ?? "";
+        i += 2;
+        continue;
+      }
+      if (c === "'") {
+        flush();
+        const end = command.indexOf("'", i + 1);
+        parts.push({ text: command.slice(i + 1, end < 0 ? n : end), quote: "'" });
+        i = end < 0 ? n : end + 1;
+        continue;
+      }
+      if (c === '"') {
+        flush();
+        let text = "";
+        let substitution = false;
+        i++;
+        while (i < n && command[i] !== '"') {
+          if (command[i] === "\\" && i + 1 < n && '$`"\\'.includes(command[i + 1])) {
+            text += command[i + 1];
+            i += 2;
+            continue;
+          }
+          if (command[i] === "`" || command[i] === "$" && command[i + 1] === "(")
+            substitution = true;
+          text += command[i++];
+        }
+        i++;
+        parts.push(substitution ? { text, quote: '"', substitution } : { text, quote: '"' });
+        continue;
+      }
+      if (c === "`" || c === "$" && command[i + 1] === "(") {
+        flush();
+        const start = i;
+        if (c === "`") {
+          const end = command.indexOf("`", i + 1);
+          i = end < 0 ? n : end + 1;
+        } else {
+          let depth = 0;
+          for (;i < n; i++) {
+            if (command[i] === "(")
+              depth++;
+            else if (command[i] === ")" && --depth === 0)
+              break;
+          }
+          i++;
+        }
+        parts.push({ text: command.slice(start, i), quote: "", substitution: true });
+        continue;
+      }
+      cur += c;
+      i++;
+    }
+    flush();
+    return parts;
+  };
+  const skipHeredocs = () => {
+    for (const h of heredocs.splice(0))
+      while (i < n) {
+        const eol = command.indexOf(`
+`, i);
+        const line = command.slice(i, eol < 0 ? n : eol);
+        i = eol < 0 ? n : eol + 1;
+        if ((h.strip ? line.replace(/^\t+/, "") : line).replace(/\r$/, "") === h.delimiter)
+          break;
+      }
+  };
+  while (i < n) {
+    const c = command[i];
+    if (c === `
+`) {
+      out.push({ kind: "sep" });
+      i++;
+      skipHeredocs();
+      continue;
+    }
+    if (c === " " || c === "\t" || c === "\r") {
+      i++;
+      continue;
+    }
+    if (c === "#" && (i === 0 || /[\s;&|()]/.test(command[i - 1]))) {
+      const eol = command.indexOf(`
+`, i);
+      i = eol < 0 ? n : eol;
+      continue;
+    }
+    if (c === ";" || c === "(" || c === ")") {
+      out.push({ kind: "sep" });
+      i++;
+      continue;
+    }
+    if (c === "&" && command[i + 1] === ">") {
+      i += command[i + 2] === ">" ? 3 : 2;
+      out.push({ kind: "op", op: ">" });
+      continue;
+    }
+    if (c === "&" || c === "|") {
+      i += command[i + 1] === c ? 2 : 1;
+      out.push({ kind: "sep" });
+      continue;
+    }
+    const redir = /^(\d*)(>>|>\||>&|>|<<<|<<-|<<|<&|<>|<)/.exec(command.slice(i));
+    if (redir && (redir[1] === "" || i === 0 || /[\s;&|()]/.test(command[i - 1]))) {
+      i += redir[0].length;
+      const op = redir[2];
+      out.push(redir[1] ? { kind: "op", op, fd: redir[1] } : { kind: "op", op });
+      if (op === "<<" || op === "<<-") {
+        while (command[i] === " " || command[i] === "\t")
+          i++;
+        const word = readWord();
+        heredocs.push({ delimiter: word.map((p) => p.text).join(""), strip: op === "<<-" });
+        out.push({ kind: "word", parts: word });
+      }
+      continue;
+    }
+    out.push({ kind: "word", parts: readWord() });
+  }
+  return out;
+}
 function shellSegments(command) {
   const segments = [];
   let words = [];
-  let cur = "";
-  let quote = null;
-  const push = () => {
-    if (cur)
-      words.push(cur);
-    cur = "";
+  for (const t of lex(command)) {
+    if (t.kind === "sep") {
+      if (words.length)
+        segments.push(words);
+      words = [];
+    } else if (t.kind === "op")
+      words.push(t.op.startsWith(">") ? ">" : t.op);
+    else
+      words.push(t.parts.map((p) => p.text).join(""));
+  }
+  if (words.length)
+    segments.push(words);
+  return segments;
+}
+var VAR = /\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*)|[0-9@*#?$!{-])/g;
+function expand(parts, vars) {
+  let text = "";
+  let unresolved = false;
+  let prefix = "";
+  const raw = parts.map((p) => p.quote ? `${p.quote}${p.text}${p.quote}` : p.text).join("");
+  const stop = () => {
+    prefix = text;
+    unresolved = true;
   };
-  const end = () => {
-    push();
-    if (words.length)
-      segments.push(words);
-    words = [];
-  };
-  for (let i = 0;i < command.length; i++) {
-    const c = command[i];
-    if (quote) {
-      if (c === quote)
-        quote = null;
-      else
-        cur += c;
+  parts.forEach((p, index) => {
+    if (unresolved)
+      return;
+    if (p.substitution)
+      return stop();
+    if (p.quote === "'") {
+      text += p.text;
+      return;
+    }
+    let body = p.text;
+    if (index === 0 && p.quote === "" && (body === "~" || body.startsWith("~/"))) {
+      const home = vars.get("HOME");
+      if (home === undefined)
+        return stop();
+      body = home + body.slice(1);
+    }
+    let last = 0;
+    for (const m of body.matchAll(VAR)) {
+      text += body.slice(last, m.index);
+      last = m.index + m[0].length;
+      const name = m[1] ?? m[2];
+      const value = name ? vars.get(name) : undefined;
+      if (value === undefined)
+        return stop();
+      text += value;
+    }
+    const rest = body.slice(last);
+    const glob = p.quote === "" ? rest.search(/[*?[]/) : -1;
+    if (glob >= 0) {
+      text += rest.slice(0, glob);
+      return stop();
+    }
+    text += rest;
+  });
+  return { text, raw, unresolved, prefix };
+}
+var ASSIGN = /^([A-Za-z_][A-Za-z0-9_]*)=/;
+var DECLARERS = new Set(["export", "local", "declare", "typeset", "readonly"]);
+function assignment(word, vars) {
+  const head = word[0];
+  const m = head && head.quote === "" ? ASSIGN.exec(head.text) : null;
+  if (!m)
+    return;
+  const value = expand([{ ...head, text: head.text.slice(m[0].length) }, ...word.slice(1)], vars);
+  return [m[1], value.unresolved ? undefined : value.text];
+}
+var VALUED = {
+  truncate: new Set(["-s", "--size", "-r", "--reference"]),
+  mkdir: new Set(["-m", "--mode"]),
+  cp: new Set(["-t", "--target-directory", "-S", "--suffix"]),
+  mv: new Set(["-t", "--target-directory", "-S", "--suffix"]),
+  touch: new Set(["-d", "--date", "-t", "-r", "--reference"])
+};
+function writerTargets(name, args) {
+  const valued = VALUED[name] ?? new Set;
+  const operands = [];
+  let target;
+  for (let i = 0;i < args.length; i++) {
+    const a = args[i];
+    if (a.text === "--") {
+      operands.push(...args.slice(i + 1));
+      break;
+    }
+    if (a.text.startsWith("-") && a.text.length > 1 && !a.unresolved) {
+      const eq = a.text.indexOf("=");
+      const flag = eq > 0 ? a.text.slice(0, eq) : a.text;
+      if ((name === "cp" || name === "mv") && (flag === "-t" || flag === "--target-directory"))
+        target = eq > 0 ? { ...a, text: a.text.slice(eq + 1) } : args[i + 1];
+      if (valued.has(flag) && eq < 0)
+        i++;
       continue;
     }
-    if (c === '"' || c === "'")
-      quote = c;
-    else if (c === `
-` || c === ";")
-      end();
-    else if (c === "&" || c === "|") {
-      if (command[i + 1] === c)
-        i++;
-      end();
-    } else if (c === ">") {
-      push();
-      if (command[i + 1] === ">")
-        i++;
-      words.push(">");
-    } else if (/\s/.test(c))
-      push();
-    else
-      cur += c;
+    operands.push(a);
   }
-  end();
-  return segments;
+  if (name === "cp" || name === "copy")
+    return target ? [target] : operands.slice(-1);
+  return target ? [target, ...operands] : operands;
+}
+function sedTargets(args) {
+  let inPlace = false;
+  let script = false;
+  const operands = [];
+  for (let i = 0;i < args.length; i++) {
+    const a = args[i].text;
+    if (a === "--") {
+      operands.push(...args.slice(i + 1));
+      break;
+    }
+    if (a.startsWith("--")) {
+      if (a === "--in-place" || a.startsWith("--in-place="))
+        inPlace = true;
+      else if (a === "--expression" || a === "--file") {
+        script = true;
+        i++;
+      } else if (a.startsWith("--expression=") || a.startsWith("--file="))
+        script = true;
+      else if (a === "--line-length")
+        i++;
+      continue;
+    }
+    if (a.startsWith("-") && a.length > 1) {
+      for (let k = 1;k < a.length; k++) {
+        const f = a[k];
+        if (f === "i") {
+          inPlace = true;
+          if (k === a.length - 1 && args[i + 1]?.text === "" && !args[i + 1].unresolved)
+            i++;
+          break;
+        }
+        if (f === "e" || f === "f" || f === "l") {
+          if (f !== "l")
+            script = true;
+          if (k === a.length - 1)
+            i++;
+          break;
+        }
+      }
+      continue;
+    }
+    operands.push(args[i]);
+  }
+  if (!inPlace)
+    return [];
+  return script ? operands : operands.slice(1);
+}
+var NOT_FILES = new Set(["/dev/null", "/dev/stdout", "/dev/stderr", "nul", "$null"]);
+function writes(command, home, startCwd) {
+  const vars = new Map;
+  if (home !== undefined)
+    vars.set("HOME", home);
+  let cwd = startCwd;
+  const written = [];
+  const git = [];
+  const tokens = lex(command);
+  let k = 0;
+  while (k < tokens.length) {
+    const words = [];
+    const redirects = [];
+    for (;k < tokens.length && tokens[k].kind !== "sep"; k++) {
+      const t = tokens[k];
+      if (t.kind === "word")
+        words.push(t.parts);
+      else if (t.kind === "op") {
+        const next = tokens[k + 1];
+        if (next?.kind === "word")
+          k++;
+        redirects.push({ op: t.op, target: next?.kind === "word" ? next.parts : undefined });
+      }
+    }
+    k++;
+    const local = new Map(vars);
+    let first = 0;
+    for (;first < words.length; first++) {
+      const a = assignment(words[first], local);
+      if (!a)
+        break;
+      local.set(a[0], a[1]);
+    }
+    if (first === words.length)
+      for (const [name, value] of local)
+        vars.set(name, value);
+    const args = words.slice(first).map((w) => expand(w, local));
+    const name = (args[0]?.text ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
+    if (DECLARERS.has(name))
+      for (const w of words.slice(first + 1)) {
+        const a = assignment(w, vars);
+        if (a)
+          vars.set(a[0], a[1]);
+      }
+    const add = (e) => {
+      if (NOT_FILES.has(e.raw.toLowerCase()) || NOT_FILES.has(e.text.toLowerCase()))
+        return;
+      if (e.unresolved)
+        written.push({ raw: e.raw, prefix: e.prefix });
+      else if (cwd === undefined && !isAbsolute(e.text))
+        written.push({ raw: e.raw, prefix: "" });
+      else
+        written.push({ path: e.text, cwd: cwd ?? startCwd });
+    };
+    for (const r of redirects) {
+      if (!r.target)
+        continue;
+      const target = expand(r.target, local);
+      if (r.op === ">" || r.op === ">>" || r.op === ">|" || r.op === "<>")
+        add(target);
+      else if (r.op === ">&" && !/^(\d+|-)$/.test(target.text))
+        add(target);
+    }
+    if (name === "git")
+      git.push(args.map((a) => a.text));
+    else if (name === "cd") {
+      const to = args[1];
+      if (!to)
+        cwd = home ?? cwd;
+      else if (to.unresolved || cwd === undefined)
+        cwd = undefined;
+      else
+        cwd = isAbsolute(to.text) ? normalize(to.text) : join(cwd, to.text);
+    } else if (name === "sed")
+      for (const t of sedTargets(args.slice(1)))
+        add(t);
+    else if (WRITERS.has(name))
+      for (const t of writerTargets(name, args.slice(1)))
+        add(t);
+  }
+  return { written, git };
+}
+function plainlyOutside(ctx, prefix) {
+  const p = slash(prefix);
+  if (!isAbsolute(p) || /(^|\/)\.\.(\/|$)/.test(p))
+    return false;
+  const dir = p.slice(0, p.lastIndexOf("/"));
+  if (!dir || /^[A-Za-z]:$/.test(dir))
+    return false;
+  const insensitive = caseInsensitive(ctx.platform);
+  return relativeInside(ctx.root, dir, insensitive) === undefined && relativeInside(dir, ctx.root, insensitive) === undefined;
 }
 function gitSubcommand(words) {
   for (let i = 1;i < words.length; i++) {
@@ -9374,34 +9721,22 @@ function gitSubcommand(words) {
   }
   return;
 }
-function writtenPaths(words) {
-  const out = [];
-  for (let i = 0;i < words.length; i++)
-    if (words[i] === ">" && words[i + 1])
-      out.push(words[i + 1]);
-  const plain = words.filter((w, i) => w !== ">" && words[i - 1] !== ">");
-  const name = (plain[0] ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
-  const operands = plain.slice(1).filter((w) => !w.startsWith("-"));
-  if (WRITERS.has(name))
-    out.push(...operands);
-  else if (name === "sed" && plain.some((w) => w === "-i" || w.startsWith("-i") || w === "--in-place"))
-    out.push(...operands.slice(1));
-  return out.filter((p) => p !== "/dev/null" && p.toLowerCase() !== "nul" && p !== "$null");
-}
 function checkShell(ctx, command) {
-  for (const words of shellSegments(command)) {
-    const exe = (words[0] ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
-    if (exe === "git") {
-      const sub = gitSubcommand(words);
-      if (sub && GIT_MUTATORS.has(sub) && ctx.task)
-        return { allow: false, reason: tr("guard.git", { sub, id: ctx.task.id }) };
-      continue;
+  const { written, git } = writes(command, ctx.home, ctx.cwd);
+  for (const words of git) {
+    const sub = gitSubcommand(words);
+    if (sub && GIT_MUTATORS.has(sub) && ctx.task)
+      return { allow: false, reason: tr("guard.git", { sub, id: ctx.task.id }) };
+  }
+  for (const w of written) {
+    if ("raw" in w) {
+      if (!ctx.task || plainlyOutside(ctx, w.prefix))
+        continue;
+      return { allow: false, reason: tr("guard.unresolved", { id: ctx.task.id, raw: w.raw }) };
     }
-    for (const p of writtenPaths(words)) {
-      const verdict = checkEdit(ctx, p);
-      if (!verdict.allow)
-        return verdict;
-    }
+    const verdict = checkEdit({ ...ctx, cwd: w.cwd }, w.path);
+    if (!verdict.allow)
+      return verdict;
   }
   return ALLOW;
 }

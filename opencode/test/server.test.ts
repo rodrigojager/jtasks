@@ -120,6 +120,12 @@ describe("OpenCode plugin", () => {
       message: "subagente não roda git commit: o commit é feito por jtasks done T01",
     })
     expect(await h.permission("c1", "shell", ["bun test"])).toMatchObject({ effect: "allow" })
+    // rev. 5.6: the core's new rule: assigned variables, heredocs, and the right reason for an unresolvable path.
+    expect(await h.permission("c1", "shell", ["S=/tmp/jt; mkdir -p $S && bun test > $S/run.log 2>&1"])).toMatchObject({ effect: "allow" })
+    expect(await h.permission("c1", "shell", ["cat > src/move.ts <<'EOF'\nexport const m = 1\nEOF"])).toMatchObject({ effect: "allow" })
+    const unresolved = await h.permission("c1", "shell", ["echo x > $OUT/move.ts"])
+    expect(unresolved.effect).toBe("deny")
+    expect(unresolved.message).toContain("não pode ser conferido")
     expect(await h.permission("c1", "read", ["src/other.ts"])).toMatchObject({ effect: "allow" })
     // The main agent edits freely, but never the run's files.
     expect(await h.permission("s1", "edit", ["src/other.ts"])).toMatchObject({ effect: "allow" })

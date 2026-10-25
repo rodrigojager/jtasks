@@ -25,7 +25,7 @@ export async function judge(host: Host, bindings: Bindings, event: Evaluation, f
     task = tasks?.tasks.find((t) => t.id === mine.task && t.status === "in_progress")
   }
   const cwd = (await bindings.directory(event.sessionID)) ?? fallbackDir
-  const ctx = { root: run.root, platform: host.platform, cwd, task }
+  const ctx = { root: run.root, platform: host.platform, cwd, task, home: host.env("HOME") ?? host.env("USERPROFILE") }
   for (const resource of event.resources) {
     const verdict = event.action === "edit" ? checkEdit(ctx, resource) : checkShell(ctx, resource)
     if (!verdict.allow) {
