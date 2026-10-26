@@ -25,12 +25,19 @@ ticket 47): `jtasks yield` cede só os arquivos disputados num deadlock, com as 
 `touchesShared` e `sharedPolicy` no plano (avisos no `validate`, mutex na fronteira com `serialize`) e
 `status --claims`; ticket 50: a guarda de shell lê o comando como o shell (aspas, heredoc, descritores, variáveis
 atribuídas no comando, `~`, `cd`, `sed -i`, `cp`) e recusa com `guard.unresolved` o caminho que não dá para conferir.
+Revisão 5.7 (itens 23 e 24, tickets 51 e 52): falhas transitórias do provedor (limite de uso/cota/sessão, 429, 529, 503, rede,
+timeout, retries esgotados) pausam a execução com a tarefa mantida em andamento e as travas (`src/transient.ts`,
+classificador por tabelas; `src/autopause.ts`; no mod, `StopFailure` em `claude/hooks/transient.ts`; no plugin,
+`session.execution.failed`/`session.error` em `opencode/src/transient.ts`), e a volta (`unpause`, relógio, reset)
+manda retomar o mesmo agente; ticket 52: versão 0.2.0 em todos os manifestos, `scripts/version.ts` e
+`test/version.test.ts`.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem
 velhas), `opencode/` (plugin), `claude/` (mod; tipos em `vendor/claude-code.d.ts`, `tsconfig.claude.json`),
 `skills/<agente>/<skill>/` (gerados de `skills/source/` pelo build, que também copia os do Claude Code para o mod). Verificação: `bun test`, `cd opencode && bun test`,
-`claude plugin validate claude`, `claude plugin test claude`, `bun run typecheck`, `bun scripts/demo.ts`.
+`claude plugin validate claude`, `claude plugin test claude`, `bun run typecheck`, `bun scripts/demo.ts`,
+`bun scripts/version.ts --check` (a versão é uma só em todos os manifestos; subir com `bun scripts/version.ts x.y.z`).
 
 ## Relação com o jlock
 

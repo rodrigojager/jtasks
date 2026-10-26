@@ -11,9 +11,28 @@ claude plugin validate claude
 claude plugin test claude
 bun run typecheck
 bun scripts/build.ts --check
+bun scripts/version.ts --check
 ```
 
 No test calls a model; tests that need git and jlock make temporary repositories and their own `JLOCK_HOME`.
+
+## Versions
+
+Claude Code's `/plugin` decides whether an update exists by comparing the version in
+`claude/.claude-plugin/plugin.json`, not the commits: a release that does not bump it is invisible ("already at the
+latest version"). The version lives in five places (`package.json`, `VERSION` in `src/tool.ts`, which `jtasks version`,
+`jtasks doctor` and the tool's description print, `claude/.claude-plugin/plugin.json`, the marketplace entry when it
+states one, and `opencode/package.json`), and `test/version.test.ts` fails when they differ. To release:
+
+```
+bun scripts/version.ts 0.3.0     # writes it everywhere
+bun scripts/build.ts             # the copies in dist/, claude/core/ and opencode/core/
+bun test                         # and the other checks above
+```
+
+Then commit. Semantic versions: while jtasks is below 1.0, a release with new behaviour bumps the minor number
+(0.2.0 → 0.3.0), one with fixes only bumps the patch (0.2.0 → 0.2.1). `claude plugin tag claude` can then create the
+`jtasks--v<version>` tag, checking plugin.json and the marketplace agree.
 
 ## Languages
 

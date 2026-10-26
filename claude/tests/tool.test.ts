@@ -1,5 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { installMachine, installSession, ROOTS } from './machine.ts'
+import { VERSION } from '../core/core.js'
 
 // The test runtime has timers, though a hooks module's types do not declare them.
 declare const setTimeout: (fn: () => void, ms: number) => unknown
@@ -28,7 +29,7 @@ for (const { os, root: ROOT } of ROOTS) {
     const session = installSession(on, ROOT)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     expect(session.tools).toEqual(['jtasks'])
-    expect(await call($, 'version')).toBe('jtasks 0.1.0')
+    expect(await call($, 'version')).toBe(`jtasks ${VERSION}`)
     expect(await call($, 'help')).toContain('plan <json|@arquivo>')
   })
 
