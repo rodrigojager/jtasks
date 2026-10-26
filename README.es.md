@@ -151,6 +151,14 @@ Si un turno termina con una tarea lista y ningún subagente en marcha (tras una 
 le envía a Claude un mensaje que reabre el ciclo; tras dos sin progreso, se detiene y te avisa. Para parar a
 propósito, Claude llama a `jtasks pause` y te pregunta; `jtasks keepalive off` lo desactiva.
 
+Si un subagente (o el propio Claude) muere por un fallo que se resuelve solo, como un límite de uso o de sesión, un
+límite de peticiones, una API sobrecargada o una conexión caída, el mod pausa la ejecución en lugar de devolver la
+tarea: sigue en curso con sus bloqueos, y el panel dice por qué y hasta cuándo. En el reinicio (la hora que dio el
+error, o cuando Claude Code sigue tras un límite de uso), o con `jtasks unpause`, la ejecución vuelve a estar activa
+y se le dice a Claude que reanude el mismo subagente con SendMessage, sin abrir otro. Una clave inválida, un rechazo
+o un contexto desbordado siguen como antes. Para obtener una versión nueva: `claude plugin marketplace update
+jtasks`, luego `claude plugin update jtasks@jtasks`, y reinicia Claude Code.
+
 ## Con OpenCode
 
 Con el plugin, lo mismo: `to-jtasks` para planificar y luego un goal. La llamada `subagent` de cada tarea recibe
@@ -158,6 +166,11 @@ el agente de su perfil (`execute`, `execute-deep`, `review`, instalados por `jta
 cualquier agente que nombres en el plan). La barra lateral muestra la lista de comprobación y la barra de progreso.
 
 Cuando la sesión queda inactiva con una tarea lista y nada en marcha, el plugin reabre el ciclo de la misma forma.
+
+Una sesión que falla por un error del proveedor que se resuelve solo (se reconocen opencode/zen, OpenRouter con el
+error del upstream en el cuerpo, Anthropic, OpenAI, Moonshot/Kimi y los proveedores compatibles con OpenAI) pausa la
+ejecución igual, con la tarea en curso; en el reinicio el plugin la reanuda y le dice a la sesión que continúe el
+mismo subagente (`task_id`).
 
 ## Desde una terminal o Codex
 

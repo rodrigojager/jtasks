@@ -112,7 +112,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `import <dir> [--check\|--yes]` | Markdown tickets → run (a ticket without Files becomes `exclusive`) |
 | run | `runs` | the runs of the repository, with status and progress |
 | | `status [--claims]` | `feitas F/T (P%) · … · restam N`, waits, ready and blocked tasks, active locks; `--claims` adds the run's most contested files, from its log (claims, timeouts, deadlocks and yields per file, with the tasks; `claims` in `--json`) |
-| | `pause` / `unpause` | paused: `start` refused, and the keepalive stays quiet |
+| | `pause` / `unpause` | paused: `start` refused, and the keepalive stays quiet; `unpause` of a [transient pause](#transient-failures) takes back expired locks and names the agent to resume |
 | | `keepalive on\|off` | the host reopens the loop when the orchestrator stops with ready tasks (default on; see [With `/goal`](#with-goal)) |
 | | `resume <run> [--keep-owners] [--from-archive]` | binds the session, leaves pause, releases in-progress tasks whose locks are gone |
 | task | `next [limit]` | the ready tasks (can run in parallel): profile, criteria, ownership, ticket |
@@ -292,6 +292,40 @@ next and open the subagents. If something depends on the person, call jtasks pau
   `"keepalive": false` starts off. A real `unpause` (or a `resume` that leaves a pause) starts the count over; on a run
   that was not paused they change nothing, so a model that answers the message with them cannot loop it.
 - Codex (the CLI alone) has no keepalive: the loop depends on the model.
+
+### Transient failures
+
+A subagent (or the orchestrator) that dies on a failure of the provider that clears by itself does not give its task
+back: the host pauses the run (`run.json`'s `pause`, `log.jsonl`'s `auto-pause`) and keeps every task in progress with
+its locks and claims (the host keeps renewing them while it lives). Transient: a rate limit, a usage, session or
+weekly limit, a quota or credit (`429`, `402`, `insufficient_quota`, `usage limit`, `session limit`), an overloaded
+or failing server (`529`, `503`, `5xx`, `overloaded`), the connection (`ECONNRESET`, `ETIMEDOUT`, `fetch failed`,
+`socket hang up`), a timeout, the provider's retries running out. Not transient, and handled as before: an invalid
+key or login, a refusal or content filter, a context that overflows, an output cap, a model that does not exist, a
+bug. The classifier is the core's (`src/transient.ts`), a table of kinds and patterns tested with real samples of
+Claude Code, opencode/zen, OpenRouter (the upstream's error inside the body), Anthropic, OpenAI, Moonshot/Kimi and
+OpenAI-compatible servers.
+
+- Claude Code: `turn.complete` with `reason: "error"` carries no text, so the mod keeps each loop's classic
+  `StopFailure` (`error`, the kind Claude Code gave it; `error_details`; `last_assistant_message`, the error as shown;
+  `agent_id` inside a subagent). A StopFailure that comes after its loop's end still pauses the run. The subagent's
+  place stays in the mod (its guard still knows the task), and a second subagent for the task is refused.
+- OpenCode: `session.execution.failed` (the structured error: `type`, `status`, `response.body`, `retryAfterMs`), the
+  retry status (`session.status` `retry`, `session.retry.scheduled`) and v1's `session.error` (`APIError` with
+  `statusCode` and `isRetryable`). A child session that failed this way and goes idle keeps its task.
+- The reset: the time the error gave (`resets 12:50am`, `resets Oct 27, 9am (Europe/Lisbon)`, `try again in 2s`,
+  `retry-after`, `x-ratelimit-reset`, `anthropic-ratelimit-unified-reset`, an epoch in the text or in OpenRouter's
+  echoed headers, `retryAfterMs`). The host resumes the run by itself 30 s after it (`pause.resumeAt`); with no reset
+  given, after 5 minutes, doubling at each new pause at the same progress, up to an hour; after three automatic
+  resumes in a row with no progress, only `jtasks unpause` resumes it. Claude Code's own `quota_auto_resume_fired`
+  notification (it went on after a usage limit) resumes it at once.
+- The way back (`unpause`, the clock, the reset): the run is active, the tasks kept in progress take back any lock
+  that expired meanwhile, and the orchestrator reads which agent to resume for each task (Claude Code:
+  `SendMessage` to the agent id; OpenCode: the subagent tool's `task_id`), not to open a new one, not to call `start`
+  again. A `resume` from another session after such a pause also takes the locks back instead of releasing the task.
+- While it lasts, the keepalive stays quiet (no "run is idle", no give-up), `jtasks status` shows the failure, what it
+  kept and when it ends, the pane or sidebar says the same, and the protocol tells the orchestrator to wait. A
+  `pause` by hand over it keeps the tasks but stops the automatic resume.
 
 ## Demonstration and tests
 

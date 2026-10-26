@@ -95,6 +95,14 @@ the log says `agent-ended`. The root session going idle is the orchestrator
 waiting and changes nothing. If OpenCode itself dies, each `jlock hold --release-on-eof` reads the end of its input
 and the locks are freed at once; `jtasks status` then shows `posse perdida` and `jtasks resume` gives the tasks back.
 
+A session whose execution fails on a transient failure of the provider (`session.execution.failed` with a
+`RateLimit`, `QuotaExceeded`, `ProviderInternal`, `Transport` or `Timeout` error, a `429`/`5xx` status, or the words
+of a usage limit, an overloaded server or a dropped connection in the message or body; v1's `session.error` with
+`APIError` too) does not give its task back: the run is paused, the task stays in progress with its locks, and every
+15 s the plugin looks for the pause's `resumeAt` (the reset the error gave, or a backoff). Then the run is active again
+and the root session is told to resume the same subagent session (`task_id`). See
+[Transient failures](../docs/USAGE.md#transient-failures).
+
 ## Tests
 
 ```

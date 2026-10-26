@@ -3,17 +3,19 @@
 // bound (prompt.compose runs at every request, so it is back after a compaction too), and the "Tasks" pane with
 // /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open; and the keepalive: at the end of the
 // main loop's turn, with ready tasks and no subagent alive, a message that reopens the loop (./keepalive.ts); and
-// the holds of this session's tasks in progress renewed before the run's holdTtl expires them (core's renew.ts).
+// the holds of this session's tasks in progress renewed before the run's holdTtl expires them (core's renew.ts); and
+// a loop that dies on a transient failure of the API pauses the run with its task kept (./transient.ts, rev. 5.7).
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { ensureJlock, parseArgs, renewRun, RENEW_EVERY_MS, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
 import { Keepalive } from './keepalive.ts'
+import { FailureWatch, STOP_FAILURE_WAIT_MS } from './transient.ts'
 import { BAR_COLOR, computeView, hudBar, isLive, paneLines, paneRows, PANE, PANE_TITLE, ROW_MARK, ROW_MARK_COLOR, SPINNER_FRAMES, TRACK_COLOR } from './pane.tsx'
-import type { PaneView } from '../types'
+import type { AgentTask, PaneView } from '../types'
 import { protocolSection, SECTION_ID, TOOL_DESCRIPTION, TOOL_NAME, TOOL_SCHEMA } from './protocol.ts'
 
 const RUN = { plugin: 'jtasks', key: 'run' } as const
@@ -35,12 +37,26 @@ let port: Port | undefined
 let refresh: ((force: boolean) => Promise<void>) | undefined
 /** Set at session.start: reopens the loop when the orchestrator stops with ready tasks (a closure over that hook's $). */
 let keepalive: Keepalive | undefined
+/** Set at session.start: the StopFailures of each loop, classified at the loop's end (rev. 5.7). */
+let failures: FailureWatch | undefined
+/** Set at session.start: tells the person the run was paused by a transient failure, and clears it. */
+let tell: { paused(notice: string): void; clear(): void } | undefined
+/** The status line shows a transient pause. */
+let pauseShown = false
 let paneOpen = false
 let spinnerFrame = 0
 
 function needPort(): Port {
   if (!port) throw new Error(tr('mod.no_session'))
   return port
+}
+
+const TASK_END = new Set(['done', 'skip', 'fail', 'release'])
+
+/** The context of a call of the core for the bound run, as the session (not one of its subagents). */
+async function sessionCtx(p: Port, run: string): Promise<ToolContext> {
+  const cwd = await p.cwd()
+  return { host: createModHost(p, cwd), cwd, tool: 'claude', session: await p.sessionId(), residents, holdMode: 'detach', boundRun: run }
 }
 
 /** Runs one command of the tool for the session (or for one of its subagents). */
@@ -67,6 +83,12 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
     const agents = await p.getAgents()
     if (parsed.action === 'start' || parsed.action === 'claim') await p.setAgents({ ...agents, [agentId]: { ...agents[agentId], run: result.bind ?? bound!.run, task: id } })
   }
+  // A task that ended (or was given back) no longer waits for the subagent a transient pause kept for it.
+  if (result.ok && id && TASK_END.has(parsed.action)) {
+    const agents = await p.getAgents()
+    if (Object.values(agents).some((a) => a.paused && a.task === id))
+      await p.setAgents(Object.fromEntries(Object.entries(agents).filter(([, a]) => !(a.paused && a.task === id))))
+  }
   if (result.ok && result.bind) {
     const dir = (result.data as { dir?: string } | undefined)?.dir?.replace(/\\/g, '/')
     const root = dir ? dir.replace(/\/\.scratch\/jtasks\/runs\/[^/]+$/, '') : (bound?.root ?? cwd)
@@ -91,6 +113,62 @@ export async function renewHolds(p: Port): Promise<void> {
   } finally {
     renewing = false
   }
+}
+
+/**
+ * The end of a loop on an API error (rev. 5.7): a transient failure pauses the run, with the task of the subagent
+ * (`mine`) kept in progress. Answers the notice for the person when it paused (then the caller keeps the subagent's
+ * place), or undefined (the error goes on as before).
+ */
+export async function pauseOnFailure(p: Port, agentId: string | undefined, answer: string, last: () => Promise<string | undefined>, mine?: AgentTask): Promise<string | undefined> {
+  if (!failures) return undefined
+  const failure = await failures.classify(agentId, answer, last, agentId === undefined ? 0 : STOP_FAILURE_WAIT_MS)
+  return pauseFor(p, failure, agentId, mine)
+}
+
+/** Pauses the bound run for a classified failure (only a transient one); the notice for the person, or undefined. */
+async function pauseFor(p: Port, failure: Classification, agentId: string | undefined, mine?: AgentTask): Promise<string | undefined> {
+  const bound = await p.getRun()
+  if (!bound || !failure.transient || (mine && mine.run !== bound.run)) return undefined
+  const ctx = await sessionCtx(p, bound.run)
+  if (mine) {
+    // Only a task still in progress is worth keeping; one the subagent finished already goes on as before.
+    const tasks = await readTasks(ctx.host, runDir(bound.root, bound.run)).catch(() => undefined)
+    if (tasks?.tasks.find((t) => t.id === mine.task)?.status !== 'in_progress') return undefined
+  }
+  const pause = await pauseForFailure(ctx, { run: bound.run, failure, ...(mine ? { task: mine.task } : {}), ...(agentId ? { agent: agentId } : {}) })
+  return pause ? pauseNotice(bound.run, pause, ctx.host.now()) : undefined
+}
+
+/**
+ * The clock (`resumeAt` has come) and Claude Code's own reset (`how`): leaves a transient pause, and the orchestrator
+ * is told to resume the same agents.
+ */
+async function leaveTransientPause(p: Port, how?: string): Promise<void> {
+  const bound = await p.getRun()
+  if (!bound) return
+  const ctx = await sessionCtx(p, bound.run)
+  // Cheap first: run.json alone (no git, no jlock) every two seconds.
+  const run = await readRun(ctx.host, runDir(bound.root, bound.run)).catch(() => undefined)
+  if (pauseShown && !(run?.status === 'paused' && run.pause)) {
+    pauseShown = false
+    tell?.clear()
+  }
+  if (run?.status !== 'paused' || !run.pause?.resumeAt) return
+  if (!how && Date.parse(run.pause.resumeAt) > ctx.host.now().getTime()) return
+  const left = how ? await resumeNow(ctx, bound.run, how) : await resumeIfDue(ctx, bound.run)
+  if (!left) return
+  if (pauseShown) {
+    pauseShown = false
+    tell?.clear()
+  }
+  keepalive?.deliver(left.text)
+  await refresh?.(true).catch(() => undefined)
+}
+
+async function lastMessage(read: () => Promise<readonly { role: string; text: string }[] | { deny: string }>): Promise<string | undefined> {
+  const messages = await read()
+  return Array.isArray(messages) ? messages.filter((m) => m.role === 'assistant').at(-1)?.text : undefined
 }
 
 export const register: Register = (on) => {
@@ -141,6 +219,33 @@ export const register: Register = (on) => {
       e.isInteractive,
     )
     await keepalive.restore((text) => $.ui.status(text)).catch(() => undefined)
+    // A StopFailure after its loop's end (the end went on as an ordinary error): a transient one still pauses the
+    // run, so nothing else is started into the same limit; a subagent's task already given back stays so.
+    failures = new FailureWatch(
+      (ms) => $.clock.sleep(ms),
+      () => new Date(),
+      (agentId, failure) => {
+        const p = port
+        if (!p || !failure.transient) return
+        void (async () => {
+          const mine = agentId ? (await p.getAgents())[agentId] : undefined
+          const notice = await pauseFor(p, failure, agentId, mine)
+          if (!notice) return
+          if (agentId && mine) await p.setAgents({ ...(await p.getAgents()), [agentId]: { ...mine, paused: true } })
+          tell?.paused(notice)
+          await refresh?.(true).catch(() => undefined)
+        })().catch(() => undefined)
+      },
+    )
+    tell = {
+      paused: (notice) => {
+        pauseShown = true
+        $.ui.toast(`jtasks: ${notice}`, { timeoutMs: 15000 })
+        $.ui.status(notice)
+        void $.ui.notify(`jtasks: ${notice}`).catch(() => undefined)
+      },
+      clear: () => $.ui.status(undefined),
+    }
     // The session's language (plan section 21): what the pane and the tool's answers speak until a --lang.
     const env = port.env
     select({ env: (name) => env[name as keyof typeof env] ?? undefined, system: systemLocale() })
@@ -169,6 +274,8 @@ export const register: Register = (on) => {
     $.clock.every(2000, () => {
       void refresh?.(false).catch(() => undefined)
       void keepalive?.tick().catch(() => undefined)
+      const p = port
+      if (p) void leaveTransientPause(p).catch(() => undefined)
     })
     $.clock.every(RENEW_EVERY_MS, () => {
       const p = port
@@ -257,6 +364,9 @@ export const register: Register = (on) => {
     const decision = await spawnDecision(createModHost(p, await p.cwd()), bound, e.prompt)
     if (decision.error) return { deny: `jtasks: ${decision.error}` }
     if (!decision.task) return next(e)
+    // A task a transient pause kept for its subagent: that subagent is resumed, never a second one opened.
+    const kept = Object.entries(await p.getAgents()).find(([, a]) => a.paused && a.run === bound.run && a.task === decision.task)
+    if (kept) return { deny: `jtasks: ${tr('spawn.kept', { task: decision.task, agent: kept[0] })}` }
     const spawned = await next({ ...e, prompt: decision.prompt ?? e.prompt, ...(decision.agent ? { subagentType: decision.agent } : {}), ...(decision.model ? { model: decision.model } : {}) })
     if (spawned.agentId)
       await p.setAgents({ ...(await p.getAgents()), [spawned.agentId]: { run: bound.run, task: decision.task, ...(decision.effort ? { effort: decision.effort } : {}) } })
@@ -307,8 +417,28 @@ export const register: Register = (on) => {
 
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) keepalive?.turnStarted()
+    // A subagent a transient pause kept is working again (resumed by a message): its place is an ordinary one.
+    const p = port
+    if (e.agentId !== undefined && p) {
+      const agents = await p.getAgents().catch(() => undefined)
+      const mine = agents?.[e.agentId]
+      if (agents && mine?.paused) await p.setAgents({ ...agents, [e.agentId]: { ...mine, paused: false } }).catch(() => undefined)
+    }
     return next(e)
   })
+
+  // What a loop that dies on an API error says about it (kind, details, the rendered error), kept for its end.
+  on('classic.StopFailure', async ($, e, next) => {
+    failures?.stopFailure(e)
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  // Claude Code went on by itself after a usage limit reset: a transient pause the host would end later ends now.
+  on('classic.Notification', async ($, e, next) => {
+    const p = port
+    if (p && e.notification_type === 'quota_auto_resume_fired') void leaveTransientPause(p, 'quota_auto_resume_fired').catch(() => undefined)
+    return next(e)
+  }).catch(($, e, next) => next(e))
 
   // The keepalive's own message, checked again right before it enters: dropped when the run moved meanwhile (in
   // doubt, or past 3 s, it goes).
@@ -326,12 +456,32 @@ export const register: Register = (on) => {
     const p = port
     if (!p) return done
     if (e.agentId === undefined) {
-      if (keepalive) await Promise.race([keepalive.turnEnded(e.reason).catch(() => undefined), p.sleep(3000)])
+      // A transient failure of the orchestrator itself (rev. 5.7): the run is paused and the keepalive stays quiet.
+      const paused = e.reason === 'error'
+        ? await Promise.race([pauseOnFailure(p, undefined, e.answer, () => lastMessage(() => $.session.messages())).catch(() => undefined), p.sleep(2500).then(() => undefined)])
+        : undefined
+      if (keepalive) await Promise.race([keepalive.turnEnded(e.reason).catch(() => undefined), p.sleep(paused ? 500 : 3000)])
+      if (paused) {
+        tell?.paused(paused)
+        await refresh?.(true).catch(() => undefined)
+      }
       return done
     }
     const agents = await p.getAgents()
     const mine = agents[e.agentId]
     if (!mine) return done
+    // A subagent dead on a transient failure (rev. 5.7): the run is paused and its task kept in progress with its
+    // locks; its place here stays (the guard still knows its task), for the orchestrator to resume it.
+    if (e.reason === 'error') {
+      const agentId = e.agentId
+      const paused = await pauseOnFailure(p, agentId, e.answer, () => lastMessage(() => $.session.messages({ agentId })), mine).catch(() => undefined)
+      if (paused) {
+        await p.setAgents({ ...(await p.getAgents()), [agentId]: { ...mine, paused: true } })
+        tell?.paused(paused)
+        await refresh?.(true).catch(() => undefined)
+        return done
+      }
+    }
     const { [e.agentId]: _gone, ...rest } = agents
     await p.setAgents(rest)
     const bound = await p.getRun()

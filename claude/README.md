@@ -8,7 +8,11 @@ main loop's turn ends with a task ready and no subagent alive, the mod sends a m
 reopens the loop; after two with no progress it stops and tells you (toast, notification, status line, a line in the
 pane). `jtasks pause` (how the orchestrator stops to ask you) and `jtasks keepalive off` keep it quiet. Every
 minute the mod also renews the locks of the tasks this session started (in place with jlock 0.2.0's `jlock renew`),
-before the run's `holdTtl` expires them, so a task that runs for hours keeps its files.
+before the run's `holdTtl` expires them, so a task that runs for hours keeps its files. A subagent (or the main loop)
+that dies on a transient failure of the API (a usage or session limit, a rate limit, an overloaded API, the network:
+read from the classic `StopFailure` event) pauses the run with its task kept in progress and its locks held; at the
+reset, at Claude Code's own `quota_auto_resume_fired` or on `jtasks unpause`, the mod tells the orchestrator to resume
+that same subagent with SendMessage (see [Transient failures](../docs/USAGE.md#transient-failures)).
 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and
 the hooks module runs it with no Node and no `node_modules`. It needs `git`; `jlock` comes by itself: when it is
@@ -28,6 +32,10 @@ Or, for one session from a clone, without installing anything:
 ```
 claude --plugin-dir <jtasks>/claude
 ```
+
+To update: `claude plugin marketplace update jtasks`, then `claude plugin update jtasks@jtasks`, and restart Claude
+Code. `/plugin` compares the version in `.claude-plugin/plugin.json`, so each release bumps it (see
+[CONTRIBUTING](../CONTRIBUTING.md#versions)).
 
 ## Language
 

@@ -132,6 +132,41 @@ export interface RunFile {
   /** `serialize`: two tasks touching the same `shared` file never run together (decided by the frontier). */
   sharedPolicy?: SharedPolicy
   sessions: Session[]
+  /** Set while the run is paused by a transient failure of the provider (rev. 5.7): what the host saw and kept. */
+  pause?: AutoPause
+  /** Automatic resumes in a row at the same progress (the backoff of the next transient pause). */
+  pauseStreak?: { signature: string; n: number }
+}
+
+/**
+ * Why a provider call failed in a way that clears on its own: a rate limit, a usage limit or quota, an overloaded
+ * or failing server, the connection, a timeout, or the provider's retries ran out.
+ */
+export type TransientKind = "rate_limit" | "quota" | "overloaded" | "server" | "network" | "timeout" | "retries"
+
+/** A task in progress a transient pause kept, with its locks: its agent is the one to resume. */
+export interface PausedTask {
+  id: string
+  owner: string | null
+  /** The subagent (Claude Code's agent id, OpenCode's child session) that was working on it. */
+  agent?: string
+}
+
+/** A pause the host made by itself on a transient failure (`run.pause`): `unpause` or the reset ends it. */
+export interface AutoPause {
+  kind: TransientKind
+  /** The provider's words, short. */
+  detail: string
+  at: string
+  /** When the provider said the limit resets, when it said. */
+  resetAt?: string
+  /** When the host resumes the run by itself; absent: only `unpause` (or a reset the host detects) resumes it. */
+  resumeAt?: string
+  /** Automatic resumes in a row before this pause, at the same progress. */
+  streak: number
+  tasks: PausedTask[]
+  /** Who paused it (`claude:<session>`, `opencode:<session>`). */
+  by: string
 }
 
 export type SharedPolicy = "warn" | "serialize"

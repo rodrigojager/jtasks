@@ -2,19 +2,22 @@
 // runTool), the run bound to the root session, the protocol and progress in every request and in compaction, the
 // agent of each task's profile on its subagent call, the ownership guard on edit and shell permissions, and the
 // keepalive: the root session going idle with ready tasks and no subagent alive gets a message that resumes it; and
-// the holds of the tasks this process started renewed before the run's holdTtl expires them (core's renew.ts).
+// the holds of the tasks this process started renewed before the run's holdTtl expires them (core's renew.ts); and a
+// session that fails on a transient failure of the provider (a usage or rate limit, an overloaded server, the network)
+// pauses the run with its task kept in progress, resumed later by the clock (rev. 5.7, ./src/transient.ts).
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { ensureJlock, holdModeFor, parseArgs, readTasks, renewRun, RENEW_EVERY_MS, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
 import { judge } from "./src/guard.ts"
-import { RootKeepalive } from "./src/keepalive.ts"
-import { agentFor, agentMissingLine, applyProfileModels, missingAgents, SUBAGENT_TOOLS } from "./src/profiles.ts"
+import { RootKeepalive, SETTLE_MS } from "./src/keepalive.ts"
+import { agentFor, agentMissingLine, applyProfileModels, missingAgents, SUBAGENT_TOOLS, taskOfPrompt } from "./src/profiles.ts"
 import { TasksRpc } from "./src/rpc.ts"
+import { SessionFailures } from "./src/transient.ts"
 import { viewFor } from "./src/view.ts"
 
 export const PLUGIN_ID = "jtasks"
@@ -45,7 +48,14 @@ export interface ServerOptions {
   host?: Host
   /** How often the holds are looked at (tests use less). */
   renewEveryMs?: number
+  /** How often a transient pause is looked at for its `resumeAt` (tests use less). */
+  resumeEveryMs?: number
 }
+
+/** How often a transient pause is looked at for its `resumeAt`. */
+export const RESUME_EVERY_MS = 15_000
+/** Input fields of the subagent tool that resume an existing subagent session instead of opening one. */
+const RESUME_FIELDS = ["task_id", "taskID", "sessionID", "session_id"]
 
 export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
   return Plugin.define({
@@ -137,13 +147,34 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       })
 
       const session = ctx.session as unknown as { synthetic?: (input: Record<string, unknown>) => Promise<unknown> }
+      const send =
+        typeof session.synthetic === "function"
+          ? (sessionID: string, text: string) =>
+              session.synthetic!({ sessionID, text, description: "jtasks keepalive", delivery: "queue", metadata: { source: PLUGIN_ID } })
+          : undefined
+
+      // Transient failures (rev. 5.7): the last failure of each session, read from the event stream.
+      const failures = new SessionFailures(() => host.now())
+      const sessionCtx = (run: { run: string; root: string }, root: string): ToolContext => ({ host, cwd: run.root, tool: "opencode", session: root, residents, holdMode, boundRun: run.run })
+      /** Pauses the session's run when its failure is transient; `task`: the child's task, kept in progress. */
+      const pauseOn = async (sessionID: string, failure: Classification | undefined, task?: string): Promise<boolean> => {
+        if (!failure?.transient) return false
+        const run = await bindings.run(sessionID)
+        if (!run) return false
+        const root = await bindings.root(sessionID)
+        const child = root !== sessionID
+        const pause = await pauseForFailure(sessionCtx(run, root), { run: run.run, failure, ...(task ? { task } : {}), ...(child ? { agent: sessionID } : {}) })
+        if (!pause) return false
+        console.warn(`[${PLUGIN_ID}] ${pauseNotice(run.run, pause, host.now())}`)
+        await rpc.events.emit("changed", { run: run.run }).catch(() => {})
+        return true
+      }
+
       keepalive = new RootKeepalive(host, bindings, {
-        send:
-          typeof session.synthetic === "function"
-            ? (sessionID, text) =>
-                session.synthetic!({ sessionID, text, description: "jtasks keepalive", delivery: "queue", metadata: { source: PLUGIN_ID } })
-            : undefined,
+        send,
         changed: (run) => rpc.events.emit("changed", { run }),
+        // The root's own failed execution: a transient one pauses the run (the keepalive then stays quiet).
+        transient: (root) => pauseOn(root, failures.take(root)),
       })
 
       await ctx.tool.transform((editor) => {
@@ -182,6 +213,15 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         const decision = await agentFor(host, run, input.prompt)
         // Throwing fails only this call, and the model reads the reason.
         if (decision.error) throw new Error(`jtasks: ${decision.error}`)
+        // A task kept in progress for its subagent session (alive, or kept by a transient pause): that session is
+        // resumed, never a second one opened for it.
+        const task = taskOfPrompt(input.prompt).task
+        const resuming = RESUME_FIELDS.some((f) => typeof (input as Record<string, unknown>)[f] === "string")
+        if (task && !resuming) {
+          const t = (await readTasks(host, runDir(run.root, run.run)).catch(() => undefined))?.tasks.find((x) => x.id === task)
+          const child = t?.status === "in_progress" ? /\/agent:([^/]+)$/.exec(t.owner ?? "")?.[1] : undefined
+          if (child && (await bindings.task(child))?.task === task) throw new Error(`jtasks: ${tr("spawn.kept_session", { task, agent: child })}`)
+        }
         if (decision.agent && decision.agent !== input.agent) event.input = { ...input, agent: decision.agent }
       })
 
@@ -191,7 +231,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
 
       // A subagent's session that goes idle (or is deleted) with its task in progress gives the task back. Every
       // session event also goes to the keepalive, unawaited: a root's idle waits a moment for its execution's end.
-      const events = (ctx.event?.subscribe?.() as AsyncIterable<{ type: string; data?: { sessionID?: string } }> | undefined)?.[
+      // A child that failed on a transient failure keeps its task (and its binding, for the guard) instead.
+      const events = (ctx.event?.subscribe?.() as AsyncIterable<{ type: string; data?: { sessionID?: string }; properties?: { sessionID?: string } }> | undefined)?.[
         Symbol.asyncIterator
       ]()
       if (events)
@@ -199,11 +240,23 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           for (;;) {
             const next = await events.next().catch(() => ({ done: true, value: undefined }) as const)
             if (next.done) return
-            const { type, data } = next.value
+            const { type } = next.value
+            // v1 events carry `properties` where v2 ones carry `data`.
+            const data = next.value.data ?? next.value.properties
+            failures.onEvent(type, data)
             if (data?.sessionID) void keepalive?.onEvent(type, data.sessionID).catch(() => undefined)
             if ((type !== "session.idle" && type !== "session.deleted") || !data?.sessionID) continue
             const end = type === "session.idle" ? "idle" : "deleted"
-            await onSessionEnded(host, bindings, data.sessionID, end, (sessionID, command) => call(sessionID, command, undefined)).catch(() => {})
+            const sessionID = data.sessionID
+            // Not awaited: the session's own failure may arrive just after its idle, and the stream must go on.
+            void onSessionEnded(host, bindings, sessionID, end, (id, command) => call(id, command, undefined), async (task) => {
+              // Another idle of a session the pause already kept keeps it still (only its deletion gives it back).
+              const run = await bindings.run(sessionID)
+              const file = run && end === "idle" ? await readRun(host, runDir(run.root, run.run)).catch(() => undefined) : undefined
+              if (file?.status === "paused" && file.pause?.tasks.some((t) => t.id === task && t.agent === sessionID)) return true
+              if (!failures.has(sessionID)) await host.sleep(SETTLE_MS)
+              return pauseOn(sessionID, failures.take(sessionID), task)
+            }).catch(() => {})
           }
         })()
 
@@ -224,8 +277,31 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       }, options.renewEveryMs ?? RENEW_EVERY_MS)
       ;(renewTimer as { unref?: () => void }).unref?.()
 
+      // A transient pause whose `resumeAt` has come: the run is active again, and each root session bound to it is
+      // told to resume the same subagent sessions (rev. 5.7).
+      let resuming = false
+      const resumeTimer = setInterval(() => {
+        if (resuming) return
+        resuming = true
+        void (async () => {
+          for (const [run, w] of working) {
+            const file = await readRun(host, runDir(w.root, run)).catch(() => undefined)
+            if (file?.status !== "paused" || !file.pause?.resumeAt || Date.parse(file.pause.resumeAt) > host.now().getTime()) continue
+            const root = [...w.sessions][0]!
+            const left = await resumeIfDue(sessionCtx({ run, root: w.root }, root), run).catch(() => undefined)
+            if (!left) continue
+            for (const s of w.sessions) await send?.(s, left.text).catch(() => undefined)
+            await rpc.events.emit("changed", { run }).catch(() => {})
+          }
+        })().finally(() => {
+          resuming = false
+        })
+      }, options.resumeEveryMs ?? RESUME_EVERY_MS)
+      ;(resumeTimer as { unref?: () => void }).unref?.()
+
       return async () => {
         clearInterval(renewTimer)
+        clearInterval(resumeTimer)
         await events?.return?.().catch(() => {})
         await agentModels?.dispose()
         await rpc.dispose().catch(() => {})

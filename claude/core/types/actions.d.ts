@@ -44,6 +44,7 @@ export declare function releaseHolds(ctx: ToolContext, run: string, task: string
 export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
     text: string;
     data: {
+        pause?: import("./schema.ts").AutoPause | undefined;
         run: string;
         status: import("./schema.ts").RunStatus;
         keepalive: boolean;
@@ -132,6 +133,25 @@ export interface Retaken {
 export declare function retakeYielded(ctx: ToolContext, first: RunState, only?: (task: Task) => boolean): Promise<Retaken[]>;
 /** In progress → pending (or failed at maxAttempts). Used by release, resume, lost (their edits: `keepTask`). */
 export declare function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed";
+/** What leaving a transient pause did: the text for the orchestrator and the keys others took meanwhile. */
+export interface LeftPause {
+    state: RunState;
+    /** English, for the model: which tasks are still in progress and which agent to resume for each. */
+    text: string;
+    kept: string[];
+    lost: Record<string, string[]>;
+}
+/**
+ * Leaves a pause made by a transient failure (rev. 5.7): the run is active again, the tasks kept in progress take
+ * back whatever lock expired meanwhile (renewal stops with the host), and the orchestrator is told to resume the same
+ * agents. `due`: only when the pause's `resumeAt` has come (the host's clock); `auto`: counted in `pauseStreak`.
+ * Undefined when the run is not in such a pause (or it is not due yet).
+ */
+export declare function leavePause(ctx: ToolContext, first: RunState, opts?: {
+    due?: Date;
+    auto?: boolean;
+    how?: string;
+}): Promise<LeftPause | undefined>;
 /** The `serialize` entry a command line falls under: the same command, or one with more arguments. */
 export declare function serializeEntry(serialize: string[], command: string): string | undefined;
 export declare function serializeKey(root: string, entry: string): string;

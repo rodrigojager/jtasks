@@ -58,7 +58,7 @@ export function formatRunsList(runs: { run: RunFile; tasks?: TasksFile }[]): str
  * is for the model, so it is English in every language; it quotes the tool's own answers ("restam 0") in the
  * language the tool speaks. `spawn` names how the host opens a subagent.
  */
-export function protocolText(run: string, summary: string, spawn: string): string {
+export function protocolText(run: string, summary: string, spawn: string, notes: string[] = []): string {
   const finished = tr("progress.remaining", { n: 0 })
   const paused = tr("view.paused")
   return [
@@ -74,6 +74,10 @@ export function protocolText(run: string, summary: string, spawn: string): strin
     "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " +
       'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
     "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move.",
+    "7. If a subagent dies on a provider failure that clears by itself (a usage or rate limit, an overloaded server, the network), the host pauses the run and keeps its task in " +
+      "progress with its locks: do not release it and do not open another subagent for it; when the run is active again, resume that same subagent.",
+    // `notes`: what holds now (a transient pause: wait, keep the tasks).
+    ...notes,
   ].join("\n")
 }
 

@@ -40,14 +40,15 @@ import {
 } from "./jlock.ts"
 import { unarchive } from "./housekeeping.ts"
 import { chainKeys, changedUnder, claimStats, keepEdits, lastDeadlock, ownFiles, ownKeys, patchesUnder, readLog, reapplyPatches, releasedEdits, takenSince, type ReapplyReport } from "./keep.ts"
-import { clearKeepalive, keepaliveStatus, keepaliveTries, readKeepalive, rearmKeepalive } from "./keepalive.ts"
+import { clearKeepalive, keepaliveStatus, keepaliveTries, progressSignature, readKeepalive, rearmKeepalive } from "./keepalive.ts"
+import { formatWhen, kindLabel, resumeText } from "./transient.ts"
 import { slugify } from "./ids.ts"
 import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, PATCH_MOVES, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
-import { DEFAULT_HOLD_TTL, type Hold, type Task, type TasksFile, type Yielded } from "./schema.ts"
+import { DEFAULT_HOLD_TTL, type Hold, type RunFile, type Task, type TasksFile, type Yielded } from "./schema.ts"
 import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
@@ -371,6 +372,8 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   const ready = selectReady(state, assessments, platform)
   const lines = [progressLine(state.tasks.tasks)]
   if (state.run.status === "paused") lines.push(tr("status.paused"))
+  const pause = state.run.status === "paused" ? state.run.pause : undefined
+  if (pause) lines.push(pauseStatusLine(pause, ctx.host.now()))
   const keepalive = keepaliveStatus(state.run, state.tasks, await readKeepalive(ctx.host, state.dir), keepaliveTries(ctx.host))
   if (keepalive) lines.push(keepalive)
   const running = state.tasks.tasks.filter((t) => t.status === "in_progress")
@@ -420,8 +423,16 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
       ready: ready.map((t) => t.id),
       blocked: blocked.map((a) => ({ id: a.task.id, reasons: a.blockers.map((b) => blockerText(b, state, platform)) })),
       locks,
+      ...(pause ? { pause } : {}),
     },
   }
+}
+
+/** The status line of a transient pause: why, what it kept and when it ends. */
+function pauseStatusLine(pause: NonNullable<RunFile["pause"]>, now: Date): string {
+  const kept = pause.tasks.length ? tr("pause.kept", { list: pause.tasks.map((t) => t.id).join(", ") }) : tr("pause.kept_none")
+  const when = pause.resumeAt ? tr("pause.when_at", { at: formatWhen(pause.resumeAt, now) }) : tr("pause.when_person")
+  return tr("status.auto_paused", { kind: kindLabel(pause.kind), detail: pause.detail, kept, when })
 }
 
 defineAction(
@@ -1193,12 +1204,59 @@ async function setPaused(ctx: ToolContext, args: ParsedArgs, paused: boolean) {
     const state = await reload(ctx, first)
     const from = state.run.status
     const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
-    if (from !== status) await writeRun(ctx.host, state.dir, { ...state.run, status })
+    const run: RunFile = { ...state.run, status }
+    // A pause by hand over a transient one: the host no longer resumes it by itself (the tasks stay kept).
+    if (paused && run.pause?.resumeAt) {
+      const { resumeAt: _gone, ...pause } = run.pause
+      run.pause = pause
+    }
+    if (JSON.stringify(run) !== JSON.stringify(state.run)) await writeRun(ctx.host, state.dir, run)
     // Really unpaused (it was paused), the keepalive counts again from zero; an unpause of a run that was not
     // paused changes nothing, so it cannot reset the count.
     if (!paused && from === "paused") await clearKeepalive(ctx.host, state.dir)
     await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status })
-    return { ...state, run: { ...state.run, status } }
+    return { ...state, run }
+  })
+}
+
+/** What leaving a transient pause did: the text for the orchestrator and the keys others took meanwhile. */
+export interface LeftPause {
+  state: RunState
+  /** English, for the model: which tasks are still in progress and which agent to resume for each. */
+  text: string
+  kept: string[]
+  lost: Record<string, string[]>
+}
+
+/**
+ * Leaves a pause made by a transient failure (rev. 5.7): the run is active again, the tasks kept in progress take
+ * back whatever lock expired meanwhile (renewal stops with the host), and the orchestrator is told to resume the same
+ * agents. `due`: only when the pause's `resumeAt` has come (the host's clock); `auto`: counted in `pauseStreak`.
+ * Undefined when the run is not in such a pause (or it is not due yet).
+ */
+export async function leavePause(ctx: ToolContext, first: RunState, opts: { due?: Date; auto?: boolean; how?: string } = {}): Promise<LeftPause | undefined> {
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first)
+    const pause = state.run.pause
+    if (state.run.status !== "paused" || !pause) return undefined
+    if (opts.due && (!pause.resumeAt || Date.parse(pause.resumeAt) > opts.due.getTime())) return undefined
+    const run: RunFile = { ...state.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" }
+    delete run.pause
+    const signature = progressSignature(state.tasks)
+    if (opts.auto) run.pauseStreak = { signature, n: state.run.pauseStreak?.signature === signature ? state.run.pauseStreak.n + 1 : 1 }
+    else delete run.pauseStreak
+    await writeRun(ctx.host, state.dir, run)
+    await clearKeepalive(ctx.host, state.dir)
+    const next = { ...state, run }
+    const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress")
+    const lost: Record<string, string[]> = {}
+    for (const t of inProgress) {
+      const refused = await retakeMissing(ctx, next, t).catch(() => [] as string[])
+      if (refused.length) lost[t.id] = refused.map((k) => describeKey(k, state.root, ctx.host.platform))
+    }
+    const how = opts.how ?? (opts.auto ? "due" : "unpause")
+    await log(ctx, state, { action: opts.auto ? "auto-resume" : "unpause", how, kind: pause.kind, kept: inProgress.map((t) => t.id), ...(Object.keys(lost).length ? { lost } : {}) })
+    return { state: next, text: resumeText(run, pause, inProgress, ctx.tool, lost), kept: inProgress.map((t) => t.id), lost }
   })
 }
 
@@ -1214,6 +1272,15 @@ defineAction(
 )
 
 defineAction("unpause", async (ctx, args) => {
+  const first = await resolveRun(ctx, args)
+  // A transient pause: the tasks kept in progress take their locks back, and the answer says which agent to resume.
+  const left = await leavePause(ctx, first)
+  if (left) {
+    const s = left.state
+    const lines = [tr("unpause.done", { run: s.run.id, status: s.run.status }), progressLine(s.tasks.tasks)]
+    if (left.kept.length) lines.push(tr("unpause.kept", { list: left.kept.join(", ") }), left.text)
+    return ok(lines.join("\n"), { run: s.run.id, status: s.run.status, kept: left.kept, lost: left.lost, resume: left.text })
+  }
   const state = await setPaused(ctx, args, false)
   return ok(`${tr("unpause.done", { run: state.run.id, status: state.run.status })}\n${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.status })
 })
@@ -1236,6 +1303,9 @@ defineAction(
       const now = ctx.host.now().toISOString()
       const run = { ...state.run }
       if (run.status === "paused") run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
+      // A transient pause (rev. 5.7) kept its tasks in progress: their expired locks are taken back, not released.
+      const transient = state.run.status === "paused" && !!state.run.pause
+      delete run.pause
       if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
         run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }]
       const copy = clone(state.tasks)
@@ -1244,6 +1314,10 @@ defineAction(
         const keys = taskKeys(state.root, task, ctx.host.platform)
         const missing = keys.length ? await missingKeys(ctx, state, task) : []
         if (keepOwners || !keys.length || missing.length === 0) {
+          kept.push(task.id)
+          continue
+        }
+        if (transient && (await retakeMissing(ctx, state, task).catch(() => missing)).length === 0) {
           kept.push(task.id)
           continue
         }

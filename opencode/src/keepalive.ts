@@ -14,6 +14,8 @@ export interface KeepaliveSink {
   send?: (sessionID: string, text: string) => Promise<unknown>
   /** The run's view changed (a give-up to show). */
   changed: (run: string) => Promise<unknown>
+  /** The root's execution failed: pauses the run when the failure is transient (then nothing else happens). */
+  transient?: (root: string) => Promise<boolean>
 }
 
 /** How long a sent message counts as on its way (its execution not seen starting yet). */
@@ -95,6 +97,11 @@ export class RootKeepalive {
     const outcome = this.outcome.get(root)
     if (outcome === "interrupted") {
       await holdKeepalive(this.host, run.root, run.run)
+      return undefined
+    }
+    // A transient failure of the root itself (rev. 5.7): the run is paused, the keepalive stays quiet.
+    if (outcome === "failed" && this.sink.transient && (await this.sink.transient(root).catch(() => false))) {
+      await this.sink.changed(run.run).catch(() => undefined)
       return undefined
     }
     const liveAgents = [...this.children.values()].filter((r) => r === root).length

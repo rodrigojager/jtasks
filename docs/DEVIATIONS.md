@@ -231,3 +231,25 @@ disco, e sim num patch da execução, reaplicado se a tarefa for reaberta (`retr
 edição de volta sem reabrir a tarefa: `jtasks undo <e-id>` do efeito `restore` (lista em `jtasks ledger`).
 
 **O que fazer:** nada; para começar uma tarefa reaberta do zero, `jtasks start <id> --fresh`.
+
+## 16. A falha transitória lida do `StopFailure`, e o que conta como transitória (tickets 51 e 52)
+
+**O que mudou:** o pedido era detectar o fim do subagente com erro pelo que o mod já tinha (`turn.complete`). Esse
+evento traz só `reason: "error"`, sem texto, então o mod passa a ouvir também o evento clássico `StopFailure`
+(`error`, `error_details`, `last_assistant_message`, `agent_id`). A documentação não diz se ele dispara dentro de
+subagentes nem se vem antes ou depois do fim do laço: o mod espera até 1,5 s por ele no fim de um subagente, e um
+`StopFailure` que chega depois (até 15 s) ainda pausa a execução, mesmo que a tarefa já tenha voltado à fila. A
+resposta e a última mensagem do laço só contam quando são o erro como o Claude Code o mostra (`API Error: …`, as
+linhas de limite de uso), para que um subagente que fala de "rate limit" no código que escreve não pause nada.
+
+**Decisões que eram do usuário, tomadas pelo lado seguro:** `billing_error` do Claude Code, `insufficient_quota`,
+créditos insuficientes (402) e cota excedida contam como transitórios (pausam: crédito ou plano resolvem sem perder a
+tarefa); `account_on_hold`, autenticação, recusa e contexto não. Uma falha sem nenhuma informação (nem
+`StopFailure`, nem texto) segue como antes (a tarefa volta à fila). Sem horário de reset, a retomada automática vem
+em 5 minutos, dobrando até uma hora, e para depois de três seguidas sem progresso. No OpenCode, retomar "a mesma
+sessão" usa o `task_id` da ferramenta de subagente; a recusa de um segundo subagente deixa passar uma chamada que
+traga `task_id`, `taskID`, `sessionID` ou `session_id`. A versão foi para 0.2.0 (novidades desde 0.1.0, abaixo de
+1.0: sobe o número do meio).
+
+**O que fazer:** nada. Para retomar antes do reset, `jtasks unpause`; para ficar parado até decidir, `jtasks pause`
+(a tarefa continua mantida, sem retomada automática).

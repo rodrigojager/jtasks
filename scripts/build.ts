@@ -73,7 +73,7 @@ export async function buildAll(): Promise<Bundle[]> {
 }
 
 /** How each agent calls the tool and opens subagents: what fills the `{{…}}` of the skills' sources (plan section 23). */
-export const HOSTS: Record<string, { calling: string; spawn: string; after: string; keepalive: string; frontmatter: Record<string, string> }> = {
+export const HOSTS: Record<string, { calling: string; spawn: string; after: string; keepalive: string; transient: string; frontmatter: Record<string, string> }> = {
   "claude-code": {
     calling:
       "In Claude Code with the jtasks mod, every `jtasks …` command below goes through the `mcp__jtasks__jtasks` " +
@@ -94,6 +94,14 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "It is read from `tasks.json` at that moment, not from the conversation (which a compaction may have left " +
       "stale): answer it with `jtasks next` and the subagents, not with text. After two such messages with no " +
       "progress it stops and tells the user. It never fires after the user interrupts a turn, until the run moves.",
+    transient:
+      "With the mod, a subagent (or you) dying on a provider failure that clears by itself (a usage, session or rate " +
+      "limit, an overloaded API, the network, a timeout) pauses the run by itself: the task stays in progress with its " +
+      "locks and claims, and `jtasks status` says why and when it resumes. Do not release it, do not open another " +
+      "subagent for it (the mod refuses one), and do not call `next` or `start` meanwhile: end your turn. When the run " +
+      "is active again (at the reset the error gave, when Claude Code goes on after a usage limit, or after " +
+      "`jtasks unpause`), the mod sends you a message naming the agent of each kept task: resume that same agent with " +
+      "SendMessage and tell it to go on where it stopped, without calling `start` or `claim` again for what it holds.",
     frontmatter: { "to-jtasks": "disable-model-invocation: true\n" },
   },
   opencode: {
@@ -117,6 +125,14 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "compaction may have left stale): answer it with `jtasks next` and the subagents, not with text. After two such " +
       "messages with no progress it stops and shows a notice in the sidebar. It never fires after an interrupted turn, " +
       "until the run moves.",
+    transient:
+      "With the plugin, a subagent session (or yours) failing on a provider failure that clears by itself (a usage or " +
+      "rate limit, a quota, an overloaded API, the network, a timeout, the retries running out) pauses the run by " +
+      "itself: the task stays in progress with its locks and claims, and `jtasks status` says why and when it resumes. " +
+      "Do not release it, do not open another subagent for it (the plugin refuses one), and do not call `next` or " +
+      "`start` meanwhile. When the run is active again (at the reset, or after `jtasks unpause`), the plugin sends you " +
+      "a message naming the session of each kept task: resume that same session (the subagent tool's `task_id`) and " +
+      "tell it to go on where it stopped, without calling `start` or `claim` again for what it holds.",
     frontmatter: {},
   },
   codex: {
@@ -131,6 +147,10 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "Here there is no mod or plugin, so nothing reopens the loop when your turn ends: the loop depends on you alone. " +
       "Until `jtasks status` says nothing is left (or the run is paused), do not end your turn while a task is ready; " +
       "after a compaction, call `jtasks status` before trusting what the summary says is still running.",
+    transient:
+      "Here nothing pauses the run for you. If you (or an agent you started) hit a usage or rate limit, an overloaded " +
+      "API or a dropped connection, do not release or fail the task: call `jtasks pause`, wait, and after " +
+      "`jtasks unpause` go on with the same task where it stopped (it is still in progress, with its locks).",
     frontmatter: {},
   },
 }
@@ -143,6 +163,7 @@ function fillSkill(text: string, host: string, skill: string): string {
     .replace("{{SPAWN}}", h.spawn)
     .replace("{{AFTER}}", h.after)
     .replace("{{KEEPALIVE}}", h.keepalive)
+    .replace("{{TRANSIENT}}", h.transient)
   const left = /\{\{\w+\}\}/.exec(out)
   if (left) throw new Error(`skills/source/${skill}/SKILL.md: ${left[0]} has no value for ${host}`)
   return out

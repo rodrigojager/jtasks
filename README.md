@@ -144,6 +144,14 @@ If a turn ends with a task ready and no subagent running (after a compaction, sa
 that reopens the loop; after two with no progress it stops and tells you. To stop on purpose, Claude calls `jtasks
 pause` and asks you; `jtasks keepalive off` turns this off.
 
+If a subagent (or Claude itself) dies on a failure that clears by itself, such as a usage or session limit, a rate
+limit, an overloaded API or a dropped connection, the mod pauses the run instead of giving the task back: the task
+stays in progress with its locks, and the pane says why and until when. At the reset (the time the error gave, or
+when Claude Code goes on after a usage limit), or with `jtasks unpause`, the run is active again and Claude is told
+to resume the same subagent with SendMessage, not to open another. An invalid key, a refusal or an overflowing
+context go on as before. To get a new release: `claude plugin marketplace update jtasks`, then `claude plugin update
+jtasks@jtasks`, and restart Claude Code.
+
 ## With OpenCode
 
 With the plugin, the same: `to-jtasks` to plan, then a goal. Each task's `subagent` call gets the agent of its
@@ -151,6 +159,11 @@ profile (`execute`, `execute-deep`, `review`, installed by `jtasks doctor --fix 
 the plan). The sidebar shows the checklist and the progress bar.
 
 When the session goes idle with a task ready and nothing running, the plugin reopens the loop the same way.
+
+A session that fails on a provider failure that clears by itself (opencode/zen, OpenRouter with the upstream's error
+in the body, Anthropic, OpenAI, Moonshot/Kimi and OpenAI-compatible providers are recognized) pauses the run the same
+way, with the task kept in progress; at the reset the plugin resumes it and tells the session to continue the same
+subagent (`task_id`).
 
 ## From a terminal or Codex
 

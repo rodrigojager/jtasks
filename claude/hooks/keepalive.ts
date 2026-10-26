@@ -31,6 +31,10 @@ export class Keepalive {
   private deferred = false
   private busy = false
   private shown = false
+  /** The message of a run that left a transient pause (rev. 5.7), waiting for the session to be idle and the box empty. */
+  private queued: string | undefined
+  /** That message is on its way: let it through, whatever the run looks like. */
+  private resuming = false
 
   constructor(
     private readonly port: Port,
@@ -65,6 +69,33 @@ export class Keepalive {
     this.busy = true
     this.pending = false
     this.deferred = false
+    this.resuming = false
+  }
+
+  /**
+   * The run left a transient pause: `text` tells the orchestrator to resume the same agents. Sent when the session is
+   * idle and the box empty (a turn running, or a draft, makes it wait); never in a -p run or the SDK.
+   */
+  deliver(text: string): void {
+    if (!this.interactive) return
+    this.queued = text
+    void this.flush().catch(() => undefined)
+  }
+
+  private async flush(): Promise<boolean> {
+    const text = this.queued
+    if (!text || this.busy || this.pending) return false
+    if ((await this.ui.draft().catch(() => '')).trim()) return false
+    this.queued = undefined
+    this.pending = true
+    this.resuming = true
+    void this.ui
+      .submit(text)
+      .catch(() => undefined)
+      .finally(() => {
+        this.pending = false
+      })
+    return true
   }
 
   /** The main loop's turn ended; `reason` as `turn.complete` says it. */
@@ -82,6 +113,7 @@ export class Keepalive {
     // An API error or a refusal: nothing is sent (it could fail the same way), but the person is told at once.
     if (reason === 'error' || reason === 'refusal') return this.decide('error')
     if (reason !== 'answer') return undefined
+    if (this.queued && (await this.flush())) return undefined
     return this.decide()
   }
 
@@ -95,6 +127,7 @@ export class Keepalive {
       const notice = bound ? await stalledNotice(createModHost(this.port, await this.port.cwd()), bound.root, bound.run).catch(() => 'keep') : undefined
       if (!notice) this.clearShown()
     }
+    if (this.queued && (await this.flush())) return undefined
     if (!this.deferred || this.busy || this.pending) return undefined
     return this.decide()
   }
@@ -141,6 +174,7 @@ export class Keepalive {
 
   /** Right before the message is delivered: still idle with work to do? (Without counting it again.) */
   async stillWanted(): Promise<boolean> {
+    if (this.resuming) return true
     const bound = await this.port.getRun()
     if (!bound) return false
     const host = createModHost(this.port, await this.port.cwd())

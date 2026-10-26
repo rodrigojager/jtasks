@@ -347,4 +347,90 @@ describe("OpenCode plugin", () => {
     expect((await h.call("c1", 'done T01 --evidence "ok"')).ok).toBe(true)
     expect(held()).toBe(0)
   })
+  test("a subagent session failing on a provider's rate limit pauses the run and keeps its task; the clock resumes it with the same session", async () => {
+    const repo = makeRepo()
+    const h = await fakeHost(repo, undefined, { resumeEveryMs: 200 })
+    if (h.cleanup) cleanups.push(h.cleanup)
+    const planned = await h.call("s1", "plan", plan)
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string; owner: string | null }[]
+    const runOf = () => JSON.parse(readFileSync(join(dir, "run.json"), "utf8"))
+    const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+    const until = async (check: () => boolean) => {
+      for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
+      expect(check()).toBe(true)
+    }
+    h.addSession("c1", "s1")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    // OpenRouter's 429 with the upstream's error in the body, as session.execution.failed carries it.
+    h.emit("session.execution.started", { sessionID: "c1" })
+    h.emit("session.status", { sessionID: "c1", status: { type: "retry", attempt: 3, message: "Rate limited", next: Date.now() + 60_000 } })
+    h.emit("session.execution.failed", {
+      sessionID: "c1",
+      error: {
+        type: "RateLimit",
+        message: "Provider returned error",
+        status: 429,
+        response: { body: '{"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"moonshotai/kimi-k2:free is temporarily rate-limited upstream.","provider_name":"Chutes"}}}' },
+      },
+    })
+    h.emit("session.idle", { sessionID: "c1" })
+    await until(() => runOf().status === "paused")
+    expect(runOf().pause).toMatchObject({ kind: "rate_limit", tasks: [{ id: "T01", agent: "c1" }] })
+    expect(tasksOf()[0]).toMatchObject({ status: "in_progress", owner: `opencode:s1/agent:c1` })
+    expect(locks()).toHaveLength(1)
+    // Another idle of the same session while paused keeps it still.
+    h.emit("session.idle", { sessionID: "c1" })
+    await Bun.sleep(600)
+    expect(tasksOf()[0]!.status).toBe("in_progress")
+    // A second subagent for T01 is refused; resuming the same session (task_id) is not.
+    await expect(h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 x` })).rejects.toThrow("task_id")
+    await h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 x`, task_id: "c1" } as never)
+    // The protocol says to wait; the sidebar says why.
+    expect((await h.request("s1"))[1]!.text).toContain("The run is paused by a transient failure of the provider (rate_limit")
+    // The clock reaches resumeAt: active again, and the root is told to resume session c1.
+    const r = runOf()
+    r.pause.resumeAt = new Date(Date.now() - 1000).toISOString()
+    writeFiles(repo, { [`.scratch/jtasks/runs/${run}/run.json`]: JSON.stringify(r) })
+    await until(() => runOf().status === "active")
+    await until(() => h.synthetics.some((s) => s.text.includes("task_id c1")))
+    expect(tasksOf()[0]!.status).toBe("in_progress")
+    expect(locks()).toHaveLength(1)
+  })
+
+  test("a subagent session failing on an invalid key gives its task back as before; the root on an overloaded API pauses quietly", async () => {
+    const { repo, h } = await setup()
+    const planned = await h.call("s1", "plan", plan)
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
+    const runOf = () => JSON.parse(readFileSync(join(dir, "run.json"), "utf8"))
+    const until = async (check: () => boolean) => {
+      for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
+      expect(check()).toBe(true)
+    }
+    h.addSession("c1", "s1")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    h.emit("session.execution.failed", { sessionID: "c1", error: { type: "Authentication", message: "Invalid API key.", status: 401 } })
+    h.emit("session.idle", { sessionID: "c1" })
+    await until(() => tasksOf()[0]!.status === "pending")
+    expect(runOf().status).toBe("active")
+    // The root's own execution fails on Anthropic's 529 (v1 session.error shape): paused, no "stopped" notice.
+    h.emit("session.execution.started", { sessionID: "s1" })
+    h.emit("session.error", { sessionID: "s1", error: { name: "APIError", data: { message: "Overloaded", statusCode: 529, isRetryable: true } } })
+    h.emit("session.execution.failed", { sessionID: "s1", error: { type: "ProviderInternal", message: "Overloaded", status: 529 } })
+    h.emit("session.idle", { sessionID: "s1" })
+    await until(() => runOf().status === "paused")
+    expect(runOf().pause.kind).toBe("overloaded")
+    await Bun.sleep(400)
+    expect(h.synthetics).toEqual([])
+    let memory: unknown
+    try {
+      memory = JSON.parse(readFileSync(join(dir, "keepalive.json"), "utf8"))
+    } catch {
+      memory = undefined
+    }
+    expect(memory).toBeUndefined()
+  })
 })

@@ -6,6 +6,7 @@ import { counts, progress } from "./format.ts"
 import type { Host } from "./host.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
 import { keepaliveNotice, readKeepalive } from "./keepalive.ts"
+import { pauseViewNotice } from "./transient.ts"
 import { listRuns, readRun, readTasks, runDir } from "./store.ts"
 import type { RunFile, Task, TasksFile, ToolName } from "./schema.ts"
 import { tr, width as columns } from "./i18n.ts"
@@ -211,7 +212,8 @@ export async function loadView(host: Host, root: string, run: string, tool: Tool
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => [])
   const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool)
-  const notice = keepaliveNotice(runFile, tasks, await readKeepalive(host, dir))
+  // A transient pause (rev. 5.7) says why and until when; otherwise a give-up of the keepalive, if any.
+  const notice = runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir))
   return notice ? { ...view, notice } : view
 }
 

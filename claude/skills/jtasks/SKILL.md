@@ -74,6 +74,10 @@ messages already sent); `jtasks status` says when it is off or has given up.
   another task in progress touches the same shared file; take another ready task. After the run,
   `jtasks status --claims` lists the most contested files, for the next plan's `shared`.
 - **A task failed**: the tasks that depend on it stay blocked; the rest goes on. `jtasks retry <id>` reopens it.
+- **A provider failure that clears by itself** (the host paused the run; `jtasks status` names the failure and when it resumes):
+  With the mod, a subagent (or you) dying on a provider failure that clears by itself (a usage, session or rate limit, an overloaded API, the network, a timeout) pauses the run by itself: the task stays in progress with its locks and claims, and `jtasks status` says why and when it resumes. Do not release it, do not open another subagent for it (the mod refuses one), and do not call `next` or `start` meanwhile: end your turn. When the run is active again (at the reset the error gave, when Claude Code goes on after a usage limit, or after `jtasks unpause`), the mod sends you a message naming the agent of each kept task: resume that same agent with SendMessage and tell it to go on where it stopped, without calling `start` or `claim` again for what it holds. If that subagent no longer exists, continue the task yourself, or `jtasks release <id>` and open a
+  new one. An invalid key, a refusal of the model or an overflowing context are ordinary failures: they go on as
+  before.
 
 ## Orchestrating
 

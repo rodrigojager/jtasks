@@ -1,6 +1,7 @@
 // A subagent that ends with its task still in progress (section 9, "agente morto"): its child session goes idle
 // or is deleted; the task bound to that session goes back to the queue through the core's `release --agent-ended`
 // (attempts counted at start; failed at maxAttempts; the log says agent-ended), as the mod does on turn.complete.
+// Unless `kept` says the session died on a transient failure and the run was paused with the task kept (rev. 5.7).
 
 import { readTasks, runDir, type Host, type ToolResult } from "../core/core.js"
 import type { Bindings } from "./binding.ts"
@@ -18,6 +19,7 @@ export async function onSessionEnded(
   sessionID: string,
   end: SessionEnd,
   call: (sessionID: string, command: string) => Promise<ToolResult>,
+  kept?: (task: string) => Promise<boolean>,
 ): Promise<ToolResult | undefined> {
   if (end === "idle" && !(await bindings.isChild(sessionID))) return undefined
   const bound = await bindings.task(sessionID)
@@ -27,5 +29,6 @@ export async function onSessionEnded(
   const tasks = await readTasks(host, runDir(run.root, run.run)).catch(() => undefined)
   const task = tasks?.tasks.find((t) => t.id === bound.task)
   if (!task || task.status !== "in_progress" || !task.owner?.endsWith(`/agent:${sessionID}`)) return undefined
+  if (kept && (await kept(task.id).catch(() => false))) return undefined
   return call(sessionID, `release ${task.id} --agent-ended`)
 }

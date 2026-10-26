@@ -156,6 +156,15 @@ envoie à Claude un message qui relance la boucle ; après deux sans progrès, i
 s'arrêter exprès, Claude appelle `jtasks pause` et vous pose la question ; `jtasks keepalive off` désactive ce
 comportement.
 
+Si un sous-agent (ou Claude lui-même) meurt sur une panne qui passe d'elle-même, comme une limite d'utilisation ou
+de session, une limite de requêtes, une API surchargée ou une connexion coupée, le mod met l'exécution en pause au
+lieu de rendre la tâche: elle reste en cours avec ses verrous, et le panneau dit pourquoi et jusqu'à quand. Au
+réarmement (l'heure donnée par l'erreur, ou quand Claude Code reprend après une limite d'utilisation), ou avec
+`jtasks unpause`, l'exécution redevient active et Claude reçoit l'instruction de reprendre le même sous-agent avec
+SendMessage, sans en ouvrir un autre. Une clé invalide, un refus ou un contexte débordé continuent comme avant. Pour
+une nouvelle version: `claude plugin marketplace update jtasks`, puis `claude plugin update jtasks@jtasks`, et
+redémarrez Claude Code.
+
 ## Avec OpenCode
 
 Avec le plugin, c'est pareil : `to-jtasks` pour planifier, puis un goal. L'appel `subagent` de chaque tâche reçoit
@@ -165,6 +174,11 @@ progression.
 
 Quand la session devient inactive avec une tâche prête et rien en cours, le plugin relance la boucle de la même
 façon.
+
+Une session qui échoue sur une panne du fournisseur qui passe d'elle-même (sont reconnus opencode/zen, OpenRouter
+avec l'erreur de l'amont dans le corps, Anthropic, OpenAI, Moonshot/Kimi et les fournisseurs compatibles OpenAI) met
+l'exécution en pause de la même façon, la tâche gardée en cours; au réarmement le plugin la reprend et dit à la
+session de continuer le même sous-agent (`task_id`).
 
 ## Depuis un terminal ou Codex
 

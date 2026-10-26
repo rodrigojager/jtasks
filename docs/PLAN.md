@@ -65,6 +65,25 @@ dá (variáveis atribuídas no próprio comando, `~`, heredoc, `sed -i`, `cd`) e
 dá, sem sugerir `claim` de caminho com `$`. Marcado com **[rev. 5.6]** nas seções 3, 4, 5, 6, 7, 9, 12, 14, 15, 16, 17
 e 18 (tickets 47 a 50).
 
+Revisão 5.7, 26/10/2026: falha transitória pausa, não devolve. No run do FlashEvents, o subagente da T13 morreu com
+"You've hit your session limit · resets 12:50am" (429); o mod tratou como fim de subagente: a tarefa voltou para a
+fila, as travas foram soltas e o keepalive avisou "retomada parada depois de um erro". Quando o limite passou, o
+orquestrador retomou o mesmo subagente com SendMessage, que seguiu editando sem posse e precisou de `start` e `claim`
+de novo. Agora o núcleo classifica a falha (`src/transient.ts`, tabelas de tipos e padrões com amostras reais de
+cada provedor): limite de uso, sessão ou requisições, cota, servidor sobrecarregado ou com erro, rede, timeout e
+retries esgotados são transitórios; chave ou login inválidos, recusa, contexto estourado, teto de saída e bug não
+são, e seguem como antes. Uma falha transitória pausa a execução (`run.json` ganha `pause`: o tipo, as palavras do
+provedor, o reset, `resumeAt`, as tarefas mantidas e o agente de cada uma), a tarefa continua `in_progress` com as
+travas (o host segue renovando) e o lugar do subagente no host fica; o keepalive fica quieto. A volta (`unpause`, o
+relógio no `resumeAt`, ou o `quota_auto_resume_fired` do Claude Code) retoma as travas vencidas e diz ao orquestrador
+para retomar o mesmo agente (SendMessage no Claude Code, `task_id` no OpenCode), não abrir outro; um segundo
+subagente da tarefa é recusado. Sem reset informado, a espera é de 5 minutos, dobrando a cada nova pausa no mesmo
+progresso, até uma hora; depois de três retomadas automáticas seguidas sem progresso, só `unpause`. No mod, a fonte é
+o evento clássico `StopFailure` (o `turn.complete` de erro não traz texto); no plugin, `session.execution.failed`, o
+status de retry e o `session.error` v1. E a versão passa a 0.2.0 em todos os manifestos, com `scripts/version.ts` e
+um teste que falha quando eles divergem: o `/plugin` do Claude Code compara a versão declarada, não os commits.
+Marcado com **[rev. 5.7]** na seção 18 (tickets 51 e 52).
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -878,6 +897,12 @@ motivo.
 22. **[rev. 5.6] A guarda de shell resolve o que dá** (ticket 50): um leitor de shell em `src/guard.ts` com aspas,
     heredoc, descritores, variáveis atribuídas no comando, `~`/`$HOME`, `cd`, `sed -i` e `cp`; `guard.unresolved`
     para o que não dá para conferir.
+23. **[rev. 5.7] Falha transitória pausa, não devolve** (ticket 51): `src/transient.ts` (classificador por tabelas,
+    reset, backoff, textos da volta), `src/autopause.ts` (`pauseForFailure`, `resumeIfDue`, `resumeNow`), `unpause`
+    e `resume` retomando as travas; no mod, `StopFailure`, `quota_auto_resume_fired` e a recusa de um segundo
+    subagente; no plugin, `session.execution.failed`, retry e `session.error`; protocolo, skills e documentação.
+24. **[rev. 5.7] Uma versão só** (ticket 52): 0.2.0 em `package.json`, `VERSION`, `plugin.json` e no pacote do
+    OpenCode; `scripts/version.ts` (lista, `--check`, sobe) e `test/version.test.ts`.
 
 ---
 

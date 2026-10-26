@@ -13,6 +13,8 @@ export type AgentTask = {
   task: string
   /** The effort of the task's profile, set on every model request of the subagent's loop. */
   effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+  /** Its loop died on a transient failure and the run was paused with its task kept (rev. 5.7): resume it, never open another. */
+  paused?: boolean
 }
 
 /** One checklist line of the pane (the core's ViewLine). */

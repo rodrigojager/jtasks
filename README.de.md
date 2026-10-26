@@ -157,6 +157,15 @@ der Mod Claude eine Nachricht, die die Schleife wieder öffnet; nach zwei ohne F
 Bescheid. Um absichtlich anzuhalten, ruft Claude `jtasks pause` auf und fragt dich; `jtasks keepalive off`
 schaltet das ab.
 
+Stirbt ein Subagent (oder Claude selbst) an einer Störung, die von selbst vergeht, etwa einem Nutzungs- oder
+Sitzungslimit, einem Anfragelimit, einer überlasteten API oder einer abgebrochenen Verbindung, pausiert der Mod den
+Lauf, statt die Aufgabe zurückzugeben: Sie bleibt mit ihren Sperren in Arbeit, und das Panel sagt, warum und bis
+wann. Beim Reset (der Zeit, die der Fehler nannte, oder wenn Claude Code nach einem Nutzungslimit weitermacht) oder
+mit `jtasks unpause` ist der Lauf wieder aktiv, und Claude wird angewiesen, denselben Subagenten mit SendMessage
+fortzusetzen, statt einen neuen zu öffnen. Ein ungültiger Schlüssel, eine Ablehnung oder ein übervoller Kontext
+laufen wie bisher. Für eine neue Version: `claude plugin marketplace update jtasks`, dann `claude plugin update
+jtasks@jtasks`, und Claude Code neu starten.
+
 ## Mit OpenCode
 
 Mit dem Plugin genauso: `to-jtasks` zum Planen, dann ein Goal. Der `subagent`-Aufruf jeder Aufgabe bekommt den
@@ -165,6 +174,11 @@ jeden Agenten, den du im Plan nennst). Die Seitenleiste zeigt die Checkliste und
 
 Wird die Sitzung mit einer bereiten Aufgabe und ohne laufende Arbeit untätig, öffnet das Plugin die Schleife
 genauso wieder.
+
+Eine Sitzung, die an einer vorübergehenden Störung des Anbieters scheitert (erkannt werden opencode/zen, OpenRouter
+mit dem Fehler des Upstreams im Body, Anthropic, OpenAI, Moonshot/Kimi und OpenAI-kompatible Anbieter), pausiert den
+Lauf genauso, die Aufgabe bleibt in Arbeit; beim Reset setzt das Plugin ihn fort und sagt der Sitzung, denselben
+Subagenten weiterzuführen (`task_id`).
 
 ## Aus einem Terminal oder Codex
 

@@ -379,6 +379,11 @@ var en_default = {
   "path.not_a_folder": "not a folder: {path}",
   "pause.done": "run {run} paused: start refused, do not start tasks",
   "pause.running": "the ones in progress finish: {list}",
+  "pause.auto": "run {run} paused by a transient failure of the provider ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} kept in progress with their locks",
+  "pause.kept_none": "no task in progress",
+  "pause.when_at": "it resumes by itself at {at}",
+  "pause.when_person": "jtasks unpause resumes it",
   "keepalive.usage": "use: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "run {run}: keepalive on (the host reopens the loop when the orchestrator stops with ready tasks and nothing running)",
   "keepalive.off": "run {run}: keepalive off (only the model keeps the loop going)",
@@ -470,6 +475,8 @@ var en_default = {
   "skip.no_reason": 'skip without a reason is refused: jtasks skip {id} --reason "why"',
   "spawn.other_run": "--run {run} is not the run bound to this session ({bound})",
   "spawn.unknown_profile": 'unknown profile "{profile}" (profiles: {profiles})',
+  "spawn.kept": "{task} is kept in progress for agent {agent} by a transient pause: resume that agent with SendMessage instead of opening another (if it no longer exists, jtasks release {task} first)",
+  "spawn.kept_session": "{task} is kept in progress for the subagent session {agent}: resume that session (the task tool's task_id) instead of opening another (if it no longer exists, jtasks release {task} first)",
   "start.busy": "{id} was not ready: {key} in use by {holder}{via}; nothing was written",
   "start.depends": "{id} is not ready: it depends on {deps}",
   "start.fresh": "--fresh: {n} saved patch(es) left out (they stay in {dir} and in the ledger)",
@@ -495,6 +502,7 @@ var en_default = {
   "status.lost_task": "{id} (no locks in jlock: jtasks resume or jtasks release {id})",
   "status.no_locks": "active locks: none",
   "status.paused": "paused: do not start tasks",
+  "status.auto_paused": "transient failure ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "keepalive: off",
   "status.keepalive_stalled": "keepalive gave up: {what} to do, nothing running, {tries} message(s) without progress (jtasks keepalive on watches it again)",
   "status.keepalive_error": "keepalive stopped after an error: {what} to do, nothing running (send a message to go on)",
@@ -547,6 +555,7 @@ var en_default = {
   "undo.unmerged": "{id}: the branch {branch} has commits that are not in {base}; merge them (git merge) or use --force",
   "undo.which": "say what to undo: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "run {run} resumed ({status})",
+  "unpause.kept": "{list} still in progress with their locks: resume the same subagent, do not open a new one",
   "validate.ok": "ok: {n} task(s), no errors",
   "view.loading": "Tasks: loading…",
   "view.lost": "ownership lost",
@@ -554,6 +563,14 @@ var en_default = {
   "view.no_runs": "no run (jtasks plan)",
   "view.paused": "paused",
   "view.stalled": "⚠ stopped: {what} to do, nothing running",
+  "view.auto_paused": "⏸ paused ({kind}): {when}",
+  "transient.rate_limit": "rate limit",
+  "transient.quota": "usage limit or quota",
+  "transient.overloaded": "provider overloaded",
+  "transient.server": "provider error",
+  "transient.network": "connection failure",
+  "transient.timeout": "timeout",
+  "transient.retries": "retries exhausted",
   "view.waits_for": "waits for {files}",
   "warnings.count": "{n} warning(s):",
   "yield.came_back": "{id} took back {files}",
@@ -826,6 +843,11 @@ var pt_BR_default = {
   "path.not_a_folder": "não é uma pasta: {path}",
   "pause.done": "execução {run} pausada: start recusado, não inicie tarefas",
   "pause.running": "as em andamento terminam: {list}",
+  "pause.auto": "execução {run} pausada por uma falha transitória do provedor ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} mantida(s) em andamento com as travas",
+  "pause.kept_none": "nenhuma tarefa em andamento",
+  "pause.when_at": "retoma sozinha às {at}",
+  "pause.when_person": "jtasks unpause retoma",
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "execução {run}: retomada ligada (o host reabre o laço quando o orquestrador para com tarefas prontas e nada rodando)",
   "keepalive.off": "execução {run}: retomada desligada (só o modelo mantém o laço andando)",
@@ -917,6 +939,8 @@ var pt_BR_default = {
   "skip.no_reason": 'skip sem motivo é recusado: jtasks skip {id} --reason "por quê"',
   "spawn.other_run": "--run {run} não é a execução ligada a esta sessão ({bound})",
   "spawn.unknown_profile": 'perfil desconhecido "{profile}" (perfis: {profiles})',
+  "spawn.kept": "{task} está mantida em andamento para o agente {agent} por uma pausa transitória: retome esse agente com SendMessage em vez de abrir outro (se ele não existir mais, jtasks release {task} antes)",
+  "spawn.kept_session": "{task} está mantida em andamento para a sessão de subagente {agent}: retome essa sessão (task_id da ferramenta task) em vez de abrir outra (se ela não existir mais, jtasks release {task} antes)",
   "start.busy": "{id} não estava pronta: {key} em uso por {holder}{via}; nada foi gravado",
   "start.depends": "{id} não está pronta: depende de {deps}",
   "start.fresh": "--fresh: {n} patch(es) guardado(s) deixado(s) de fora (continuam em {dir} e no ledger)",
@@ -942,6 +966,7 @@ var pt_BR_default = {
   "status.lost_task": "{id} (sem travas no jlock: jtasks resume ou jtasks release {id})",
   "status.no_locks": "travas ativas: nenhuma",
   "status.paused": "pausada: não inicie tarefas",
+  "status.auto_paused": "falha transitória ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "retomada: desligada",
   "status.keepalive_stalled": "retomada desistiu: {what} por fazer, nada rodando, {tries} mensagem(ns) sem progresso (jtasks keepalive on volta a vigiar)",
   "status.keepalive_error": "retomada parada depois de um erro: {what} por fazer, nada rodando (mande uma mensagem para seguir)",
@@ -994,6 +1019,7 @@ var pt_BR_default = {
   "undo.unmerged": "{id}: o branch {branch} tem commits que não estão em {base}; integre-os (git merge) ou use --force",
   "undo.which": "diga o que desfazer: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "execução {run} retomada ({status})",
+  "unpause.kept": "{list} continua(m) em andamento com as travas: retome o mesmo subagente, não abra outro",
   "validate.ok": "ok: {n} tarefa(s), nenhum erro",
   "view.loading": "Tasks: carregando…",
   "view.lost": "posse perdida",
@@ -1001,6 +1027,14 @@ var pt_BR_default = {
   "view.no_runs": "nenhuma execução (jtasks plan)",
   "view.paused": "pausada",
   "view.stalled": "⚠ parada: {what} por fazer, nada rodando",
+  "view.auto_paused": "⏸ pausada ({kind}): {when}",
+  "transient.rate_limit": "limite de requisições",
+  "transient.quota": "limite de uso ou cota",
+  "transient.overloaded": "provedor sobrecarregado",
+  "transient.server": "erro do provedor",
+  "transient.network": "falha de conexão",
+  "transient.timeout": "tempo esgotado",
+  "transient.retries": "tentativas esgotadas",
   "view.waits_for": "espera {files}",
   "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} pegou de volta {files}",
@@ -1273,6 +1307,11 @@ var es_default = {
   "path.not_a_folder": "no es una carpeta: {path}",
   "pause.done": "ejecución {run} en pausa: start rechazado, no inicies tareas",
   "pause.running": "las que están en curso terminan: {list}",
+  "pause.auto": "ejecución {run} en pausa por un fallo transitorio del proveedor ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} sigue(n) en curso con sus bloqueos",
+  "pause.kept_none": "ninguna tarea en curso",
+  "pause.when_at": "se reanuda sola a las {at}",
+  "pause.when_person": "jtasks unpause la reanuda",
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "ejecución {run}: reanudación activada (el host reabre el ciclo cuando el orquestador se detiene con tareas listas y nada en marcha)",
   "keepalive.off": "ejecución {run}: reanudación desactivada (solo el modelo mantiene el ciclo en marcha)",
@@ -1364,6 +1403,8 @@ var es_default = {
   "skip.no_reason": 'se rechaza skip sin motivo: jtasks skip {id} --reason "por qué"',
   "spawn.other_run": "--run {run} no es la ejecución ligada a esta sesión ({bound})",
   "spawn.unknown_profile": 'perfil desconocido "{profile}" (perfiles: {profiles})',
+  "spawn.kept": "{task} se mantiene en curso para el agente {agent} por una pausa transitoria: reanuda ese agente con SendMessage en lugar de abrir otro (si ya no existe, jtasks release {task} antes)",
+  "spawn.kept_session": "{task} se mantiene en curso para la sesión de subagente {agent}: reanuda esa sesión (task_id de la herramienta task) en lugar de abrir otra (si ya no existe, jtasks release {task} antes)",
   "start.busy": "{id} no estaba lista: {key} en uso por {holder}{via}; no se escribió nada",
   "start.depends": "{id} no está lista: depende de {deps}",
   "start.fresh": "--fresh: {n} patch(es) guardado(s) dejado(s) fuera (siguen en {dir} y en el ledger)",
@@ -1389,6 +1430,7 @@ var es_default = {
   "status.lost_task": "{id} (sin bloqueos en jlock: jtasks resume o jtasks release {id})",
   "status.no_locks": "bloqueos activos: ninguno",
   "status.paused": "en pausa: no inicies tareas",
+  "status.auto_paused": "fallo transitorio ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "reanudación: desactivada",
   "status.keepalive_stalled": "la reanudación se rindió: {what} por hacer, nada en marcha, {tries} mensaje(s) sin progreso (jtasks keepalive on vuelve a vigilarla)",
   "status.keepalive_error": "reanudación detenida tras un error: {what} por hacer, nada en marcha (envía un mensaje para seguir)",
@@ -1441,6 +1483,7 @@ var es_default = {
   "undo.unmerged": "{id}: la rama {branch} tiene commits que no están en {base}; fusiónalos (git merge) o usa --force",
   "undo.which": "di qué deshacer: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "ejecución {run} reanudada ({status})",
+  "unpause.kept": "{list} sigue(n) en curso con sus bloqueos: reanuda el mismo subagente, no abras otro",
   "validate.ok": "ok: {n} tarea(s), sin errores",
   "view.loading": "Tasks: cargando…",
   "view.lost": "posesión perdida",
@@ -1448,6 +1491,14 @@ var es_default = {
   "view.no_runs": "ninguna ejecución (jtasks plan)",
   "view.paused": "en pausa",
   "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha",
+  "view.auto_paused": "⏸ en pausa ({kind}): {when}",
+  "transient.rate_limit": "límite de peticiones",
+  "transient.quota": "límite de uso o cuota",
+  "transient.overloaded": "proveedor sobrecargado",
+  "transient.server": "error del proveedor",
+  "transient.network": "fallo de conexión",
+  "transient.timeout": "tiempo agotado",
+  "transient.retries": "reintentos agotados",
   "view.waits_for": "espera {files}",
   "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} recuperó {files}",
@@ -1720,6 +1771,11 @@ var fr_default = {
   "path.not_a_folder": "pas un dossier: {path}",
   "pause.done": "exécution {run} en pause: start refusé, ne démarrez pas de tâches",
   "pause.running": "celles en cours se terminent: {list}",
+  "pause.auto": "exécution {run} en pause sur une panne passagère du fournisseur ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} reste(nt) en cours avec leurs verrous",
+  "pause.kept_none": "aucune tâche en cours",
+  "pause.when_at": "elle reprend seule à {at}",
+  "pause.when_person": "jtasks unpause la reprend",
   "keepalive.usage": "usage : jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "exécution {run} : relance activée (l'hôte relance la boucle quand l'orchestrateur s'arrête avec des tâches prêtes et rien en cours)",
   "keepalive.off": "exécution {run} : relance désactivée (seul le modèle fait avancer la boucle)",
@@ -1811,6 +1867,8 @@ var fr_default = {
   "skip.no_reason": 'skip sans raison est refusé: jtasks skip {id} --reason "pourquoi"',
   "spawn.other_run": "--run {run} n'est pas l'exécution liée à cette session ({bound})",
   "spawn.unknown_profile": 'profil inconnu "{profile}" (profils: {profiles})',
+  "spawn.kept": "{task} est gardée en cours pour l'agent {agent} par une pause passagère: reprenez cet agent avec SendMessage au lieu d'en ouvrir un autre (s'il n'existe plus, jtasks release {task} d'abord)",
+  "spawn.kept_session": "{task} est gardée en cours pour la session de sous-agent {agent}: reprenez cette session (task_id de l'outil task) au lieu d'en ouvrir une autre (si elle n'existe plus, jtasks release {task} d'abord)",
   "start.busy": "{id} n'était pas prête: {key} utilisé par {holder}{via}; rien n'a été écrit",
   "start.depends": "{id} n'est pas prête: elle dépend de {deps}",
   "start.fresh": "--fresh: {n} patch(s) gardé(s) laissé(s) de côté (ils restent dans {dir} et dans le ledger)",
@@ -1836,6 +1894,7 @@ var fr_default = {
   "status.lost_task": "{id} (aucun verrou dans jlock: jtasks resume ou jtasks release {id})",
   "status.no_locks": "verrous actifs: aucun",
   "status.paused": "en pause: ne démarrez pas de tâches",
+  "status.auto_paused": "panne passagère ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "relance : désactivée",
   "status.keepalive_stalled": "relance abandonnée : {what} à faire, rien en cours, {tries} message(s) sans progrès (jtasks keepalive on la surveille à nouveau)",
   "status.keepalive_error": "relance arrêtée après une erreur : {what} à faire, rien en cours (envoyez un message pour continuer)",
@@ -1888,6 +1947,7 @@ var fr_default = {
   "undo.unmerged": "{id}: la branche {branch} a des commits absents de {base}; fusionnez-les (git merge) ou utilisez --force",
   "undo.which": "précisez quoi annuler: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "exécution {run} reprise ({status})",
+  "unpause.kept": "{list} toujours en cours avec leurs verrous: reprenez le même sous-agent, n'en ouvrez pas un autre",
   "validate.ok": "ok: {n} tâche(s), aucune erreur",
   "view.loading": "Tasks: chargement…",
   "view.lost": "possession perdue",
@@ -1895,6 +1955,14 @@ var fr_default = {
   "view.no_runs": "aucune exécution (jtasks plan)",
   "view.paused": "en pause",
   "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours",
+  "view.auto_paused": "⏸ en pause ({kind}): {when}",
+  "transient.rate_limit": "limite de requêtes",
+  "transient.quota": "limite d'utilisation ou quota",
+  "transient.overloaded": "fournisseur surchargé",
+  "transient.server": "erreur du fournisseur",
+  "transient.network": "échec de connexion",
+  "transient.timeout": "délai dépassé",
+  "transient.retries": "nouvelles tentatives épuisées",
   "view.waits_for": "attend {files}",
   "warnings.count": "{n} avertissement(s):",
   "yield.came_back": "{id} a repris {files}",
@@ -2167,6 +2235,11 @@ var de_default = {
   "path.not_a_folder": "kein Ordner: {path}",
   "pause.done": "Lauf {run} pausiert: start abgelehnt, starte keine Aufgaben",
   "pause.running": "die laufenden werden fertig: {list}",
+  "pause.auto": "Lauf {run} pausiert wegen einer vorübergehenden Störung des Anbieters ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} bleibt/bleiben mit den Sperren in Arbeit",
+  "pause.kept_none": "keine Aufgabe in Arbeit",
+  "pause.when_at": "er läuft um {at} von selbst weiter",
+  "pause.when_person": "jtasks unpause setzt ihn fort",
   "keepalive.usage": "Aufruf: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "Lauf {run}: Wiederaufnahme an (der Host öffnet die Schleife wieder, wenn der Orchestrator mit bereiten Aufgaben stoppt und nichts läuft)",
   "keepalive.off": "Lauf {run}: Wiederaufnahme aus (nur das Modell hält die Schleife in Gang)",
@@ -2258,6 +2331,8 @@ var de_default = {
   "skip.no_reason": 'skip ohne Grund wird abgelehnt: jtasks skip {id} --reason "warum"',
   "spawn.other_run": "--run {run} ist nicht der an diese Sitzung gebundene Lauf ({bound})",
   "spawn.unknown_profile": 'unbekanntes Profil "{profile}" (Profile: {profiles})',
+  "spawn.kept": "{task} wird durch eine vorübergehende Pause für den Agenten {agent} in Arbeit gehalten: setze diesen Agenten mit SendMessage fort, statt einen neuen zu öffnen (gibt es ihn nicht mehr, zuerst jtasks release {task})",
+  "spawn.kept_session": "{task} wird für die Subagenten-Sitzung {agent} in Arbeit gehalten: setze diese Sitzung fort (task_id des task-Werkzeugs), statt eine neue zu öffnen (gibt es sie nicht mehr, zuerst jtasks release {task})",
   "start.busy": "{id} war nicht bereit: {key} belegt von {holder}{via}; nichts wurde geschrieben",
   "start.depends": "{id} ist nicht bereit: hängt ab von {deps}",
   "start.fresh": "--fresh: {n} aufbewahrte(r) Patch(es) weggelassen (bleiben in {dir} und im Ledger)",
@@ -2283,6 +2358,7 @@ var de_default = {
   "status.lost_task": "{id} (keine Sperren in jlock: jtasks resume oder jtasks release {id})",
   "status.no_locks": "aktive Sperren: keine",
   "status.paused": "pausiert: starte keine Aufgaben",
+  "status.auto_paused": "vorübergehende Störung ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "Wiederaufnahme: aus",
   "status.keepalive_stalled": "Wiederaufnahme aufgegeben: {what} offen, nichts läuft, {tries} Nachricht(en) ohne Fortschritt (jtasks keepalive on beobachtet ihn wieder)",
   "status.keepalive_error": "Wiederaufnahme nach einem Fehler gestoppt: {what} offen, nichts läuft (schick eine Nachricht, um weiterzumachen)",
@@ -2335,6 +2411,7 @@ var de_default = {
   "undo.unmerged": "{id}: der Branch {branch} hat Commits, die nicht in {base} sind; merge sie (git merge) oder nutze --force",
   "undo.which": "sag, was rückgängig gemacht werden soll: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "Lauf {run} fortgesetzt ({status})",
+  "unpause.kept": "{list} weiter in Arbeit mit den Sperren: setze denselben Subagenten fort, öffne keinen neuen",
   "validate.ok": "ok: {n} Aufgabe(n), keine Fehler",
   "view.loading": "Tasks: lädt…",
   "view.lost": "Besitz verloren",
@@ -2342,6 +2419,14 @@ var de_default = {
   "view.no_runs": "kein Lauf (jtasks plan)",
   "view.paused": "pausiert",
   "view.stalled": "⚠ steht: {what} offen, nichts läuft",
+  "view.auto_paused": "⏸ pausiert ({kind}): {when}",
+  "transient.rate_limit": "Anfragelimit",
+  "transient.quota": "Nutzungslimit oder Kontingent",
+  "transient.overloaded": "Anbieter überlastet",
+  "transient.server": "Fehler des Anbieters",
+  "transient.network": "Verbindungsfehler",
+  "transient.timeout": "Zeitüberschreitung",
+  "transient.retries": "Wiederholungen erschöpft",
   "view.waits_for": "wartet auf {files}",
   "warnings.count": "{n} Warnung(en):",
   "yield.came_back": "{id} hat {files} zurückgenommen",
@@ -2614,6 +2699,11 @@ var it_default = {
   "path.not_a_folder": "non è una cartella: {path}",
   "pause.done": "esecuzione {run} in pausa: start rifiutato, non avviare attività",
   "pause.running": "quelle in corso terminano: {list}",
+  "pause.auto": "esecuzione {run} in pausa per un guasto temporaneo del fornitore ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} resta(no) in corso con i lock",
+  "pause.kept_none": "nessuna attività in corso",
+  "pause.when_at": "riprende da sola alle {at}",
+  "pause.when_person": "jtasks unpause la riprende",
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "esecuzione {run}: ripresa attiva (l'host riapre il ciclo quando l'orchestratore si ferma con attività pronte e niente in corso)",
   "keepalive.off": "esecuzione {run}: ripresa disattivata (solo il modello porta avanti il ciclo)",
@@ -2705,6 +2795,8 @@ var it_default = {
   "skip.no_reason": 'skip senza motivo è rifiutato: jtasks skip {id} --reason "perché"',
   "spawn.other_run": "--run {run} non è l'esecuzione legata a questa sessione ({bound})",
   "spawn.unknown_profile": 'profilo sconosciuto "{profile}" (profili: {profiles})',
+  "spawn.kept": "{task} è tenuta in corso per l'agente {agent} da una pausa temporanea: riprendi quell'agente con SendMessage invece di aprirne un altro (se non esiste più, prima jtasks release {task})",
+  "spawn.kept_session": "{task} è tenuta in corso per la sessione di subagente {agent}: riprendi quella sessione (task_id dello strumento task) invece di aprirne un'altra (se non esiste più, prima jtasks release {task})",
   "start.busy": "{id} non era pronta: {key} tenuta da {holder}{via}; nulla è stato scritto",
   "start.depends": "{id} non è pronta: dipende da {deps}",
   "start.fresh": "--fresh: {n} patch salvata/e lasciata/e fuori (restano in {dir} e nel ledger)",
@@ -2730,6 +2822,7 @@ var it_default = {
   "status.lost_task": "{id} (nessun blocco in jlock: jtasks resume o jtasks release {id})",
   "status.no_locks": "blocchi attivi: nessuno",
   "status.paused": "in pausa: non avviare attività",
+  "status.auto_paused": "guasto temporaneo ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "ripresa: disattivata",
   "status.keepalive_stalled": "ripresa abbandonata: {what} da fare, niente in corso, {tries} messaggio/i senza progressi (jtasks keepalive on la sorveglia di nuovo)",
   "status.keepalive_error": "ripresa fermata dopo un errore: {what} da fare, niente in corso (manda un messaggio per proseguire)",
@@ -2782,6 +2875,7 @@ var it_default = {
   "undo.unmerged": "{id}: il branch {branch} ha commit che non sono in {base}; integrali (git merge) o usa --force",
   "undo.which": "indica cosa annullare: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "esecuzione {run} ripresa ({status})",
+  "unpause.kept": "{list} ancora in corso con i lock: riprendi lo stesso subagente, non aprirne un altro",
   "validate.ok": "ok: {n} attività, nessun errore",
   "view.loading": "Tasks: caricamento…",
   "view.lost": "possesso perso",
@@ -2789,6 +2883,14 @@ var it_default = {
   "view.no_runs": "nessuna esecuzione (jtasks plan)",
   "view.paused": "in pausa",
   "view.stalled": "⚠ ferma: {what} da fare, niente in corso",
+  "view.auto_paused": "⏸ in pausa ({kind}): {when}",
+  "transient.rate_limit": "limite di richieste",
+  "transient.quota": "limite d'uso o quota",
+  "transient.overloaded": "fornitore sovraccarico",
+  "transient.server": "errore del fornitore",
+  "transient.network": "errore di connessione",
+  "transient.timeout": "tempo scaduto",
+  "transient.retries": "tentativi esauriti",
   "view.waits_for": "attende {files}",
   "warnings.count": "{n} avviso/i:",
   "yield.came_back": "{id} ha ripreso {files}",
@@ -3061,6 +3163,11 @@ var zh_CN_default = {
   "path.not_a_folder": "不是文件夹：{path}",
   "pause.done": "运行 {run} 已暂停：start 被拒绝，不要开始任务",
   "pause.running": "进行中的任务会继续完成：{list}",
+  "pause.auto": "运行 {run} 因提供方的暂时性故障而暂停（{kind}：{detail}）；{kept}；{when}",
+  "pause.kept": "{list} 保持进行中，锁仍持有",
+  "pause.kept_none": "没有进行中的任务",
+  "pause.when_at": "将在 {at} 自动恢复",
+  "pause.when_person": "用 jtasks unpause 恢复",
   "keepalive.usage": "用法：jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "运行 {run}：自动续跑已开启(编排者在有就绪任务且无任何运行时停下，宿主会重新开启循环)",
   "keepalive.off": "运行 {run}：自动续跑已关闭(只有模型推动循环)",
@@ -3152,6 +3259,8 @@ var zh_CN_default = {
   "skip.no_reason": '没有理由的 skip 会被拒绝：jtasks skip {id} --reason "原因"',
   "spawn.other_run": "--run {run} 不是本会话绑定的运行（{bound}）",
   "spawn.unknown_profile": '未知配置 "{profile}"（可用配置：{profiles}）',
+  "spawn.kept": "{task} 因暂时性暂停而为代理 {agent} 保持进行中：用 SendMessage 恢复该代理，不要新开（若它已不存在，先 jtasks release {task}）",
+  "spawn.kept_session": "{task} 为子代理会话 {agent} 保持进行中：恢复该会话（task 工具的 task_id），不要新开（若它已不存在，先 jtasks release {task}）",
   "start.busy": "{id} 未就绪：{key} 正被 {holder}{via} 使用；未写入任何内容",
   "start.depends": "{id} 未就绪：它依赖 {deps}",
   "start.fresh": "--fresh：{n} 个保存的补丁未恢复（仍保留在 {dir} 和账本中）",
@@ -3177,6 +3286,7 @@ var zh_CN_default = {
   "status.lost_task": "{id}（jlock 中没有锁：jtasks resume 或 jtasks release {id}）",
   "status.no_locks": "活动的锁：无",
   "status.paused": "已暂停：不要开始任务",
+  "status.auto_paused": "暂时性故障（{kind}：{detail}）：{kept}；{when}",
   "status.keepalive_off": "自动续跑：关闭",
   "status.keepalive_stalled": "自动续跑已放弃：{what} 待做，无任何运行，{tries} 条消息没有进展(jtasks keepalive on 重新监视)",
   "status.keepalive_error": "自动续跑在出错后停止：{what} 待做，无任何运行(发一条消息即可继续)",
@@ -3229,6 +3339,7 @@ var zh_CN_default = {
   "undo.unmerged": "{id}：分支 {branch} 有不在 {base} 中的提交；请合并（git merge）或使用 --force",
   "undo.which": "请指明要撤销什么：jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "运行 {run} 已恢复（{status}）",
+  "unpause.kept": "{list} 仍在进行中且持有锁：恢复同一个子代理，不要新开",
   "validate.ok": "ok：{n} 个任务，无错误",
   "view.loading": "Tasks：加载中…",
   "view.lost": "所有权已丢失",
@@ -3236,6 +3347,14 @@ var zh_CN_default = {
   "view.no_runs": "没有运行（jtasks plan）",
   "view.paused": "已暂停",
   "view.stalled": "⚠ 已停下：{what} 待做，无任何运行",
+  "view.auto_paused": "⏸ 已暂停（{kind}）：{when}",
+  "transient.rate_limit": "请求频率限制",
+  "transient.quota": "用量限制或配额",
+  "transient.overloaded": "提供方过载",
+  "transient.server": "提供方错误",
+  "transient.network": "连接失败",
+  "transient.timeout": "超时",
+  "transient.retries": "重试已用尽",
   "view.waits_for": "等待 {files}",
   "warnings.count": "{n} 个警告：",
   "yield.came_back": "{id} 取回了 {files}",
@@ -3508,6 +3627,11 @@ var ja_default = {
   "path.not_a_folder": "フォルダではない: {path}",
   "pause.done": "実行 {run} を一時停止: start は拒否、タスクを開始しない",
   "pause.running": "進行中のものは最後まで続く: {list}",
+  "pause.auto": "実行 {run} をプロバイダーの一時的な障害で一時停止（{kind}: {detail}）; {kept}; {when}",
+  "pause.kept": "{list} はロックを持ったまま進行中",
+  "pause.kept_none": "進行中のタスクなし",
+  "pause.when_at": "{at} に自動で再開",
+  "pause.when_person": "jtasks unpause で再開",
   "keepalive.usage": "使い方: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "実行 {run}: 自動再開オン(準備済みタスクがあり何も動いていない状態でオーケストレーターが止まると、ホストがループを再開する)",
   "keepalive.off": "実行 {run}: 自動再開オフ(ループを進めるのはモデルだけ)",
@@ -3599,6 +3723,8 @@ var ja_default = {
   "skip.no_reason": '理由のない skip は拒否: jtasks skip {id} --reason "理由"',
   "spawn.other_run": "--run {run} はこのセッションに結び付いた実行（{bound}）ではない",
   "spawn.unknown_profile": '不明なプロファイル "{profile}"（プロファイル: {profiles}）',
+  "spawn.kept": "{task} は一時的な停止によりエージェント {agent} のために進行中のまま: 新しく開かず SendMessage でそのエージェントを再開する（もう存在しなければ先に jtasks release {task}）",
+  "spawn.kept_session": "{task} はサブエージェントのセッション {agent} のために進行中のまま: 新しく開かずそのセッションを再開する（task ツールの task_id。もう存在しなければ先に jtasks release {task}）",
   "start.busy": "{id} は準備できていなかった: {key} を {holder}{via} が使用中。何も書き込んでいない",
   "start.depends": "{id} は準備できていない: {deps} に依存している",
   "start.fresh": "--fresh: 保存済みパッチ {n} 件を除外（{dir} と台帳に残る）",
@@ -3624,6 +3750,7 @@ var ja_default = {
   "status.lost_task": "{id}（jlock にロックなし: jtasks resume または jtasks release {id}）",
   "status.no_locks": "有効なロック: なし",
   "status.paused": "一時停止中: タスクを開始しない",
+  "status.auto_paused": "一時的な障害（{kind}: {detail}）: {kept}; {when}",
   "status.keepalive_off": "自動再開: オフ",
   "status.keepalive_stalled": "自動再開を断念: {what} が残り、何も動いていない、進捗のないメッセージ {tries} 件(jtasks keepalive on で再び監視)",
   "status.keepalive_error": "エラーの後で自動再開は停止: {what} が残り、何も動いていない(続けるにはメッセージを送ってください)",
@@ -3676,6 +3803,7 @@ var ja_default = {
   "undo.unmerged": "{id}: ブランチ {branch} に {base} にないコミットがある。マージする（git merge）か --force を使う",
   "undo.which": "取り消す対象を指定する: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "実行 {run} を再開（{status}）",
+  "unpause.kept": "{list} はロックを持ったまま進行中: 同じサブエージェントを再開し、新しく開かない",
   "validate.ok": "ok: タスク {n} 件、エラーなし",
   "view.loading": "Tasks: 読み込み中…",
   "view.lost": "所有権喪失",
@@ -3683,6 +3811,14 @@ var ja_default = {
   "view.no_runs": "実行なし（jtasks plan）",
   "view.paused": "一時停止中",
   "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない",
+  "view.auto_paused": "⏸ 一時停止中（{kind}）: {when}",
+  "transient.rate_limit": "レート制限",
+  "transient.quota": "利用上限またはクォータ",
+  "transient.overloaded": "プロバイダー過負荷",
+  "transient.server": "プロバイダーのエラー",
+  "transient.network": "接続の失敗",
+  "transient.timeout": "タイムアウト",
+  "transient.retries": "再試行の上限",
   "view.waits_for": "{files} を待機",
   "warnings.count": "警告 {n} 件:",
   "yield.came_back": "{id} が {files} を取り戻した",
@@ -3955,6 +4091,11 @@ var ru_default = {
   "path.not_a_folder": "не папка: {path}",
   "pause.done": "прогон {run} на паузе: start отклоняется, не начинайте задачи",
   "pause.running": "задачи в работе доделываются: {list}",
+  "pause.auto": "прогон {run} на паузе из-за временного сбоя провайдера ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} остаются в работе с блокировками",
+  "pause.kept_none": "нет задач в работе",
+  "pause.when_at": "возобновится сам в {at}",
+  "pause.when_person": "возобновить: jtasks unpause",
   "keepalive.usage": "использование: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "прогон {run}: автовозобновление включено (хост снова запускает цикл, когда оркестратор останавливается при готовых задачах и ничего не выполняется)",
   "keepalive.off": "прогон {run}: автовозобновление выключено (цикл держит только модель)",
@@ -4046,6 +4187,8 @@ var ru_default = {
   "skip.no_reason": 'skip без причины отклоняется: jtasks skip {id} --reason "почему"',
   "spawn.other_run": "--run {run} — не тот прогон, что привязан к этой сессии ({bound})",
   "spawn.unknown_profile": 'неизвестный профиль "{profile}" (профили: {profiles})',
+  "spawn.kept": "{task} удерживается в работе для агента {agent} временной паузой: возобновите этого агента через SendMessage, не открывая нового (если его больше нет, сначала jtasks release {task})",
+  "spawn.kept_session": "{task} удерживается в работе для сессии субагента {agent}: возобновите эту сессию (task_id инструмента task), не открывая новую (если её больше нет, сначала jtasks release {task})",
   "start.busy": "{id} не была готова: {key} держит {holder}{via}; ничего не записано",
   "start.depends": "{id} не готова: зависит от {deps}",
   "start.fresh": "--fresh: сохранённых патчей оставлено в стороне: {n} (они остаются в {dir} и в журнале)",
@@ -4071,6 +4214,7 @@ var ru_default = {
   "status.lost_task": "{id} (нет блокировок в jlock: jtasks resume или jtasks release {id})",
   "status.no_locks": "активные блокировки: нет",
   "status.paused": "на паузе: не начинайте задачи",
+  "status.auto_paused": "временный сбой ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "автовозобновление: выключено",
   "status.keepalive_stalled": "автовозобновление сдалось: осталось {what}, ничего не выполняется, {tries} сообщ. без прогресса (jtasks keepalive on снова следит за ним)",
   "status.keepalive_error": "автовозобновление остановлено после ошибки: осталось {what}, ничего не выполняется (напишите сообщение, чтобы продолжить)",
@@ -4123,6 +4267,7 @@ var ru_default = {
   "undo.unmerged": "{id}: в ветке {branch} есть коммиты, которых нет в {base}; влейте их (git merge) или используйте --force",
   "undo.which": "укажите, что отменить: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "прогон {run} возобновлён ({status})",
+  "unpause.kept": "{list} всё ещё в работе с блокировками: возобновите того же субагента, не открывайте нового",
   "validate.ok": "ok: задач: {n}, ошибок нет",
   "view.loading": "Tasks: загрузка…",
   "view.lost": "владение потеряно",
@@ -4130,6 +4275,14 @@ var ru_default = {
   "view.no_runs": "нет прогонов (jtasks plan)",
   "view.paused": "на паузе",
   "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется",
+  "view.auto_paused": "⏸ на паузе ({kind}): {when}",
+  "transient.rate_limit": "лимит запросов",
+  "transient.quota": "лимит использования или квота",
+  "transient.overloaded": "провайдер перегружен",
+  "transient.server": "ошибка провайдера",
+  "transient.network": "сбой соединения",
+  "transient.timeout": "тайм-аут",
+  "transient.retries": "повторы исчерпаны",
   "view.waits_for": "ждёт {files}",
   "warnings.count": "предупреждений: {n}",
   "yield.came_back": "{id} забрала обратно {files}",
@@ -4402,6 +4555,11 @@ var ar_default = {
   "path.not_a_folder": "ليس مجلدًا: {path}",
   "pause.done": "أُوقف التشغيل {run} مؤقتًا: يُرفض start، لا تبدأ مهام",
   "pause.running": "المهام قيد التنفيذ تكمل: {list}",
+  "pause.auto": "أُوقف التشغيل {run} مؤقتًا بسبب عطل عابر لدى المزوّد ({kind}: {detail})؛ {kept}؛ {when}",
+  "pause.kept": "{list} تبقى قيد التنفيذ مع أقفالها",
+  "pause.kept_none": "لا مهمة قيد التنفيذ",
+  "pause.when_at": "يُستأنف وحده عند {at}",
+  "pause.when_person": "يستأنفه jtasks unpause",
   "keepalive.usage": "الاستخدام: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "التشغيل {run}: الاستئناف التلقائي مفعّل (يعيد المضيف فتح الحلقة عندما يتوقف المنسّق ومهام جاهزة باقية ولا شيء يعمل)",
   "keepalive.off": "التشغيل {run}: الاستئناف التلقائي معطّل (النموذج وحده يُبقي الحلقة دائرة)",
@@ -4493,6 +4651,8 @@ var ar_default = {
   "skip.no_reason": 'يُرفض skip بلا سبب: jtasks skip {id} --reason "لماذا"',
   "spawn.other_run": "--run {run} ليس التشغيل المرتبط بهذه الجلسة ({bound})",
   "spawn.unknown_profile": 'ملف تعريفي غير معروف "{profile}" (الملفات التعريفية: {profiles})',
+  "spawn.kept": "{task} محفوظة قيد التنفيذ للوكيل {agent} بسبب توقف عابر: استأنف هذا الوكيل عبر SendMessage بدل فتح وكيل آخر (إن لم يعد موجودًا، نفّذ jtasks release {task} أولًا)",
+  "spawn.kept_session": "{task} محفوظة قيد التنفيذ لجلسة الوكيل الفرعي {agent}: استأنف هذه الجلسة (task_id في أداة task) بدل فتح أخرى (إن لم تعد موجودة، نفّذ jtasks release {task} أولًا)",
   "start.busy": "لم تكن {id} جاهزة: {key} لدى {holder}{via}؛ لم يُكتب شيء",
   "start.depends": "{id} ليست جاهزة: تعتمد على {deps}",
   "start.fresh": "--fresh: تُركت {n} من الرقع المحفوظة جانبًا (تبقى في {dir} وفي السجل)",
@@ -4518,6 +4678,7 @@ var ar_default = {
   "status.lost_task": "{id} (لا أقفال في jlock: jtasks resume أو jtasks release {id})",
   "status.no_locks": "الأقفال النشطة: لا شيء",
   "status.paused": "متوقف مؤقتًا: لا تبدأ مهام",
+  "status.auto_paused": "عطل عابر ({kind}: {detail}): {kept}؛ {when}",
   "status.keepalive_off": "الاستئناف التلقائي: معطّل",
   "status.keepalive_stalled": "توقّف الاستئناف التلقائي: ما زال {what}، لا شيء يعمل، {tries} رسالة بلا تقدّم (jtasks keepalive on يعيد المراقبة)",
   "status.keepalive_error": "توقّف الاستئناف التلقائي بعد خطأ: ما زال {what}، لا شيء يعمل (أرسل رسالة للمتابعة)",
@@ -4570,6 +4731,7 @@ var ar_default = {
   "undo.unmerged": "{id}: في الفرع {branch} إيداعات ليست في {base}؛ ادمجها (git merge) أو استخدم --force",
   "undo.which": "حدّد ما تريد التراجع عنه: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "استُؤنف التشغيل {run} ({status})",
+  "unpause.kept": "{list} ما زالت قيد التنفيذ مع أقفالها: استأنف الوكيل الفرعي نفسه ولا تفتح وكيلًا جديدًا",
   "validate.ok": "ok: المهام: {n}، لا أخطاء",
   "view.loading": "Tasks: جارٍ التحميل…",
   "view.lost": "فُقدت الملكية",
@@ -4577,6 +4739,14 @@ var ar_default = {
   "view.no_runs": "لا تشغيل (jtasks plan)",
   "view.paused": "متوقف مؤقتًا",
   "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل",
+  "view.auto_paused": "⏸ متوقف مؤقتًا ({kind}): {when}",
+  "transient.rate_limit": "حد الطلبات",
+  "transient.quota": "حد الاستخدام أو الحصة",
+  "transient.overloaded": "المزوّد مثقل",
+  "transient.server": "خطأ لدى المزوّد",
+  "transient.network": "فشل الاتصال",
+  "transient.timeout": "انتهت المهلة",
+  "transient.retries": "استُنفدت المحاولات",
   "view.waits_for": "تنتظر {files}",
   "warnings.count": "تحذيرات ({n}):",
   "yield.came_back": "استعادت {id} الملفات {files}",
@@ -4849,6 +5019,11 @@ var hi_default = {
   "path.not_a_folder": "फ़ोल्डर नहीं: {path}",
   "pause.done": "रन {run} रोका गया: start अस्वीकृत, कार्य शुरू न करें",
   "pause.running": "प्रगति वाले पूरे होंगे: {list}",
+  "pause.auto": "रन {run} प्रदाता की अस्थायी विफलता से रोका गया ({kind}: {detail}); {kept}; {when}",
+  "pause.kept": "{list} अपने लॉक के साथ प्रगति में रखे गए",
+  "pause.kept_none": "कोई कार्य प्रगति में नहीं",
+  "pause.when_at": "{at} पर अपने आप फिर शुरू होगा",
+  "pause.when_person": "jtasks unpause से फिर शुरू करें",
   "keepalive.usage": "उपयोग: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "रन {run}: स्वतः पुनरारंभ चालू (तैयार कार्य हों और कुछ न चल रहा हो तब ऑर्केस्ट्रेटर रुके तो होस्ट लूप फिर खोलता है)",
   "keepalive.off": "रन {run}: स्वतः पुनरारंभ बंद (लूप को केवल मॉडल आगे बढ़ाता है)",
@@ -4940,6 +5115,8 @@ var hi_default = {
   "skip.no_reason": 'बिना कारण के skip अस्वीकृत: jtasks skip {id} --reason "क्यों"',
   "spawn.other_run": "--run {run} इस सत्र से बँधा रन ({bound}) नहीं है",
   "spawn.unknown_profile": 'अज्ञात प्रोफ़ाइल "{profile}" (प्रोफ़ाइलें: {profiles})',
+  "spawn.kept": "{task} अस्थायी विराम के कारण एजेंट {agent} के लिए प्रगति में रखा गया है: नया खोलने के बजाय SendMessage से उसी एजेंट को फिर शुरू करें (यदि वह अब नहीं है, तो पहले jtasks release {task})",
+  "spawn.kept_session": "{task} सबएजेंट सत्र {agent} के लिए प्रगति में रखा गया है: नया खोलने के बजाय वही सत्र फिर शुरू करें (task टूल का task_id; यदि वह अब नहीं है, तो पहले jtasks release {task})",
   "start.busy": "{id} तैयार नहीं था: {key} {holder}{via} के उपयोग में; कुछ नहीं लिखा गया",
   "start.depends": "{id} तैयार नहीं है: यह {deps} पर निर्भर है",
   "start.fresh": "--fresh: सहेजे गए {n} patch छोड़े गए (वे {dir} और लेजर में रहते हैं)",
@@ -4965,6 +5142,7 @@ var hi_default = {
   "status.lost_task": "{id} (jlock में लॉक नहीं: jtasks resume या jtasks release {id})",
   "status.no_locks": "सक्रिय लॉक: कोई नहीं",
   "status.paused": "रुका हुआ: कार्य शुरू न करें",
+  "status.auto_paused": "अस्थायी विफलता ({kind}: {detail}): {kept}; {when}",
   "status.keepalive_off": "स्वतः पुनरारंभ: बंद",
   "status.keepalive_stalled": "स्वतः पुनरारंभ ने हार मानी: {what} बाकी, कुछ नहीं चल रहा, {tries} संदेश बिना प्रगति के (jtasks keepalive on फिर निगरानी करता है)",
   "status.keepalive_error": "त्रुटि के बाद स्वतः पुनरारंभ रुका: {what} बाकी, कुछ नहीं चल रहा (आगे बढ़ने के लिए संदेश भेजें)",
@@ -5017,6 +5195,7 @@ var hi_default = {
   "undo.unmerged": "{id}: ब्रांच {branch} में ऐसे commit हैं जो {base} में नहीं हैं; उन्हें merge करें (git merge) या --force इस्तेमाल करें",
   "undo.which": "बताएँ क्या पूर्ववत करना है: jtasks undo <e-id> | --task <id> | --run <run>",
   "unpause.done": "रन {run} फिर शुरू ({status})",
+  "unpause.kept": "{list} अब भी अपने लॉक के साथ प्रगति में: वही सबएजेंट फिर शुरू करें, नया न खोलें",
   "validate.ok": "ok: {n} कार्य, कोई त्रुटि नहीं",
   "view.loading": "Tasks: लोड हो रहा है…",
   "view.lost": "स्वामित्व खोया",
@@ -5024,6 +5203,14 @@ var hi_default = {
   "view.no_runs": "कोई रन नहीं (jtasks plan)",
   "view.paused": "रुका हुआ",
   "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा",
+  "view.auto_paused": "⏸ रुका हुआ ({kind}): {when}",
+  "transient.rate_limit": "अनुरोध सीमा",
+  "transient.quota": "उपयोग सीमा या कोटा",
+  "transient.overloaded": "प्रदाता ओवरलोड",
+  "transient.server": "प्रदाता त्रुटि",
+  "transient.network": "कनेक्शन विफल",
+  "transient.timeout": "समय समाप्त",
+  "transient.retries": "पुनःप्रयास समाप्त",
   "view.waits_for": "{files} की प्रतीक्षा",
   "warnings.count": "{n} चेतावनी:",
   "yield.came_back": "{id} ने {files} वापस लीं",
@@ -5080,16 +5267,16 @@ function systemLocale() {
 function choose(inputs) {
   let warning;
   if (inputs.lang) {
-    const tag = resolve(inputs.lang);
-    if (tag)
-      return { tag, source: "--lang" };
+    const tag2 = resolve(inputs.lang);
+    if (tag2)
+      return { tag: tag2, source: "--lang" };
     warning = `unknown language "${inputs.lang}" (available: ${tags().join(", ")}); using English`;
   }
   for (const name of ["JTASKS_LANG", "JLOCK_LANG"]) {
     const value = inputs.env?.(name);
-    const tag = value ? resolve(value) : undefined;
-    if (tag && !warning)
-      return { tag, source: name };
+    const tag2 = value ? resolve(value) : undefined;
+    if (tag2 && !warning)
+      return { tag: tag2, source: name };
   }
   const tag = !warning && inputs.system ? resolve(inputs.system) : undefined;
   if (tag)
@@ -5251,13 +5438,13 @@ function readPlan(raw) {
     errors.push(tr("plan.no_tasks"));
     return { plan, errors };
   }
-  obj.tasks.forEach((raw, index) => {
-    const name = label(raw, index);
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+  obj.tasks.forEach((raw2, index) => {
+    const name = label(raw2, index);
+    if (!raw2 || typeof raw2 !== "object" || Array.isArray(raw2)) {
       errors.push(tr("plan.task_object", { name }));
       return;
     }
-    const t = raw;
+    const t = raw2;
     const before = errors.length;
     for (const key of Object.keys(t))
       if (!TASK_FIELDS.has(key))
@@ -5304,15 +5491,15 @@ function validateBatch(tasks, ctx = {}) {
     if (task.profile !== undefined && !(task.profile in profiles))
       errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }));
     const paths = (list) => {
-      const out = [];
+      const out2 = [];
       for (const raw of list) {
         const entry = normalizeFileEntry(raw);
         if (entry.error)
           errors.push(`${task.id}: ${entry.error}`);
-        else if (entry.path && !out.includes(entry.path))
-          out.push(entry.path);
+        else if (entry.path && !out2.includes(entry.path))
+          out2.push(entry.path);
       }
-      return out;
+      return out2;
     };
     const files = paths(task.files ?? []);
     if (task.dependsOn?.includes(task.id))
@@ -5389,8 +5576,8 @@ function validatePlan(raw, options = {}) {
   const plan = { ...read.plan, tasks: batch.tasks };
   if (plan.shared) {
     const shared = [];
-    for (const raw of plan.shared) {
-      const entry = normalizeFileEntry(raw);
+    for (const raw2 of plan.shared) {
+      const entry = normalizeFileEntry(raw2);
       if (entry.error)
         errors.push(`shared: ${entry.error}`);
       else if (entry.path && !shared.includes(entry.path))
@@ -5575,33 +5762,33 @@ function parseTicket(text, file, index) {
   const fields = new Map;
   const acceptance = [];
   let heading;
-  let current;
+  let current2;
   for (const raw of lines) {
     const line = raw.trimEnd();
     const h = /^#\s+(\d+)\s*[:.\-–]\s*(.+)$/.exec(line);
     if (h && !heading) {
       heading = { num: h[1], title: h[2].trim() };
-      current = undefined;
+      current2 = undefined;
       continue;
     }
     const crit = /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(line);
     if (crit) {
       acceptance.push(crit[2].trim());
-      current = undefined;
+      current2 = undefined;
       continue;
     }
     const f = FIELD.exec(line);
     if (f) {
-      current = f[1].trim().toLowerCase();
-      fields.set(current, f[2].trim());
+      current2 = f[1].trim().toLowerCase();
+      fields.set(current2, f[2].trim());
       continue;
     }
     if (!line.trim() || line.startsWith("#")) {
-      current = undefined;
+      current2 = undefined;
       continue;
     }
-    if (current)
-      fields.set(current, `${fields.get(current)} ${line.trim()}`.trim());
+    if (current2)
+      fields.set(current2, `${fields.get(current2)} ${line.trim()}`.trim());
   }
   const fromName = /^(\d+)-(.+)\.md$/i.exec(file.split("/").pop() ?? file);
   const num = heading?.num ?? fromName?.[1] ?? String(index + 1);
@@ -5731,8 +5918,8 @@ async function writeRun(host, dir, run) {
   await atomicWrite(host, join(dir, "run.json"), stringify(run));
 }
 async function writeTasks(host, dir, tasks, expected) {
-  const current = await readTasks(host, dir);
-  const found = current?.revision ?? 0;
+  const current2 = await readTasks(host, dir);
+  const found = current2?.revision ?? 0;
   if (found !== expected)
     throw new StaleRevisionError(expected, found);
   const next = { ...tasks, revision: expected + 1 };
@@ -5818,8 +6005,8 @@ function serialize(effects) {
   return effects.map((e) => `${JSON.stringify(e)}
 `).join("");
 }
-async function recordEffect(host, runDir, effect) {
-  const file = join(runDir, "ledger.jsonl");
+async function recordEffect(host, runDir2, effect) {
+  const file = join(runDir2, "ledger.jsonl");
   const existing = await readEffects(host, file);
   const max = existing.reduce((m, e) => Math.max(m, Number(e.id.slice(2)) || 0), 0);
   const full = { id: `e-${String(max + 1).padStart(4, "0")}`, at: host.now().toISOString(), ...effect, state: "active" };
@@ -5838,9 +6025,9 @@ async function recordGlobalEffect(host, effect) {
 `);
   return full;
 }
-async function setEffectState(host, runDir, run, id, state) {
+async function setEffectState(host, runDir2, run, id, state) {
   const at = host.now().toISOString();
-  for (const file of [join(runDir, "ledger.jsonl"), globalLedger(host)]) {
+  for (const file of [join(runDir2, "ledger.jsonl"), globalLedger(host)]) {
     const effects = await readEffects(host, file);
     let changed = false;
     for (const e of effects)
@@ -6210,7 +6397,7 @@ function formatRunsList(runs) {
   return runs.map((r) => runLine(r.run, r.tasks)).join(`
 `);
 }
-function protocolText(run, summary, spawn) {
+function protocolText(run, summary, spawn, notes = []) {
   const finished = tr("progress.remaining", { n: 0 });
   const paused = tr("view.paused");
   return [
@@ -6221,7 +6408,9 @@ function protocolText(run, summary, spawn) {
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
     "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
-    "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move."
+    "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move.",
+    "7. If a subagent dies on a provider failure that clears by itself (a usage or rate limit, an overloaded server, the network), the host pauses the run and keeps its task in " + "progress with its locks: do not release it and do not open another subagent for it; when the run is active again, resume that same subagent.",
+    ...notes
   ].join(`
 `);
 }
@@ -6591,19 +6780,19 @@ async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   const raw = await readJsonArg(ctx, args.positionals[0], "json.batch");
   return withLock(ctx.host, dir, async () => {
-    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
     const read = readPlan(raw);
-    const profiles = read.plan.profiles ?? current.profiles ?? DEFAULT_PROFILES;
+    const profiles = read.plan.profiles ?? current2.profiles ?? DEFAULT_PROFILES;
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
       profiles,
-      existingIds: current.tasks.map((t) => t.id)
+      existingIds: current2.tasks.map((t) => t.id)
     });
-    const earlier = read.plan.profiles ? current.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
+    const earlier = read.plan.profiles ? current2.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
     const errors = [...read.errors, ...batch.errors, ...earlier];
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
-    const next = { ...current, tasks: [...current.tasks, ...batch.tasks] };
+    const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
     for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
@@ -6630,8 +6819,8 @@ async function draftFix(ctx, args) {
   if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.id === undefined)
     raw = { ...raw, id: fixId };
   return withLock(ctx.host, dir, async () => {
-    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
-    const index = current.tasks.findIndex((t) => t.id === fixId);
+    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    const index = current2.tasks.findIndex((t) => t.id === fixId);
     if (index < 0)
       throw new ToolError(tr("draft.no_task", { id: fixId }));
     const read = readPlan([raw]);
@@ -6641,16 +6830,16 @@ async function draftFix(ctx, args) {
       errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }));
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
-      profiles: current.profiles ?? DEFAULT_PROFILES,
-      existingIds: current.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
+      profiles: current2.profiles ?? DEFAULT_PROFILES,
+      existingIds: current2.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
     });
     errors.push(...batch.errors);
     if (errors.length > 0 || !batch.tasks[0])
       return refused(tr("draft.fix_refused", { id: fixId }), errors);
-    const tasks = [...current.tasks];
+    const tasks = [...current2.tasks];
     tasks[index] = batch.tasks[0];
-    await saveDraft(ctx, dir, { ...current, tasks });
-    return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current.id, fixed: fixId });
+    await saveDraft(ctx, dir, { ...current2, tasks });
+    return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current2.id, fixed: fixId });
   });
 }
 async function draftShow(ctx, args) {
@@ -6663,13 +6852,13 @@ async function draftShow(ctx, args) {
 async function draftCommit(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   return withLock(ctx.host, dir, async () => {
-    const current = await readJson(ctx.host, draftFile(dir)) ?? draft;
-    if (current.tasks.length === 0)
+    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+    if (current2.tasks.length === 0)
       throw new ToolError(tr("draft.empty"));
-    const { plan, errors, warnings } = validatePlan(draftPlan(current), { platform: ctx.host.platform });
+    const { plan, errors, warnings } = validatePlan(draftPlan(current2), { platform: ctx.host.platform });
     if (errors.length > 0)
       return refused(tr("draft.commit_refused"), errors);
-    const created = await createRun(ctx, plan, { id: current.id });
+    const created = await createRun(ctx, plan, { id: current2.id });
     await ctx.host.remove(draftFile(dir));
     return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id });
   });
@@ -6868,14 +7057,14 @@ async function detachedHold(host, argv, cwd, timeoutMs) {
 async function startHold(host, resident, firstLineTimeoutMs) {
   const line = await resident.firstLine(firstLineTimeoutMs);
   if (line === undefined) {
-    const code = await Promise.race([resident.exited, host.sleep(2000).then(() => {
+    const code2 = await Promise.race([resident.exited, host.sleep(2000).then(() => {
       return;
     })]);
-    if (code === undefined) {
+    if (code2 === undefined) {
       await resident.stop();
       throw new ToolError(tr("jlock.hold_silent", { seconds: Math.round(firstLineTimeoutMs / 1000) }));
     }
-    throw failure(code, resident.lines().join(`
+    throw failure(code2, resident.lines().join(`
 `), "", "hold");
   }
   const answer = parseAnswer(line);
@@ -6896,11 +7085,11 @@ function describeOwner(owner, run) {
   if (!owner.startsWith("gt:"))
     return tr("jlock.other_program", { owner });
   const rest = owner.slice(3);
-  const slash = rest.lastIndexOf("/");
-  if (slash < 0)
+  const slash2 = rest.lastIndexOf("/");
+  if (slash2 < 0)
     return rest;
-  const ownerRun = rest.slice(0, slash);
-  const task = rest.slice(slash + 1);
+  const ownerRun = rest.slice(0, slash2);
+  const task = rest.slice(slash2 + 1);
   return ownerRun === run ? task : `${ownerRun}/${task}`;
 }
 function describeKey(key, root, platform) {
@@ -6983,7 +7172,7 @@ function yieldedKeys(state) {
 function selectReady(state, assessments, platform, limit = Infinity) {
   const chosen = [];
   const taken = [];
-  const serialize = state.run.sharedPolicy === "serialize";
+  const serialize2 = state.run.sharedPolicy === "serialize";
   const sharedTaken = [];
   for (const a of assessments) {
     if (!a.ready || chosen.length >= limit)
@@ -6993,7 +7182,7 @@ function selectReady(state, assessments, platform, limit = Infinity) {
       continue;
     if (a.task.exclusive && chosen.length > 0)
       continue;
-    const shared = serialize ? sharedOf(state, a.task, platform) : [];
+    const shared = serialize2 ? sharedOf(state, a.task, platform) : [];
     if (shared.some((s) => sharedTaken.includes(s)))
       continue;
     chosen.push(a.task);
@@ -7039,8 +7228,8 @@ function waitingText(w, state, platform) {
   }
   const asked = describeKey(w.key, state.root, platform);
   const via = describeKey(w.via, state.root, platform);
-  const shown = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
-  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown, position: w.position });
+  const shown2 = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
+  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown: shown2, position: w.position });
 }
 function blockerText(b, state, platform) {
   switch (b.kind) {
@@ -7169,8 +7358,8 @@ async function checkKeepalive(host, check) {
   }
   return decision;
 }
-async function holdKeepalive(host, root, runId) {
-  const dir = runDir(root, runId);
+async function holdKeepalive(host, root, runId2) {
+  const dir = runDir(root, runId2);
   const tasks = await readTasks(host, dir).catch(() => {
     return;
   });
@@ -7181,6 +7370,8 @@ async function holdKeepalive(host, root, runId) {
 function keepaliveStatus(run, tasks, memory, maxTries) {
   if (run.keepalive === false)
     return tr("status.keepalive_off");
+  if (run.status === "paused" && run.pause)
+    return;
   if (!memory || memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
     return;
   const what = [...memory.ready ?? [], ...memory.orphans ?? []].join(", ");
@@ -7197,14 +7388,331 @@ function keepaliveNotice(run, tasks, memory) {
     return;
   return tr("view.stalled", { what: [...memory.ready ?? [], ...memory.orphans ?? []].join(", ") });
 }
-async function stalledNotice(host, root, runId) {
-  const dir = runDir(root, runId);
+async function stalledNotice(host, root, runId2) {
+  const dir = runDir(root, runId2);
   const [run, tasks, memory] = await Promise.all([readRun(host, dir).catch(() => {
     return;
   }), readTasks(host, dir).catch(() => {
     return;
   }), readKeepalive(host, dir)]);
   return run && tasks ? keepaliveNotice(run, tasks, memory) : undefined;
+}
+// src/transient.ts
+var KIND_TABLE = {
+  rate_limit: "rate_limit",
+  overloaded: "overloaded",
+  server_error: "server",
+  billing_error: "quota",
+  authentication_failed: "no",
+  oauth_org_not_allowed: "no",
+  account_on_hold: "no",
+  verification_required: "no",
+  invalid_request: "no",
+  model_not_found: "no",
+  max_output_tokens: "no",
+  cloud_credential_error: "no",
+  ratelimit: "rate_limit",
+  quotaexceeded: "quota",
+  providerinternal: "server",
+  transport: "network",
+  timeout: "timeout",
+  authentication: "no",
+  contentpolicy: "no",
+  invalidrequest: "no",
+  unsupportedoperation: "no",
+  noroute: "no",
+  providerautherror: "no",
+  messageoutputlengtherror: "no",
+  contextoverflowerror: "no",
+  messageabortederror: "no",
+  structuredoutputerror: "no"
+};
+var PERMANENT = [
+  {
+    why: "context",
+    re: /prompt is too long|context[_\s-]?length[_\s-]?exceeded|maximum context length|context window (?:exceeds|limit)|exceeds? the context|model_context_window_exceeded|input is too long|request_too_large|request entity too large|payload too large/i
+  },
+  {
+    why: "auth",
+    re: /invalid[_\s-]?(?:api[_\s-]?key|x-api-key|authentication)|incorrect api key|authentication[_\s-]?(?:error|failed)|\bunauthorized\b|permission[_\s-]?denied|oauth token (?:has )?(?:expired|been revoked)|please run \/login|no auth credentials|api[_\s-]?key (?:not valid|is invalid|expired)/i
+  },
+  {
+    why: "refusal",
+    re: /content[_\s-]?(?:policy|filter|moderation)|usage policy|input was flagged|safety system|considered high risk|unsafe or sensitive/i
+  },
+  { why: "model", re: /model[_\s-]?not[_\s-]?found|not_found_error|no such model|unknown model|model\b[^\n]{0,60}does not exist/i },
+  { why: "output", re: /max_output_tokens|output token maximum|maximum output tokens/i }
+];
+var TRANSIENT = [
+  {
+    kind: "quota",
+    re: /usage limit|session limit|weekly limit|(?:hour|daily|monthly|weekly|session|usage) limit (?:reached|hit)|hit your (?:\w+ )?limit|out of (?:extra )?usage|insufficient[_\s-]?(?:quota|balance|credits?)|quota[_\s-]?exceeded|exceeded (?:your )?current quota|exceeded_current_quota|credit balance is too low|creditlimitexceeded|freeusagelimit|gousagelimit|usage_not_included|budget exceeded|\bquota\b/i
+  },
+  { kind: "rate_limit", re: /rate[_\s-]?limit|too many requests|throttl|rate increased too quickly|requests per minute|max (?:rpm|tpm)\b|max rpm/i },
+  { kind: "overloaded", re: /overloaded|at capacity|server (?:is )?busy/i },
+  {
+    kind: "network",
+    re: /ECONNRESET|ECONNREFUSED|ECONNABORTED|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH|UND_ERR_\w+|fetch failed|socket hang up|network (?:error|is unreachable|connection)|connection (?:error|reset|refused|closed|lost)|socket connection was closed|unable to connect|other side closed|premature close/i
+  },
+  { kind: "timeout", re: /timed out|\btimeout\b|deadline exceeded/i },
+  {
+    kind: "server",
+    re: /internal server error|service[_\s-]?unavailable|temporarily unavailable|bad gateway|upstream (?:connect|error|request)|provider returned error|server_error|\bapi_error\b|internal_error|resource[_\s-]?exhausted|try again later/i
+  },
+  { kind: "retries", re: /retries exhausted|exhausted (?:all )?retries|max(?:imum)? retries|after \d+ (?:retries|attempts)|retry limit/i }
+];
+var STATUS_IN_TEXT = [/^\s*(?:API Error:\s*)?([45]\d\d)\b/, /\bHTTP[ /]?(?:\d(?:\.\d)? )?([45]\d\d)\b/i, /"(?:code|status|statusCode)"\s*:\s*"?([45]\d\d)\b/, /\bstatus(?: code)?[:=\s]+([45]\d\d)\b/i];
+function httpStatusOf(failure2) {
+  if (typeof failure2.status === "number" && failure2.status >= 400)
+    return failure2.status;
+  for (const text of failure2.texts ?? []) {
+    if (!text)
+      continue;
+    for (const re of STATUS_IN_TEXT) {
+      const m = re.exec(text);
+      if (m)
+        return Number(m[1]);
+    }
+  }
+  return;
+}
+function texts(failure2) {
+  return (failure2.texts ?? []).filter((t) => typeof t === "string" && t.trim().length > 0);
+}
+function inner(text) {
+  if (!/^\s*[{[]/.test(text))
+    return [];
+  const out = [];
+  for (const key of ["raw", "message", "detail", "error"])
+    for (const m of text.matchAll(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, "g")))
+      out.push(m[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\"));
+  return out.flatMap((t) => [...inner(t), t]);
+}
+function detailOf(failure2, want, max = 240) {
+  const all = texts(failure2);
+  const candidates = all.flatMap((t) => [...inner(t), t]);
+  const any = [...TRANSIENT, ...PERMANENT];
+  const pick = (want && candidates.find((t) => want.test(t) && !/^\s*[{[]/.test(t))) ?? candidates.find((t) => any.some((p) => p.re.test(t)) && !/^\s*[{[]/.test(t)) ?? candidates.find((t) => !/^\s*[{[]/.test(t)) ?? all[0] ?? failure2.kind ?? "";
+  const flat = pick.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+function classifyFailure(failure2, now) {
+  const all = texts(failure2);
+  const text = all.join(`
+`);
+  const status2 = httpStatusOf(failure2);
+  const permanent = PERMANENT.find((p) => p.re.test(text));
+  if (permanent)
+    return { transient: false, why: permanent.why, detail: detailOf(failure2, permanent.re) };
+  const detail = detailOf(failure2);
+  const byText = TRANSIENT.find((p) => p.re.test(text))?.kind;
+  const verdict = failure2.kind ? KIND_TABLE[failure2.kind.toLowerCase().replace(/[\s-]/g, "")] : undefined;
+  let kind;
+  if (verdict === "no")
+    return { transient: false, why: failure2.kind, detail };
+  if (verdict)
+    kind = (verdict === "rate_limit" || verdict === "server") && (byText === "quota" || byText === "overloaded") ? byText : verdict;
+  else if (status2 === 429)
+    kind = byText === "quota" || byText === "overloaded" ? byText : "rate_limit";
+  else if (status2 === 529)
+    kind = "overloaded";
+  else if (status2 === 503)
+    kind = byText === "overloaded" ? "overloaded" : "server";
+  else if (status2 === 504 || status2 === 408)
+    kind = "timeout";
+  else if (status2 !== undefined && status2 >= 500)
+    kind = byText === "overloaded" ? "overloaded" : "server";
+  else if (status2 !== undefined && status2 >= 400) {
+    if (byText === "quota" || byText === "rate_limit")
+      kind = byText;
+    else
+      return { transient: false, why: `http-${status2}`, detail };
+  } else
+    kind = byText ?? (failure2.retryable === true ? "retries" : undefined);
+  if (!kind)
+    return { transient: false, why: failure2.kind ?? "unknown", detail };
+  const resetAt = resetOf(failure2, now);
+  const said = detailOf(failure2, TRANSIENT.find((p) => p.kind === kind)?.re);
+  return resetAt ? { transient: true, kind, detail: said, resetAt } : { transient: true, kind, detail: said };
+}
+var MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+var MAX_AHEAD_MS = 8 * 86400000;
+function durationMs(text) {
+  let total = 0;
+  let any = false;
+  const re = /(\d+(?:\.\d+)?)\s*(ms|milliseconds?|s|secs?|seconds?|m|mins?|minutes?|h|hrs?|hours?|d|days?)(?![a-z])/gi;
+  for (const m of text.matchAll(re)) {
+    any = true;
+    const n = Number(m[1]);
+    const u = m[2].toLowerCase();
+    total += u.startsWith("ms") || u.startsWith("milli") ? n : u.startsWith("s") ? n * 1000 : u.startsWith("m") ? n * 60000 : u.startsWith("h") ? n * 3600000 : n * 86400000;
+  }
+  return any ? Math.round(total) : undefined;
+}
+function zoneOffset(zone, at) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(at);
+    const get = (t) => Number(parts.find((p) => p.type === t)?.value);
+    const local = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+    return Math.round((local - Math.floor(at.getTime() / 60000) * 60000) / 60000);
+  } catch {
+    return;
+  }
+}
+function clockReset(text, now) {
+  const m = /\bresets?\s+(?:at\s+|on\s+)?(?:([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(?:at\s+)?)?(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?\b(?:\s*\(([A-Za-z_]+\/[A-Za-z_\/+-]+|UTC)\))?/i.exec(text) ?? /\bresets?\s+(?:at\s+)?(\d{1,2}):(\d{2})\b(?:\s*\(([A-Za-z_]+\/[A-Za-z_\/+-]+|UTC)\))?/i.exec(text);
+  if (!m)
+    return;
+  let month, day, hour, minute, zone;
+  if (m.length === 7) {
+    month = m[1] ? MONTHS.indexOf(m[1].slice(0, 3).toLowerCase()) : undefined;
+    if (month === -1)
+      month = undefined;
+    day = m[2] ? Number(m[2]) : undefined;
+    hour = Number(m[3]) % 12 + (m[5].toLowerCase() === "p" ? 12 : 0);
+    minute = m[4] ? Number(m[4]) : 0;
+    zone = m[6];
+  } else {
+    hour = Number(m[1]);
+    minute = Number(m[2]);
+    zone = m[3];
+  }
+  if (hour > 23 || minute > 59)
+    return;
+  const shift = zone ? zoneOffset(zone === "UTC" ? "UTC" : zone, now) : undefined;
+  const wall = shift !== undefined ? new Date(now.getTime() + shift * 60000) : now;
+  const get = shift !== undefined ? { y: wall.getUTCFullYear(), mo: wall.getUTCMonth(), d: wall.getUTCDate() } : { y: wall.getFullYear(), mo: wall.getMonth(), d: wall.getDate() };
+  const make = (y, mo, d) => shift !== undefined ? Date.UTC(y, mo, d, hour, minute) - shift * 60000 : new Date(y, mo, d, hour, minute).getTime();
+  const slack = 60000;
+  if (month !== undefined && day !== undefined) {
+    let at2 = make(get.y, month, day);
+    if (at2 < now.getTime() - 86400000)
+      at2 = make(get.y + 1, month, day);
+    return at2;
+  }
+  let at = make(get.y, get.mo, get.d);
+  if (at <= now.getTime() - slack)
+    at = make(get.y, get.mo, get.d + 1);
+  return at;
+}
+function epoch(n) {
+  return n > 1000000000000 ? n : n * 1000;
+}
+function resetOf(failure2, now) {
+  const at = [];
+  const t = now.getTime();
+  if (typeof failure2.retryAfterMs === "number" && failure2.retryAfterMs > 0)
+    at.push(t + failure2.retryAfterMs);
+  const headers = Object.fromEntries(Object.entries(failure2.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const retryAfter = headers["retry-after"];
+  if (retryAfter) {
+    if (/^\d+(?:\.\d+)?$/.test(retryAfter.trim()))
+      at.push(t + Number(retryAfter) * 1000);
+    else if (Number.isFinite(Date.parse(retryAfter)))
+      at.push(Date.parse(retryAfter));
+  }
+  for (const name of ["anthropic-ratelimit-unified-reset", "x-ratelimit-reset", "x-ratelimit-reset-requests", "x-ratelimit-reset-tokens"]) {
+    const v = headers[name]?.trim();
+    if (!v)
+      continue;
+    if (/^\d{9,13}$/.test(v))
+      at.push(epoch(Number(v)));
+    else if (/^\d{4}-\d\d-\d\dT/.test(v) && Number.isFinite(Date.parse(v)))
+      at.push(Date.parse(v));
+    else {
+      const d = durationMs(v);
+      if (d !== undefined)
+        at.push(t + d);
+    }
+  }
+  for (const text of texts(failure2)) {
+    const pipe = /limit reached\|(\d{9,13})/i.exec(text);
+    if (pipe)
+      at.push(epoch(Number(pipe[1])));
+    const echoed = /"x-ratelimit-reset"\s*:\s*"?(\d{9,13})/i.exec(text);
+    if (echoed)
+      at.push(epoch(Number(echoed[1])));
+    const iso = /\breset[^\n]{0,40}?(\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d+)?)?(?:Z|[+-]\d\d:?\d\d))/i.exec(text);
+    if (iso && Number.isFinite(Date.parse(iso[1])))
+      at.push(Date.parse(iso[1]));
+    const clock = clockReset(text, now);
+    if (clock !== undefined)
+      at.push(clock);
+    const wait = /\b(?:try again|retry|resets?|available again)\s+(?:in|after)\s+((?:\d+(?:\.\d+)?\s*[a-z]+[\s,]*(?:and\s+)?){1,3})/i.exec(text);
+    if (wait) {
+      const d = durationMs(wait[1]);
+      if (d !== undefined)
+        at.push(t + d);
+    }
+  }
+  const good = at.filter((x) => Number.isFinite(x) && x > t - 60000 && x < t + MAX_AHEAD_MS);
+  return good.length ? new Date(Math.max(...good)).toISOString() : undefined;
+}
+var MAX_AUTO_RESUMES = 3;
+var BACKOFF_MS = 5 * 60000;
+var BACKOFF_CAP_MS = 60 * 60000;
+var RESET_MARGIN_MS = 30000;
+function resumeAtOf(resetAt, streak, now) {
+  if (streak >= MAX_AUTO_RESUMES)
+    return;
+  if (resetAt)
+    return new Date(Date.parse(resetAt) + RESET_MARGIN_MS).toISOString();
+  return new Date(now.getTime() + Math.min(BACKOFF_MS * 2 ** streak, BACKOFF_CAP_MS)).toISOString();
+}
+function agentOfOwner(owner) {
+  return owner ? /\/agent:([^/]+)$/.exec(owner)?.[1] : undefined;
+}
+var RESUME_HOW = {
+  claude: (agent) => `SendMessage to agent ${agent}`,
+  opencode: (agent) => `the task tool with task_id ${agent} (its session)`
+};
+function resumeHow(tool, agent) {
+  return (RESUME_HOW[tool ?? ""] ?? ((a) => `the same subagent (${a})`))(agent);
+}
+function pauseProtocolLine(pause) {
+  const when = pause.resumeAt ? `the host resumes it at ${pause.resumeAt}` : "the person resumes it with jtasks unpause";
+  const kept = pause.tasks.length ? ` ${pause.tasks.map((t) => t.id).join(", ")} stay in progress with their locks: do not release them and do not open new subagents for them.` : "";
+  return `The run is paused by a transient failure of the provider (${pause.kind}: ${pause.detail}); ${when}.${kept} Do not call next or start until it is active again.`;
+}
+function resumeText(run, pause, inProgress, tool, lost = {}) {
+  const head = `jtasks: run ${run.id} is active again after a pause for a transient failure of the provider (${pause.kind}: ${pause.detail}).`;
+  const lines = [head];
+  for (const t of inProgress) {
+    const agent = pause.tasks.find((p) => p.id === t.id)?.agent ?? agentOfOwner(t.owner);
+    const gone = lost[t.id]?.length ? ` Its lock on ${lost[t.id].join(", ")} was taken by someone else meanwhile: the subagent claims it again when it needs it.` : "";
+    lines.push(agent ? `${t.id} is still in progress with its locks and claims. Resume the same subagent (${resumeHow(tool, agent)}) and tell it to go on from where it stopped: it must not call jtasks start ${t.id} again, nor claim what it already holds. Do not open a new subagent for ${t.id}.${gone}` : `${t.id} is still in progress with its locks and claims: continue it where it stopped.${gone}`);
+  }
+  lines.push("If that subagent no longer exists, continue the task yourself, or call jtasks release <id> and open a new one. Then go on with the protocol (jtasks next).");
+  return lines.join(`
+`);
+}
+function pausedTasks(inProgress, named) {
+  return inProgress.map((t) => {
+    const agent = named?.task === t.id && named.agent ? named.agent : agentOfOwner(t.owner);
+    const owner = t.owner ?? null;
+    return agent ? { id: t.id, owner, agent } : { id: t.id, owner };
+  });
+}
+function kindLabel(kind) {
+  return tr(`transient.${kind}`);
+}
+function formatWhen(iso, now) {
+  const at = new Date(iso);
+  if (!Number.isFinite(at.getTime()))
+    return iso;
+  const pad = (n) => String(n).padStart(2, "0");
+  const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  const same = at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate();
+  return same ? time : `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${time}`;
+}
+function pauseNotice(run, pause, now) {
+  const kept = pause.tasks.length ? tr("pause.kept", { list: pause.tasks.map((t) => t.id).join(", ") }) : tr("pause.kept_none");
+  const when = pause.resumeAt ? tr("pause.when_at", { at: formatWhen(pause.resumeAt, now) }) : tr("pause.when_person");
+  return tr("pause.auto", { run, kind: kindLabel(pause.kind), detail: pause.detail, kept, when });
+}
+function pauseViewNotice(pause, now) {
+  const when = pause.resumeAt ? tr("pause.when_at", { at: formatWhen(pause.resumeAt, now) }) : tr("pause.when_person");
+  return tr("view.auto_paused", { kind: kindLabel(pause.kind), when });
 }
 // src/housekeeping.ts
 function archiveDir(host, root, run) {
@@ -7275,8 +7783,8 @@ ${tr("clean.busy", { tasks: busy.join(", ") })}`);
   }
   const dirs = [];
   for (const r of ids) {
-    const all = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform));
-    dirs.push(...all.filter((e) => e.type === "dir" && e.state === "active"));
+    const all2 = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform));
+    dirs.push(...all2.filter((e) => e.type === "dir" && e.state === "active"));
   }
   await host.remove(target, { recursive: true });
   for (const e of dirs)
@@ -7335,8 +7843,8 @@ function patchRel(task, n, file) {
 function appliedPath(patch) {
   return join(dirname(patch), "applied", basename(patch));
 }
-async function nextPatchNumber(host, runDir, task, saved = []) {
-  const dir = join(runDir, "patches", task);
+async function nextPatchNumber(host, runDir2, task, saved = []) {
+  const dir = join(runDir2, "patches", task);
   const names = [...(await host.list(dir)).map((e) => e.name), ...(await host.list(join(dir, "applied"))).map((e) => e.name), ...saved.map((p) => basename(p.patch))];
   return names.reduce((m, n) => Math.max(m, Number(/^(\d+)-/.exec(n)?.[1] ?? 0)), 0) + 1;
 }
@@ -7769,7 +8277,7 @@ defineAction("start", async (ctx, args) => {
       const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : "";
       throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`);
     }
-    const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]));
+    const byId = new Map(state.tasks.tasks.map((t2) => [t2.id, t2]));
     const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""));
     if (open.length)
       throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }));
@@ -7861,6 +8369,9 @@ async function statusOf(ctx, state) {
   const lines = [progressLine(state.tasks.tasks)];
   if (state.run.status === "paused")
     lines.push(tr("status.paused"));
+  const pause = state.run.status === "paused" ? state.run.pause : undefined;
+  if (pause)
+    lines.push(pauseStatusLine(pause, ctx.host.now()));
   const keepalive = keepaliveStatus(state.run, state.tasks, await readKeepalive(ctx.host, state.dir), keepaliveTries(ctx.host));
   if (keepalive)
     lines.push(keepalive);
@@ -7912,9 +8423,15 @@ async function statusOf(ctx, state) {
       inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null })),
       ready: ready.map((t) => t.id),
       blocked: blocked.map((a) => ({ id: a.task.id, reasons: a.blockers.map((b) => blockerText(b, state, platform)) })),
-      locks
+      locks,
+      ...pause ? { pause } : {}
     }
   };
+}
+function pauseStatusLine(pause, now) {
+  const kept = pause.tasks.length ? tr("pause.kept", { list: pause.tasks.map((t) => t.id).join(", ") }) : tr("pause.kept_none");
+  const when = pause.resumeAt ? tr("pause.when_at", { at: formatWhen(pause.resumeAt, now) }) : tr("pause.when_person");
+  return tr("status.auto_paused", { kind: kindLabel(pause.kind), detail: pause.detail, kept, when });
 }
 defineAction("status", async (ctx, args) => {
   const state = await resolveRun(ctx, args);
@@ -8013,22 +8530,22 @@ async function takeKeys(ctx, state, task, keys) {
     return [];
   if (keys.length === 1)
     return keys;
-  const refused = [];
+  const refused2 = [];
   for (const key of keys)
     if (!await take([key]))
-      refused.push(key);
-  return refused;
+      refused2.push(key);
+  return refused2;
 }
 async function retakeMissing(ctx, state, task) {
   const missing = await missingKeys(ctx, state, task);
   if (!missing.length)
     return [];
   const taken = await takenSince(ctx.host, state.dir, task.id, missing);
-  const refused = [...taken, ...await takeKeys(ctx, state, task, missing.filter((k) => !taken.includes(k)))];
-  const retaken = missing.filter((k) => !refused.includes(k));
+  const refused2 = [...taken, ...await takeKeys(ctx, state, task, missing.filter((k) => !taken.includes(k)))];
+  const retaken = missing.filter((k) => !refused2.includes(k));
   if (retaken.length)
     await log(ctx, state, { action: "retake", task: task.id, keys: retaken });
-  return refused;
+  return refused2;
 }
 function textArg(args, name) {
   const v = args.options[name];
@@ -8039,9 +8556,9 @@ async function syncRunStatus(ctx, state, tasks) {
   if (!run || run.status === "paused")
     return;
   const remaining = counts(tasks).remaining;
-  const status = remaining === 0 ? "done" : "active";
-  if (run.status !== status)
-    await writeRun(ctx.host, state.dir, { ...run, status });
+  const status2 = remaining === 0 ? "done" : "active";
+  if (run.status !== status2)
+    await writeRun(ctx.host, state.dir, { ...run, status: status2 });
 }
 async function transition(ctx, args, action, change) {
   const first = await resolveRun(ctx, args);
@@ -8060,8 +8577,8 @@ async function transition(ctx, args, action, change) {
     return { task, tasks, state: { ...state, tasks } };
   });
 }
-function closeTask(task, status, now) {
-  task.status = status;
+function closeTask(task, status2, now) {
+  task.status = status2;
   task.owner = null;
   task.finishedAt = now;
   delete task.holds;
@@ -8156,10 +8673,10 @@ defineAction("claim", async (ctx, args) => {
   }
   if (errors.length)
     throw new ToolError(tr("claim.refused", { errors: errors.join("; ") }));
-  const current = taskKeys(first.root, task, platform);
+  const current2 = taskKeys(first.root, task, platform);
   const wanted = files.filter((f) => {
     const key = normalizeKey(f, first.root, platform);
-    return !current.some((k) => covers(k, key));
+    return !current2.some((k) => covers(k, key));
   });
   if (!wanted.length) {
     const back = await cameBack(ctx, first, task.id, files);
@@ -8278,8 +8795,8 @@ async function retakeYielded(ctx, first, only) {
       continue;
     try {
       const keys = canonical(task.yielded.map((y) => y.key));
-      const refused = await takeKeys(ctx, state0, task, keys);
-      const granted = keys.filter((k) => !refused.includes(k));
+      const refused2 = await takeKeys(ctx, state0, task, keys);
+      const granted = keys.filter((k) => !refused2.includes(k));
       if (!granted.length)
         continue;
       const back = await withLock(ctx.host, first.dir, async () => {
@@ -8316,7 +8833,7 @@ defineAction("yield", async (ctx, args) => {
     throw new ToolError(tr("yield.exclusive", { id: task.id }));
   const platform = ctx.host.platform;
   const owner = ownerOf(first.run.id, task.id);
-  const current = taskKeys(first.root, task, platform);
+  const current2 = taskKeys(first.root, task, platform);
   const keys = [];
   const raw = args.positionals.slice(1);
   if (raw.length) {
@@ -8325,7 +8842,7 @@ defineAction("yield", async (ctx, args) => {
       if (entry.error)
         throw new ToolError(tr("yield.refused", { errors: entry.error }));
       const key = normalizeKey(entry.path, first.root, platform);
-      const outer = current.find((k) => covers(k, key));
+      const outer = current2.find((k) => covers(k, key));
       if (!outer)
         throw new ToolError(tr("yield.not_owned", { id: task.id, file: r }));
       if (outer !== key)
@@ -8334,7 +8851,7 @@ defineAction("yield", async (ctx, args) => {
     }
   } else {
     const chain = await lastDeadlock(ctx.host, first.dir, task.id);
-    keys.push(...(chain ? chainKeys(chain, owner) : []).filter((k) => current.includes(k)));
+    keys.push(...(chain ? chainKeys(chain, owner) : []).filter((k) => current2.includes(k)));
     if (!keys.length)
       throw new ToolError(tr("yield.nothing", { id: task.id }), 2);
   }
@@ -8588,13 +9105,48 @@ async function setPaused(ctx, args, paused) {
   return withLock(ctx.host, first.dir, async () => {
     const state = await reload(ctx, first);
     const from = state.run.status;
-    const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
-    if (from !== status)
-      await writeRun(ctx.host, state.dir, { ...state.run, status });
+    const status2 = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
+    const run = { ...state.run, status: status2 };
+    if (paused && run.pause?.resumeAt) {
+      const { resumeAt: _gone, ...pause } = run.pause;
+      run.pause = pause;
+    }
+    if (JSON.stringify(run) !== JSON.stringify(state.run))
+      await writeRun(ctx.host, state.dir, run);
     if (!paused && from === "paused")
       await clearKeepalive(ctx.host, state.dir);
-    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status });
-    return { ...state, run: { ...state.run, status } };
+    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status2 });
+    return { ...state, run };
+  });
+}
+async function leavePause(ctx, first, opts = {}) {
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const pause = state.run.pause;
+    if (state.run.status !== "paused" || !pause)
+      return;
+    if (opts.due && (!pause.resumeAt || Date.parse(pause.resumeAt) > opts.due.getTime()))
+      return;
+    const run = { ...state.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" };
+    delete run.pause;
+    const signature = progressSignature(state.tasks);
+    if (opts.auto)
+      run.pauseStreak = { signature, n: state.run.pauseStreak?.signature === signature ? state.run.pauseStreak.n + 1 : 1 };
+    else
+      delete run.pauseStreak;
+    await writeRun(ctx.host, state.dir, run);
+    await clearKeepalive(ctx.host, state.dir);
+    const next = { ...state, run };
+    const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress");
+    const lost = {};
+    for (const t of inProgress) {
+      const refused2 = await retakeMissing(ctx, next, t).catch(() => []);
+      if (refused2.length)
+        lost[t.id] = refused2.map((k) => describeKey(k, state.root, ctx.host.platform));
+    }
+    const how = opts.how ?? (opts.auto ? "due" : "unpause");
+    await log(ctx, state, { action: opts.auto ? "auto-resume" : "unpause", how, kind: pause.kind, kept: inProgress.map((t) => t.id), ...Object.keys(lost).length ? { lost } : {} });
+    return { state: next, text: resumeText(run, pause, inProgress, ctx.tool, lost), kept: inProgress.map((t) => t.id), lost };
   });
 }
 defineAction("pause", async (ctx, args) => {
@@ -8604,6 +9156,16 @@ defineAction("pause", async (ctx, args) => {
   return ok(`${tr("pause.done", { run: state.run.id })}${tail}`, { run: state.run.id, status: "paused" });
 }, "help.pause");
 defineAction("unpause", async (ctx, args) => {
+  const first = await resolveRun(ctx, args);
+  const left = await leavePause(ctx, first);
+  if (left) {
+    const s = left.state;
+    const lines = [tr("unpause.done", { run: s.run.id, status: s.run.status }), progressLine(s.tasks.tasks)];
+    if (left.kept.length)
+      lines.push(tr("unpause.kept", { list: left.kept.join(", ") }), left.text);
+    return ok(lines.join(`
+`), { run: s.run.id, status: s.run.status, kept: left.kept, lost: left.lost, resume: left.text });
+  }
   const state = await setPaused(ctx, args, false);
   return ok(`${tr("unpause.done", { run: state.run.id, status: state.run.status })}
 ${progressLine(state.tasks.tasks)}`, { run: state.run.id, status: state.run.status });
@@ -8621,38 +9183,44 @@ defineAction("resume", async (ctx, args) => {
   const released = [];
   const kept = [];
   const state = await withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
+    const state2 = await reload(ctx, first);
     const now = ctx.host.now().toISOString();
-    const run = { ...state.run };
+    const run = { ...state2.run };
     if (run.status === "paused")
-      run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
-    if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
+      run.status = counts(state2.tasks.tasks).remaining === 0 ? "done" : "active";
+    const transient = state2.run.status === "paused" && !!state2.run.pause;
+    delete run.pause;
+    if (ctx.session && !run.sessions.some((s2) => s2.tool === ctx.tool && s2.id === ctx.session))
       run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }];
-    const copy = clone(state.tasks);
+    const copy = clone(state2.tasks);
     for (const task of copy.tasks) {
       if (task.status !== "in_progress")
         continue;
-      const keys = taskKeys(state.root, task, ctx.host.platform);
-      const missing = keys.length ? await missingKeys(ctx, state, task) : [];
+      const keys = taskKeys(state2.root, task, ctx.host.platform);
+      const missing = keys.length ? await missingKeys(ctx, state2, task) : [];
       if (keepOwners || !keys.length || missing.length === 0) {
         kept.push(task.id);
         continue;
       }
-      const edits = await keepTask(ctx, state, task);
+      if (transient && (await retakeMissing(ctx, state2, task).catch(() => missing)).length === 0) {
+        kept.push(task.id);
+        continue;
+      }
+      const edits = await keepTask(ctx, state2, task);
       const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now);
       released.push({ id: task.id, to, uncommitted: edits.left, kept: edits });
     }
-    const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks;
-    if (JSON.stringify(run) !== JSON.stringify(state.run))
-      await writeRun(ctx.host, state.dir, run);
+    const tasks = released.length ? await writeTasks(ctx.host, state2.dir, copy, state2.tasks.revision) : state2.tasks;
+    if (JSON.stringify(run) !== JSON.stringify(state2.run))
+      await writeRun(ctx.host, state2.dir, run);
     for (const r of released) {
-      await writeTicket(ctx.host, state.dir, tasks, r.id);
-      await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) });
+      await writeTicket(ctx.host, state2.dir, tasks, r.id);
+      await log(ctx, state2, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) });
     }
-    await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept });
-    if (state.run.status === "paused")
-      await clearKeepalive(ctx.host, state.dir);
-    return { ...state, run, tasks };
+    await log(ctx, state2, { action: "resume", released: released.map((r) => r.id), kept });
+    if (state2.run.status === "paused")
+      await clearKeepalive(ctx.host, state2.dir);
+    return { ...state2, run, tasks };
   });
   for (const r of released)
     await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
@@ -8674,23 +9242,23 @@ defineAction("keepalive", async (ctx, args) => {
   const on = wanted === "on";
   const first = await resolveRun(ctx, args);
   const state = await withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const from = state.run.keepalive !== false;
-    const run = { ...state.run, keepalive: on };
-    if (from !== on || state.run.keepalive === undefined)
-      await writeRun(ctx.host, state.dir, run);
+    const state2 = await reload(ctx, first);
+    const from = state2.run.keepalive !== false;
+    const run = { ...state2.run, keepalive: on };
+    if (from !== on || state2.run.keepalive === undefined)
+      await writeRun(ctx.host, state2.dir, run);
     if (on && !from)
-      await clearKeepalive(ctx.host, state.dir);
+      await clearKeepalive(ctx.host, state2.dir);
     else if (on)
-      await rearmKeepalive(ctx.host, state.dir);
-    await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted });
-    return { ...state, run };
+      await rearmKeepalive(ctx.host, state2.dir);
+    await log(ctx, state2, { action: "keepalive", from: from ? "on" : "off", to: wanted });
+    return { ...state2, run };
   });
   return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on });
 }, "help.keepalive");
-function serializeEntry(serialize, command) {
+function serializeEntry(serialize2, command) {
   const norm = command.trim().replace(/\s+/g, " ");
-  return serialize.find((e) => {
+  return serialize2.find((e) => {
     const entry = e.trim().replace(/\s+/g, " ");
     return norm === entry || norm.startsWith(`${entry} `);
   });
@@ -8733,14 +9301,14 @@ defineAction("ledger", async (ctx, args) => {
   const insensitive = caseInsensitive(ctx.host.platform);
   if (args.options["all-projects"]) {
     const all = await readEffects(ctx.host, globalLedger(ctx.host));
-    const active = all.filter((e) => e.state === "active").length;
-    const lines = [tr("ledger.global", { file: globalLedger(ctx.host), n: all.length, active })];
+    const active2 = all.filter((e) => e.state === "active").length;
+    const lines2 = [tr("ledger.global", { file: globalLedger(ctx.host), n: all.length, active: active2 })];
     for (const repo of [...new Set(all.map((e) => e.repo))]) {
-      lines.push(`${repo}:`);
+      lines2.push(`${repo}:`);
       for (const e of all.filter((x) => x.repo === repo))
-        lines.push(`  ${effectLine(e)}`);
+        lines2.push(`  ${effectLine(e)}`);
     }
-    return ok(lines.join(`
+    return ok(lines2.join(`
 `), { effects: all });
   }
   const root = await requireRepo(ctx.host, ctx.cwd);
@@ -8888,17 +9456,17 @@ defineAction("undo", async (ctx, args) => {
   const taskId = typeof args.options.task === "string" ? args.options.task : undefined;
   const insensitive = caseInsensitive(ctx.host.platform);
   if (!id && !taskId) {
-    const runId = typeof args.options.run === "string" ? args.options.run : undefined;
-    if (!runId)
+    const runId2 = typeof args.options.run === "string" ? args.options.run : undefined;
+    if (!runId2)
       throw new ToolError(tr("undo.which"), 2);
     const root = await requireRepo(ctx.host, ctx.cwd);
-    const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
-    if (!effects.length)
-      return ok(tr("undo.run_clean", { run: runId }), { undone: [] });
-    const done = await undoMany(ctx, root, effects, force);
-    return ok(`${tr("undo.run_done", { run: runId })}
-${done.join(`
-`)}`, { undone: done });
+    const effects2 = (await effectsOf(ctx.host, { repo: root, run: runId2 }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
+    if (!effects2.length)
+      return ok(tr("undo.run_clean", { run: runId2 }), { undone: [] });
+    const done2 = await undoMany(ctx, root, effects2, force);
+    return ok(`${tr("undo.run_done", { run: runId2 })}
+${done2.join(`
+`)}`, { undone: done2 });
   }
   const state = await resolveRun(ctx, args);
   const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active");
@@ -8906,9 +9474,9 @@ ${done.join(`
     const e = all.find((x) => x.id === id);
     if (!e)
       throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }));
-    const done = await undoMany(ctx, state.root, [e], force);
-    return ok(done.join(`
-`), { undone: done });
+    const done2 = await undoMany(ctx, state.root, [e], force);
+    return ok(done2.join(`
+`), { undone: done2 });
   }
   const task = findTask(state, taskId);
   if (task.status === "in_progress")
@@ -8975,6 +9543,82 @@ ${leftovers.map((l) => `  ${l}`).join(`
 `), { checked: effects.length, gone, leftovers });
 }, "help.effects");
 
+// src/autopause.ts
+async function pauseForFailure(ctx, req) {
+  let first;
+  try {
+    first = await resolveRun(ctx, { action: "pause", positionals: [], options: { run: req.run } });
+  } catch {
+    return;
+  }
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const run = { ...state.run };
+    if (run.status === "done")
+      return;
+    const now = ctx.host.now();
+    const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress");
+    const named = req.task ? { task: req.task, ...req.agent ? { agent: req.agent } : {} } : undefined;
+    const before = run.status === "paused" ? run.pause : undefined;
+    const byHand = run.status === "paused" && !before;
+    const signature = progressSignature(state.tasks);
+    const streak = run.pauseStreak?.signature === signature ? run.pauseStreak.n : 0;
+    const resets = [before?.resetAt, req.failure.resetAt].filter((x) => !!x).sort();
+    const resetAt = resets.at(-1);
+    const tasks = pausedTasks(inProgress, named).map((t) => {
+      const earlier = before?.tasks.find((b) => b.id === t.id);
+      return !t.agent && earlier?.agent ? { ...t, agent: earlier.agent } : t;
+    });
+    const pause = {
+      kind: req.failure.kind,
+      detail: req.failure.detail,
+      at: before?.at ?? now.toISOString(),
+      streak,
+      tasks,
+      by: actorOf({ ...ctx, agent: undefined })
+    };
+    if (resetAt)
+      pause.resetAt = resetAt;
+    const resumeAt = byHand || before && !before.resumeAt ? undefined : resumeAtOf(resetAt, streak, now);
+    if (resumeAt)
+      pause.resumeAt = resumeAt;
+    run.status = "paused";
+    run.pause = pause;
+    await writeRun(ctx.host, state.dir, run);
+    await log(ctx, state, {
+      action: "auto-pause",
+      kind: pause.kind,
+      detail: pause.detail,
+      kept: tasks.map((t) => t.id),
+      ...req.task ? { task: req.task } : {},
+      ...resetAt ? { resetAt } : {},
+      ...resumeAt ? { resumeAt } : {},
+      streak
+    });
+    return pause;
+  });
+}
+async function stateOf(ctx, run) {
+  try {
+    return await resolveRun(ctx, { action: "unpause", positionals: [], options: { run } });
+  } catch {
+    return;
+  }
+}
+async function resumeIfDue(ctx, run) {
+  const state = await stateOf(ctx, run);
+  const pause = state?.run.status === "paused" ? state.run.pause : undefined;
+  if (!state || !pause?.resumeAt || Date.parse(pause.resumeAt) > ctx.host.now().getTime())
+    return;
+  return leavePause(ctx, state, { due: ctx.host.now(), auto: true });
+}
+async function resumeNow(ctx, run, how) {
+  const state = await stateOf(ctx, run);
+  const pause = state?.run.status === "paused" ? state.run.pause : undefined;
+  if (!state || !pause?.resumeAt)
+    return;
+  return leavePause(ctx, state, { auto: true, how });
+}
 // src/renew.ts
 var RENEW_EVERY_MS = 60000;
 var RENEW_MARGIN_MS = 10 * 60000;
@@ -9029,14 +9673,14 @@ async function renewTask(ctx, state, task) {
   if (await canRenew(ctx.host)) {
     const ttl = state.run.holdTtl ?? DEFAULT_HOLD_TTL;
     await jlockRenew(ctx.host, state.run.id, ownerOf(state.run.id, task.id), ttl);
-    const refused = await retakeMissing(ctx, state, task);
-    await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys, ttl });
-    return refused.length ? "lost" : "renewed";
+    const refused3 = await retakeMissing(ctx, state, task);
+    await log(ctx, state, refused3.length ? { action: "renew-lost", task: task.id, keys, refused: refused3 } : { action: "renew", task: task.id, keys, ttl });
+    return refused3.length ? "lost" : "renewed";
   }
   await releaseHolds(ctx, state.run.id, task.id);
-  const refused = await takeKeys(ctx, state, task, keys);
-  await log(ctx, state, refused.length ? { action: "renew-lost", task: task.id, keys, refused } : { action: "renew", task: task.id, keys });
-  return refused.length ? "lost" : "renewed";
+  const refused2 = await takeKeys(ctx, state, task, keys);
+  await log(ctx, state, refused2.length ? { action: "renew-lost", task: task.id, keys, refused: refused2 } : { action: "renew", task: task.id, keys });
+  return refused2.length ? "lost" : "renewed";
 }
 async function renewRun(ctx, run, mine, every = RENEW_EVERY_MS) {
   let first;
@@ -9148,9 +9792,9 @@ async function worktreeFinding(host, dir, gitFile) {
     if (base)
       f.base = base;
     if (f.branch && base) {
-      const isMerged = await merged(host, owner, f.branch, base);
-      if (isMerged !== undefined)
-        f.merged = isMerged;
+      const isMerged2 = await merged(host, owner, f.branch, base);
+      if (isMerged2 !== undefined)
+        f.merged = isMerged2;
     }
   } else
     f.known = false;
@@ -9166,16 +9810,16 @@ async function runFinding(host, dir, type) {
     f.branch = run.repo.branch;
     f.base = run.repo.baseBranch;
     if (run.repo.branch !== run.repo.baseBranch && await host.stat(run.repo.root)) {
-      const isMerged = await merged(host, run.repo.root, run.repo.branch, run.repo.baseBranch);
-      if (isMerged !== undefined)
-        f.merged = isMerged;
+      const isMerged2 = await merged(host, run.repo.root, run.repo.branch, run.repo.baseBranch);
+      if (isMerged2 !== undefined)
+        f.merged = isMerged2;
     }
   }
   return f;
 }
 async function classify(host, dir) {
-  const git = await host.stat(join(dir, ".git"));
-  if (git?.kind === "file")
+  const git2 = await host.stat(join(dir, ".git"));
+  if (git2?.kind === "file")
     return worktreeFinding(host, dir, await host.readText(join(dir, ".git")) ?? "");
   if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file") {
     const inRepo = /\/\.scratch\/jtasks\/runs$/i.test(dirname(slash(dir)));
@@ -9234,13 +9878,13 @@ function findingLine(f, now) {
 defineAction("gc", async (ctx, args) => {
   const { host } = ctx;
   const now = host.now().getTime();
-  const resolve = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
+  const resolve2 = (p) => normalize(isAbsolute(p) ? p : join(ctx.cwd, p));
   if (typeof args.options.remove === "string")
-    return removeFound(ctx, resolve(args.options.remove), !!args.options.yes);
+    return removeFound(ctx, resolve2(args.options.remove), !!args.options.yes);
   const raw = typeof args.options.scan === "string" ? args.options.scan : args.positionals[0];
   if (!raw)
     throw new ToolError(tr("gc.usage"), 2);
-  const root = resolve(raw);
+  const root = resolve2(raw);
   if ((await host.stat(root))?.kind !== "dir")
     throw new ToolError(tr("path.not_a_folder", { path: raw }));
   const depth = typeof args.options.depth === "string" ? Number(args.options.depth) : 4;
@@ -9623,7 +10267,7 @@ function writes(command, home, startCwd) {
     vars.set("HOME", home);
   let cwd = startCwd;
   const written = [];
-  const git = [];
+  const git2 = [];
   const tokens = lex(command);
   let k = 0;
   while (k < tokens.length) {
@@ -9650,8 +10294,8 @@ function writes(command, home, startCwd) {
       local.set(a[0], a[1]);
     }
     if (first === words.length)
-      for (const [name, value] of local)
-        vars.set(name, value);
+      for (const [name2, value] of local)
+        vars.set(name2, value);
     const args = words.slice(first).map((w) => expand(w, local));
     const name = (args[0]?.text ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
     if (DECLARERS.has(name))
@@ -9680,7 +10324,7 @@ function writes(command, home, startCwd) {
         add(target);
     }
     if (name === "git")
-      git.push(args.map((a) => a.text));
+      git2.push(args.map((a) => a.text));
     else if (name === "cd") {
       const to = args[1];
       if (!to)
@@ -9696,7 +10340,7 @@ function writes(command, home, startCwd) {
       for (const t of writerTargets(name, args.slice(1)))
         add(t);
   }
-  return { written, git };
+  return { written, git: git2 };
 }
 function plainlyOutside(ctx, prefix) {
   const p = slash(prefix);
@@ -9722,8 +10366,8 @@ function gitSubcommand(words) {
   return;
 }
 function checkShell(ctx, command) {
-  const { written, git } = writes(command, ctx.home, ctx.cwd);
-  for (const words of git) {
+  const { written, git: git2 } = writes(command, ctx.home, ctx.cwd);
+  for (const words of git2) {
     const sub = gitSubcommand(words);
     if (sub && GIT_MUTATORS.has(sub) && ctx.task)
       return { allow: false, reason: tr("guard.git", { sub, id: ctx.task.id }) };
@@ -9827,8 +10471,8 @@ function barCells(percent, cells = BAR_CELLS) {
   const partial = EIGHTHS[eighths % 8];
   return { full: "█".repeat(full), partial, empty: "█".repeat(Math.max(0, cells - full - (partial ? 1 : 0))) };
 }
-function bar(percent, width) {
-  const w = Math.max(1, width);
+function bar(percent, width2) {
+  const w = Math.max(1, width2);
   const units = Math.round(Math.max(0, Math.min(100, percent)) / 100 * w * 8);
   const full = Math.floor(units / 8);
   const part = EIGHTHS[units % 8];
@@ -9900,7 +10544,7 @@ async function loadView(host, root, run, tool) {
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => []);
   const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool);
-  const notice = keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
+  const notice = runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
   return notice ? { ...view, notice } : view;
 }
 async function loadRunsView(host, root) {
@@ -9960,8 +10604,8 @@ async function checkJlock(host) {
   const fixes = bad.map((c) => c.fix).filter((f) => !!f);
   if (oldForRenew)
     fixes.push("jlock update");
-  const status = failed ? "fail" : bad.length || oldForRenew ? "warn" : "ok";
-  return status === "ok" ? { name: "jlock", status, detail: parts.join("; ") } : { name: "jlock", status, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" };
+  const status2 = failed ? "fail" : bad.length || oldForRenew ? "warn" : "ok";
+  return status2 === "ok" ? { name: "jlock", status: status2, detail: parts.join("; ") } : { name: "jlock", status: status2, detail: parts.join("; "), fix: fixes.join("; ") || "jlock doctor" };
 }
 async function checkHome(host) {
   const home = jtasksHome(host);
@@ -10037,11 +10681,11 @@ async function checkSkills(host) {
     return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "jtasks doctor --fix --yes" };
   return { name: "skills", status: "ok", detail: tr("doctor.skills_ok", { agents: present.join(", ") }) };
 }
-function checkLanguage(host, lang) {
-  const choice = choose({ lang, env: (name) => host.env(name), system: systemLocale() });
+function checkLanguage(host, lang2) {
+  const choice = choose({ lang: lang2, env: (name) => host.env(name), system: systemLocale() });
   return { name: "language", status: "ok", detail: `${choice.tag} (${choice.source})` };
 }
-async function runChecks(ctx, lang) {
+async function runChecks(ctx, lang2) {
   const { host } = ctx;
   return [
     await checkVersion(host),
@@ -10051,16 +10695,16 @@ async function runChecks(ctx, lang) {
     await checkOpenCode(host, ctx.cwd),
     await checkClaude(host),
     await checkSkills(host),
-    checkLanguage(host, lang)
+    checkLanguage(host, lang2)
   ];
 }
 function checksText(checks) {
-  const width = Math.max(...checks.map((c) => c.name.length));
+  const width2 = Math.max(...checks.map((c) => c.name.length));
   const lines = [];
   for (const c of checks) {
-    lines.push(`${c.status.padEnd(5)} ${c.name.padEnd(width)}  ${c.detail}`);
+    lines.push(`${c.status.padEnd(5)} ${c.name.padEnd(width2)}  ${c.detail}`);
     if (c.fix)
-      lines.push(`${" ".repeat(width + 8)}${tr("doctor.fix", { fix: c.fix })}`);
+      lines.push(`${" ".repeat(width2 + 8)}${tr("doctor.fix", { fix: c.fix })}`);
   }
   const n = (s) => checks.filter((c) => c.status === s).length;
   lines.push("", tr("doctor.summary", { ok: n("ok"), warn: n("warn"), fail: n("fail") }));
@@ -10071,9 +10715,9 @@ async function installFile(host, from, to) {
   const text = await host.readText(from);
   if (text === undefined)
     throw new ToolError(tr("doctor.package_missing", { file: from }));
-  const current = await host.readText(to);
-  if (current !== undefined)
-    return current === text ? tr("doctor.file_same", { file: to }) : tr("doctor.file_differs", { file: to });
+  const current2 = await host.readText(to);
+  if (current2 !== undefined)
+    return current2 === text ? tr("doctor.file_same", { file: to }) : tr("doctor.file_differs", { file: to });
   await host.writeText(to, text);
   const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, undo: { kind: "remove-file" } });
   return tr("doctor.file_installed", { file: to, id: e.id });
@@ -10106,8 +10750,8 @@ async function installJlock2(ctx) {
   return done.path ? tr("doctor.jlock_installed", { file: done.path, id: done.effect ?? "-" }) : tr("doctor.jlock_installed_somewhere");
 }
 async function doctor(ctx, args) {
-  const lang = typeof args.options.lang === "string" ? args.options.lang : ctx.lang;
-  const checks = await runChecks(ctx, lang);
+  const lang2 = typeof args.options.lang === "string" ? args.options.lang : ctx.lang;
+  const checks = await runChecks(ctx, lang2);
   const summary = { ok: 0, warn: 0, fail: 0 };
   for (const c of checks)
     summary[c.status]++;
@@ -10128,236 +10772,260 @@ ${tr("doctor.nothing_to_fix")}`, { ...data, fixed: [] });
   const done = [];
   for (const s of steps)
     done.push(await s.run());
-  const after = await runChecks(ctx, lang);
+  const after = await runChecks(ctx, lang2);
   return ok([tr("doctor.fixed"), ...done.map((d) => `  ${d}`), "", checksText(after)].join(`
 `), { ...data, fixed: done, after });
 }
 defineAction("doctor", doctor, "help.doctor");
 export {
-  ALL,
-  BAR_CELLS,
-  CATALOGS,
-  DEFAULT_HOLD_TTL,
-  DEFAULT_KEEPALIVE_TRIES,
-  DEFAULT_MAX_ATTEMPTS,
-  DEFAULT_PROFILE,
-  DEFAULT_PROFILES,
-  DURATION,
-  EOF_JLOCK,
-  JLOCK,
-  KEEPALIVE_FILE,
-  MIN_JLOCK,
-  OPENCODE_AGENTS,
-  PATCH_MOVES,
-  RENEW_EVERY_MS,
-  RENEW_JLOCK,
-  RENEW_MARGIN_MS,
-  SCRATCH,
-  SKILLS,
-  SKILL_FILES,
-  StaleRevisionError,
-  ToolError,
-  VERSION,
-  acquireHold,
-  actorOf,
-  addExcludeLine,
-  addUsage,
-  ancestors,
-  appendLog,
-  archiveDir,
-  assess,
-  atomicWrite,
-  backToPending,
-  bar,
-  barCells,
-  basename,
-  blockerText,
-  branchExists,
-  buildView,
-  bullet,
-  canRenew,
-  canonical,
-  caseInsensitive,
-  chainText,
-  checkEdit,
-  checkJlock,
-  checkKeepalive,
-  checkShell,
-  checksText,
-  choose,
-  classify,
-  clearKeepalive,
-  clone,
-  commitExists,
-  commitReachable,
-  conflicts,
-  counts,
-  covers,
-  createRun,
-  createdText,
-  currentBranch,
-  defineAction,
-  describeKey,
-  describeOwner,
-  detachedHold,
-  dirname,
-  draftSummary,
-  earliestExpiry,
-  effectLine,
-  effectsOf,
-  ensureJlock,
-  excludeFile,
-  findTask,
-  findingLine,
-  firstConflict,
-  formatRunsList,
-  git,
-  gitOk,
-  globalLedger,
-  hasExcludeLine,
-  headerText,
-  holdArgv,
-  holdKeepalive,
-  holdModeFor,
-  holdModeOf,
-  identity,
-  installJlock,
-  installedJlock,
-  isAbsolute,
-  isMerged,
-  isNameKey,
-  jlockBin,
-  jlockEnv,
-  jlockInstallCommand,
-  jlockInstallPath,
-  jlockList,
-  jlockNotice,
-  jlockRelease,
-  jlockReleaseKeys,
-  jlockRenew,
-  jlockVersion,
-  join,
-  jtasksHome,
-  keepaliveDecision,
-  keepaliveNotice,
-  keepaliveStatus,
-  keepaliveTries,
-  lang,
-  lineText,
-  listDrafts,
-  listRuns,
-  loadRunsView,
-  loadView,
-  log,
-  markLost,
-  missingKeys,
-  moveDir,
-  mutateTasks,
-  normalize,
-  normalizeFileEntry,
-  normalizeKey,
-  nudgeText,
-  ok,
-  ownerOf,
-  parseArgs,
-  parseDuration,
-  parseTicket,
-  planFromJson,
-  possession,
-  progress,
-  progressLine,
-  progressSignature,
-  protocolText,
-  readEffects,
-  readJson,
-  readJsonArg,
-  readKeepalive,
-  readPlan,
-  readRun,
-  readTasks,
-  readTicketsDir,
-  reapplyLines,
-  rearmKeepalive,
-  recordEffect,
-  recordGlobalEffect,
-  relConflicts,
-  relativeInside,
-  releaseHolds,
-  reload,
-  remember,
-  removeExcludeLine,
-  renderTicket,
-  renewMargin,
-  renewRun,
-  renewalNeed,
-  repoRelative,
-  repoRoot,
-  requireRepo,
-  resetJlockSetup,
-  resolve,
-  resolveRun,
-  retakeMissing,
-  retakeYielded,
-  runChecks,
-  runDir,
-  runId,
-  runLine,
-  runTool,
-  runsDir,
-  runsView,
-  scan,
-  select,
-  selectReady,
-  serializeEntry,
-  serializeKey,
-  setEffectState,
-  sharedBlocker,
-  sharedOf,
-  sharedTouched,
-  sharedWarnings,
-  shellSegments,
-  shortHead,
-  skillHosts,
-  slash,
-  slugify,
-  splitChanges,
-  splitCommand,
-  stalledNotice,
-  startHold,
-  status,
-  statusOf,
-  stringify,
-  summaryTail,
-  summaryText,
-  systemLocale,
-  tags,
-  takeKeys,
-  taskIdArg,
-  taskKeys,
-  ticketFileName,
-  ticketNumber,
-  ticketPath,
-  ticketReadLine,
-  toTask,
-  tr,
-  ttlMs,
-  unarchive,
-  userHome,
-  validateBatch,
-  validateGraph,
-  validatePlan,
-  versionAtLeast,
-  viewLines,
-  waitingOf,
-  waitingText,
-  warningLines,
-  width,
-  withLock,
-  writeKeepalive,
-  writeRun,
-  writeTasks,
-  writeTicket,
-  writeTickets,
+  yymmdd,
   yieldedKeys,
-  yymmdd
+  writeTickets,
+  writeTicket,
+  writeTasks,
+  writeRun,
+  writeKeepalive,
+  withLock,
+  width,
+  warningLines,
+  waitingText,
+  waitingOf,
+  viewLines,
+  versionAtLeast,
+  validatePlan,
+  validateGraph,
+  validateBatch,
+  userHome,
+  unarchive,
+  ttlMs,
+  tr,
+  toTask,
+  ticketReadLine,
+  ticketPath,
+  ticketNumber,
+  ticketFileName,
+  taskKeys,
+  taskIdArg,
+  takeKeys,
+  tags,
+  systemLocale,
+  summaryText,
+  summaryTail,
+  stringify,
+  statusOf,
+  status,
+  startHold,
+  stalledNotice,
+  splitCommand,
+  splitChanges,
+  slugify,
+  slash,
+  skillHosts,
+  shortHead,
+  shellSegments,
+  sharedWarnings,
+  sharedTouched,
+  sharedOf,
+  sharedBlocker,
+  setEffectState,
+  serializeKey,
+  serializeEntry,
+  selectReady,
+  select,
+  scan,
+  runsView,
+  runsDir,
+  runTool,
+  runLine,
+  runId,
+  runDir,
+  runChecks,
+  retakeYielded,
+  retakeMissing,
+  resumeText,
+  resumeNow,
+  resumeIfDue,
+  resumeAtOf,
+  resolveRun,
+  resolve,
+  resetOf,
+  resetJlockSetup,
+  requireRepo,
+  repoRoot,
+  repoRelative,
+  renewalNeed,
+  renewRun,
+  renewMargin,
+  renderTicket,
+  removeExcludeLine,
+  remember,
+  reload,
+  releaseHolds,
+  relativeInside,
+  relConflicts,
+  recordGlobalEffect,
+  recordEffect,
+  rearmKeepalive,
+  reapplyLines,
+  readTicketsDir,
+  readTasks,
+  readRun,
+  readPlan,
+  readKeepalive,
+  readJsonArg,
+  readJson,
+  readEffects,
+  protocolText,
+  progressSignature,
+  progressLine,
+  progress,
+  possession,
+  planFromJson,
+  pausedTasks,
+  pauseViewNotice,
+  pauseProtocolLine,
+  pauseNotice,
+  pauseForFailure,
+  parseTicket,
+  parseDuration,
+  parseArgs,
+  ownerOf,
+  ok,
+  nudgeText,
+  normalizeKey,
+  normalizeFileEntry,
+  normalize,
+  mutateTasks,
+  moveDir,
+  missingKeys,
+  markLost,
+  log,
+  loadView,
+  loadRunsView,
+  listRuns,
+  listDrafts,
+  lineText,
+  leavePause,
+  lang,
+  kindLabel,
+  keepaliveTries,
+  keepaliveStatus,
+  keepaliveNotice,
+  keepaliveDecision,
+  jtasksHome,
+  join,
+  jlockVersion,
+  jlockRenew,
+  jlockReleaseKeys,
+  jlockRelease,
+  jlockNotice,
+  jlockList,
+  jlockInstallPath,
+  jlockInstallCommand,
+  jlockEnv,
+  jlockBin,
+  isNameKey,
+  isMerged,
+  isAbsolute,
+  installedJlock,
+  installJlock,
+  identity,
+  httpStatusOf,
+  holdModeOf,
+  holdModeFor,
+  holdKeepalive,
+  holdArgv,
+  headerText,
+  hasExcludeLine,
+  globalLedger,
+  gitOk,
+  git,
+  formatWhen,
+  formatRunsList,
+  firstConflict,
+  findingLine,
+  findTask,
+  excludeFile,
+  ensureJlock,
+  effectsOf,
+  effectLine,
+  earliestExpiry,
+  durationMs,
+  draftSummary,
+  dirname,
+  detailOf,
+  detachedHold,
+  describeOwner,
+  describeKey,
+  defineAction,
+  currentBranch,
+  createdText,
+  createRun,
+  covers,
+  counts,
+  conflicts,
+  commitReachable,
+  commitExists,
+  clone,
+  clearKeepalive,
+  classifyFailure,
+  classify,
+  choose,
+  checksText,
+  checkShell,
+  checkKeepalive,
+  checkJlock,
+  checkEdit,
+  chainText,
+  caseInsensitive,
+  canonical,
+  canRenew,
+  bullet,
+  buildView,
+  branchExists,
+  blockerText,
+  basename,
+  barCells,
+  bar,
+  backToPending,
+  atomicWrite,
+  assess,
+  archiveDir,
+  appendLog,
+  ancestors,
+  agentOfOwner,
+  addUsage,
+  addExcludeLine,
+  actorOf,
+  acquireHold,
+  VERSION,
+  ToolError,
+  TRANSIENT,
+  StaleRevisionError,
+  SKILL_FILES,
+  SKILLS,
+  SCRATCH,
+  RESET_MARGIN_MS,
+  RENEW_MARGIN_MS,
+  RENEW_JLOCK,
+  RENEW_EVERY_MS,
+  PERMANENT,
+  PATCH_MOVES,
+  OPENCODE_AGENTS,
+  MIN_JLOCK,
+  MAX_AUTO_RESUMES,
+  KIND_TABLE,
+  KEEPALIVE_FILE,
+  JLOCK,
+  EOF_JLOCK,
+  DURATION,
+  DEFAULT_PROFILES,
+  DEFAULT_PROFILE,
+  DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_KEEPALIVE_TRIES,
+  DEFAULT_HOLD_TTL,
+  CATALOGS,
+  BAR_CELLS,
+  BACKOFF_MS,
+  ALL
 };

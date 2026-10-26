@@ -192,6 +192,8 @@ export async function holdKeepalive(host: Host, root: string, runId: string): Pr
 /** The keepalive line of `jtasks status`: off, or what the host did for the progress the run is at now. */
 export function keepaliveStatus(run: RunFile, tasks: TasksFile, memory: KeepaliveMemory | undefined, maxTries: number): string | undefined {
   if (run.keepalive === false) return tr("status.keepalive_off")
+  // A transient pause has its own line; nothing the keepalive did before it counts while it lasts.
+  if (run.status === "paused" && run.pause) return undefined
   if (!memory || memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0) return undefined
   const what = [...(memory.ready ?? []), ...(memory.orphans ?? [])].join(", ")
   if (memory.action === "stalled") return tr(memory.cause === "error" ? "status.keepalive_error" : "status.keepalive_stalled", { what, tries: maxTries })
