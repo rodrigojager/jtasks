@@ -85,7 +85,9 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
   `jtasks:execute`, `jtasks:execute-deep`, `jtasks:review` (`claude/agents/`, generated from the OpenCode ones). A
   profile may name any agent you already have (`claude.agent`, `opencode.agent`). In Claude Code, `claude.model`
   is the subagent's model and `claude.effort` (`low` to `max`) the effort of every request it makes; in OpenCode,
-  `opencode.model` (`providerID`, `modelID`, and `variant` for the reasoning level), otherwise the session's. `maxAttempts` (default 2), `holdTtl` (default `"2h"`: a
+  `opencode.model` (`providerID`, `modelID`, and `variant` for the reasoning level), otherwise the session's. `maxAttempts` (default 2), `maxAgentEnded` (default 3: ends of a subagent without finishing, apart from the
+  attempts, before the task fails and the run pauses for a person), `awaitGrace` (default `"5m"`: how long a task
+  waits for its subagent after the process it waited for ended; see [Waiting for a process](#waiting-for-a-process)), `holdTtl` (default `"2h"`: a
   task's locks expire by themselves after this long if nobody renews or gives them back, a window that died; the mod
   and the plugin renew the locks of their tasks in progress, so a long task keeps them), `branch` (`"run"`: commit on
   `gt/<run>`, the default; `"current"`: on the current branch).
@@ -122,8 +124,10 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `done <id> --evidence "…"` | checks git and the locks, commits the ownership only (`T04: title`), releases |
 | | `skip <id> --reason "…"` / `fail <id> --error "…"` | skipped (frees dependents) / failed (blocks them) |
 | | `release <id>` | in progress → pending (failed at `maxAttempts`); its uncommitted edits are kept as patches and the tree is left clean (see [Releasing keeps the edits](#releasing-keeps-the-edits)) |
+| | `release <id> --agent-ended [--waiting "…"]` | what the hosts call when a subagent's loop ends: waits while a process of the task lives, otherwise back to pending without spending an attempt (see [Waiting for a process](#waiting-for-a-process)) |
+| | `wait <id> [--pid <pid>[,…]] [--command "…"]` | declares a process the task waits for if its subagent's loop ends; without `--pid`, lists the task's processes |
 | | `retry <id>` / `retry --all-failed` | skipped or failed → pending |
-| | `exec -- <command…>` | runs a command; one of `serialize` runs through `jlock run name:gt/<repo>/<command>` |
+| | `exec [--task <id>] [--timeout 10m] -- <command…>` | runs a command; one of `serialize` runs through `jlock run name:gt/<repo>/<command>`; its pid goes in the task (`--task`, or the caller's only task in progress) while it runs |
 | ledger | `ledger [--all-projects]` | every effect the tool created, and its state |
 | | `undo <e-id> \| --task <id> \| --run <run> [--force]` | undoes newest first (revert, branch, exclude line, folder) |
 | | `effects --check` | compares the ledger with disk and git: what disappeared, what was left |
@@ -218,6 +222,28 @@ the `-e`/`-f` script; `-i.bak`, `-i ''` too) and `cp` only its destination. A pa
 backquote or a glob cannot be checked: it passes when it is plainly outside the repository (`/tmp/$X/f`), and is
 refused otherwise with "the path … cannot be checked; use the literal path, or Edit/Write", never with a `claim` of a
 path with `$`. The main agent is only kept out of the run's own files.
+
+### Waiting for a process
+
+A subagent's loop that ends with its task in progress is not taken as a death at once. The host calls
+`release <id> --agent-ended`, and the core looks first at the task's processes: the ones `jtasks exec --task` started
+(registered while they run) and the ones `jtasks wait <id> --pid <pid>` declared, plus the host's own word
+(`--waiting`; in Claude Code, the agent's status `waiting` or a Bash command it left running in the background). While
+one lives, the task stays **in progress, waiting for a process** (`awaiting` in `tasks.json`; `status`, the pane and
+the sidebar show it), with its locks and nothing spent. The same subagent coming back ends the wait (Claude Code
+reopens it when its background work ends; in OpenCode the host tells the orchestrator to resume the session with
+`task_id`). If the process ended and the subagent did not come back within `awaitGrace` (5 min), it counts as ended.
+
+A subagent that ends without finishing sends its task back to pending **without spending an attempt**: it is counted
+in `agentEnded`, and at `maxAgentEnded` (3) the task fails and the run pauses for a person (`needsPerson` in
+`run.json`, explained by `status`); `retry <id>` and `unpause` go on. Both limits are plan fields (`maxAgentEnded`,
+`awaitGrace`).
+
+Whatever the run does without the orchestrator asking (a subagent ended, a task back in the queue, waiting for a
+process or with its process ended, locks lost, a task failed, the run paused for a person or by someone else) is read
+from the run's `log.jsonl` by the mod and the plugin and sent to the orchestrator at once, as a message that starts
+with `jtasks: run <id> changed without your asking` and carries the status line; the person gets a toast and a
+notification. Every notification of a subagent's end also carries the status line read at that moment.
 
 ## Variables
 

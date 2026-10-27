@@ -87,7 +87,8 @@ export function keepaliveDecision(input: KeepaliveInput): KeepaliveDecision {
   if (run.keepalive === false) return { action: "none", reason: "off" }
   if (input.liveAgents > 0) return { action: "none", reason: "agents-running" }
   const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id)
-  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && isOrphan(t.owner, input.actor)).map((t) => t.id)
+  // A task waiting for its process (rev. 5.8) is no orphan: its subagent comes back when the process ends.
+  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor)).map((t) => t.id)
   if (!ready.length && !orphans.length) return { action: "none", reason: "nothing-ready" }
   const signature = progressSignature(state.tasks)
   const last = input.last?.signature === signature ? input.last : undefined

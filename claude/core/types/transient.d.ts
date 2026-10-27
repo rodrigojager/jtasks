@@ -68,6 +68,7 @@ export declare const RESET_MARGIN_MS = 30000;
 export declare function resumeAtOf(resetAt: string | undefined, streak: number, now: Date): string | undefined;
 /** The agent an owner names: `claude:<session>/agent:<id>` → `<id>`. */
 export declare function agentOfOwner(owner: string | null | undefined): string | undefined;
+export declare function resumeHow(tool: string | undefined, agent: string): string;
 /** The line of the protocol while the run is paused by a transient failure: wait, keep the tasks. */
 export declare function pauseProtocolLine(pause: AutoPause): string;
 /**

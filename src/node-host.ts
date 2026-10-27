@@ -190,6 +190,7 @@ export function createNodeHost(): Host {
         child.stdout.on("data", (c: string) => (stdout += c))
         child.stderr.on("data", (c: string) => (stderr += c))
         const timer = options.timeoutMs ? setTimeout(() => child.kill(), options.timeoutMs) : undefined
+        if (child.pid !== undefined && options.onStart) void Promise.resolve(options.onStart(child.pid)).catch(() => {})
         child.on("error", (error) => {
           if (timer) clearTimeout(timer)
           resolve({ code: 127, stdout, stderr: stderr + String(error.message) })
@@ -212,6 +213,16 @@ export function createNodeHost(): Host {
       })
       child.stdin?.on("error", () => {})
       return new ChildResident(child)
+    },
+    async alive(pid) {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch (error) {
+        // EPERM: it exists, only not ours to signal.
+        const code = (error as NodeJS.ErrnoException).code
+        return code === "EPERM" ? true : code === "ESRCH" ? false : undefined
+      }
     },
   }
 }

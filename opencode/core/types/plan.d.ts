@@ -30,6 +30,8 @@ export interface Draft {
     profiles?: Record<string, Profile>;
     serialize?: string[];
     maxAttempts?: number;
+    maxAgentEnded?: number;
+    awaitGrace?: string;
     holdTtl?: string;
     keepalive?: boolean;
     branch?: "run" | "current";

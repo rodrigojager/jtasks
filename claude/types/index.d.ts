@@ -15,6 +15,10 @@ export type AgentTask = {
   effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
   /** Its loop died on a transient failure and the run was paused with its task kept (rev. 5.7): resume it, never open another. */
   paused?: boolean
+  /** Its loop ended while a process of its task ran (rev. 5.8): the task waits in progress; its next turn ends the wait. */
+  awaiting?: boolean
+  /** Commands it started in the background (Bash `run_in_background`) since its turn began (rev. 5.8). */
+  background?: string[]
 }
 
 /** One checklist line of the pane (the core's ViewLine). */

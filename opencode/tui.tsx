@@ -138,6 +138,12 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
         void load()
         const stopTool = context.data.on("session.tool.success", () => void load())
         const stopRpc = rpc.events.on("changed", () => void load())
+        // What the run did without the root session asking (rev. 5.8): a toast, and the rows again.
+        const stopAlert = rpc.events.on("alert", (event: { data: unknown }) => {
+          const notice = (event.data as { notice?: string } | undefined)?.notice
+          if (notice) context.ui.toast?.show({ message: `jtasks: ${notice}`, variant: "warning", sessionID: props.sessionID })
+          void load()
+        })
         const timer = setInterval(() => {
           const v = view()
           if (v?.kind === "run" && v.lines.some((l) => active(l.state))) void load()
@@ -145,6 +151,7 @@ export function createTuiPlugin(options: TuiOptions = {}): Plugin.Definition {
         onCleanup(() => {
           stopTool()
           stopRpc()
+          stopAlert()
           clearInterval(timer)
         })
         const toggle = () => void setPrefs((draft) => void (draft.collapsed = !draft.collapsed))

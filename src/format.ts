@@ -68,6 +68,8 @@ export function protocolText(run: string, summary: string, spawn: string, notes:
     `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` +
       `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` +
       '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' +
+      "run a long command (a test suite, a build) with jtasks exec --task <id> -- <command>, and before ending your turn to wait for a process " +
+      "you left running in the background, declare it with jtasks wait <id> --pid <pid>; " +
       'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
@@ -76,6 +78,12 @@ export function protocolText(run: string, summary: string, spawn: string, notes:
     "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move.",
     "7. If a subagent dies on a provider failure that clears by itself (a usage or rate limit, an overloaded server, the network), the host pauses the run and keeps its task in " +
       "progress with its locks: do not release it and do not open another subagent for it; when the run is active again, resume that same subagent.",
+    "8. A task \"waiting for a process\" (jtasks status) is in progress: its subagent ended its loop to wait for a command it left running and comes back " +
+      "when it ends. Do not release it, do not open another subagent for it, do not do it yourself; go on with the other tasks. If the host says the " +
+      "process ended and the subagent did not come back, resume that same subagent; one that never comes back counts as ended without finishing.",
+    '9. A message that starts with "jtasks: run <id> changed without your asking" is a fact read from the run\'s log (a subagent ended, a task went back ' +
+      "to the queue, failed, or waits for a process, a lock was lost, the run paused for a person): act on it now (jtasks next; or, paused, tell the user and stop). " +
+      "Every notification of a subagent's end carries the run's status line read at that moment: trust it over the conversation's summary.",
     // `notes`: what holds now (a transient pause: wait, keep the tasks).
     ...notes,
   ].join("\n")

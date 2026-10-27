@@ -103,6 +103,14 @@ of a usage limit, an overloaded server or a dropped connection in the message or
 and the root session is told to resume the same subagent session (`task_id`). See
 [Transient failures](../docs/USAGE.md#transient-failures).
 
+A child session that goes idle while a process of its task runs (one `jtasks exec --task` started, or
+`jtasks wait <id> --pid <pid>` declared) does not give its task back either: the task waits for the process, in
+progress with its locks and the session's binding. OpenCode does not reopen that session when the process ends, so
+the plugin tells the root session to resume it (`task_id`); if it does not come back within the run's `awaitGrace`, the
+task goes back to the queue, without spending an attempt. Whatever the run does without the root session asking
+reaches it at once as a synthetic message with the status line, and the TUI as a toast; every subagent call's result
+carries the status line too. See [Waiting for a process](../docs/USAGE.md#waiting-for-a-process).
+
 ## Tests
 
 ```

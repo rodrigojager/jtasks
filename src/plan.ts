@@ -7,6 +7,8 @@ import { recordEffect } from "./ledger.ts"
 import { basename, isAbsolute, join } from "./paths.ts"
 import {
   DEFAULT_HOLD_TTL,
+  DEFAULT_AWAIT_GRACE,
+  DEFAULT_MAX_AGENT_ENDED,
   DEFAULT_MAX_ATTEMPTS,
   DEFAULT_PROFILE,
   DEFAULT_PROFILES,
@@ -96,6 +98,8 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     worktrees: { policy: "none" },
     serialize: plan.serialize ?? [],
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+    maxAgentEnded: plan.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED,
+    awaitGrace: plan.awaitGrace ?? DEFAULT_AWAIT_GRACE,
     holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
     keepalive: plan.keepalive !== false,
     ...(plan.shared?.length ? { shared: plan.shared } : {}),
@@ -193,6 +197,8 @@ export interface Draft {
   profiles?: Record<string, Profile>
   serialize?: string[]
   maxAttempts?: number
+  maxAgentEnded?: number
+  awaitGrace?: string
   holdTtl?: string
   keepalive?: boolean
   branch?: "run" | "current"
@@ -243,6 +249,8 @@ function draftPlan(draft: Draft): PlanInput {
   if (draft.profiles !== undefined) plan.profiles = draft.profiles
   if (draft.serialize !== undefined) plan.serialize = draft.serialize
   if (draft.maxAttempts !== undefined) plan.maxAttempts = draft.maxAttempts
+  if (draft.maxAgentEnded !== undefined) plan.maxAgentEnded = draft.maxAgentEnded
+  if (draft.awaitGrace !== undefined) plan.awaitGrace = draft.awaitGrace
   if (draft.holdTtl !== undefined) plan.holdTtl = draft.holdTtl
   if (draft.keepalive !== undefined) plan.keepalive = draft.keepalive
   if (draft.branch !== undefined) plan.branch = draft.branch
@@ -323,7 +331,7 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const errors = [...read.errors, ...batch.errors, ...earlier]
     if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"] as const)
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")

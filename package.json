@@ -1,6 +1,6 @@
 {
   "name": "jtasks",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Deterministic task list with dependencies and file-ownership parallelism for coding agents (CLI, Claude Code mod, OpenCode plugin).",
   "license": "MIT",

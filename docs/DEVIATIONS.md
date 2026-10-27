@@ -253,3 +253,40 @@ traga `task_id`, `taskID`, `sessionID` ou `session_id`. A versão foi para 0.2.0
 
 **O que fazer:** nada. Para retomar antes do reset, `jtasks unpause`; para ficar parado até decidir, `jtasks pause`
 (a tarefa continua mantida, sem retomada automática).
+
+## 17. O fim de um subagente olha os processos da tarefa, e o host avisa o orquestrador (ticket 53)
+
+**O que mudou:** o pedido era que `jtasks exec` registrasse o PID do processo de cada tarefa, "inclusive quando o
+chamador o põe em segundo plano". No Claude Code o subagente roda a suíte longa pelo Bash com `run_in_background`, e
+o Claude Code não dá o PID desse processo ao mod (nem `$.process.run` dá o PID do que roda). Então, no mod, o sinal
+vem do próprio Claude Code: o status do agente em `$.agent.list()` (`waiting`: "em trabalho de fundo que ele
+possui") e os comandos que o mod viu o subagente mandar para o segundo plano nesse turno; o mod passa isso ao núcleo
+como `release --agent-ended --waiting "<o que viu>"`, e a espera acaba quando o mesmo agente volta (`turn.start`).
+Os PIDs reais ficam para `jtasks exec --task <id>` (no CLI e no plugin, o host do Node sabe o PID do filho) e para
+`jtasks wait <id> --pid <pid>`. O `exec` pela ferramenta do mod roda em primeiro plano (a chamada segura o turno do
+subagente), então não precisa de PID. Um PID que o sistema não sabe dizer se vive conta como morto (a tarefa volta à
+fila como antes, nunca fica presa); um PID reusado por outro executável também (o nome do executável é guardado no
+registro). O `exec` ganhou `--timeout` (10 min continua o padrão), porque uma suíte e2e longa passava disso.
+
+**Consequência:** um subagente que termina sem concluir e que tinha mandado algo para o segundo plano nesse turno
+segura a tarefa até o agente voltar ou, se o Claude Code disser que ele não espera mais (status `completed`, `idle`
+ou ausente), até `awaitGrace` (5 min) depois disso; só então a tarefa volta à fila. O fim de subagente deixa de gastar
+`maxAttempts` (tem `agentEnded`/`maxAgentEnded`, 3 por padrão); o `release` explícito, a posse perdida e o `resume`
+continuam gastando e falhando no `maxAttempts`, agora com aviso ao orquestrador. A pausa por falha transitória (rev.
+5.7) não manda mensagem ao laço principal no momento da pausa (ela bateria no mesmo limite); a pessoa é avisada como
+antes, e o orquestrador recebe a mensagem da volta. As mensagens de aviso usam o mesmo caminho da retomada (um
+`prompt.submit` do plugin, que entra quando a sessão fica ociosa e nunca por cima de um rascunho); não vão para uma
+execução com `-p` nem para o SDK. O mod lê o `log.jsonl` a partir do fim quando liga a execução ou recarrega: o que
+aconteceu durante uma recarga do mod não vira aviso (o `jtasks status` mostra).
+
+**No OpenCode:** não há "segundo plano" que o plugin veja nem reabertura automática da sessão filha quando o processo
+termina. Por isso: a sessão filha que fica ociosa com um processo registrado (`exec --task`, `wait --pid`) deixa a
+tarefa aguardando, com a ligação da sessão mantida; quando o processo termina, o plugin manda à sessão raiz "retome a
+mesma sessão (`task_id`)", e o início de execução da sessão filha encerra a espera. A anexação da linha de status vai
+no resultado da chamada de subagente (`tool.execute.after`), e o aviso à pessoa é um evento `alert` da RPC que a TUI
+mostra como toast. Sem `session.synthetic` no host, o aviso fica só no log, no `console.warn` e na TUI.
+
+**O que fazer:** subagentes: rodar o que for longo com `jtasks exec --task <id> -- <comando>`; para encerrar o turno
+esperando um processo lançado de outro jeito, `jtasks wait <id> --pid <pid>` antes. Orquestrador: deixar em paz a
+tarefa "aguardando processo" e seguir com as outras. Pessoa: numa pausa por `needsPerson`, ver a tarefa, depois
+`jtasks retry <id>` e `jtasks unpause`. Para ajustar: `maxAgentEnded` e `awaitGrace` no plano.

@@ -21,6 +21,9 @@ repository history by hand.
    other parts; release only when nothing else can move.
 3. Do not run git. Run the project's build and tests; add the tests the criteria imply. The tool runs the commands
    the run serializes one at a time.
+   A long command (a whole test suite, an end-to-end run) goes through `jtasks exec --task <id> -- <command>`,
+   which registers its process in the task. To end your turn and wait for a process left running in the background,
+   declare it first with `jtasks wait <id> --pid <pid>`: the task then waits for it instead of going back to the queue.
 4. When every criterion holds, call `jtasks done <id> --evidence "<what you ran and what it showed>"`. If the plan
    itself is wrong, call `jtasks fail <id> --error "<why, and what should change in the plan>"` instead of
    improvising a larger change.

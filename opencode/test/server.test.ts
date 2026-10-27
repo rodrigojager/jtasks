@@ -41,7 +41,7 @@ describe("OpenCode plugin", () => {
     const { h } = await setup()
     expect(PLUGIN_ID).toBe("jtasks")
     expect(h.tools.map((t) => t.name)).toEqual([TOOL_NAME])
-    expect([...h.hooks.keys()].sort()).toEqual(["permission.evaluate", "session.compaction", "session.context", "tool.execute.before"])
+    expect([...h.hooks.keys()].sort()).toEqual(["permission.evaluate", "session.compaction", "session.context", "tool.execute.after", "tool.execute.before"])
   })
 
   test("a scripted model: next, two subagent calls in one response, start/claim/done in each, status restam 0", async () => {
@@ -312,14 +312,18 @@ describe("OpenCode plugin", () => {
     // The child's session ends: T01 goes back to the queue, and the root's next idle reopens the loop.
     h.emit("session.idle", { sessionID: "c9" })
     await until(() => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks[0].status === "pending")
+    // The root also hears of that end by itself (rev. 5.8): an alert, apart from the keepalive's messages.
+    await until(() => h.synthetics.some((s) => s.text.includes("changed without your asking") && s.text.includes("T01: its subagent ended without finishing")))
+    const idle = () => h.synthetics.filter((s) => s.text.includes("is idle")).length
     turn("succeeded")
-    await until(() => h.synthetics.length === 3)
+    await until(() => idle() === 3)
 
     // Paused: nothing.
     expect((await h.call("s1", "pause")).ok).toBe(true)
+    const before = h.synthetics.length
     turn("succeeded")
     await Bun.sleep(600)
-    expect(h.synthetics.length).toBe(3)
+    expect(h.synthetics.length).toBe(before)
   })
 
   test("the holds of a task in progress are renewed before the run's holdTtl: a long task keeps its lock and is never lost", async () => {

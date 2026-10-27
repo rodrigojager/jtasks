@@ -4,12 +4,16 @@
 // /jtasks (Claude Code ships its own /tasks), refreshed every 2 s while open; and the keepalive: at the end of the
 // main loop's turn, with ready tasks and no subagent alive, a message that reopens the loop (./keepalive.ts); and
 // the holds of this session's tasks in progress renewed before the run's holdTtl expires them (core's renew.ts); and
-// a loop that dies on a transient failure of the API pauses the run with its task kept (./transient.ts, rev. 5.7).
+// a loop that dies on a transient failure of the API pauses the run with its task kept (./transient.ts, rev. 5.7); and
+// a subagent whose loop ends while its process runs leaves its task waiting for it, not given back, and every
+// transition the orchestrator did not ask for is sent to it at once, with the status line, which also rides along
+// every notification of a subagent's end (./alerts.ts, rev. 5.8).
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { awaitBack, ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readBrief, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
+import { AlertWatch } from './alerts.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
 import { judgeCall, type GuardedCall } from './guard.ts'
 import { Keepalive } from './keepalive.ts'
@@ -41,6 +45,8 @@ let keepalive: Keepalive | undefined
 let failures: FailureWatch | undefined
 /** Set at session.start: tells the person the run was paused by a transient failure, and clears it. */
 let tell: { paused(notice: string): void; clear(): void } | undefined
+/** Set at session.start: the run's transitions the orchestrator did not ask for, and the tasks waiting for a process (rev. 5.8). */
+let alerts: AlertWatch | undefined
 /** The status line shows a transient pause. */
 let pauseShown = false
 let paneOpen = false
@@ -93,8 +99,37 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
     const dir = (result.data as { dir?: string } | undefined)?.dir?.replace(/\\/g, '/')
     const root = dir ? dir.replace(/\/\.scratch\/jtasks\/runs\/[^/]+$/, '') : (bound?.root ?? cwd)
     await p.setRun({ run: result.bind, root })
+    // The alerts of a run start where its log is now (rev. 5.8).
+    await alerts?.start({ run: result.bind, root }).catch(() => undefined)
   }
   return result
+}
+
+/** A text the tool's command line keeps whole: one double-quoted word, without what would end it. */
+function quoted(text: string): string {
+  return `"${text.replace(/["\\]/g, ' ').replace(/\s+/g, ' ').trim()}"`
+}
+
+/**
+ * The end of a task's subagent loop (rev. 5.8): `release --agent-ended`, with `--waiting` when Claude Code says the
+ * agent waits on background work it owns, or it started commands in the background this turn. The core keeps the task
+ * waiting for its process (then the agent keeps its place here), or gives it back. Answers the outcome.
+ */
+async function endOfAgent(p: Port, agentId: string, mine: AgentTask, status: string | undefined): Promise<string | undefined> {
+  const background = mine.background ?? []
+  const waiting =
+    status === 'waiting' || background.length
+      ? background.length
+        ? `background: ${background.join(' | ')}`
+        : 'Claude Code: the agent waits on background work it owns'
+      : undefined
+  const result = await callTool(p, `release ${mine.task} --agent-ended${waiting ? ` --waiting ${quoted(waiting.slice(0, 300))}` : ''}`, undefined, agentId).catch(() => undefined)
+  const outcome = (result?.data as { outcome?: string } | undefined)?.outcome
+  const agents = await p.getAgents()
+  const { [agentId]: _gone, ...rest } = agents
+  if (outcome === 'awaiting') await p.setAgents({ ...rest, [agentId]: { ...mine, awaiting: true, background: [] } })
+  else await p.setAgents(rest)
+  return outcome
 }
 
 let renewing = false
@@ -166,6 +201,11 @@ async function leaveTransientPause(p: Port, how?: string): Promise<void> {
   await refresh?.(true).catch(() => undefined)
 }
 
+/** The status line attached to a notification (English frame, the tool's words inside). */
+export function statusContext(run: string, brief: string): string {
+  return `jtasks status of run ${run}, read now from tasks.json: ${brief}`
+}
+
 async function lastMessage(read: () => Promise<readonly { role: string; text: string }[] | { deny: string }>): Promise<string | undefined> {
   const messages = await read()
   return Array.isArray(messages) ? messages.filter((m) => m.role === 'assistant').at(-1)?.text : undefined
@@ -219,6 +259,18 @@ export const register: Register = (on) => {
       e.isInteractive,
     )
     await keepalive.restore((text) => $.ui.status(text)).catch(() => undefined)
+    // What the run does without the orchestrator asking goes to it at once, and to the person (rev. 5.8).
+    alerts = new AlertWatch(port, {
+      deliver: (text) => keepalive?.deliver(text),
+      tell: (notice) => {
+        $.ui.toast(`jtasks: ${notice}`, { timeoutMs: 15000 })
+        void $.ui.notify(`jtasks: ${notice}`).catch(() => undefined)
+        void refresh?.(true).catch(() => undefined)
+      },
+      agents: async () => (await $.agent.list()).map((a) => ({ id: a.id, status: a.status })),
+      ctx: (run) => sessionCtx(needPort(), run),
+    })
+    await alerts.start().catch(() => undefined)
     // A StopFailure after its loop's end (the end went on as an ordinary error): a transient one still pauses the
     // run, so nothing else is started into the same limit; a subagent's task already given back stays so.
     failures = new FailureWatch(
@@ -274,6 +326,7 @@ export const register: Register = (on) => {
     $.clock.every(2000, () => {
       void refresh?.(false).catch(() => undefined)
       void keepalive?.tick().catch(() => undefined)
+      void alerts?.tick().catch(() => undefined)
       const p = port
       if (p) void leaveTransientPause(p).catch(() => undefined)
     })
@@ -409,7 +462,10 @@ export const register: Register = (on) => {
     const p = port
     const bound = p && e.agentId ? await p.getRun() : null
     if (!p || !bound || !e.agentId) return next(e)
-    const agent = (await p.getAgents())[e.agentId]
+    const agents = await p.getAgents()
+    const agent = agents[e.agentId]
+    // A command it leaves running in the background (rev. 5.8): if its loop ends now, the task waits for it.
+    if (agent && e.run_in_background) await p.setAgents({ ...agents, [e.agentId]: { ...agent, background: [...(agent.background ?? []), String(e.command).slice(0, 200)] } })
     const owner = `gt:${bound.run}/${agent?.task ?? 'exec'}-bash`
     const wrapped = await serializedCommand(createModHost(p, await p.cwd()), bound, e.command, owner)
     return next(wrapped ? { ...e, command: wrapped } : e)
@@ -423,6 +479,11 @@ export const register: Register = (on) => {
       const agents = await p.getAgents().catch(() => undefined)
       const mine = agents?.[e.agentId]
       if (agents && mine?.paused) await p.setAgents({ ...agents, [e.agentId]: { ...mine, paused: false } }).catch(() => undefined)
+      // A subagent whose task waited for its process is back (Claude Code reopened it): the wait is over (rev. 5.8).
+      if (agents && mine && (mine.awaiting || mine.background?.length)) {
+        await p.setAgents({ ...(await p.getAgents()), [e.agentId]: { ...mine, paused: false, awaiting: false, background: [] } }).catch(() => undefined)
+        if (mine.awaiting) await awaitBack(await sessionCtx(p, mine.run), mine.run, mine.task, 'turn.start').catch(() => false)
+      }
     }
     return next(e)
   })
@@ -444,6 +505,13 @@ export const register: Register = (on) => {
   // doubt, or past 3 s, it goes).
   on('prompt.submit', async ($, e, next) => {
     const p = port
+    // The notification of a background task (a subagent's end or pause, a shell) carries the run's status line read
+    // now, so the orchestrator never answers it from a stale picture (rev. 5.8).
+    if (e.origin?.kind === 'task-notification' && p) {
+      const bound = await p.getRun().catch(() => null)
+      const brief = bound ? await readBrief(createModHost(p, await p.cwd()), bound.root, bound.run).catch(() => undefined) : undefined
+      return next(brief ? { ...e, context: [...(e.context ?? []), statusContext(bound!.run, brief)] } : e)
+    }
     if (e.origin?.kind !== 'plugin' || e.origin.name !== 'jtasks' || !keepalive || !p) return next(e)
     const wanted = await Promise.race([keepalive.stillWanted().catch(() => true), p.sleep(3000).then(() => true)])
     return wanted ? next(e) : { drop: tr('keepalive.dropped') }
@@ -482,10 +550,21 @@ export const register: Register = (on) => {
         return done
       }
     }
-    const { [e.agentId]: _gone, ...rest } = agents
-    await p.setAgents(rest)
     const bound = await p.getRun()
-    if (bound?.run === mine.run) await callTool(p, `release ${mine.task} --agent-ended`, undefined, e.agentId).catch(() => undefined)
+    if (bound?.run === mine.run) {
+      // Claude Code's word on the agent (`waiting`: on background work it owns), and the commands it left running.
+      const agentId = e.agentId
+      const status = await Promise.race([
+        $.agent.list().then((list) => list.find((a) => a.id === agentId)?.status, () => undefined),
+        p.sleep(1500).then(() => undefined),
+      ])
+      await endOfAgent(p, agentId, mine, status)
+      // The orchestrator hears of it now, not when a task happens to be ready.
+      await alerts?.check().catch(() => undefined)
+    } else {
+      const { [e.agentId]: _gone, ...rest } = agents
+      await p.setAgents(rest)
+    }
     await refresh?.(true).catch(() => undefined)
     return done
   })

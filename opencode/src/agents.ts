@@ -1,7 +1,9 @@
 // A subagent that ends with its task still in progress (section 9, "agente morto"): its child session goes idle
-// or is deleted; the task bound to that session goes back to the queue through the core's `release --agent-ended`
-// (attempts counted at start; failed at maxAttempts; the log says agent-ended), as the mod does on turn.complete.
-// Unless `kept` says the session died on a transient failure and the run was paused with the task kept (rev. 5.7).
+// or is deleted; the task bound to that session goes through the core's `release --agent-ended`, as the mod does on
+// turn.complete. Rev. 5.8: while a process the task registered (`jtasks exec`, `jtasks wait`) lives, the task waits for
+// it in progress with its locks (the session keeps its binding); otherwise it goes back to the queue without spending
+// an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person. Unless `kept` says the
+// session died on a transient failure and the run was paused with the task kept (rev. 5.7).
 
 import { readTasks, runDir, type Host, type ToolResult } from "../core/core.js"
 import type { Bindings } from "./binding.ts"

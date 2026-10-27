@@ -18,6 +18,8 @@ export * from "./keepalive.js";
 export * from "./transient.js";
 export * from "./autopause.js";
 export * from "./renew.js";
+export * from "./procs.js";
+export * from "./alerts.js";
 export * from "./actions.js";
 export * from "./housekeeping.js";
 export * from "./gc.js";

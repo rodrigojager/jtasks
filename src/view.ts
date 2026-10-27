@@ -7,6 +7,7 @@ import type { Host } from "./host.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
 import { keepaliveNotice, readKeepalive } from "./keepalive.ts"
 import { pauseViewNotice } from "./transient.ts"
+import { awaitingWhat } from "./procs.ts"
 import { listRuns, readRun, readTasks, runDir } from "./store.ts"
 import type { RunFile, Task, TasksFile, ToolName } from "./schema.ts"
 import { tr, width as columns } from "./i18n.ts"
@@ -85,9 +86,14 @@ export function buildView(state: RunState, locks: JlockLock[], platform: string,
         break
       case "in_progress": {
         const w = waiting.get(t.id)
-        st = w ? "waiting" : "running"
+        st = w || t.awaiting ? "waiting" : "running"
         detail = w ? waitingText(w, state, platform) : profileDetail(state.tasks, t, tool)
         if (w?.yielded) note = tr("view.waits_for", { files: w.yielded.join(", ") })
+        // Its subagent's loop ended while its process runs (rev. 5.8): it waits for the process, not for a lock.
+        if (t.awaiting) {
+          detail = t.awaiting.endedAt ? tr("view.awaiting_back") : tr("view.awaiting", { what: awaitingWhat(t) })
+          note = detail
+        }
         break
       }
       default: {
@@ -212,8 +218,14 @@ export async function loadView(host: Host, root: string, run: string, tool: Tool
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => [])
   const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool)
-  // A transient pause (rev. 5.7) says why and until when; otherwise a give-up of the keepalive, if any.
-  const notice = runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir))
+  // A run that needs a person (rev. 5.8) says so; a transient pause (rev. 5.7) says why and until when; otherwise a
+  // give-up of the keepalive, if any.
+  const needs = runFile.status === "paused" ? runFile.needsPerson : undefined
+  const notice = needs
+    ? tr("view.needs_person", { id: needs.task, n: needs.count })
+    : runFile.status === "paused" && runFile.pause
+      ? pauseViewNotice(runFile.pause, host.now())
+      : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir))
   return notice ? { ...view, notice } : view
 }
 

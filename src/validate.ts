@@ -7,7 +7,7 @@ import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION
 import { tr } from "./i18n.ts"
 
 const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared"])
-const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"])
+const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"])
 const GLOB = /[*?[\]{}]/
 
 export interface ValidateOptions {
@@ -92,6 +92,15 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (typeof obj.maxAttempts === "number" && Number.isInteger(obj.maxAttempts) && obj.maxAttempts >= 1)
       plan.maxAttempts = obj.maxAttempts
     else errors.push(tr("plan.max_attempts"))
+  }
+  if (obj.maxAgentEnded !== undefined) {
+    if (typeof obj.maxAgentEnded === "number" && Number.isInteger(obj.maxAgentEnded) && obj.maxAgentEnded >= 1)
+      plan.maxAgentEnded = obj.maxAgentEnded
+    else errors.push(tr("plan.max_agent_ended"))
+  }
+  if (obj.awaitGrace !== undefined) {
+    if (typeof obj.awaitGrace === "string" && DURATION.test(obj.awaitGrace)) plan.awaitGrace = obj.awaitGrace
+    else errors.push(tr("plan.await_grace"))
   }
   if (obj.holdTtl !== undefined) {
     if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl)) plan.holdTtl = obj.holdTtl

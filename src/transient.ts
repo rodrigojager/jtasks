@@ -340,7 +340,7 @@ const RESUME_HOW: Record<string, (agent: string) => string> = {
   opencode: (agent) => `the task tool with task_id ${agent} (its session)`,
 }
 
-function resumeHow(tool: string | undefined, agent: string): string {
+export function resumeHow(tool: string | undefined, agent: string): string {
   return (RESUME_HOW[tool ?? ""] ?? ((a: string) => `the same subagent (${a})`))(agent)
 }
 

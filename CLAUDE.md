@@ -30,7 +30,12 @@ timeout, retries esgotados) pausam a execução com a tarefa mantida em andament
 classificador por tabelas; `src/autopause.ts`; no mod, `StopFailure` em `claude/hooks/transient.ts`; no plugin,
 `session.execution.failed`/`session.error` em `opencode/src/transient.ts`), e a volta (`unpause`, relógio, reset)
 manda retomar o mesmo agente; ticket 52: versão 0.2.0 em todos os manifestos, `scripts/version.ts` e
-`test/version.test.ts`.
+`test/version.test.ts`. Revisão 5.8 (item 25, ticket 53): fim de turno de subagente não é morte por si
+(`src/procs.ts`: `exec --task` registra o pid, `jtasks wait --pid`; `release --agent-ended [--waiting]` deixa a tarefa
+"aguardando processo" com as travas enquanto um processo vive; `agentEnded`/`maxAgentEnded` fora do `maxAttempts`,
+com pausa `needsPerson` no limite; `awaitGrace`), e tudo o que a execução faz sem o orquestrador pedir vira mensagem
+imediata para ele e aviso para a pessoa (`src/alerts.ts`, `claude/hooks/alerts.ts`, `opencode/src/alerts.ts`), com a
+linha de status também nas notificações de fim de subagente; versão 0.3.0.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

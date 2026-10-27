@@ -38,6 +38,8 @@ export interface Machine {
   releases: string[]
   /** Files changed in the working tree (relative to the root): what `git status` lists, `git diff` saves, `git checkout HEAD` puts back. */
   dirty: Map<string, string>
+  /** The pids `tasklist` / `ps` see alive (rev. 5.8: the processes a task waits for). */
+  alive: Set<number>
 }
 
 export function installMachine(on: On, root: string): Machine {
@@ -175,10 +177,17 @@ export function installMachine(on: On, root: string): Machine {
     return ok()
   }
 
+  const alive = new Set<number>()
   on('process.run', (_$, e) => {
     commands.push(e.argv.join(' '))
     const [exe, ...args] = e.argv
     if (exe === 'git') return git(args)
+    // The pids the core looks at (rev. 5.8): Windows' tasklist, POSIX's ps.
+    if (exe === 'tasklist') {
+      const pid = Number(/PID eq (\d+)/.exec(args.join(' '))?.[1])
+      return ok(alive.has(pid) ? `"bun.exe","${pid}","Console","1","10,000 K"\r\n` : 'INFO: No tasks are running which match the specified criteria.\r\n')
+    }
+    if (exe === 'ps') return alive.has(Number(args[1])) ? ok('bun\n') : fail()
     if (exe === 'jlock') return jlock(args)
     if (exe === 'cmd') return cmd(args)
     if (exe === 'mkdir' || exe === 'mv' || exe === 'rm') return posixFs(exe, args)
@@ -223,6 +232,7 @@ export function installMachine(on: On, root: string): Machine {
     locks,
     releases,
     dirty,
+    alive,
   }
 }
 

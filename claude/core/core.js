@@ -121,6 +121,8 @@ var DEFAULT_PROFILES = {
 };
 var DEFAULT_PROFILE = "execute";
 var DEFAULT_MAX_ATTEMPTS = 2;
+var DEFAULT_MAX_AGENT_ENDED = 3;
+var DEFAULT_AWAIT_GRACE = "5m";
 var DEFAULT_HOLD_TTL = "2h";
 var DURATION = /^\d+(ms|s|m|h|d)$/;
 // locales/en.json
@@ -136,6 +138,16 @@ var en_default = {
     effect: "effect",
     undo: "undo"
   },
+  "agent_ended.limit": "{why} {n} times (limit {max}); the run was paused for a person",
+  "alert.agent_ended": "{id} went back to the queue: its subagent ended without finishing ({n}/{max})",
+  "alert.await": "{id} waits for its process ({what}); its subagent comes back when it ends",
+  "alert.await_ended": "{id}: its process ended; waiting for its subagent to come back",
+  "alert.by_other": "{id}: {action} by {actor}",
+  "alert.failed": "{id} failed: {error}",
+  "alert.lost": "{id} lost its locks and went back to the queue",
+  "alert.needs_person": "run {run} paused: the subagent of {id} ended {n} times without finishing; a person is needed",
+  "alert.paused_by": "run {run} paused by {actor}",
+  "alert.renew_lost": "{id}: someone else holds some of its locks now",
   "archive.already": "run {run} is already at {dir}",
   "archive.back": "run {run} brought back from {from}",
   "archive.busy": "{run} has tasks in progress ({tasks}); release them before archiving",
@@ -249,6 +261,8 @@ var en_default = {
   "exec.direct": "direct (not in serialize)",
   "exec.exit": "{how}; exited with {code}",
   "exec.no_command": "missing the command: jtasks exec -- <command…>",
+  "exec.not_running": "exec --task {id}: the task is {status}, not in progress",
+  "exec.registered": "pid {pid} registered in {id}",
   "exec.serialized": "serialized by jlock run {key}",
   "fail.done": "{id} failed: {error}",
   "fail.no_error": 'fail without an error is refused: jtasks fail {id} --error "what went wrong"',
@@ -289,7 +303,7 @@ var en_default = {
   "help.doctor": "doctor [--fix [--yes]]                is this machine ready? --fix --yes installs what is missing",
   "help.done": 'done <id> --evidence "…"              checks git and ownership; commits the ownership; done',
   "help.effects": "effects --check                       compares the ledger with the disk and git",
-  "help.exec": "exec -- <command…>                    runs it; serialize commands one at a time on the machine",
+  "help.exec": "exec [--task <id>] -- <command…>      runs it (its pid goes in the task); serialize: one at a time",
   "help.fail": 'fail <id> --error "…"                 failed (blocks the tasks that depend on it)',
   "help.gc": "gc --scan <root> [--depth 4]          read-only report: orphan worktrees, runs, archives",
   "help.import": "import <folder> [--check|--yes]       Markdown tickets → a run (no Files → exclusive)",
@@ -305,6 +319,7 @@ var en_default = {
   "help.plan.fix": "  plan --fix <id> <json|@file>          replaces one task of the draft",
   "help.plan.show": "  plan --show                           a summary of the draft",
   "help.release": "release <id>                          in progress → pending (at maxAttempts, failed); edits kept",
+  "help.release.agent_ended": "release <id> --agent-ended            the host: its subagent ended; waits while its process lives",
   "help.resume": "resume <run> [--keep-owners]          binds the session, unpauses, releases tasks without locks",
   "help.keepalive": "keepalive on|off                      the host reopens an idle loop that has ready tasks",
   "help.retry": "retry <id> | --all-failed             skipped or failed → pending",
@@ -319,6 +334,7 @@ var en_default = {
                                         undoes newest first (revert, branch, exclude, folder)`,
   "help.unknown": "no action {action} (see jtasks help)",
   "help.validate": "validate <json|@file|folder>          validates a plan (or a folder of tickets) without writing",
+  "help.wait": "wait <id> --pid <pid>[,…]             the task waits for this process if its subagent ends",
   "help.yield": "yield <id> [<file…>]                  gives back contested files only; edits kept as patches",
   "import.check_only": "nothing was written (--check)",
   "import.has_errors": "the plan read has {n} error(s):",
@@ -394,6 +410,7 @@ var en_default = {
   "patch.failed": "patches that did not apply (nothing changed; they stay saved): {list}",
   "patch.reapplied": "patches reapplied: {files}",
   "plan.absolute_path": "{path}: use paths relative to the repository",
+  "plan.await_grace": '"awaitGrace" must be a duration such as 5m or 1h',
   "plan.branch": '"branch" must be "run" or "current"',
   "plan.branch_exists": "the branch {branch} already exists",
   "plan.covers": "({outer} covers {inner})",
@@ -405,6 +422,7 @@ var en_default = {
   "plan.empty_path": 'empty path in "files"',
   "plan.hold_ttl": '"holdTtl" must be a duration such as 30m, 2h or 1d',
   "plan.keepalive": '"keepalive" must be true or false',
+  "plan.max_agent_ended": '"maxAgentEnded" must be an integer above zero',
   "plan.max_attempts": '"maxAttempts" must be an integer above zero',
   "plan.missing_dependency": "{id} depends on {dep}, which does not exist",
   "plan.must_be_text": '"{field}" must be text',
@@ -447,9 +465,13 @@ var en_default = {
   "progress.skipped_one": "{n} skipped",
   "progress.skipped_other": "{n} skipped",
   "release.agent_ended": "the subagent ended without finishing",
+  "release.await_expired": "the subagent did not come back after its process ended",
+  "release.awaiting": "{id} stays in progress, waiting for its process ({what}): no attempt spent, locks kept",
+  "release.ended_pending": "went back to pending (subagent ended without finishing {n}/{max}; no attempt spent)",
   "release.failed": "the ownership was not given back ({message}); use jlock release --group {run} --owner {owner}",
   "release.failed_now": "failed: {error}",
   "release.given_back": "ownership given back",
+  "release.needs_person": "run {run} paused: a person is needed (see {id}; then jtasks retry {id} and jtasks unpause)",
   "release.pending": "went back to pending (attempt {attempts}/{max})",
   "release.released": "released",
   "resume.bound": "run {run} resumed in this session",
@@ -500,9 +522,14 @@ var en_default = {
   "status.locks": "active locks (jlock --group {run}): {list}",
   "status.lost": "ownership lost: {list}",
   "status.lost_task": "{id} (no locks in jlock: jtasks resume or jtasks release {id})",
+  "status.needs_person": "needs a person: the subagent of {id} ended without finishing {n} times (limit {max}); jtasks retry {id}, then jtasks unpause",
   "status.no_locks": "active locks: none",
   "status.paused": "paused: do not start tasks",
   "status.auto_paused": "transient failure ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "waiting for a process: {list}",
+  "status.awaiting_ended": "{id} (its process ended at {at}; its subagent has until {until} to come back)",
+  "status.awaiting_item": "{id} ({what}, since {since})",
+  "status.awaiting_mark": "waiting for a process",
   "status.keepalive_off": "keepalive: off",
   "status.keepalive_stalled": "keepalive gave up: {what} to do, nothing running, {tries} message(s) without progress (jtasks keepalive on watches it again)",
   "status.keepalive_error": "keepalive stopped after an error: {what} to do, nothing running (send a message to go on)",
@@ -559,11 +586,14 @@ var en_default = {
   "validate.ok": "ok: {n} task(s), no errors",
   "view.loading": "Tasks: loading…",
   "view.lost": "ownership lost",
+  "view.needs_person": "⏸ needs a person: {id} ended {n}× without finishing",
   "view.no_run": "no bound run",
   "view.no_runs": "no run (jtasks plan)",
   "view.paused": "paused",
   "view.stalled": "⚠ stopped: {what} to do, nothing running",
   "view.auto_paused": "⏸ paused ({kind}): {when}",
+  "view.awaiting": "waiting for {what}",
+  "view.awaiting_back": "process ended; subagent coming back",
   "transient.rate_limit": "rate limit",
   "transient.quota": "usage limit or quota",
   "transient.overloaded": "provider overloaded",
@@ -572,6 +602,15 @@ var en_default = {
   "transient.timeout": "timeout",
   "transient.retries": "retries exhausted",
   "view.waits_for": "waits for {files}",
+  "wait.alive": "alive",
+  "wait.back": "{id}: its subagent came back",
+  "wait.bad_pid": "--pid takes process numbers (1234 or 1234,5678): {value}",
+  "wait.dead": "no live process among {list}: nothing to wait for",
+  "wait.declared": "{id} waits for {list}: if its subagent's loop ends meanwhile, the task stays in progress with its locks",
+  "wait.gone": "ended",
+  "wait.list": "processes of {id}: {list}",
+  "wait.none": "{id} has no registered process (jtasks exec, or jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "not alive, left out: {list}",
   "warnings.count": "{n} warning(s):",
   "yield.came_back": "{id} took back {files}",
   "yield.done": "{id} yielded {files} and stays in progress; {saved}",
@@ -600,6 +639,16 @@ var pt_BR_default = {
     effect: "efeito",
     undo: "desfazer"
   },
+  "agent_ended.limit": "{why} {n} vezes (limite {max}); a execução foi pausada para uma pessoa",
+  "alert.agent_ended": "{id} voltou à fila: o subagente terminou sem concluir ({n}/{max})",
+  "alert.await": "{id} aguarda o processo ({what}); o subagente volta quando ele terminar",
+  "alert.await_ended": "{id}: o processo terminou; aguardando o subagente voltar",
+  "alert.by_other": "{id}: {action} por {actor}",
+  "alert.failed": "{id} falhou: {error}",
+  "alert.lost": "{id} perdeu as travas e voltou à fila",
+  "alert.needs_person": "execução {run} pausada: o subagente de {id} terminou {n} vezes sem concluir; precisa de uma pessoa",
+  "alert.paused_by": "execução {run} pausada por {actor}",
+  "alert.renew_lost": "{id}: outro dono segura agora parte das travas",
   "archive.already": "a execução {run} já está em {dir}",
   "archive.back": "execução {run} trazida de volta de {from}",
   "archive.busy": "{run} tem tarefas em andamento ({tasks}); libere-as antes de arquivar",
@@ -713,6 +762,8 @@ var pt_BR_default = {
   "exec.direct": "direto (fora de serialize)",
   "exec.exit": "{how}; saiu com {code}",
   "exec.no_command": "falta o comando: jtasks exec -- <comando…>",
+  "exec.not_running": "exec --task {id}: a tarefa está {status}, não em andamento",
+  "exec.registered": "pid {pid} registrado em {id}",
   "exec.serialized": "serializado por jlock run {key}",
   "fail.done": "{id} falhou: {error}",
   "fail.no_error": 'fail sem erro é recusado: jtasks fail {id} --error "o que deu errado"',
@@ -753,7 +804,7 @@ var pt_BR_default = {
   "help.doctor": "doctor [--fix [--yes]]                a máquina está pronta? --fix --yes instala o que falta",
   "help.done": 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
   "help.effects": "effects --check                       compara o ledger com o disco e o git",
-  "help.exec": "exec -- <comando…>                    roda o comando; os de serialize, um por vez na máquina",
+  "help.exec": "exec [--task <id>] -- <comando…>      roda o comando (pid na tarefa); os de serialize, um por vez",
   "help.fail": 'fail <id> --error "…"                 falha (bloqueia as dependentes)',
   "help.gc": "gc --scan <raiz> [--depth 4]          relatório só leitura: worktrees órfãs, execuções, arquivos",
   "help.import": "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)",
@@ -769,6 +820,7 @@ var pt_BR_default = {
   "help.plan.fix": "  plan --fix <id> <json|@arquivo>       troca uma tarefa do rascunho",
   "help.plan.show": "  plan --show                           resumo do rascunho",
   "help.release": "release <id>                          em andamento → pendente (maxAttempts: falha); guarda edições",
+  "help.release.agent_ended": "release <id> --agent-ended            o host: subagente terminou; espera se o processo vive",
   "help.resume": "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
   "help.keepalive": "keepalive on|off                      o host reabre o laço parado com tarefas prontas",
   "help.retry": "retry <id> | --all-failed             pulada ou falha → pendente",
@@ -783,6 +835,7 @@ var pt_BR_default = {
                                         desfaz na ordem inversa (revert, branch, exclude, pasta)`,
   "help.unknown": "não há a ação {action} (veja jtasks help)",
   "help.validate": "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar",
+  "help.wait": "wait <id> --pid <pid>[,…]             a tarefa espera este processo se o subagente terminar",
   "help.yield": "yield <id> [<arquivo…>]               cede só os arquivos disputados; edições viram patch",
   "import.check_only": "nada foi gravado (--check)",
   "import.has_errors": "o plano lido tem {n} erro(s):",
@@ -858,6 +911,7 @@ var pt_BR_default = {
   "patch.failed": "patches que não aplicaram (nada mudou; continuam guardados): {list}",
   "patch.reapplied": "patches reaplicados: {files}",
   "plan.absolute_path": "{path}: use caminhos relativos ao repositório",
+  "plan.await_grace": '"awaitGrace" deve ser uma duração como 5m ou 1h',
   "plan.branch": '"branch" deve ser "run" ou "current"',
   "plan.branch_exists": "o branch {branch} já existe",
   "plan.covers": "({outer} cobre {inner})",
@@ -869,6 +923,7 @@ var pt_BR_default = {
   "plan.empty_path": 'caminho vazio em "files"',
   "plan.hold_ttl": '"holdTtl" deve ser uma duração como 30m, 2h ou 1d',
   "plan.keepalive": '"keepalive" deve ser true ou false',
+  "plan.max_agent_ended": '"maxAgentEnded" deve ser um inteiro maior que zero',
   "plan.max_attempts": '"maxAttempts" deve ser um inteiro maior que zero',
   "plan.missing_dependency": "{id} depende de {dep}, que não existe",
   "plan.must_be_text": '"{field}" deve ser texto',
@@ -911,9 +966,13 @@ var pt_BR_default = {
   "progress.skipped_one": "{n} pulada",
   "progress.skipped_other": "{n} puladas",
   "release.agent_ended": "o subagente terminou sem concluir",
+  "release.await_expired": "o subagente não voltou depois que o processo terminou",
+  "release.awaiting": "{id} continua em andamento, aguardando o processo ({what}): nenhuma tentativa gasta, travas mantidas",
+  "release.ended_pending": "voltou a pendente (subagente terminou sem concluir {n}/{max}; nenhuma tentativa gasta)",
   "release.failed": "a posse não foi devolvida ({message}); use jlock release --group {run} --owner {owner}",
   "release.failed_now": "falhou: {error}",
   "release.given_back": "posse devolvida",
+  "release.needs_person": "execução {run} pausada: precisa de uma pessoa (veja {id}; depois jtasks retry {id} e jtasks unpause)",
   "release.pending": "voltou a pendente (tentativa {attempts}/{max})",
   "release.released": "liberada",
   "resume.bound": "execução {run} retomada nesta sessão",
@@ -964,9 +1023,14 @@ var pt_BR_default = {
   "status.locks": "travas ativas (jlock --group {run}): {list}",
   "status.lost": "posse perdida: {list}",
   "status.lost_task": "{id} (sem travas no jlock: jtasks resume ou jtasks release {id})",
+  "status.needs_person": "precisa de uma pessoa: o subagente de {id} terminou sem concluir {n} vezes (limite {max}); jtasks retry {id}, depois jtasks unpause",
   "status.no_locks": "travas ativas: nenhuma",
   "status.paused": "pausada: não inicie tarefas",
   "status.auto_paused": "falha transitória ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "aguardando processo: {list}",
+  "status.awaiting_ended": "{id} (o processo terminou às {at}; o subagente tem até {until} para voltar)",
+  "status.awaiting_item": "{id} ({what}, desde {since})",
+  "status.awaiting_mark": "aguardando processo",
   "status.keepalive_off": "retomada: desligada",
   "status.keepalive_stalled": "retomada desistiu: {what} por fazer, nada rodando, {tries} mensagem(ns) sem progresso (jtasks keepalive on volta a vigiar)",
   "status.keepalive_error": "retomada parada depois de um erro: {what} por fazer, nada rodando (mande uma mensagem para seguir)",
@@ -1023,11 +1087,14 @@ var pt_BR_default = {
   "validate.ok": "ok: {n} tarefa(s), nenhum erro",
   "view.loading": "Tasks: carregando…",
   "view.lost": "posse perdida",
+  "view.needs_person": "⏸ precisa de uma pessoa: {id} terminou {n}× sem concluir",
   "view.no_run": "sem execução ligada",
   "view.no_runs": "nenhuma execução (jtasks plan)",
   "view.paused": "pausada",
   "view.stalled": "⚠ parada: {what} por fazer, nada rodando",
   "view.auto_paused": "⏸ pausada ({kind}): {when}",
+  "view.awaiting": "aguardando {what}",
+  "view.awaiting_back": "processo terminou; subagente voltando",
   "transient.rate_limit": "limite de requisições",
   "transient.quota": "limite de uso ou cota",
   "transient.overloaded": "provedor sobrecarregado",
@@ -1036,6 +1103,15 @@ var pt_BR_default = {
   "transient.timeout": "tempo esgotado",
   "transient.retries": "tentativas esgotadas",
   "view.waits_for": "espera {files}",
+  "wait.alive": "vivo",
+  "wait.back": "{id}: o subagente voltou",
+  "wait.bad_pid": "--pid recebe números de processo (1234 ou 1234,5678): {value}",
+  "wait.dead": "nenhum processo vivo entre {list}: nada a aguardar",
+  "wait.declared": "{id} aguarda {list}: se o laço do subagente terminar nesse meio-tempo, a tarefa continua em andamento com as travas",
+  "wait.gone": "terminou",
+  "wait.list": "processos de {id}: {list}",
+  "wait.none": "{id} não tem processo registrado (jtasks exec, ou jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "não estão vivos, ficaram de fora: {list}",
   "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} pegou de volta {files}",
   "yield.done": "{id} cedeu {files} e continua em andamento; {saved}",
@@ -1064,6 +1140,16 @@ var es_default = {
     effect: "efecto",
     undo: "deshacer"
   },
+  "agent_ended.limit": "{why} {n} veces (límite {max}); la ejecución se pausó para una persona",
+  "alert.agent_ended": "{id} volvió a la cola: su subagente terminó sin acabar ({n}/{max})",
+  "alert.await": "{id} espera su proceso ({what}); su subagente vuelve cuando termine",
+  "alert.await_ended": "{id}: su proceso terminó; esperando a que vuelva su subagente",
+  "alert.by_other": "{id}: {action} por {actor}",
+  "alert.failed": "{id} falló: {error}",
+  "alert.lost": "{id} perdió sus bloqueos y volvió a la cola",
+  "alert.needs_person": "ejecución {run} en pausa: el subagente de {id} terminó {n} veces sin acabar; hace falta una persona",
+  "alert.paused_by": "ejecución {run} pausada por {actor}",
+  "alert.renew_lost": "{id}: otro dueño tiene ahora parte de sus bloqueos",
   "archive.already": "la ejecución {run} ya está en {dir}",
   "archive.back": "ejecución {run} traída de vuelta desde {from}",
   "archive.busy": "{run} tiene tareas en curso ({tasks}); libéralas antes de archivar",
@@ -1177,6 +1263,8 @@ var es_default = {
   "exec.direct": "directo (no está en serialize)",
   "exec.exit": "{how}; salió con {code}",
   "exec.no_command": "falta el comando: jtasks exec -- <comando…>",
+  "exec.not_running": "exec --task {id}: la tarea está {status}, no en curso",
+  "exec.registered": "pid {pid} registrado en {id}",
   "exec.serialized": "serializado por jlock run {key}",
   "fail.done": "{id} falló: {error}",
   "fail.no_error": 'se rechaza fail sin error: jtasks fail {id} --error "qué salió mal"',
@@ -1217,7 +1305,7 @@ var es_default = {
   "help.doctor": "doctor [--fix [--yes]]                ¿está lista la máquina? --fix --yes instala lo que falta",
   "help.done": 'done <id> --evidence "…"              comprueba git y posesión; commit de la posesión; hecha',
   "help.effects": "effects --check                       compara el ledger con el disco y git",
-  "help.exec": "exec -- <comando…>                    lo ejecuta; los de serialize, uno a la vez en la máquina",
+  "help.exec": "exec [--task <id>] -- <comando…>      lo ejecuta (su pid va en la tarea); serialize: uno a la vez",
   "help.fail": 'fail <id> --error "…"                 fallida (bloquea las tareas que dependen de ella)',
   "help.gc": "gc --scan <raíz> [--depth 4]          solo lectura: worktrees huérfanos, ejecuciones, archivos",
   "help.import": "import <carpeta> [--check|--yes]      tickets Markdown → una ejecución (sin Files → exclusive)",
@@ -1233,6 +1321,7 @@ var es_default = {
   "help.plan.fix": "  plan --fix <id> <json|@archivo>     reemplaza una tarea del borrador",
   "help.plan.show": "  plan --show                         un resumen del borrador",
   "help.release": "release <id>                          en curso → pendiente (maxAttempts: falla); guarda edición",
+  "help.release.agent_ended": "release <id> --agent-ended            el host: el subagente terminó; espera si su proceso vive",
   "help.resume": "resume <run> [--keep-owners]          liga la sesión, quita la pausa, libera tareas sin bloqueos",
   "help.keepalive": "keepalive on|off                      el host reabre el ciclo parado con tareas listas",
   "help.retry": "retry <id> | --all-failed             omitida o fallida → pendiente",
@@ -1247,6 +1336,7 @@ var es_default = {
                                         deshace en orden inverso (revert, rama, exclude, carpeta)`,
   "help.unknown": "no existe la acción {action} (ver jtasks help)",
   "help.validate": "validate <json|@archivo|carpeta>      valida un plan (o una carpeta de tickets) sin escribir",
+  "help.wait": "wait <id> --pid <pid>[,…]             la tarea espera este proceso si su subagente termina",
   "help.yield": "yield <id> [<archivo…>]               cede solo los archivos disputados; ediciones como patch",
   "import.check_only": "no se escribió nada (--check)",
   "import.has_errors": "el plan leído tiene {n} error(es):",
@@ -1322,6 +1412,7 @@ var es_default = {
   "patch.failed": "patches que no se aplicaron (nada cambió; siguen guardados): {list}",
   "patch.reapplied": "patches reaplicados: {files}",
   "plan.absolute_path": "{path}: usa rutas relativas al repositorio",
+  "plan.await_grace": '"awaitGrace" debe ser una duración como 5m o 1h',
   "plan.branch": '"branch" debe ser "run" o "current"',
   "plan.branch_exists": "la rama {branch} ya existe",
   "plan.covers": "({outer} cubre {inner})",
@@ -1333,6 +1424,7 @@ var es_default = {
   "plan.empty_path": 'ruta vacía en "files"',
   "plan.hold_ttl": '"holdTtl" debe ser una duración como 30m, 2h o 1d',
   "plan.keepalive": '"keepalive" debe ser true o false',
+  "plan.max_agent_ended": '"maxAgentEnded" debe ser un entero mayor que cero',
   "plan.max_attempts": '"maxAttempts" debe ser un entero mayor que cero',
   "plan.missing_dependency": "{id} depende de {dep}, que no existe",
   "plan.must_be_text": '"{field}" debe ser texto',
@@ -1375,9 +1467,13 @@ var es_default = {
   "progress.skipped_one": "{n} omitida",
   "progress.skipped_other": "{n} omitidas",
   "release.agent_ended": "el subagente terminó sin acabar la tarea",
+  "release.await_expired": "el subagente no volvió después de que terminara su proceso",
+  "release.awaiting": "{id} sigue en curso, esperando su proceso ({what}): ningún intento gastado, bloqueos conservados",
+  "release.ended_pending": "volvió a pendiente (el subagente terminó sin acabar {n}/{max}; ningún intento gastado)",
   "release.failed": "la posesión no se devolvió ({message}); usa jlock release --group {run} --owner {owner}",
   "release.failed_now": "fallida: {error}",
   "release.given_back": "posesión devuelta",
+  "release.needs_person": "ejecución {run} en pausa: hace falta una persona (mira {id}; luego jtasks retry {id} y jtasks unpause)",
   "release.pending": "volvió a pendiente (intento {attempts}/{max})",
   "release.released": "liberada",
   "resume.bound": "ejecución {run} reanudada en esta sesión",
@@ -1428,9 +1524,14 @@ var es_default = {
   "status.locks": "bloqueos activos (jlock --group {run}): {list}",
   "status.lost": "posesión perdida: {list}",
   "status.lost_task": "{id} (sin bloqueos en jlock: jtasks resume o jtasks release {id})",
+  "status.needs_person": "hace falta una persona: el subagente de {id} terminó sin acabar {n} veces (límite {max}); jtasks retry {id}, luego jtasks unpause",
   "status.no_locks": "bloqueos activos: ninguno",
   "status.paused": "en pausa: no inicies tareas",
   "status.auto_paused": "fallo transitorio ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "esperando un proceso: {list}",
+  "status.awaiting_ended": "{id} (su proceso terminó a las {at}; su subagente tiene hasta {until} para volver)",
+  "status.awaiting_item": "{id} ({what}, desde {since})",
+  "status.awaiting_mark": "esperando un proceso",
   "status.keepalive_off": "reanudación: desactivada",
   "status.keepalive_stalled": "la reanudación se rindió: {what} por hacer, nada en marcha, {tries} mensaje(s) sin progreso (jtasks keepalive on vuelve a vigilarla)",
   "status.keepalive_error": "reanudación detenida tras un error: {what} por hacer, nada en marcha (envía un mensaje para seguir)",
@@ -1487,11 +1588,14 @@ var es_default = {
   "validate.ok": "ok: {n} tarea(s), sin errores",
   "view.loading": "Tasks: cargando…",
   "view.lost": "posesión perdida",
+  "view.needs_person": "⏸ hace falta una persona: {id} terminó {n}× sin acabar",
   "view.no_run": "sin ejecución ligada",
   "view.no_runs": "ninguna ejecución (jtasks plan)",
   "view.paused": "en pausa",
   "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha",
   "view.auto_paused": "⏸ en pausa ({kind}): {when}",
+  "view.awaiting": "esperando {what}",
+  "view.awaiting_back": "proceso terminado; el subagente vuelve",
   "transient.rate_limit": "límite de peticiones",
   "transient.quota": "límite de uso o cuota",
   "transient.overloaded": "proveedor sobrecargado",
@@ -1500,6 +1604,15 @@ var es_default = {
   "transient.timeout": "tiempo agotado",
   "transient.retries": "reintentos agotados",
   "view.waits_for": "espera {files}",
+  "wait.alive": "vivo",
+  "wait.back": "{id}: su subagente volvió",
+  "wait.bad_pid": "--pid recibe números de proceso (1234 o 1234,5678): {value}",
+  "wait.dead": "ningún proceso vivo entre {list}: nada que esperar",
+  "wait.declared": "{id} espera {list}: si el bucle de su subagente termina mientras tanto, la tarea sigue en curso con sus bloqueos",
+  "wait.gone": "terminado",
+  "wait.list": "procesos de {id}: {list}",
+  "wait.none": "{id} no tiene procesos registrados (jtasks exec, o jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "no están vivos, se dejaron fuera: {list}",
   "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} recuperó {files}",
   "yield.done": "{id} cedió {files} y sigue en curso; {saved}",
@@ -1528,6 +1641,16 @@ var fr_default = {
     effect: "effet",
     undo: "annuler"
   },
+  "agent_ended.limit": "{why} {n} fois (limite {max}); l'exécution a été mise en pause pour une personne",
+  "alert.agent_ended": "{id} est revenue dans la file d'attente: son sous-agent s'est arrêté sans finir ({n}/{max})",
+  "alert.await": "{id} attend son processus ({what}); son sous-agent revient quand il se termine",
+  "alert.await_ended": "{id}: son processus s'est terminé; on attend le retour de son sous-agent",
+  "alert.by_other": "{id}: {action} par {actor}",
+  "alert.failed": "{id} en échec: {error}",
+  "alert.lost": "{id} a perdu ses verrous et est revenue dans la file d'attente",
+  "alert.needs_person": "exécution {run} en pause: le sous-agent de {id} s'est arrêté {n} fois sans finir; il faut une personne",
+  "alert.paused_by": "exécution {run} mise en pause par {actor}",
+  "alert.renew_lost": "{id}: quelqu'un d'autre tient maintenant une partie de ses verrous",
   "archive.already": "l'exécution {run} est déjà dans {dir}",
   "archive.back": "exécution {run} ramenée depuis {from}",
   "archive.busy": "{run} a des tâches en cours ({tasks}); libérez-les avant d'archiver",
@@ -1641,6 +1764,8 @@ var fr_default = {
   "exec.direct": "direct (pas dans serialize)",
   "exec.exit": "{how}; sorti avec {code}",
   "exec.no_command": "commande manquante: jtasks exec -- <commande…>",
+  "exec.not_running": "exec --task {id}: la tâche est {status}, pas en cours",
+  "exec.registered": "pid {pid} enregistré dans {id}",
   "exec.serialized": "sérialisé par jlock run {key}",
   "fail.done": "{id} en échec: {error}",
   "fail.no_error": `fail sans erreur est refusé: jtasks fail {id} --error "ce qui n'a pas marché"`,
@@ -1681,7 +1806,7 @@ var fr_default = {
   "help.doctor": "doctor [--fix [--yes]]                machine prête? --fix --yes installe ce qui manque",
   "help.done": 'done <id> --evidence "…"              vérifie git et possession; commite la possession; terminée',
   "help.effects": "effects --check                       compare le ledger avec le disque et git",
-  "help.exec": "exec -- <commande…>                   la lance; celles de serialize, une à la fois sur la machine",
+  "help.exec": "exec [--task <id>] -- <commande…>     la lance (pid dans la tâche); serialize: une à la fois",
   "help.fail": 'fail <id> --error "…"                 en échec (bloque les tâches qui en dépendent)',
   "help.gc": "gc --scan <racine> [--depth 4]        lecture seule: worktrees orphelins, exécutions, archives",
   "help.import": "import <dossier> [--check|--yes]      tickets Markdown → une exécution (sans Files → exclusive)",
@@ -1697,6 +1822,7 @@ var fr_default = {
   "help.plan.fix": "  plan --fix <id> <json|@fichier>     remplace une tâche du brouillon",
   "help.plan.show": "  plan --show                         un résumé du brouillon",
   "help.release": "release <id>                          en cours → en attente (maxAttempts: échouée); modifs gardées",
+  "help.release.agent_ended": "release <id> --agent-ended            l'hôte: sous-agent arrêté; attend si son processus vit",
   "help.resume": "resume <run> [--keep-owners]          lie la session, sort de pause, libère les tâches sans verrou",
   "help.keepalive": "keepalive on|off                      l'hôte relance la boucle arrêtée avec des tâches prêtes",
   "help.retry": "retry <id> | --all-failed             ignorée ou en échec → en attente",
@@ -1711,6 +1837,7 @@ var fr_default = {
                                         annule en ordre inverse (revert, branch, exclude, dossier)`,
   "help.unknown": "aucune action {action} (voir jtasks help)",
   "help.validate": "validate <json|@fichier|dossier>      valide un plan (ou un dossier de tickets) sans écrire",
+  "help.wait": "wait <id> --pid <pid>[,…]             la tâche attend ce processus si son sous-agent s'arrête",
   "help.yield": "yield <id> [<fichier…>]               cède les fichiers disputés seulement; modifs en patch",
   "import.check_only": "rien n'a été écrit (--check)",
   "import.has_errors": "le plan lu a {n} erreur(s):",
@@ -1786,6 +1913,7 @@ var fr_default = {
   "patch.failed": "patchs qui ne se sont pas appliqués (rien n'a changé; ils restent gardés): {list}",
   "patch.reapplied": "patchs réappliqués: {files}",
   "plan.absolute_path": "{path}: utilisez des chemins relatifs au dépôt",
+  "plan.await_grace": '"awaitGrace" doit être une durée comme 5m ou 1h',
   "plan.branch": '"branch" doit valoir "run" ou "current"',
   "plan.branch_exists": "la branche {branch} existe déjà",
   "plan.covers": "({outer} couvre {inner})",
@@ -1797,6 +1925,7 @@ var fr_default = {
   "plan.empty_path": 'chemin vide dans "files"',
   "plan.hold_ttl": '"holdTtl" doit être une durée comme 30m, 2h ou 1d',
   "plan.keepalive": '"keepalive" doit valoir true ou false',
+  "plan.max_agent_ended": '"maxAgentEnded" doit être un entier supérieur à zéro',
   "plan.max_attempts": '"maxAttempts" doit être un entier supérieur à zéro',
   "plan.missing_dependency": "{id} dépend de {dep}, qui n'existe pas",
   "plan.must_be_text": '"{field}" doit être du texte',
@@ -1839,9 +1968,13 @@ var fr_default = {
   "progress.skipped_one": "{n} ignorée",
   "progress.skipped_other": "{n} ignorées",
   "release.agent_ended": "le sous-agent s'est arrêté sans finir",
+  "release.await_expired": "le sous-agent n'est pas revenu après la fin de son processus",
+  "release.awaiting": "{id} reste en cours, en attente de son processus ({what}): aucune tentative consommée, verrous gardés",
+  "release.ended_pending": "revenue en attente (sous-agent arrêté sans finir {n}/{max}; aucune tentative consommée)",
   "release.failed": "la possession n'a pas été rendue ({message}); utilisez jlock release --group {run} --owner {owner}",
   "release.failed_now": "en échec: {error}",
   "release.given_back": "possession rendue",
+  "release.needs_person": "exécution {run} en pause: il faut une personne (voir {id}; puis jtasks retry {id} et jtasks unpause)",
   "release.pending": "revenue en attente (tentative {attempts}/{max})",
   "release.released": "libérée",
   "resume.bound": "exécution {run} reprise dans cette session",
@@ -1892,9 +2025,14 @@ var fr_default = {
   "status.locks": "verrous actifs (jlock --group {run}): {list}",
   "status.lost": "possession perdue: {list}",
   "status.lost_task": "{id} (aucun verrou dans jlock: jtasks resume ou jtasks release {id})",
+  "status.needs_person": "il faut une personne: le sous-agent de {id} s'est arrêté sans finir {n} fois (limite {max}); jtasks retry {id}, puis jtasks unpause",
   "status.no_locks": "verrous actifs: aucun",
   "status.paused": "en pause: ne démarrez pas de tâches",
   "status.auto_paused": "panne passagère ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "en attente d'un processus: {list}",
+  "status.awaiting_ended": "{id} (son processus s'est terminé à {at}; son sous-agent a jusqu'à {until} pour revenir)",
+  "status.awaiting_item": "{id} ({what}, depuis {since})",
+  "status.awaiting_mark": "en attente d'un processus",
   "status.keepalive_off": "relance : désactivée",
   "status.keepalive_stalled": "relance abandonnée : {what} à faire, rien en cours, {tries} message(s) sans progrès (jtasks keepalive on la surveille à nouveau)",
   "status.keepalive_error": "relance arrêtée après une erreur : {what} à faire, rien en cours (envoyez un message pour continuer)",
@@ -1951,11 +2089,14 @@ var fr_default = {
   "validate.ok": "ok: {n} tâche(s), aucune erreur",
   "view.loading": "Tasks: chargement…",
   "view.lost": "possession perdue",
+  "view.needs_person": "⏸ il faut une personne: {id} arrêtée {n}× sans finir",
   "view.no_run": "aucune exécution liée",
   "view.no_runs": "aucune exécution (jtasks plan)",
   "view.paused": "en pause",
   "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours",
   "view.auto_paused": "⏸ en pause ({kind}): {when}",
+  "view.awaiting": "attend {what}",
+  "view.awaiting_back": "processus terminé; le sous-agent revient",
   "transient.rate_limit": "limite de requêtes",
   "transient.quota": "limite d'utilisation ou quota",
   "transient.overloaded": "fournisseur surchargé",
@@ -1964,6 +2105,15 @@ var fr_default = {
   "transient.timeout": "délai dépassé",
   "transient.retries": "nouvelles tentatives épuisées",
   "view.waits_for": "attend {files}",
+  "wait.alive": "vivant",
+  "wait.back": "{id}: son sous-agent est revenu",
+  "wait.bad_pid": "--pid prend des numéros de processus (1234 ou 1234,5678): {value}",
+  "wait.dead": "aucun processus vivant parmi {list}: rien à attendre",
+  "wait.declared": "{id} attend {list}: si la boucle de son sous-agent s'arrête entre-temps, la tâche reste en cours avec ses verrous",
+  "wait.gone": "terminé",
+  "wait.list": "processus de {id}: {list}",
+  "wait.none": "{id} n'a aucun processus enregistré (jtasks exec, ou jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "pas vivants, laissés de côté: {list}",
   "warnings.count": "{n} avertissement(s):",
   "yield.came_back": "{id} a repris {files}",
   "yield.done": "{id} a cédé {files} et reste en cours; {saved}",
@@ -1992,6 +2142,16 @@ var de_default = {
     effect: "Effekt",
     undo: "rückgängig machen"
   },
+  "agent_ended.limit": "{why}, {n}-mal (Grenze {max}); der Lauf wurde für eine Person pausiert",
+  "alert.agent_ended": "{id} ist zurück in der Warteschlange: ihr Subagent endete, ohne fertig zu werden ({n}/{max})",
+  "alert.await": "{id} wartet auf ihren Prozess ({what}); ihr Subagent kommt zurück, wenn er endet",
+  "alert.await_ended": "{id}: ihr Prozess ist beendet; warte auf die Rückkehr ihres Subagenten",
+  "alert.by_other": "{id}: {action} durch {actor}",
+  "alert.failed": "{id} gescheitert: {error}",
+  "alert.lost": "{id} hat ihre Sperren verloren und ist zurück in der Warteschlange",
+  "alert.needs_person": "Lauf {run} pausiert: der Subagent von {id} endete {n}-mal, ohne fertig zu werden; eine Person wird gebraucht",
+  "alert.paused_by": "Lauf {run} pausiert von {actor}",
+  "alert.renew_lost": "{id}: jemand anderes hält jetzt einen Teil ihrer Sperren",
   "archive.already": "Lauf {run} liegt bereits in {dir}",
   "archive.back": "Lauf {run} aus {from} zurückgeholt",
   "archive.busy": "{run} hat Aufgaben in Arbeit ({tasks}); gib sie vor dem Archivieren frei",
@@ -2105,6 +2265,8 @@ var de_default = {
   "exec.direct": "direkt (nicht in serialize)",
   "exec.exit": "{how}; beendet mit {code}",
   "exec.no_command": "Befehl fehlt: jtasks exec -- <befehl…>",
+  "exec.not_running": "exec --task {id}: die Aufgabe ist {status}, nicht in Arbeit",
+  "exec.registered": "PID {pid} in {id} registriert",
   "exec.serialized": "serialisiert durch jlock run {key}",
   "fail.done": "{id} fehlgeschlagen: {error}",
   "fail.no_error": 'fail ohne Fehler wird abgelehnt: jtasks fail {id} --error "was schiefging"',
@@ -2145,7 +2307,7 @@ var de_default = {
   "help.doctor": "doctor [--fix [--yes]]                ist der Rechner bereit? --fix --yes installiert, was fehlt",
   "help.done": 'done <id> --evidence "…"              prüft git und Besitz; committet den Besitz; erledigt',
   "help.effects": "effects --check                       vergleicht das Ledger mit Festplatte und git",
-  "help.exec": "exec -- <befehl…>                     führt ihn aus; serialize-Befehle einzeln auf dem Rechner",
+  "help.exec": "exec [--task <id>] -- <befehl…>       führt ihn aus (PID in der Aufgabe); serialize: einzeln",
   "help.fail": 'fail <id> --error "…"                 fehlgeschlagen (blockiert die abhängigen Aufgaben)',
   "help.gc": "gc --scan <wurzel> [--depth 4]        nur lesend: verwaiste Worktrees, Läufe, Archive",
   "help.import": "import <ordner> [--check|--yes]       Markdown-Tickets → ein Lauf (ohne Files → exclusive)",
@@ -2161,6 +2323,7 @@ var de_default = {
   "help.plan.fix": "  plan --fix <id> <json|@datei>       ersetzt eine Aufgabe des Entwurfs",
   "help.plan.show": "  plan --show                         eine Zusammenfassung des Entwurfs",
   "help.release": "release <id>                          in Arbeit → offen (maxAttempts: gescheitert); behält Edits",
+  "help.release.agent_ended": "release <id> --agent-ended            Host: Subagent beendet; wartet, solange sein Prozess lebt",
   "help.resume": "resume <run> [--keep-owners]          bindet Sitzung, hebt Pause auf, gibt sperrlose Aufgaben frei",
   "help.keepalive": "keepalive on|off                      Host öffnet die stehende Schleife mit bereiten Aufgaben neu",
   "help.retry": "retry <id> | --all-failed             übersprungen oder fehlgeschlagen → ausstehend",
@@ -2175,6 +2338,7 @@ var de_default = {
                                         neueste zuerst rückgängig: revert, branch, exclude, Ordner`,
   "help.unknown": "keine Aktion {action} (siehe jtasks help)",
   "help.validate": "validate <json|@datei|ordner>         prüft einen Plan (oder Ticket-Ordner), ohne zu schreiben",
+  "help.wait": "wait <id> --pid <pid>[,…]             die Aufgabe wartet auf diesen Prozess, endet ihr Subagent",
   "help.yield": "yield <id> [<datei…>]                 gibt nur umkämpfte Dateien ab; Änderungen als Patch",
   "import.check_only": "nichts wurde geschrieben (--check)",
   "import.has_errors": "der gelesene Plan hat {n} Fehler:",
@@ -2250,6 +2414,7 @@ var de_default = {
   "patch.failed": "Patches, die nicht angewendet wurden (nichts geändert; sie bleiben aufbewahrt): {list}",
   "patch.reapplied": "Patches wieder angewendet: {files}",
   "plan.absolute_path": "{path}: nutze Pfade relativ zum Repository",
+  "plan.await_grace": '"awaitGrace" muss eine Dauer wie 5m oder 1h sein',
   "plan.branch": '"branch" muss "run" oder "current" sein',
   "plan.branch_exists": "der Branch {branch} existiert bereits",
   "plan.covers": "({outer} umfasst {inner})",
@@ -2261,6 +2426,7 @@ var de_default = {
   "plan.empty_path": 'leerer Pfad in "files"',
   "plan.hold_ttl": '"holdTtl" muss eine Dauer wie 30m, 2h oder 1d sein',
   "plan.keepalive": '"keepalive" muss true oder false sein',
+  "plan.max_agent_ended": '"maxAgentEnded" muss eine ganze Zahl größer als null sein',
   "plan.max_attempts": '"maxAttempts" muss eine ganze Zahl größer als null sein',
   "plan.missing_dependency": "{id} hängt von {dep} ab, das nicht existiert",
   "plan.must_be_text": '"{field}" muss Text sein',
@@ -2303,9 +2469,13 @@ var de_default = {
   "progress.skipped_one": "{n} übersprungen",
   "progress.skipped_other": "{n} übersprungen",
   "release.agent_ended": "der Subagent endete, ohne fertig zu werden",
+  "release.await_expired": "der Subagent kam nach dem Ende seines Prozesses nicht zurück",
+  "release.awaiting": "{id} bleibt in Arbeit und wartet auf ihren Prozess ({what}): kein Versuch verbraucht, Sperren behalten",
+  "release.ended_pending": "wieder ausstehend (Subagent endete ohne fertig zu werden {n}/{max}; kein Versuch verbraucht)",
   "release.failed": "der Besitz wurde nicht zurückgegeben ({message}); nutze jlock release --group {run} --owner {owner}",
   "release.failed_now": "fehlgeschlagen: {error}",
   "release.given_back": "Besitz zurückgegeben",
+  "release.needs_person": "Lauf {run} pausiert: eine Person wird gebraucht (siehe {id}; dann jtasks retry {id} und jtasks unpause)",
   "release.pending": "wieder ausstehend (Versuch {attempts}/{max})",
   "release.released": "freigegeben",
   "resume.bound": "Lauf {run} in dieser Sitzung fortgesetzt",
@@ -2356,9 +2526,14 @@ var de_default = {
   "status.locks": "aktive Sperren (jlock --group {run}): {list}",
   "status.lost": "Besitz verloren: {list}",
   "status.lost_task": "{id} (keine Sperren in jlock: jtasks resume oder jtasks release {id})",
+  "status.needs_person": "eine Person wird gebraucht: der Subagent von {id} endete {n}-mal ohne fertig zu werden (Grenze {max}); jtasks retry {id}, dann jtasks unpause",
   "status.no_locks": "aktive Sperren: keine",
   "status.paused": "pausiert: starte keine Aufgaben",
   "status.auto_paused": "vorübergehende Störung ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "wartet auf einen Prozess: {list}",
+  "status.awaiting_ended": "{id} (ihr Prozess endete um {at}; ihr Subagent hat bis {until}, um zurückzukommen)",
+  "status.awaiting_item": "{id} ({what}, seit {since})",
+  "status.awaiting_mark": "wartet auf einen Prozess",
   "status.keepalive_off": "Wiederaufnahme: aus",
   "status.keepalive_stalled": "Wiederaufnahme aufgegeben: {what} offen, nichts läuft, {tries} Nachricht(en) ohne Fortschritt (jtasks keepalive on beobachtet ihn wieder)",
   "status.keepalive_error": "Wiederaufnahme nach einem Fehler gestoppt: {what} offen, nichts läuft (schick eine Nachricht, um weiterzumachen)",
@@ -2415,11 +2590,14 @@ var de_default = {
   "validate.ok": "ok: {n} Aufgabe(n), keine Fehler",
   "view.loading": "Tasks: lädt…",
   "view.lost": "Besitz verloren",
+  "view.needs_person": "⏸ Person gebraucht: {id} {n}× ohne Abschluss beendet",
   "view.no_run": "kein gebundener Lauf",
   "view.no_runs": "kein Lauf (jtasks plan)",
   "view.paused": "pausiert",
   "view.stalled": "⚠ steht: {what} offen, nichts läuft",
   "view.auto_paused": "⏸ pausiert ({kind}): {when}",
+  "view.awaiting": "wartet auf {what}",
+  "view.awaiting_back": "Prozess beendet; Subagent kommt zurück",
   "transient.rate_limit": "Anfragelimit",
   "transient.quota": "Nutzungslimit oder Kontingent",
   "transient.overloaded": "Anbieter überlastet",
@@ -2428,6 +2606,15 @@ var de_default = {
   "transient.timeout": "Zeitüberschreitung",
   "transient.retries": "Wiederholungen erschöpft",
   "view.waits_for": "wartet auf {files}",
+  "wait.alive": "lebt",
+  "wait.back": "{id}: ihr Subagent ist zurück",
+  "wait.bad_pid": "--pid erwartet Prozessnummern (1234 oder 1234,5678): {value}",
+  "wait.dead": "kein lebender Prozess unter {list}: nichts zu warten",
+  "wait.declared": "{id} wartet auf {list}: endet die Schleife ihres Subagenten inzwischen, bleibt die Aufgabe mit ihren Sperren in Arbeit",
+  "wait.gone": "beendet",
+  "wait.list": "Prozesse von {id}: {list}",
+  "wait.none": "{id} hat keinen registrierten Prozess (jtasks exec oder jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "nicht am Leben, ausgelassen: {list}",
   "warnings.count": "{n} Warnung(en):",
   "yield.came_back": "{id} hat {files} zurückgenommen",
   "yield.done": "{id} hat {files} abgegeben und bleibt in Arbeit; {saved}",
@@ -2456,6 +2643,16 @@ var it_default = {
     effect: "effetto",
     undo: "annullamento"
   },
+  "agent_ended.limit": "{why} {n} volte (limite {max}); l'esecuzione è stata messa in pausa per una persona",
+  "alert.agent_ended": "{id} è tornata in coda: il suo subagente è terminato senza finire ({n}/{max})",
+  "alert.await": "{id} attende il suo processo ({what}); il subagente torna quando termina",
+  "alert.await_ended": "{id}: il processo è terminato; si attende il ritorno del subagente",
+  "alert.by_other": "{id}: {action} da {actor}",
+  "alert.failed": "{id} fallita: {error}",
+  "alert.lost": "{id} ha perso i blocchi ed è tornata in coda",
+  "alert.needs_person": "esecuzione {run} in pausa: il subagente di {id} è terminato {n} volte senza finire; serve una persona",
+  "alert.paused_by": "esecuzione {run} messa in pausa da {actor}",
+  "alert.renew_lost": "{id}: qualcun altro tiene ora parte dei suoi blocchi",
   "archive.already": "l'esecuzione {run} è già in {dir}",
   "archive.back": "esecuzione {run} riportata da {from}",
   "archive.busy": "{run} ha attività in corso ({tasks}); rilasciale prima di archiviare",
@@ -2569,6 +2766,8 @@ var it_default = {
   "exec.direct": "diretto (non in serialize)",
   "exec.exit": "{how}; uscito con {code}",
   "exec.no_command": "manca il comando: jtasks exec -- <comando…>",
+  "exec.not_running": "exec --task {id}: l'attività è {status}, non in corso",
+  "exec.registered": "pid {pid} registrato in {id}",
   "exec.serialized": "serializzato da jlock run {key}",
   "fail.done": "{id} fallita: {error}",
   "fail.no_error": 'fail senza errore è rifiutato: jtasks fail {id} --error "cosa è andato storto"',
@@ -2609,7 +2808,7 @@ var it_default = {
   "help.doctor": "doctor [--fix [--yes]]                la macchina è pronta? --fix --yes installa ciò che manca",
   "help.done": 'done <id> --evidence "…"              verifica git e possesso; commit del possesso; done',
   "help.effects": "effects --check                       confronta il ledger con il disco e git",
-  "help.exec": "exec -- <comando…>                    lo esegue; i comandi serialize uno alla volta sulla macchina",
+  "help.exec": "exec [--task <id>] -- <comando…>      lo esegue (pid nell'attività); serialize: uno alla volta",
   "help.fail": 'fail <id> --error "…"                 fallita (blocca le attività che ne dipendono)',
   "help.gc": "gc --scan <radice> [--depth 4]        report in sola lettura: worktree orfani, esecuzioni, archivi",
   "help.import": "import <cartella> [--check|--yes]     ticket Markdown → esecuzione (senza Files → exclusive)",
@@ -2625,6 +2824,7 @@ var it_default = {
   "help.plan.fix": "  plan --fix <id> <json|@file>        sostituisce un'attività della bozza",
   "help.plan.show": "  plan --show                         un riepilogo della bozza",
   "help.release": "release <id>                          in corso → in attesa (maxAttempts: fallita); salva modifiche",
+  "help.release.agent_ended": "release <id> --agent-ended            l'host: subagente terminato; attende se il processo vive",
   "help.resume": "resume <run> [--keep-owners]          lega la sessione, riprende, rilascia attività senza blocchi",
   "help.keepalive": "keepalive on|off                      l'host riapre il ciclo fermo con attività pronte",
   "help.retry": "retry <id> | --all-failed             saltata o fallita → in sospeso",
@@ -2639,6 +2839,7 @@ var it_default = {
                                         annulla a ritroso (revert, branch, exclude, cartella)`,
   "help.unknown": "nessuna azione {action} (vedi jtasks help)",
   "help.validate": "validate <json|@file|cartella>        convalida un piano (o una cartella di ticket) senza scrivere",
+  "help.wait": "wait <id> --pid <pid>[,…]             l'attività attende questo processo se il subagente termina",
   "help.yield": "yield <id> [<file…>]                  cede solo i file contesi; modifiche salvate come patch",
   "import.check_only": "nulla è stato scritto (--check)",
   "import.has_errors": "il piano letto ha errori ({n}):",
@@ -2714,6 +2915,7 @@ var it_default = {
   "patch.failed": "patch che non si sono applicate (nulla è cambiato; restano salvate): {list}",
   "patch.reapplied": "patch riapplicate: {files}",
   "plan.absolute_path": "{path}: usa percorsi relativi al repository",
+  "plan.await_grace": '"awaitGrace" deve essere una durata come 5m o 1h',
   "plan.branch": '"branch" deve essere "run" o "current"',
   "plan.branch_exists": "il branch {branch} esiste già",
   "plan.covers": "({outer} copre {inner})",
@@ -2725,6 +2927,7 @@ var it_default = {
   "plan.empty_path": 'percorso vuoto in "files"',
   "plan.hold_ttl": '"holdTtl" deve essere una durata come 30m, 2h o 1d',
   "plan.keepalive": '"keepalive" deve essere true o false',
+  "plan.max_agent_ended": '"maxAgentEnded" deve essere un intero maggiore di zero',
   "plan.max_attempts": '"maxAttempts" deve essere un intero maggiore di zero',
   "plan.missing_dependency": "{id} dipende da {dep}, che non esiste",
   "plan.must_be_text": '"{field}" deve essere testo',
@@ -2767,9 +2970,13 @@ var it_default = {
   "progress.skipped_one": "{n} saltata",
   "progress.skipped_other": "{n} saltate",
   "release.agent_ended": "il subagente è terminato senza finire",
+  "release.await_expired": "il subagente non è tornato dopo la fine del suo processo",
+  "release.awaiting": "{id} resta in corso, in attesa del suo processo ({what}): nessun tentativo speso, blocchi mantenuti",
+  "release.ended_pending": "tornata in sospeso (subagente terminato senza finire {n}/{max}; nessun tentativo speso)",
   "release.failed": "il possesso non è stato restituito ({message}); usa jlock release --group {run} --owner {owner}",
   "release.failed_now": "fallita: {error}",
   "release.given_back": "possesso restituito",
+  "release.needs_person": "esecuzione {run} in pausa: serve una persona (vedi {id}; poi jtasks retry {id} e jtasks unpause)",
   "release.pending": "tornata in sospeso (tentativo {attempts}/{max})",
   "release.released": "rilasciata",
   "resume.bound": "esecuzione {run} ripresa in questa sessione",
@@ -2820,9 +3027,14 @@ var it_default = {
   "status.locks": "blocchi attivi (jlock --group {run}): {list}",
   "status.lost": "possesso perso: {list}",
   "status.lost_task": "{id} (nessun blocco in jlock: jtasks resume o jtasks release {id})",
+  "status.needs_person": "serve una persona: il subagente di {id} è terminato senza finire {n} volte (limite {max}); jtasks retry {id}, poi jtasks unpause",
   "status.no_locks": "blocchi attivi: nessuno",
   "status.paused": "in pausa: non avviare attività",
   "status.auto_paused": "guasto temporaneo ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "in attesa di un processo: {list}",
+  "status.awaiting_ended": "{id} (il processo è terminato alle {at}; il subagente ha tempo fino alle {until} per tornare)",
+  "status.awaiting_item": "{id} ({what}, da {since})",
+  "status.awaiting_mark": "in attesa di un processo",
   "status.keepalive_off": "ripresa: disattivata",
   "status.keepalive_stalled": "ripresa abbandonata: {what} da fare, niente in corso, {tries} messaggio/i senza progressi (jtasks keepalive on la sorveglia di nuovo)",
   "status.keepalive_error": "ripresa fermata dopo un errore: {what} da fare, niente in corso (manda un messaggio per proseguire)",
@@ -2879,11 +3091,14 @@ var it_default = {
   "validate.ok": "ok: {n} attività, nessun errore",
   "view.loading": "Tasks: caricamento…",
   "view.lost": "possesso perso",
+  "view.needs_person": "⏸ serve una persona: {id} terminata {n}× senza finire",
   "view.no_run": "nessuna esecuzione legata",
   "view.no_runs": "nessuna esecuzione (jtasks plan)",
   "view.paused": "in pausa",
   "view.stalled": "⚠ ferma: {what} da fare, niente in corso",
   "view.auto_paused": "⏸ in pausa ({kind}): {when}",
+  "view.awaiting": "attende {what}",
+  "view.awaiting_back": "processo terminato; il subagente torna",
   "transient.rate_limit": "limite di richieste",
   "transient.quota": "limite d'uso o quota",
   "transient.overloaded": "fornitore sovraccarico",
@@ -2892,6 +3107,15 @@ var it_default = {
   "transient.timeout": "tempo scaduto",
   "transient.retries": "tentativi esauriti",
   "view.waits_for": "attende {files}",
+  "wait.alive": "vivo",
+  "wait.back": "{id}: il subagente è tornato",
+  "wait.bad_pid": "--pid accetta numeri di processo (1234 o 1234,5678): {value}",
+  "wait.dead": "nessun processo vivo tra {list}: niente da attendere",
+  "wait.declared": "{id} attende {list}: se il ciclo del subagente termina nel frattempo, l'attività resta in corso con i suoi blocchi",
+  "wait.gone": "terminato",
+  "wait.list": "processi di {id}: {list}",
+  "wait.none": "{id} non ha processi registrati (jtasks exec, o jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "non vivi, lasciati fuori: {list}",
   "warnings.count": "{n} avviso/i:",
   "yield.came_back": "{id} ha ripreso {files}",
   "yield.done": "{id} ha ceduto {files} e resta in corso; {saved}",
@@ -2920,6 +3144,16 @@ var zh_CN_default = {
     effect: "副作用",
     undo: "撤销"
   },
+  "agent_ended.limit": "{why}，已 {n} 次（上限 {max}）；运行已暂停，等待人工处理",
+  "alert.agent_ended": "{id} 已回到队列：其子智能体未完成就结束了（{n}/{max}）",
+  "alert.await": "{id} 正在等待其进程（{what}）；进程结束后子智能体会回来",
+  "alert.await_ended": "{id}：其进程已结束；正在等待子智能体回来",
+  "alert.by_other": "{id}：{actor} 执行了 {action}",
+  "alert.failed": "{id} 失败：{error}",
+  "alert.lost": "{id} 失去了锁，已回到队列",
+  "alert.needs_person": "运行 {run} 已暂停：{id} 的子智能体 {n} 次未完成就结束；需要人工处理",
+  "alert.paused_by": "运行 {run} 已被 {actor} 暂停",
+  "alert.renew_lost": "{id}：部分锁现在由别人持有",
   "archive.already": "运行 {run} 已在 {dir}",
   "archive.back": "运行 {run} 已从 {from} 取回",
   "archive.busy": "{run} 有进行中的任务（{tasks}）；归档前请先释放",
@@ -3033,6 +3267,8 @@ var zh_CN_default = {
   "exec.direct": "直接运行（不在 serialize 中）",
   "exec.exit": "{how}；退出码 {code}",
   "exec.no_command": "缺少命令：jtasks exec -- <命令…>",
+  "exec.not_running": "exec --task {id}：该任务为 {status}，不在进行中",
+  "exec.registered": "pid {pid} 已登记到 {id}",
   "exec.serialized": "由 jlock run {key} 串行化",
   "fail.done": "{id} 失败：{error}",
   "fail.no_error": '没有错误说明的 fail 会被拒绝：jtasks fail {id} --error "出了什么问题"',
@@ -3073,7 +3309,7 @@ var zh_CN_default = {
   "help.doctor": "doctor [--fix [--yes]]                本机是否就绪？--fix --yes 安装缺少的部分",
   "help.done": 'done <id> --evidence "…"              检查 git 和所有权；提交所有权内的文件；完成',
   "help.effects": "effects --check                       对照磁盘和 git 检查 ledger",
-  "help.exec": "exec -- <命令…>                       运行命令；serialize 中的命令在本机逐个运行",
+  "help.exec": "exec [--task <id>] -- <命令…>         运行命令（pid 记入任务）；serialize 中的命令逐个运行",
   "help.fail": 'fail <id> --error "…"                 失败（阻塞依赖它的任务）',
   "help.gc": "gc --scan <根目录> [--depth 4]        只读报告：孤立的 worktree、运行、归档",
   "help.import": "import <文件夹> [--check|--yes]       Markdown 工单 → 运行（无 Files → exclusive）",
@@ -3089,6 +3325,7 @@ var zh_CN_default = {
   "help.plan.fix": "  plan --fix <id> <json|@文件>          替换草稿中的一个任务",
   "help.plan.show": "  plan --show                           草稿摘要",
   "help.release": "release <id>                          进行中 → 待处理（达到 maxAttempts 则失败）；保存修改",
+  "help.release.agent_ended": "release <id> --agent-ended            宿主用：子智能体已结束；其进程仍在运行则等待",
   "help.resume": "resume <run> [--keep-owners]          绑定会话、取消暂停、释放没有锁的任务",
   "help.keepalive": "keepalive on|off                      有就绪任务时，宿主会重启停下的循环",
   "help.retry": "retry <id> | --all-failed             已跳过或失败 → 待处理",
@@ -3103,6 +3340,7 @@ var zh_CN_default = {
                                         从最新的开始撤销（revert、branch、exclude、文件夹）`,
   "help.unknown": "没有操作 {action}（见 jtasks help）",
   "help.validate": "validate <json|@文件|文件夹>          校验计划（或工单文件夹），不写入",
+  "help.wait": "wait <id> --pid <pid>[,…]             子智能体结束时，任务等待该进程",
   "help.yield": "yield <id> [<文件…>]                  只让出有争用的文件；修改保存为补丁",
   "import.check_only": "未写入任何内容（--check）",
   "import.has_errors": "读取的计划有 {n} 个错误：",
@@ -3178,6 +3416,7 @@ var zh_CN_default = {
   "patch.failed": "未能应用的补丁（没有任何改动；仍保存着）：{list}",
   "patch.reapplied": "补丁已重新应用：{files}",
   "plan.absolute_path": "{path}：请使用相对于仓库的路径",
+  "plan.await_grace": '"awaitGrace" 必须是 5m 或 1h 这样的时长',
   "plan.branch": '"branch" 必须是 "run" 或 "current"',
   "plan.branch_exists": "分支 {branch} 已存在",
   "plan.covers": "（{outer} 包含 {inner}）",
@@ -3189,6 +3428,7 @@ var zh_CN_default = {
   "plan.empty_path": '"files" 中有空路径',
   "plan.hold_ttl": '"holdTtl" 必须是时长，如 30m、2h 或 1d',
   "plan.keepalive": '"keepalive" 必须是 true 或 false',
+  "plan.max_agent_ended": '"maxAgentEnded" 必须是大于零的整数',
   "plan.max_attempts": '"maxAttempts" 必须是大于零的整数',
   "plan.missing_dependency": "{id} 依赖不存在的 {dep}",
   "plan.must_be_text": '"{field}" 必须是文本',
@@ -3231,9 +3471,13 @@ var zh_CN_default = {
   "progress.skipped_one": "{n} 个已跳过",
   "progress.skipped_other": "{n} 个已跳过",
   "release.agent_ended": "子智能体未完成就结束了",
+  "release.await_expired": "进程结束后子智能体没有回来",
+  "release.awaiting": "{id} 仍在进行中，等待其进程（{what}）：未消耗尝试，锁保留",
+  "release.ended_pending": "已回到待处理（子智能体未完成就结束 {n}/{max}；未消耗尝试）",
   "release.failed": "所有权未归还（{message}）；请用 jlock release --group {run} --owner {owner}",
   "release.failed_now": "失败：{error}",
   "release.given_back": "所有权已归还",
+  "release.needs_person": "运行 {run} 已暂停：需要人工处理（查看 {id}；然后 jtasks retry {id} 和 jtasks unpause）",
   "release.pending": "已回到待处理（尝试 {attempts}/{max}）",
   "release.released": "已释放",
   "resume.bound": "运行 {run} 已在本会话中恢复",
@@ -3284,9 +3528,14 @@ var zh_CN_default = {
   "status.locks": "活动的锁（jlock --group {run}）：{list}",
   "status.lost": "所有权已丢失：{list}",
   "status.lost_task": "{id}（jlock 中没有锁：jtasks resume 或 jtasks release {id}）",
+  "status.needs_person": "需要人工处理：{id} 的子智能体 {n} 次未完成就结束（上限 {max}）；jtasks retry {id}，然后 jtasks unpause",
   "status.no_locks": "活动的锁：无",
   "status.paused": "已暂停：不要开始任务",
   "status.auto_paused": "暂时性故障（{kind}：{detail}）：{kept}；{when}",
+  "status.awaiting": "等待进程：{list}",
+  "status.awaiting_ended": "{id}（进程于 {at} 结束；子智能体须在 {until} 前回来）",
+  "status.awaiting_item": "{id}（{what}，自 {since} 起）",
+  "status.awaiting_mark": "等待进程",
   "status.keepalive_off": "自动续跑：关闭",
   "status.keepalive_stalled": "自动续跑已放弃：{what} 待做，无任何运行，{tries} 条消息没有进展(jtasks keepalive on 重新监视)",
   "status.keepalive_error": "自动续跑在出错后停止：{what} 待做，无任何运行(发一条消息即可继续)",
@@ -3343,11 +3592,14 @@ var zh_CN_default = {
   "validate.ok": "ok：{n} 个任务，无错误",
   "view.loading": "Tasks：加载中…",
   "view.lost": "所有权已丢失",
+  "view.needs_person": "⏸ 需要人工：{id} 已 {n} 次未完成就结束",
   "view.no_run": "未绑定运行",
   "view.no_runs": "没有运行（jtasks plan）",
   "view.paused": "已暂停",
   "view.stalled": "⚠ 已停下：{what} 待做，无任何运行",
   "view.auto_paused": "⏸ 已暂停（{kind}）：{when}",
+  "view.awaiting": "等待 {what}",
+  "view.awaiting_back": "进程已结束；子智能体即将回来",
   "transient.rate_limit": "请求频率限制",
   "transient.quota": "用量限制或配额",
   "transient.overloaded": "提供方过载",
@@ -3356,6 +3608,15 @@ var zh_CN_default = {
   "transient.timeout": "超时",
   "transient.retries": "重试已用尽",
   "view.waits_for": "等待 {files}",
+  "wait.alive": "存活",
+  "wait.back": "{id}：子智能体已回来",
+  "wait.bad_pid": "--pid 需要进程号（1234 或 1234,5678）：{value}",
+  "wait.dead": "{list} 中没有存活的进程：无需等待",
+  "wait.declared": "{id} 等待 {list}：若子智能体的循环在此期间结束，任务仍在进行中并保留锁",
+  "wait.gone": "已结束",
+  "wait.list": "{id} 的进程：{list}",
+  "wait.none": "{id} 没有登记的进程（jtasks exec，或 jtasks wait {id} --pid <pid>）",
+  "wait.not_alive": "未存活，已略过：{list}",
   "warnings.count": "{n} 个警告：",
   "yield.came_back": "{id} 取回了 {files}",
   "yield.done": "{id} 让出了 {files}，仍在进行中；{saved}",
@@ -3384,6 +3645,16 @@ var ja_default = {
     effect: "副作用",
     undo: "取り消し"
   },
+  "agent_ended.limit": "{why}（{n} 回、上限 {max}）。実行は人の判断待ちで一時停止した",
+  "alert.agent_ended": "{id} はキューに戻った: サブエージェントが完了せずに終了（{n}/{max}）",
+  "alert.await": "{id} はプロセス（{what}）を待機中。終了するとサブエージェントが戻る",
+  "alert.await_ended": "{id}: プロセスが終了した。サブエージェントの復帰を待機中",
+  "alert.by_other": "{id}: {actor} が {action}",
+  "alert.failed": "{id} は失敗: {error}",
+  "alert.lost": "{id} はロックを失い、キューに戻った",
+  "alert.needs_person": "実行 {run} は一時停止: {id} のサブエージェントが完了せずに {n} 回終了した。人の判断が必要",
+  "alert.paused_by": "実行 {run} は {actor} により一時停止",
+  "alert.renew_lost": "{id}: ロックの一部を今は別の所有者が持っている",
   "archive.already": "実行 {run} はすでに {dir} にある",
   "archive.back": "実行 {run} を {from} から戻した",
   "archive.busy": "{run} に進行中のタスクがある（{tasks}）。アーカイブ前に解放すること",
@@ -3497,6 +3768,8 @@ var ja_default = {
   "exec.direct": "直接実行（serialize 外）",
   "exec.exit": "{how}。終了コード {code}",
   "exec.no_command": "コマンドがない: jtasks exec -- <コマンド…>",
+  "exec.not_running": "exec --task {id}: タスクは {status} で、進行中ではない",
+  "exec.registered": "pid {pid} を {id} に登録した",
   "exec.serialized": "jlock run {key} で直列化",
   "fail.done": "{id} 失敗: {error}",
   "fail.no_error": 'エラーのない fail は拒否: jtasks fail {id} --error "何が問題だったか"',
@@ -3537,7 +3810,7 @@ var ja_default = {
   "help.doctor": "doctor [--fix [--yes]]                このマシンは準備済みか? --fix --yes で不足分をインストール",
   "help.done": 'done <id> --evidence "…"              git と所有権を確認し、所有権をコミット。完了',
   "help.effects": "effects --check                       ledger をディスクおよび git と照合する",
-  "help.exec": "exec -- <コマンド…>                   実行する。serialize のコマンドはマシン上で 1 つずつ",
+  "help.exec": "exec [--task <id>] -- <コマンド…>     実行する（pid をタスクに記録）。serialize は 1 つずつ",
   "help.fail": 'fail <id> --error "…"                 失敗（依存するタスクをブロック）',
   "help.gc": "gc --scan <ルート> [--depth 4]        読み取り専用レポート: 孤立 worktree、実行、アーカイブ",
   "help.import": "import <フォルダ> [--check|--yes]     Markdown チケット → 実行（Files なし → exclusive）",
@@ -3553,6 +3826,7 @@ var ja_default = {
   "help.plan.fix": "  plan --fix <id> <json|@ファイル>      下書きのタスクを 1 つ置き換える",
   "help.plan.show": "  plan --show                           下書きの概要",
   "help.release": "release <id>                          進行中 → 保留（maxAttempts で失敗）。編集は保存",
+  "help.release.agent_ended": "release <id> --agent-ended            ホスト用: サブエージェント終了。プロセスが生きていれば待機",
   "help.resume": "resume <run> [--keep-owners]          セッションに結び付け、再開し、ロックのないタスクを解放",
   "help.keepalive": "keepalive on|off                      準備済みタスクがあれば止まったループをホストが再開",
   "help.retry": "retry <id> | --all-failed             スキップまたは失敗 → 未着手",
@@ -3567,6 +3841,7 @@ var ja_default = {
                                         新しい順に取り消す（revert, branch, exclude, フォルダ）`,
   "help.unknown": "アクション {action} はない（jtasks help を参照）",
   "help.validate": "validate <json|@ファイル|フォルダ>    計画（またはチケットのフォルダ）を書き込まずに検証",
+  "help.wait": "wait <id> --pid <pid>[,…]             サブエージェントが終了してもタスクはこのプロセスを待つ",
   "help.yield": "yield <id> [<ファイル…>]               競合ファイルだけを譲る。編集はパッチで保存",
   "import.check_only": "何も書き込んでいない（--check）",
   "import.has_errors": "読み込んだ計画にエラーが {n} 件:",
@@ -3642,6 +3917,7 @@ var ja_default = {
   "patch.failed": "適用できなかったパッチ（何も変わっていない。保存されたまま）: {list}",
   "patch.reapplied": "パッチを再適用: {files}",
   "plan.absolute_path": "{path}: リポジトリからの相対パスを使う",
+  "plan.await_grace": '"awaitGrace" は 5m や 1h のような期間でなければならない',
   "plan.branch": '"branch" は "run" か "current" でなければならない',
   "plan.branch_exists": "ブランチ {branch} はすでに存在する",
   "plan.covers": "（{outer} が {inner} を含む）",
@@ -3653,6 +3929,7 @@ var ja_default = {
   "plan.empty_path": '"files" に空のパス',
   "plan.hold_ttl": '"holdTtl" は 30m、2h、1d のような時間でなければならない',
   "plan.keepalive": '"keepalive" は true か false',
+  "plan.max_agent_ended": '"maxAgentEnded" は 0 より大きい整数でなければならない',
   "plan.max_attempts": '"maxAttempts" は 0 より大きい整数でなければならない',
   "plan.missing_dependency": "{id} は存在しない {dep} に依存している",
   "plan.must_be_text": '"{field}" はテキストでなければならない',
@@ -3695,9 +3972,13 @@ var ja_default = {
   "progress.skipped_one": "スキップ {n}",
   "progress.skipped_other": "スキップ {n}",
   "release.agent_ended": "サブエージェントが完了せずに終了した",
+  "release.await_expired": "プロセス終了後もサブエージェントが戻らなかった",
+  "release.awaiting": "{id} は進行中のまま、プロセス（{what}）を待機: 試行は消費せず、ロックは保持",
+  "release.ended_pending": "未着手に戻った（サブエージェントが完了せずに終了 {n}/{max}。試行は消費しない）",
   "release.failed": "所有権を返却できなかった（{message}）。jlock release --group {run} --owner {owner} を使う",
   "release.failed_now": "失敗: {error}",
   "release.given_back": "所有権を返却",
+  "release.needs_person": "実行 {run} は一時停止: 人の判断が必要（{id} を確認し、jtasks retry {id} と jtasks unpause）",
   "release.pending": "未着手に戻った（試行 {attempts}/{max}）",
   "release.released": "解放した",
   "resume.bound": "実行 {run} をこのセッションで再開",
@@ -3748,9 +4029,14 @@ var ja_default = {
   "status.locks": "有効なロック（jlock --group {run}）: {list}",
   "status.lost": "所有権喪失: {list}",
   "status.lost_task": "{id}（jlock にロックなし: jtasks resume または jtasks release {id}）",
+  "status.needs_person": "人の判断が必要: {id} のサブエージェントが完了せずに {n} 回終了（上限 {max}）。jtasks retry {id} の後 jtasks unpause",
   "status.no_locks": "有効なロック: なし",
   "status.paused": "一時停止中: タスクを開始しない",
   "status.auto_paused": "一時的な障害（{kind}: {detail}）: {kept}; {when}",
+  "status.awaiting": "プロセス待機中: {list}",
+  "status.awaiting_ended": "{id}（プロセスは {at} に終了。サブエージェントの復帰期限は {until}）",
+  "status.awaiting_item": "{id}（{what}、{since} から）",
+  "status.awaiting_mark": "プロセス待機中",
   "status.keepalive_off": "自動再開: オフ",
   "status.keepalive_stalled": "自動再開を断念: {what} が残り、何も動いていない、進捗のないメッセージ {tries} 件(jtasks keepalive on で再び監視)",
   "status.keepalive_error": "エラーの後で自動再開は停止: {what} が残り、何も動いていない(続けるにはメッセージを送ってください)",
@@ -3807,11 +4093,14 @@ var ja_default = {
   "validate.ok": "ok: タスク {n} 件、エラーなし",
   "view.loading": "Tasks: 読み込み中…",
   "view.lost": "所有権喪失",
+  "view.needs_person": "⏸ 人の判断が必要: {id} が {n} 回未完了で終了",
   "view.no_run": "結び付いた実行なし",
   "view.no_runs": "実行なし（jtasks plan）",
   "view.paused": "一時停止中",
   "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない",
   "view.auto_paused": "⏸ 一時停止中（{kind}）: {when}",
+  "view.awaiting": "{what} を待機",
+  "view.awaiting_back": "プロセス終了。サブエージェント復帰待ち",
   "transient.rate_limit": "レート制限",
   "transient.quota": "利用上限またはクォータ",
   "transient.overloaded": "プロバイダー過負荷",
@@ -3820,6 +4109,15 @@ var ja_default = {
   "transient.timeout": "タイムアウト",
   "transient.retries": "再試行の上限",
   "view.waits_for": "{files} を待機",
+  "wait.alive": "稼働中",
+  "wait.back": "{id}: サブエージェントが戻った",
+  "wait.bad_pid": "--pid にはプロセス番号を指定する（1234 または 1234,5678）: {value}",
+  "wait.dead": "{list} に生きているプロセスはない: 待つものはない",
+  "wait.declared": "{id} は {list} を待つ: その間にサブエージェントのループが終了しても、タスクはロックを持ったまま進行中",
+  "wait.gone": "終了",
+  "wait.list": "{id} のプロセス: {list}",
+  "wait.none": "{id} に登録されたプロセスはない（jtasks exec、または jtasks wait {id} --pid <pid>）",
+  "wait.not_alive": "生きていないため除外: {list}",
   "warnings.count": "警告 {n} 件:",
   "yield.came_back": "{id} が {files} を取り戻した",
   "yield.done": "{id} は {files} を譲り、進行中のまま。{saved}",
@@ -3848,6 +4146,16 @@ var ru_default = {
     effect: "эффект",
     undo: "отмена"
   },
+  "agent_ended.limit": "{why}, {n} раз(а) (лимит {max}); прогон поставлен на паузу до решения человека",
+  "alert.agent_ended": "{id} вернулась в очередь: её субагент завершился, не доделав ({n}/{max})",
+  "alert.await": "{id} ждёт свой процесс ({what}); субагент вернётся, когда он завершится",
+  "alert.await_ended": "{id}: процесс завершился; ждём возвращения субагента",
+  "alert.by_other": "{id}: {action} от {actor}",
+  "alert.failed": "{id} провалена: {error}",
+  "alert.lost": "{id} потеряла блокировки и вернулась в очередь",
+  "alert.needs_person": "прогон {run} на паузе: субагент {id} {n} раз(а) завершился, не доделав; нужен человек",
+  "alert.paused_by": "прогон {run} поставлен на паузу: {actor}",
+  "alert.renew_lost": "{id}: часть её блокировок теперь у кого-то другого",
   "archive.already": "прогон {run} уже в {dir}",
   "archive.back": "прогон {run} возвращён из {from}",
   "archive.busy": "в {run} есть задачи в работе ({tasks}); освободите их перед архивированием",
@@ -3961,6 +4269,8 @@ var ru_default = {
   "exec.direct": "напрямую (не в serialize)",
   "exec.exit": "{how}; код выхода {code}",
   "exec.no_command": "не указана команда: jtasks exec -- <команда…>",
+  "exec.not_running": "exec --task {id}: задача в состоянии {status}, а не в работе",
+  "exec.registered": "pid {pid} записан в {id}",
   "exec.serialized": "сериализовано через jlock run {key}",
   "fail.done": "{id} провалена: {error}",
   "fail.no_error": 'fail без ошибки отклоняется: jtasks fail {id} --error "что пошло не так"',
@@ -4001,7 +4311,7 @@ var ru_default = {
   "help.doctor": "doctor [--fix [--yes]]                машина готова? --fix --yes устанавливает недостающее",
   "help.done": 'done <id> --evidence "…"              проверяет git и владение; коммитит владение; done',
   "help.effects": "effects --check                       сверяет реестр с диском и git",
-  "help.exec": "exec -- <команда…>                    запускает; команды serialize — по одной на машине",
+  "help.exec": "exec [--task <id>] -- <команда…>      запускает (pid пишется в задачу); serialize — по одной",
   "help.fail": 'fail <id> --error "…"                 провал (блокирует зависящие от неё задачи)',
   "help.gc": "gc --scan <корень> [--depth 4]        отчёт без изменений: брошенные worktree, прогоны, архивы",
   "help.import": "import <папка> [--check|--yes]        тикеты Markdown → прогон (без Files → exclusive)",
@@ -4017,6 +4327,7 @@ var ru_default = {
   "help.plan.fix": "  plan --fix <id> <json|@файл>        заменяет одну задачу черновика",
   "help.plan.show": "  plan --show                         сводка черновика",
   "help.release": "release <id>                          в работе → ожидает (maxAttempts: сбой); правки сохраняются",
+  "help.release.agent_ended": "release <id> --agent-ended            хост: субагент завершился; ждёт, пока жив его процесс",
   "help.resume": "resume <run> [--keep-owners]          привязка сессии, снятие паузы, сброс задач без блокировок",
   "help.keepalive": "keepalive on|off                      хост перезапускает простаивающий цикл с готовыми задачами",
   "help.retry": "retry <id> | --all-failed             пропущена или провалена → в ожидании",
@@ -4031,6 +4342,7 @@ var ru_default = {
                                         отменяет с конца (revert, branch, exclude, папка)`,
   "help.unknown": "нет действия {action} (см. jtasks help)",
   "help.validate": "validate <json|@файл|папка>           проверяет план (или папку тикетов) без записи",
+  "help.wait": "wait <id> --pid <pid>[,…]             задача ждёт этот процесс, если её субагент завершится",
   "help.yield": "yield <id> [<файл…>]                  уступает только спорные файлы; правки в патчах",
   "import.check_only": "ничего не записано (--check)",
   "import.has_errors": "в прочитанном плане ошибки ({n}):",
@@ -4106,6 +4418,7 @@ var ru_default = {
   "patch.failed": "патчи, которые не применились (ничего не изменилось; они остаются сохранёнными): {list}",
   "patch.reapplied": "патчи применены заново: {files}",
   "plan.absolute_path": "{path}: используйте пути относительно репозитория",
+  "plan.await_grace": '"awaitGrace" должен быть длительностью вроде 5m или 1h',
   "plan.branch": '"branch" должен быть "run" или "current"',
   "plan.branch_exists": "ветка {branch} уже существует",
   "plan.covers": "({outer} покрывает {inner})",
@@ -4117,6 +4430,7 @@ var ru_default = {
   "plan.empty_path": 'пустой путь в "files"',
   "plan.hold_ttl": '"holdTtl" должен быть длительностью, например 30m, 2h или 1d',
   "plan.keepalive": '"keepalive" должно быть true или false',
+  "plan.max_agent_ended": '"maxAgentEnded" должен быть целым числом больше нуля',
   "plan.max_attempts": '"maxAttempts" должен быть целым числом больше нуля',
   "plan.missing_dependency": "{id} зависит от {dep}, которой нет",
   "plan.must_be_text": '"{field}" должно быть текстом',
@@ -4159,9 +4473,13 @@ var ru_default = {
   "progress.skipped_one": "{n} пропущена",
   "progress.skipped_other": "пропущено: {n}",
   "release.agent_ended": "субагент завершился, не доделав задачу",
+  "release.await_expired": "субагент не вернулся после завершения своего процесса",
+  "release.awaiting": "{id} остаётся в работе и ждёт свой процесс ({what}): попытка не потрачена, блокировки сохранены",
+  "release.ended_pending": "вернулась в ожидание (субагент завершился, не доделав {n}/{max}; попытка не потрачена)",
   "release.failed": "владение не возвращено ({message}); используйте jlock release --group {run} --owner {owner}",
   "release.failed_now": "провалена: {error}",
   "release.given_back": "владение возвращено",
+  "release.needs_person": "прогон {run} на паузе: нужен человек (см. {id}; затем jtasks retry {id} и jtasks unpause)",
   "release.pending": "вернулась в ожидание (попытка {attempts}/{max})",
   "release.released": "освобождена",
   "resume.bound": "прогон {run} возобновлён в этой сессии",
@@ -4212,9 +4530,14 @@ var ru_default = {
   "status.locks": "активные блокировки (jlock --group {run}): {list}",
   "status.lost": "владение потеряно: {list}",
   "status.lost_task": "{id} (нет блокировок в jlock: jtasks resume или jtasks release {id})",
+  "status.needs_person": "нужен человек: субагент {id} {n} раз(а) завершился, не доделав (лимит {max}); jtasks retry {id}, затем jtasks unpause",
   "status.no_locks": "активные блокировки: нет",
   "status.paused": "на паузе: не начинайте задачи",
   "status.auto_paused": "временный сбой ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "ждут процесс: {list}",
+  "status.awaiting_ended": "{id} (процесс завершился в {at}; у субагента есть время до {until}, чтобы вернуться)",
+  "status.awaiting_item": "{id} ({what}, с {since})",
+  "status.awaiting_mark": "ждёт процесс",
   "status.keepalive_off": "автовозобновление: выключено",
   "status.keepalive_stalled": "автовозобновление сдалось: осталось {what}, ничего не выполняется, {tries} сообщ. без прогресса (jtasks keepalive on снова следит за ним)",
   "status.keepalive_error": "автовозобновление остановлено после ошибки: осталось {what}, ничего не выполняется (напишите сообщение, чтобы продолжить)",
@@ -4271,11 +4594,14 @@ var ru_default = {
   "validate.ok": "ok: задач: {n}, ошибок нет",
   "view.loading": "Tasks: загрузка…",
   "view.lost": "владение потеряно",
+  "view.needs_person": "⏸ нужен человек: {id} {n}× завершилась недоделанной",
   "view.no_run": "нет привязанного прогона",
   "view.no_runs": "нет прогонов (jtasks plan)",
   "view.paused": "на паузе",
   "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется",
   "view.auto_paused": "⏸ на паузе ({kind}): {when}",
+  "view.awaiting": "ждёт {what}",
+  "view.awaiting_back": "процесс завершён; субагент возвращается",
   "transient.rate_limit": "лимит запросов",
   "transient.quota": "лимит использования или квота",
   "transient.overloaded": "провайдер перегружен",
@@ -4284,6 +4610,15 @@ var ru_default = {
   "transient.timeout": "тайм-аут",
   "transient.retries": "повторы исчерпаны",
   "view.waits_for": "ждёт {files}",
+  "wait.alive": "жив",
+  "wait.back": "{id}: субагент вернулся",
+  "wait.bad_pid": "--pid принимает номера процессов (1234 или 1234,5678): {value}",
+  "wait.dead": "среди {list} нет живых процессов: ждать нечего",
+  "wait.declared": "{id} ждёт {list}: если цикл субагента тем временем завершится, задача останется в работе с блокировками",
+  "wait.gone": "завершён",
+  "wait.list": "процессы {id}: {list}",
+  "wait.none": "у {id} нет записанных процессов (jtasks exec или jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "не живы, пропущены: {list}",
   "warnings.count": "предупреждений: {n}",
   "yield.came_back": "{id} забрала обратно {files}",
   "yield.done": "{id} уступила {files} и остаётся в работе; {saved}",
@@ -4312,6 +4647,16 @@ var ar_default = {
     effect: "أثر",
     undo: "تراجع"
   },
+  "agent_ended.limit": "{why} {n} مرات (الحد {max})؛ أُوقف التشغيل مؤقتًا بانتظار شخص",
+  "alert.agent_ended": "عادت {id} إلى الطابور: انتهى وكيلها الفرعي دون أن يُكمل ({n}/{max})",
+  "alert.await": "{id} تنتظر عمليتها ({what})؛ يعود وكيلها الفرعي عند انتهائها",
+  "alert.await_ended": "{id}: انتهت عمليتها؛ بانتظار عودة وكيلها الفرعي",
+  "alert.by_other": "{id}: {action} بواسطة {actor}",
+  "alert.failed": "فشلت {id}: {error}",
+  "alert.lost": "فقدت {id} أقفالها وعادت إلى الطابور",
+  "alert.needs_person": "التشغيل {run} متوقف مؤقتًا: انتهى الوكيل الفرعي لـ {id} {n} مرات دون أن يُكمل؛ يلزم تدخل شخص",
+  "alert.paused_by": "أوقف {actor} التشغيل {run} مؤقتًا",
+  "alert.renew_lost": "{id}: يمسك شخص آخر الآن بعض أقفالها",
   "archive.already": "التشغيل {run} موجود بالفعل في {dir}",
   "archive.back": "أُعيد التشغيل {run} من {from}",
   "archive.busy": "في {run} مهام قيد التنفيذ ({tasks})؛ حرّرها قبل الأرشفة",
@@ -4425,6 +4770,8 @@ var ar_default = {
   "exec.direct": "مباشر (ليس ضمن serialize)",
   "exec.exit": "{how}؛ خرج بالرمز {code}",
   "exec.no_command": "الأمر ناقص: jtasks exec -- <command…>",
+  "exec.not_running": "exec --task {id}: المهمة في الحالة {status} وليست قيد التنفيذ",
+  "exec.registered": "سُجّل pid {pid} في {id}",
   "exec.serialized": "مُسلسَل عبر jlock run {key}",
   "fail.done": "فشلت {id}: {error}",
   "fail.no_error": 'يُرفض fail بلا خطأ: jtasks fail {id} --error "ما الذي حدث خطأ"',
@@ -4465,7 +4812,7 @@ var ar_default = {
   "help.doctor": "doctor [--fix [--yes]]                هل الجهاز جاهز؟ --fix --yes يثبّت ما ينقص",
   "help.done": 'done <id> --evidence "…"              يفحص git والملكية؛ يودِع الملكية؛ done',
   "help.effects": "effects --check                       يقارن السجل بالقرص و git",
-  "help.exec": "exec -- <command…>                    يشغّله؛ أوامر serialize واحدًا تلو الآخر على الجهاز",
+  "help.exec": "exec [--task <id>] -- <command…>      يشغّله (pid في المهمة)؛ أوامر serialize واحدًا تلو الآخر",
   "help.fail": 'fail <id> --error "…"                 فاشلة (تحجب المهام المعتمدة عليها)',
   "help.gc": "gc --scan <root> [--depth 4]          تقرير للقراءة فقط: worktree يتيمة، تشغيلات، أرشيفات",
   "help.import": "import <folder> [--check|--yes]       تذاكر Markdown → تشغيل (بلا Files → exclusive)",
@@ -4481,6 +4828,7 @@ var ar_default = {
   "help.plan.fix": "  plan --fix <id> <json|@file>        يستبدل مهمة واحدة في المسودة",
   "help.plan.show": "  plan --show                         ملخص المسودة",
   "help.release": "release <id>                          قيد التنفيذ ← معلّقة (فاشلة عند maxAttempts)؛ تحفظ التعديلات",
+  "help.release.agent_ended": "release <id> --agent-ended            للمضيف: انتهى الوكيل الفرعي؛ تنتظر ما دامت عمليته حية",
   "help.resume": "resume <run> [--keep-owners]          يربط الجلسة، يلغي الإيقاف، يحرّر المهام بلا أقفال",
   "help.keepalive": "keepalive on|off                      يعيد المضيف فتح الحلقة المتوقفة ذات المهام الجاهزة",
   "help.retry": "retry <id> | --all-failed             متخطاة أو فاشلة → معلّقة",
@@ -4495,6 +4843,7 @@ var ar_default = {
                                         يتراجع من الأحدث أولًا (revert، branch، exclude، مجلد)`,
   "help.unknown": "لا يوجد إجراء {action} (انظر jtasks help)",
   "help.validate": "validate <json|@file|folder>          يتحقق من خطة (أو مجلد تذاكر) دون كتابة",
+  "help.wait": "wait <id> --pid <pid>[,…]             تنتظر المهمة هذه العملية إذا انتهى وكيلها الفرعي",
   "help.yield": "yield <id> [<file…>]                  يتنازل عن الملفات المتنازع عليها فقط؛ التعديلات كرُقع",
   "import.check_only": "لم يُكتب شيء (--check)",
   "import.has_errors": "في الخطة المقروءة أخطاء ({n}):",
@@ -4570,6 +4919,7 @@ var ar_default = {
   "patch.failed": "رُقع لم تُطبَّق (لم يتغير شيء؛ تبقى محفوظة): {list}",
   "patch.reapplied": "أُعيد تطبيق الرُّقع: {files}",
   "plan.absolute_path": "{path}: استخدم مسارات نسبية إلى المستودع",
+  "plan.await_grace": 'يجب أن يكون "awaitGrace" مدة مثل 5m أو 1h',
   "plan.branch": 'يجب أن يكون "branch" إما "run" أو "current"',
   "plan.branch_exists": "الفرع {branch} موجود بالفعل",
   "plan.covers": "({outer} يغطي {inner})",
@@ -4581,6 +4931,7 @@ var ar_default = {
   "plan.empty_path": 'مسار فارغ في "files"',
   "plan.hold_ttl": 'يجب أن يكون "holdTtl" مدة مثل 30m أو 2h أو 1d',
   "plan.keepalive": 'يجب أن تكون "keepalive" true أو false',
+  "plan.max_agent_ended": 'يجب أن يكون "maxAgentEnded" عددًا صحيحًا أكبر من صفر',
   "plan.max_attempts": 'يجب أن يكون "maxAttempts" عددًا صحيحًا أكبر من صفر',
   "plan.missing_dependency": "{id} تعتمد على {dep}، وهي غير موجودة",
   "plan.must_be_text": 'يجب أن يكون "{field}" نصًا',
@@ -4623,9 +4974,13 @@ var ar_default = {
   "progress.skipped_one": "{n} متخطاة",
   "progress.skipped_other": "المتخطاة: {n}",
   "release.agent_ended": "انتهى الوكيل الفرعي دون أن يُكمل",
+  "release.await_expired": "لم يعد الوكيل الفرعي بعد انتهاء عمليته",
+  "release.awaiting": "تبقى {id} قيد التنفيذ بانتظار عمليتها ({what}): لم تُستهلك محاولة، والأقفال محفوظة",
+  "release.ended_pending": "عادت معلّقة (انتهى الوكيل الفرعي دون أن يُكمل {n}/{max}؛ لم تُستهلك محاولة)",
   "release.failed": "لم تُرجَع الملكية ({message})؛ استخدم jlock release --group {run} --owner {owner}",
   "release.failed_now": "فشلت: {error}",
   "release.given_back": "أُرجعت الملكية",
+  "release.needs_person": "التشغيل {run} متوقف مؤقتًا: يلزم تدخل شخص (راجع {id}؛ ثم jtasks retry {id} و jtasks unpause)",
   "release.pending": "عادت معلّقة (المحاولة {attempts}/{max})",
   "release.released": "حُرّرت",
   "resume.bound": "استُؤنف التشغيل {run} في هذه الجلسة",
@@ -4676,9 +5031,14 @@ var ar_default = {
   "status.locks": "الأقفال النشطة (jlock --group {run}): {list}",
   "status.lost": "فُقدت الملكية: {list}",
   "status.lost_task": "{id} (لا أقفال في jlock: jtasks resume أو jtasks release {id})",
+  "status.needs_person": "يلزم تدخل شخص: انتهى الوكيل الفرعي لـ {id} دون أن يُكمل {n} مرات (الحد {max})؛ jtasks retry {id} ثم jtasks unpause",
   "status.no_locks": "الأقفال النشطة: لا شيء",
   "status.paused": "متوقف مؤقتًا: لا تبدأ مهام",
   "status.auto_paused": "عطل عابر ({kind}: {detail}): {kept}؛ {when}",
+  "status.awaiting": "بانتظار عملية: {list}",
+  "status.awaiting_ended": "{id} (انتهت عمليتها عند {at}؛ أمام وكيلها الفرعي حتى {until} ليعود)",
+  "status.awaiting_item": "{id} ({what}، منذ {since})",
+  "status.awaiting_mark": "بانتظار عملية",
   "status.keepalive_off": "الاستئناف التلقائي: معطّل",
   "status.keepalive_stalled": "توقّف الاستئناف التلقائي: ما زال {what}، لا شيء يعمل، {tries} رسالة بلا تقدّم (jtasks keepalive on يعيد المراقبة)",
   "status.keepalive_error": "توقّف الاستئناف التلقائي بعد خطأ: ما زال {what}، لا شيء يعمل (أرسل رسالة للمتابعة)",
@@ -4735,11 +5095,14 @@ var ar_default = {
   "validate.ok": "ok: المهام: {n}، لا أخطاء",
   "view.loading": "Tasks: جارٍ التحميل…",
   "view.lost": "فُقدت الملكية",
+  "view.needs_person": "⏸ يلزم شخص: انتهت {id} {n}× دون إكمال",
   "view.no_run": "لا تشغيل مرتبط",
   "view.no_runs": "لا تشغيل (jtasks plan)",
   "view.paused": "متوقف مؤقتًا",
   "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل",
   "view.auto_paused": "⏸ متوقف مؤقتًا ({kind}): {when}",
+  "view.awaiting": "بانتظار {what}",
+  "view.awaiting_back": "انتهت العملية؛ الوكيل الفرعي عائد",
   "transient.rate_limit": "حد الطلبات",
   "transient.quota": "حد الاستخدام أو الحصة",
   "transient.overloaded": "المزوّد مثقل",
@@ -4748,6 +5111,15 @@ var ar_default = {
   "transient.timeout": "انتهت المهلة",
   "transient.retries": "استُنفدت المحاولات",
   "view.waits_for": "تنتظر {files}",
+  "wait.alive": "حية",
+  "wait.back": "{id}: عاد وكيلها الفرعي",
+  "wait.bad_pid": "يأخذ --pid أرقام عمليات (1234 أو 1234,5678): {value}",
+  "wait.dead": "لا توجد عملية حية بين {list}: لا شيء للانتظار",
+  "wait.declared": "{id} تنتظر {list}: إذا انتهت حلقة وكيلها الفرعي في الأثناء، تبقى المهمة قيد التنفيذ مع أقفالها",
+  "wait.gone": "انتهت",
+  "wait.list": "عمليات {id}: {list}",
+  "wait.none": "لا توجد عملية مسجلة لـ {id} (jtasks exec، أو jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "ليست حية، تُركت: {list}",
   "warnings.count": "تحذيرات ({n}):",
   "yield.came_back": "استعادت {id} الملفات {files}",
   "yield.done": "تنازلت {id} عن {files} وبقيت قيد التنفيذ؛ {saved}",
@@ -4776,6 +5148,16 @@ var hi_default = {
     effect: "प्रभाव",
     undo: "पूर्ववत"
   },
+  "agent_ended.limit": "{why}, {n} बार (सीमा {max}); रन किसी व्यक्ति के लिए रोका गया",
+  "alert.agent_ended": "{id} कतार में लौटा: उसका सबएजेंट बिना पूरा किए समाप्त हुआ ({n}/{max})",
+  "alert.await": "{id} अपनी प्रक्रिया ({what}) की प्रतीक्षा में; उसके खत्म होने पर सबएजेंट लौटेगा",
+  "alert.await_ended": "{id}: उसकी प्रक्रिया समाप्त; सबएजेंट के लौटने की प्रतीक्षा",
+  "alert.by_other": "{id}: {actor} द्वारा {action}",
+  "alert.failed": "{id} विफल: {error}",
+  "alert.lost": "{id} ने अपने लॉक खो दिए और कतार में लौटा",
+  "alert.needs_person": "रन {run} रुका: {id} का सबएजेंट {n} बार बिना पूरा किए समाप्त हुआ; किसी व्यक्ति की ज़रूरत है",
+  "alert.paused_by": "रन {run} को {actor} ने रोका",
+  "alert.renew_lost": "{id}: उसके कुछ लॉक अब किसी और के पास हैं",
   "archive.already": "रन {run} पहले से {dir} में है",
   "archive.back": "रन {run} {from} से वापस लाया गया",
   "archive.busy": "{run} में कार्य प्रगति पर हैं ({tasks}); आर्काइव करने से पहले उन्हें छोड़ें",
@@ -4889,6 +5271,8 @@ var hi_default = {
   "exec.direct": "सीधे (serialize में नहीं)",
   "exec.exit": "{how}; निकास कोड {code}",
   "exec.no_command": "कमांड नहीं दी: jtasks exec -- <कमांड…>",
+  "exec.not_running": "exec --task {id}: कार्य {status} है, प्रगति में नहीं",
+  "exec.registered": "pid {pid} {id} में दर्ज",
   "exec.serialized": "jlock run {key} द्वारा क्रमबद्ध",
   "fail.done": "{id} विफल: {error}",
   "fail.no_error": 'बिना त्रुटि के fail अस्वीकृत: jtasks fail {id} --error "क्या गलत हुआ"',
@@ -4929,7 +5313,7 @@ var hi_default = {
   "help.doctor": "doctor [--fix [--yes]]                मशीन तैयार है? --fix --yes जो नहीं है उसे इंस्टॉल करता है",
   "help.done": 'done <id> --evidence "…"              git और स्वामित्व जाँचता है; स्वामित्व commit करता है; पूरा',
   "help.effects": "effects --check                       ledger की तुलना डिस्क और git से करता है",
-  "help.exec": "exec -- <command…>                    चलाता है; serialize वाली कमांड मशीन पर एक-एक करके",
+  "help.exec": "exec [--task <id>] -- <command…>      चलाता है (pid कार्य में दर्ज); serialize वाली एक-एक करके",
   "help.fail": 'fail <id> --error "…"                 विफल (इस पर निर्भर कार्य अवरुद्ध)',
   "help.gc": "gc --scan <root> [--depth 4]          केवल-पढ़ने वाली रिपोर्ट: अनाथ worktree, रन, आर्काइव",
   "help.import": "import <folder> [--check|--yes]       Markdown टिकट → एक रन (Files नहीं → exclusive)",
@@ -4945,6 +5329,7 @@ var hi_default = {
   "help.plan.fix": "  plan --fix <id> <json|@file>          ड्राफ़्ट का एक कार्य बदलता है",
   "help.plan.show": "  plan --show                           ड्राफ़्ट का सारांश",
   "help.release": "release <id>                          प्रगति में → लंबित (maxAttempts पर विफल); संपादन सहेजता है",
+  "help.release.agent_ended": "release <id> --agent-ended            होस्ट: सबएजेंट समाप्त; उसकी प्रक्रिया जीवित हो तो प्रतीक्षा",
   "help.resume": "resume <run> [--keep-owners]          सत्र बाँधता, विराम हटाता, बिना लॉक वाले कार्य छोड़ता है",
   "help.keepalive": "keepalive on|off                      तैयार कार्य हों तो होस्ट रुका लूप फिर खोलता है",
   "help.retry": "retry <id> | --all-failed             स्किप या विफल → लंबित",
@@ -4959,6 +5344,7 @@ var hi_default = {
                                         नया पहले पूर्ववत होता है (revert, branch, exclude, folder)`,
   "help.unknown": "कोई क्रिया {action} नहीं (देखें jtasks help)",
   "help.validate": "validate <json|@file|folder>          बिना लिखे योजना (या टिकटों का फ़ोल्डर) जाँचता है",
+  "help.wait": "wait <id> --pid <pid>[,…]             सबएजेंट समाप्त हो तो कार्य इस प्रक्रिया की प्रतीक्षा करे",
   "help.yield": "yield <id> [<file…>]                  केवल विवादित फ़ाइलें छोड़ता है; संपादन patch में",
   "import.check_only": "कुछ नहीं लिखा गया (--check)",
   "import.has_errors": "पढ़ी गई योजना में {n} त्रुटि(याँ):",
@@ -5034,6 +5420,7 @@ var hi_default = {
   "patch.failed": "जो patch लागू नहीं हुए (कुछ नहीं बदला; वे सहेजे रहते हैं): {list}",
   "patch.reapplied": "patch फिर लागू किए गए: {files}",
   "plan.absolute_path": "{path}: रिपॉज़िटरी के सापेक्ष पथ इस्तेमाल करें",
+  "plan.await_grace": '"awaitGrace" 5m या 1h जैसी अवधि होनी चाहिए',
   "plan.branch": '"branch" "run" या "current" होना चाहिए',
   "plan.branch_exists": "ब्रांच {branch} पहले से मौजूद है",
   "plan.covers": "({outer} में {inner} शामिल है)",
@@ -5045,6 +5432,7 @@ var hi_default = {
   "plan.empty_path": '"files" में खाली पथ',
   "plan.hold_ttl": '"holdTtl" 30m, 2h या 1d जैसी अवधि होनी चाहिए',
   "plan.keepalive": '"keepalive" true या false होना चाहिए',
+  "plan.max_agent_ended": '"maxAgentEnded" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.max_attempts": '"maxAttempts" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.missing_dependency": "{id} {dep} पर निर्भर है, जो मौजूद नहीं है",
   "plan.must_be_text": '"{field}" टेक्स्ट होना चाहिए',
@@ -5087,9 +5475,13 @@ var hi_default = {
   "progress.skipped_one": "{n} स्किप किया गया",
   "progress.skipped_other": "{n} स्किप किए गए",
   "release.agent_ended": "सबएजेंट बिना पूरा किए समाप्त हो गया",
+  "release.await_expired": "प्रक्रिया समाप्त होने के बाद सबएजेंट नहीं लौटा",
+  "release.awaiting": "{id} प्रगति में रहता है, अपनी प्रक्रिया ({what}) की प्रतीक्षा में: कोई प्रयास खर्च नहीं, लॉक बरकरार",
+  "release.ended_pending": "लंबित में लौटा (सबएजेंट बिना पूरा किए समाप्त {n}/{max}; कोई प्रयास खर्च नहीं)",
   "release.failed": "स्वामित्व वापस नहीं हुआ ({message}); jlock release --group {run} --owner {owner} चलाएँ",
   "release.failed_now": "विफल: {error}",
   "release.given_back": "स्वामित्व लौटाया गया",
+  "release.needs_person": "रन {run} रुका: किसी व्यक्ति की ज़रूरत है ({id} देखें; फिर jtasks retry {id} और jtasks unpause)",
   "release.pending": "लंबित में लौटा (प्रयास {attempts}/{max})",
   "release.released": "छोड़ा गया",
   "resume.bound": "रन {run} इस सत्र में फिर शुरू हुआ",
@@ -5140,9 +5532,14 @@ var hi_default = {
   "status.locks": "सक्रिय लॉक (jlock --group {run}): {list}",
   "status.lost": "स्वामित्व खोया: {list}",
   "status.lost_task": "{id} (jlock में लॉक नहीं: jtasks resume या jtasks release {id})",
+  "status.needs_person": "किसी व्यक्ति की ज़रूरत: {id} का सबएजेंट {n} बार बिना पूरा किए समाप्त (सीमा {max}); jtasks retry {id}, फिर jtasks unpause",
   "status.no_locks": "सक्रिय लॉक: कोई नहीं",
   "status.paused": "रुका हुआ: कार्य शुरू न करें",
   "status.auto_paused": "अस्थायी विफलता ({kind}: {detail}): {kept}; {when}",
+  "status.awaiting": "प्रक्रिया की प्रतीक्षा: {list}",
+  "status.awaiting_ended": "{id} (प्रक्रिया {at} पर समाप्त; सबएजेंट के पास लौटने के लिए {until} तक समय)",
+  "status.awaiting_item": "{id} ({what}, {since} से)",
+  "status.awaiting_mark": "प्रक्रिया की प्रतीक्षा",
   "status.keepalive_off": "स्वतः पुनरारंभ: बंद",
   "status.keepalive_stalled": "स्वतः पुनरारंभ ने हार मानी: {what} बाकी, कुछ नहीं चल रहा, {tries} संदेश बिना प्रगति के (jtasks keepalive on फिर निगरानी करता है)",
   "status.keepalive_error": "त्रुटि के बाद स्वतः पुनरारंभ रुका: {what} बाकी, कुछ नहीं चल रहा (आगे बढ़ने के लिए संदेश भेजें)",
@@ -5199,11 +5596,14 @@ var hi_default = {
   "validate.ok": "ok: {n} कार्य, कोई त्रुटि नहीं",
   "view.loading": "Tasks: लोड हो रहा है…",
   "view.lost": "स्वामित्व खोया",
+  "view.needs_person": "⏸ व्यक्ति चाहिए: {id} {n}× बिना पूरा किए समाप्त",
   "view.no_run": "कोई बँधा रन नहीं",
   "view.no_runs": "कोई रन नहीं (jtasks plan)",
   "view.paused": "रुका हुआ",
   "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा",
   "view.auto_paused": "⏸ रुका हुआ ({kind}): {when}",
+  "view.awaiting": "{what} की प्रतीक्षा",
+  "view.awaiting_back": "प्रक्रिया समाप्त; सबएजेंट लौट रहा है",
   "transient.rate_limit": "अनुरोध सीमा",
   "transient.quota": "उपयोग सीमा या कोटा",
   "transient.overloaded": "प्रदाता ओवरलोड",
@@ -5212,6 +5612,15 @@ var hi_default = {
   "transient.timeout": "समय समाप्त",
   "transient.retries": "पुनःप्रयास समाप्त",
   "view.waits_for": "{files} की प्रतीक्षा",
+  "wait.alive": "जीवित",
+  "wait.back": "{id}: सबएजेंट लौट आया",
+  "wait.bad_pid": "--pid प्रक्रिया संख्याएँ लेता है (1234 या 1234,5678): {value}",
+  "wait.dead": "{list} में कोई जीवित प्रक्रिया नहीं: प्रतीक्षा के लिए कुछ नहीं",
+  "wait.declared": "{id} {list} की प्रतीक्षा करता है: इस बीच सबएजेंट का लूप समाप्त हो तो कार्य अपने लॉक के साथ प्रगति में रहता है",
+  "wait.gone": "समाप्त",
+  "wait.list": "{id} की प्रक्रियाएँ: {list}",
+  "wait.none": "{id} की कोई दर्ज प्रक्रिया नहीं (jtasks exec, या jtasks wait {id} --pid <pid>)",
+  "wait.not_alive": "जीवित नहीं, छोड़ी गईं: {list}",
   "warnings.count": "{n} चेतावनी:",
   "yield.came_back": "{id} ने {files} वापस लीं",
   "yield.done": "{id} ने {files} छोड़ीं और प्रगति में बना है; {saved}",
@@ -5317,7 +5726,7 @@ function width(text) {
 
 // src/validate.ts
 var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"]);
 var GLOB = /[*?[\]{}]/;
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
@@ -5403,6 +5812,18 @@ function readPlan(raw) {
       plan.maxAttempts = obj.maxAttempts;
     else
       errors.push(tr("plan.max_attempts"));
+  }
+  if (obj.maxAgentEnded !== undefined) {
+    if (typeof obj.maxAgentEnded === "number" && Number.isInteger(obj.maxAgentEnded) && obj.maxAgentEnded >= 1)
+      plan.maxAgentEnded = obj.maxAgentEnded;
+    else
+      errors.push(tr("plan.max_agent_ended"));
+  }
+  if (obj.awaitGrace !== undefined) {
+    if (typeof obj.awaitGrace === "string" && DURATION.test(obj.awaitGrace))
+      plan.awaitGrace = obj.awaitGrace;
+    else
+      errors.push(tr("plan.await_grace"));
   }
   if (obj.holdTtl !== undefined) {
     if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl))
@@ -6134,7 +6555,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.2.0";
+var VERSION = "0.3.0";
 
 class ToolError extends Error {
   code;
@@ -6404,12 +6825,14 @@ function protocolText(run, summary, spawn, notes = []) {
     `jtasks: bound run ${run} · ${summary}`,
     "Protocol:",
     "1. Call jtasks next.",
-    `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' + 'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
+    `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' + "run a long command (a test suite, a build) with jtasks exec --task <id> -- <command>, and before ending your turn to wait for a process " + "you left running in the background, declare it with jtasks wait <id> --pid <pid>; " + 'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
     "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
     "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move.",
     "7. If a subagent dies on a provider failure that clears by itself (a usage or rate limit, an overloaded server, the network), the host pauses the run and keeps its task in " + "progress with its locks: do not release it and do not open another subagent for it; when the run is active again, resume that same subagent.",
+    '8. A task "waiting for a process" (jtasks status) is in progress: its subagent ended its loop to wait for a command it left running and comes back ' + "when it ends. Do not release it, do not open another subagent for it, do not do it yourself; go on with the other tasks. If the host says the " + "process ended and the subagent did not come back, resume that same subagent; one that never comes back counts as ended without finishing.",
+    `9. A message that starts with "jtasks: run <id> changed without your asking" is a fact read from the run's log (a subagent ended, a task went back ` + "to the queue, failed, or waits for a process, a lock was lost, the run paused for a person): act on it now (jtasks next; or, paused, tell the user and stop). " + "Every notification of a subagent's end carries the run's status line read at that moment: trust it over the conversation's summary.",
     ...notes
   ].join(`
 `);
@@ -6577,6 +7000,8 @@ async function createRun(ctx, plan, options = {}) {
     worktrees: { policy: "none" },
     serialize: plan.serialize ?? [],
     maxAttempts: plan.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+    maxAgentEnded: plan.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED,
+    awaitGrace: plan.awaitGrace ?? DEFAULT_AWAIT_GRACE,
     holdTtl: plan.holdTtl ?? DEFAULT_HOLD_TTL,
     keepalive: plan.keepalive !== false,
     ...plan.shared?.length ? { shared: plan.shared } : {},
@@ -6712,6 +7137,10 @@ function draftPlan(draft) {
     plan.serialize = draft.serialize;
   if (draft.maxAttempts !== undefined)
     plan.maxAttempts = draft.maxAttempts;
+  if (draft.maxAgentEnded !== undefined)
+    plan.maxAgentEnded = draft.maxAgentEnded;
+  if (draft.awaitGrace !== undefined)
+    plan.awaitGrace = draft.awaitGrace;
   if (draft.holdTtl !== undefined)
     plan.holdTtl = draft.holdTtl;
   if (draft.keepalive !== undefined)
@@ -6793,7 +7222,7 @@ async function draftAdd(ctx, args) {
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"])
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx, dir, next);
@@ -7281,7 +7710,7 @@ function keepaliveDecision(input) {
   if (input.liveAgents > 0)
     return { action: "none", reason: "agents-running" };
   const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id);
-  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && isOrphan(t.owner, input.actor)).map((t) => t.id);
+  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor)).map((t) => t.id);
   if (!ready.length && !orphans.length)
     return { action: "none", reason: "nothing-ready" };
   const signature = progressSignature(state.tasks);
@@ -8092,6 +8521,113 @@ async function claimStats(host, state, describe) {
   return [...byFile.values()].sort((a, b) => weight(b) - weight(a) || total(b) - total(a) || a.file.localeCompare(b.file));
 }
 
+// src/procs.ts
+function parseTasklist(text, pid) {
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^"([^"]*)","(\d+)"/.exec(line.trim());
+    if (m && Number(m[2]) === pid)
+      return { alive: true, image: m[1] };
+  }
+  return { alive: false };
+}
+function base(path) {
+  return path.replace(/\\/g, "/").split("/").pop() ?? path;
+}
+async function probe(host, pid, withImage = false) {
+  if (!Number.isInteger(pid) || pid <= 0)
+    return { alive: false };
+  if (!withImage && host.alive) {
+    const alive = await host.alive(pid).catch(() => {
+      return;
+    });
+    if (alive !== undefined)
+      return { alive };
+  }
+  if (host.platform === "win32") {
+    const r2 = await host.run(["tasklist", "/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { timeoutMs: 15000 });
+    return r2.code === 0 ? parseTasklist(r2.stdout, pid) : { alive: undefined };
+  }
+  const r = await host.run(["ps", "-p", String(pid), "-o", "comm="], { timeoutMs: 15000 });
+  if (r.code === 127)
+    return { alive: undefined };
+  const name = r.stdout.trim();
+  return r.code === 0 && name ? { alive: true, image: base(name) } : { alive: false };
+}
+async function procAlive(host, proc) {
+  const p = await probe(host, proc.pid, !!proc.image);
+  if (p.alive !== true)
+    return p.alive;
+  if (proc.image && p.image && p.image.toLowerCase() !== proc.image.toLowerCase())
+    return false;
+  return true;
+}
+async function liveProcs(host, procs) {
+  const out = [];
+  for (const p of procs)
+    if (await procAlive(host, p).catch(() => {
+      return;
+    }) === true)
+      out.push(p);
+  return out;
+}
+function shortCommand(command, max = 120) {
+  const one = command.trim().replace(/\s+/g, " ");
+  return one.length > max ? `${one.slice(0, max - 1)}…` : one;
+}
+async function registerProcs(host, dir, taskId, procs, actor) {
+  return withLock(host, dir, async () => {
+    const tasks = await readTasks(host, dir);
+    if (!tasks)
+      return;
+    const copy = clone(tasks);
+    const task = copy.tasks.find((t) => t.id === taskId);
+    if (!task || task.status !== "in_progress")
+      return;
+    const pids = new Set(procs.map((p) => p.pid));
+    task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs];
+    const back = !!task.awaiting;
+    delete task.awaiting;
+    await writeTasks(host, dir, copy, tasks.revision);
+    const at = host.now().toISOString();
+    if (back)
+      await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {});
+    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec" }).catch(() => {});
+    return task;
+  });
+}
+async function unregisterProcs(host, dir, taskId, pids) {
+  await withLock(host, dir, async () => {
+    const tasks = await readTasks(host, dir);
+    const task = tasks?.tasks.find((t2) => t2.id === taskId);
+    if (!tasks || !task?.procs?.some((p) => pids.includes(p.pid)))
+      return;
+    const copy = clone(tasks);
+    const t = copy.tasks.find((x) => x.id === taskId);
+    t.procs = t.procs.filter((p) => !pids.includes(p.pid));
+    if (!t.procs.length)
+      delete t.procs;
+    await writeTasks(host, dir, copy, tasks.revision);
+  });
+}
+function awaitGraceMs(run, fallback) {
+  const m = /^(\d+)(ms|s|m|h|d)$/.exec((run.awaitGrace ?? fallback).trim());
+  if (!m)
+    return 5 * 60000;
+  return Number(m[1]) * { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }[m[2]];
+}
+function awaitingWhat(task) {
+  const a = task.awaiting;
+  if (!a)
+    return "";
+  const parts = a.pids.map((pid) => {
+    const p = task.procs?.find((x) => x.pid === pid);
+    return p ? `pid ${pid} (${shortCommand(p.command, 60)})` : `pid ${pid}`;
+  });
+  if (a.host)
+    parts.push(shortCommand(a.host, 80));
+  return parts.join(", ");
+}
+
 // src/actions.ts
 async function resolveRun(ctx, args) {
   const root = await requireRepo(ctx.host, ctx.cwd);
@@ -8111,6 +8647,12 @@ async function resolveRun(ctx, args) {
   if (!entry.tasks)
     throw new ToolError(tr("run.no_tasks", { run: entry.run.id }));
   return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks };
+}
+async function sweptRun(ctx, args) {
+  const state = await resolveRun(ctx, args);
+  if (!state.tasks.tasks.some((t) => t.status === "in_progress" && t.awaiting))
+    return state;
+  return (await sweepAwaiting(ctx, state.run.id)).length ? reload(ctx, state) : state;
 }
 async function reload(ctx, state) {
   const run = await readRun(ctx.host, state.dir);
@@ -8210,7 +8752,7 @@ async function releaseHolds(ctx, run, task) {
   return released.keys;
 }
 defineAction("next", async (ctx, args) => {
-  const found = await resolveRun(ctx, args);
+  const found = await sweptRun(ctx, args);
   const back = await retakeYielded(ctx, found);
   const state = back.length ? await reload(ctx, found) : found;
   const platform = ctx.host.platform;
@@ -8369,6 +8911,9 @@ async function statusOf(ctx, state) {
   const lines = [progressLine(state.tasks.tasks)];
   if (state.run.status === "paused")
     lines.push(tr("status.paused"));
+  const needs = state.run.status === "paused" ? state.run.needsPerson : undefined;
+  if (needs)
+    lines.push(tr("status.needs_person", { id: needs.task, n: needs.count, max: needs.max }));
   const pause = state.run.status === "paused" ? state.run.pause : undefined;
   if (pause)
     lines.push(pauseStatusLine(pause, ctx.host.now()));
@@ -8380,6 +8925,9 @@ async function statusOf(ctx, state) {
   const waiting = waitingOf(state, [...byKey.values()]);
   if (running.length)
     lines.push(tr("status.running", { list: running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ") }));
+  const awaiting = running.filter((t) => t.awaiting);
+  if (awaiting.length)
+    lines.push(tr("status.awaiting", { list: awaiting.map((t) => awaitingLine(t, state.run, ctx.host.now())).join(" · ") }));
   if (waiting.size)
     lines.push(tr("frontier.waiting_list", { list: [...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ") }));
   if (ready.length)
@@ -8420,13 +8968,22 @@ async function statusOf(ctx, state) {
       status: state.run.status,
       keepalive: state.run.keepalive !== false,
       counts: counts(state.tasks.tasks),
-      inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null })),
+      inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null, awaiting: t.awaiting ?? null })),
       ready: ready.map((t) => t.id),
       blocked: blocked.map((a) => ({ id: a.task.id, reasons: a.blockers.map((b) => blockerText(b, state, platform)) })),
       locks,
-      ...pause ? { pause } : {}
+      ...pause ? { pause } : {},
+      ...needs ? { needsPerson: needs } : {}
     }
   };
+}
+function awaitingLine(task, run, now) {
+  const a = task.awaiting;
+  if (a.endedAt) {
+    const until = new Date(Date.parse(a.endedAt) + awaitGraceMs(run, DEFAULT_AWAIT_GRACE)).toISOString();
+    return tr("status.awaiting_ended", { id: task.id, at: formatWhen(a.endedAt, now), until: formatWhen(until, now) });
+  }
+  return tr("status.awaiting_item", { id: task.id, what: awaitingWhat(task), since: formatWhen(a.since, now) });
 }
 function pauseStatusLine(pause, now) {
   const kept = pause.tasks.length ? tr("pause.kept", { list: pause.tasks.map((t) => t.id).join(", ") }) : tr("pause.kept_none");
@@ -8434,7 +8991,7 @@ function pauseStatusLine(pause, now) {
   return tr("status.auto_paused", { kind: kindLabel(pause.kind), detail: pause.detail, kept, when });
 }
 defineAction("status", async (ctx, args) => {
-  const state = await resolveRun(ctx, args);
+  const state = await sweptRun(ctx, args);
   const s = await statusOf(ctx, state);
   if (!args.options.claims)
     return ok(s.text, s.data);
@@ -8582,6 +9139,11 @@ function closeTask(task, status2, now) {
   task.owner = null;
   task.finishedAt = now;
   delete task.holds;
+  leaveProgress(task);
+}
+function leaveProgress(task) {
+  delete task.procs;
+  delete task.awaiting;
 }
 async function keepTask(ctx, state, task) {
   const changed = await changedUnder(ctx.host, state, ownKeys(state, task, ctx.host.platform));
@@ -8719,6 +9281,7 @@ defineAction("claim", async (ctx, args) => {
       const t = copy.tasks.find((x) => x.id === task.id);
       if (t.status !== "in_progress")
         throw new ToolError(tr("claim.left", { id: task.id, status: t.status }));
+      delete t.awaiting;
       const back = takeBackEntries(t, keys, state.root, platform);
       const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f));
       if (more.length)
@@ -8862,6 +9425,7 @@ defineAction("yield", async (ctx, args) => {
     const t = copy.tasks.find((x) => x.id === task.id);
     if (t.status !== "in_progress")
       throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }));
+    delete t.awaiting;
     const changed = await changedUnder(ctx.host, state, wanted);
     const { mine, untouched } = await ownFiles(ctx.host, state, t, changed);
     const report = await keepEdits(ctx.host, state, t, mine, "yield");
@@ -9024,6 +9588,7 @@ defineAction("fail", async (ctx, args) => {
 function backToPending(task, maxAttempts, why, now) {
   task.owner = null;
   delete task.holds;
+  leaveProgress(task);
   if (task.attempts >= maxAttempts) {
     task.status = "failed";
     task.error = tr("attempts.exhausted", { why, attempts: task.attempts, max: maxAttempts });
@@ -9035,14 +9600,15 @@ function backToPending(task, maxAttempts, why, now) {
   return "pending";
 }
 defineAction("release", async (ctx, args) => {
+  if (args.options["agent-ended"])
+    return agentEndedAnswer(await agentEnded(ctx, args, { waiting: textArg(args, "waiting") }));
   let kept = NOTHING_KEPT;
   let to = "pending";
-  const ended = !!args.options["agent-ended"];
-  const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
+  const t = await transition(ctx, args, "release", async (task, state) => {
     if (task.status !== "in_progress")
       throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
     kept = await keepTask(ctx, state, task);
-    to = backToPending(task, state.run.maxAttempts, tr(ended ? "release.agent_ended" : "release.released"), ctx.host.now().toISOString());
+    to = backToPending(task, state.run.maxAttempts, tr("release.released"), ctx.host.now().toISOString());
     return keptLog(kept);
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
@@ -9056,10 +9622,199 @@ defineAction("release", async (ctx, args) => {
     ...keptLog(kept)
   });
 }, "help.release");
+addUsage("help.release.agent_ended");
+async function agentEnded(ctx, args, opts = {}) {
+  const first = await resolveRun(ctx, args);
+  const before = findTask(first, taskIdArg(args));
+  const live = opts.expired ? [] : await liveProcs(ctx.host, before.procs ?? []);
+  const waiting = opts.expired ? undefined : opts.waiting;
+  const waits = live.length > 0 || !!waiting;
+  let outcome = waits ? "awaiting" : "pending";
+  let kept = NOTHING_KEPT;
+  let count = 0;
+  let max = DEFAULT_MAX_AGENT_ENDED;
+  const t = await transition(ctx, args, waits ? "await" : "agent-ended", async (task, state) => {
+    if (task.status !== "in_progress")
+      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
+    if (opts.expired && !task.awaiting)
+      throw new ToolError(tr("wait.back", { id: task.id }));
+    const now = ctx.host.now().toISOString();
+    max = state.run.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED;
+    count = task.agentEnded ?? 0;
+    if (waits) {
+      const agent = ctx.agent ?? task.awaiting?.agent ?? agentOfOwner(task.owner);
+      const awaiting = { since: now, pids: live.map((p) => p.pid) };
+      if (agent)
+        awaiting.agent = agent;
+      if (waiting)
+        awaiting.host = waiting;
+      task.awaiting = awaiting;
+      return { pids: awaiting.pids, ...waiting ? { host: waiting } : {}, ...agent ? { agent } : {} };
+    }
+    kept = await keepTask(ctx, state, task);
+    count += 1;
+    task.agentEnded = count;
+    task.attempts = Math.max(0, task.attempts - 1);
+    const why = tr(opts.expired ? "release.await_expired" : "release.agent_ended");
+    if (count >= max) {
+      closeTask(task, "failed", now);
+      task.error = tr("agent_ended.limit", { why, n: count, max });
+      await writeRun(ctx.host, state.dir, { ...state.run, status: "paused", needsPerson: { reason: "agent-ended", task: task.id, count, max, at: now } });
+      outcome = "limit";
+    } else {
+      task.owner = null;
+      delete task.holds;
+      leaveProgress(task);
+      task.status = "pending";
+      delete task.startedAt;
+    }
+    return { agentEnded: count, max, ...opts.expired ? { expired: true } : {}, ...outcome === "limit" ? { paused: true } : {}, ...keptLog(kept) };
+  });
+  const released = outcome === "awaiting" ? "" : await giveBack(ctx, t.state.run.id, t.task.id);
+  const back = outcome === "awaiting" ? [] : retakenLines(await retakeYielded(ctx, t.state));
+  return { outcome, task: t.task, tasks: t.tasks, state: t.state, kept, count, max, released, back };
+}
+function agentEndedAnswer(e) {
+  const id = e.task.id;
+  const lines = [];
+  if (e.outcome === "awaiting")
+    lines.push(tr("release.awaiting", { id, what: awaitingWhat(e.task) }));
+  else if (e.outcome === "limit")
+    lines.push(`${id} ${tr("release.failed_now", { error: e.task.error ?? "" })}; ${e.released}${keptNote(e.kept)}`, tr("release.needs_person", { run: e.state.run.id, id }));
+  else
+    lines.push(`${id} ${tr("release.ended_pending", { n: e.count, max: e.max })}; ${e.released}${keptNote(e.kept)}`);
+  lines.push(progressLine(e.tasks.tasks), ...e.back);
+  return ok(lines.join(`
+`), {
+    run: e.state.run.id,
+    task: id,
+    status: e.task.status,
+    outcome: e.outcome,
+    agentEnded: e.count,
+    maxAgentEnded: e.max,
+    ...e.task.awaiting ? { awaiting: e.task.awaiting } : {},
+    ...keptLog(e.kept)
+  });
+}
+async function awaitBack(ctx, run, taskId, how) {
+  let first;
+  try {
+    first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } });
+  } catch {
+    return false;
+  }
+  if (!first.tasks.tasks.some((t) => t.id === taskId && t.awaiting))
+    return false;
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const copy = clone(state.tasks);
+    const t = copy.tasks.find((x) => x.id === taskId);
+    if (!t?.awaiting || t.status !== "in_progress")
+      return false;
+    delete t.awaiting;
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+    await writeTicket(ctx.host, state.dir, tasks, t.id);
+    await log(ctx, state, { action: "await-back", task: t.id, how });
+    return true;
+  });
+}
+async function sweepAwaiting(ctx, run, host) {
+  let first;
+  try {
+    first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } });
+  } catch {
+    return [];
+  }
+  const out = [];
+  const grace = awaitGraceMs(first.run, DEFAULT_AWAIT_GRACE);
+  for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && t.awaiting)) {
+    const a = task.awaiting;
+    try {
+      let alive = a.host && host ? await host(task).catch(() => {
+        return;
+      }) : undefined;
+      if (alive === undefined) {
+        if (a.host && !host && !a.pids.length)
+          continue;
+        const procs = a.pids.map((pid) => task.procs?.find((p) => p.pid === pid) ?? { pid, startedAt: a.since, command: "", by: "wait" });
+        alive = (await liveProcs(ctx.host, procs)).length > 0;
+      }
+      if (alive)
+        continue;
+      const now = ctx.host.now();
+      let endedAt = a.endedAt;
+      if (!endedAt) {
+        const at = now.toISOString();
+        endedAt = at;
+        const marked = await withLock(ctx.host, first.dir, async () => {
+          const state = await reload(ctx, first);
+          const copy = clone(state.tasks);
+          const t = copy.tasks.find((x) => x.id === task.id);
+          if (!t?.awaiting || t.status !== "in_progress" || t.awaiting.endedAt)
+            return false;
+          t.awaiting.endedAt = at;
+          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+          await log(ctx, state, { action: "await-ended", task: t.id, pids: t.awaiting.pids, ...t.awaiting.agent ? { agent: t.awaiting.agent } : {}, grace: first.run.awaitGrace ?? DEFAULT_AWAIT_GRACE });
+          return true;
+        });
+        if (marked)
+          out.push({ task: task.id, what: "ended", ...a.agent ? { agent: a.agent } : {} });
+      }
+      if (now.getTime() - Date.parse(endedAt) < grace)
+        continue;
+      await agentEnded({ ...ctx, ...a.agent ? { agent: a.agent } : {} }, { action: "release", positionals: [task.id], options: { run } }, { expired: true });
+      out.push({ task: task.id, what: "expired", ...a.agent ? { agent: a.agent } : {} });
+    } catch {}
+  }
+  return out;
+}
+defineAction("wait", async (ctx, args) => {
+  const first = await resolveRun(ctx, args);
+  const task = findTask(first, taskIdArg(args));
+  if (task.status !== "in_progress")
+    throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
+  const raw = typeof args.options.pid === "string" ? args.options.pid : undefined;
+  if (!raw) {
+    const list = [];
+    for (const p of task.procs ?? [])
+      list.push(`${p.pid} ${shortCommand(p.command, 60)} (${tr(await procAlive(ctx.host, p) ? "wait.alive" : "wait.gone")})`);
+    return ok(list.length ? tr("wait.list", { id: task.id, list: list.join(" · ") }) : tr("wait.none", { id: task.id }), { task: task.id, procs: task.procs ?? [] });
+  }
+  const parts = raw.split(",").map((x) => x.trim()).filter(Boolean);
+  const bad = parts.find((p) => !/^\d+$/.test(p));
+  if (bad || !parts.length)
+    throw new ToolError(tr("wait.bad_pid", { value: bad ?? raw }), 2);
+  const now = ctx.host.now().toISOString();
+  const label2 = textArg(args, "command");
+  const procs = [];
+  const dead = [];
+  for (const pid of parts.map(Number)) {
+    const seen = await probe(ctx.host, pid, true);
+    if (seen.alive !== true) {
+      dead.push(pid);
+      continue;
+    }
+    const proc = { pid, startedAt: now, command: shortCommand(label2 ?? seen.image ?? `pid ${pid}`), by: "wait" };
+    if (seen.image)
+      proc.image = seen.image;
+    procs.push(proc);
+  }
+  if (!procs.length)
+    throw new ToolError(tr("wait.dead", { list: dead.join(", ") }));
+  const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx));
+  if (!t)
+    throw new ToolError(tr("task.not_running", { id: task.id, status: "?" }));
+  const lines = [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })];
+  if (dead.length)
+    lines.push(tr("wait.not_alive", { list: dead.join(", ") }));
+  return ok(lines.join(`
+`), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead });
+}, "help.wait");
 function reopen(task) {
   if (task.status !== "skipped" && task.status !== "failed")
     throw new ToolError(tr("retry.cannot", { id: task.id, status: task.status }));
   task.status = "pending";
+  delete task.agentEnded;
   delete task.reason;
   delete task.error;
   delete task.finishedAt;
@@ -9107,6 +9862,8 @@ async function setPaused(ctx, args, paused) {
     const from = state.run.status;
     const status2 = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
     const run = { ...state.run, status: status2 };
+    if (!paused)
+      delete run.needsPerson;
     if (paused && run.pause?.resumeAt) {
       const { resumeAt: _gone, ...pause } = run.pause;
       run.pause = pause;
@@ -9127,8 +9884,11 @@ async function leavePause(ctx, first, opts = {}) {
       return;
     if (opts.due && (!pause.resumeAt || Date.parse(pause.resumeAt) > opts.due.getTime()))
       return;
+    if (opts.auto && state.run.needsPerson)
+      return;
     const run = { ...state.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" };
     delete run.pause;
+    delete run.needsPerson;
     const signature = progressSignature(state.tasks);
     if (opts.auto)
       run.pauseStreak = { signature, n: state.run.pauseStreak?.signature === signature ? state.run.pauseStreak.n + 1 : 1 };
@@ -9190,6 +9950,7 @@ defineAction("resume", async (ctx, args) => {
       run.status = counts(state2.tasks.tasks).remaining === 0 ? "done" : "active";
     const transient = state2.run.status === "paused" && !!state2.run.pause;
     delete run.pause;
+    delete run.needsPerson;
     if (ctx.session && !run.sessions.some((s2) => s2.tool === ctx.tool && s2.id === ctx.session))
       run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }];
     const copy = clone(state2.tasks);
@@ -9267,6 +10028,18 @@ function serializeKey(root, entry) {
   const repo = root.replace(/[\/]+$/, "").split(/[\/]/).pop() ?? "repo";
   return `name:gt/${slugify(repo, 40)}/${slugify(entry, 60)}`;
 }
+function execTask(ctx, state, args) {
+  const id = typeof args.options.task === "string" ? args.options.task : undefined;
+  if (id) {
+    const task = findTask(state, id);
+    if (task.status !== "in_progress")
+      throw new ToolError(tr("exec.not_running", { id, status: task.status }));
+    return task;
+  }
+  const actor = actorOf(ctx);
+  const mine = state.tasks.tasks.filter((t) => t.status === "in_progress" && t.owner === actor);
+  return mine.length === 1 ? mine[0] : undefined;
+}
 defineAction("exec", async (ctx, args) => {
   const argv = args.positionals;
   if (!argv.length)
@@ -9291,11 +10064,36 @@ defineAction("exec", async (ctx, args) => {
     "--",
     ...argv
   ] : [...argv];
-  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60000, env: jlockEnv() });
+  const target = state ? execTask(ctx, state, args) : undefined;
+  const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : 10 * 60000;
+  const pids = [];
+  let registering;
+  const onStart = state && target ? (pid) => {
+    pids.push(pid);
+    registering = (async () => {
+      const seen = await probe(ctx.host, pid, true).catch(() => ({ alive: undefined, image: undefined }));
+      const proc = { pid, startedAt: ctx.host.now().toISOString(), command: shortCommand(command), by: "exec" };
+      if (seen.image)
+        proc.image = seen.image;
+      await registerProcs(ctx.host, state.dir, target.id, [proc], actorOf(ctx));
+    })().catch(() => {
+      return;
+    });
+  } : undefined;
+  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs, env: jlockEnv(), ...onStart ? { onStart } : {} });
+  await registering;
+  if (state && target && pids.length)
+    await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {});
   const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct");
+  const registered = target && pids.length ? `; ${tr("exec.registered", { pid: pids[0], id: target.id })}` : "";
   const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "");
-  return { ok: r.code === 0, code: r.code, text: `${output}${output ? `
-` : ""}[${tr("exec.exit", { how, code: r.code })}]`, data: { code: r.code, serialized: !!entry } };
+  return {
+    ok: r.code === 0,
+    code: r.code,
+    text: `${output}${output ? `
+` : ""}[${tr("exec.exit", { how, code: r.code })}${registered}]`,
+    data: { code: r.code, serialized: !!entry, ...target ? { task: target.id } : {}, ...pids.length ? { pid: pids[0] } : {} }
+  };
 }, "help.exec");
 defineAction("ledger", async (ctx, args) => {
   const insensitive = caseInsensitive(ctx.host.platform);
@@ -9351,17 +10149,17 @@ async function undoEffect(ctx, root, e, force) {
       const branch = e.ref;
       if (!await branchExists(host, root, branch))
         return tr("undo.no_branch", { id: e.id, branch });
-      const base = e.from ?? "main";
-      if (!force && !await isMerged(host, root, branch, base))
-        throw new ToolError(tr("undo.unmerged", { id: e.id, branch, base }));
+      const base2 = e.from ?? "main";
+      if (!force && !await isMerged(host, root, branch, base2))
+        throw new ToolError(tr("undo.unmerged", { id: e.id, branch, base: base2 }));
       if (await currentBranch(host, root) === branch) {
         const dirty = dirtyFiles(await status(host, root));
         if (dirty.length)
           throw new ToolError(tr("undo.branch_dirty", { id: e.id, branch, files: dirty.join(", ") }));
-        await gitOk(host, root, ["switch", "-q", base]);
+        await gitOk(host, root, ["switch", "-q", base2]);
       }
       await gitOk(host, root, ["branch", "-D", branch]);
-      return tr("undo.branch_removed", { id: e.id, branch, base });
+      return tr("undo.branch_removed", { id: e.id, branch, base: base2 });
     }
     case "remove-line": {
       const others = (await host.list(runsDir(root))).filter((d) => d.kind === "dir" && d.name !== e.run);
@@ -9730,6 +10528,150 @@ async function renewRun(ctx, run, mine, every = RENEW_EVERY_MS) {
   await retakeYielded(ctx, first, (t) => !!t.owner && mine(t.owner));
   return out;
 }
+// src/alerts.ts
+var ALWAYS = new Set(["agent-ended", "await", "await-ended", "lost", "renew-lost"]);
+var FOREIGN = new Set(["pause", "fail", "release", "skip", "resume-release"]);
+function isAlert(entry, actor) {
+  const action = String(entry.action ?? "");
+  if (ALWAYS.has(action))
+    return true;
+  const by = String(entry.actor ?? "");
+  const own = by === actor || by.startsWith(`${actor}/`);
+  if (own)
+    return false;
+  return entry.to === "failed" && action !== "fail" || FOREIGN.has(action);
+}
+var LOG = "log.jsonl";
+async function logEnd(host, root, run) {
+  return (await host.readText(join(runDir(root, run), LOG)).catch(() => {
+    return;
+  }) ?? "").length;
+}
+async function readAlerts(host, root, run, offset, actor) {
+  const text = await host.readText(join(runDir(root, run), LOG)).catch(() => {
+    return;
+  }) ?? "";
+  if (text.length < offset)
+    return { entries: [], offset: text.length };
+  const fresh = text.slice(offset);
+  const end = fresh.lastIndexOf(`
+`) + 1;
+  const entries = [];
+  for (const line of fresh.slice(0, end).split(`
+`)) {
+    if (!line.trim())
+      continue;
+    try {
+      const entry = JSON.parse(line);
+      if (isAlert(entry, actor))
+        entries.push(entry);
+    } catch {}
+  }
+  return { entries, offset: offset + end };
+}
+function briefStatus(run, tasks) {
+  const parts = [progressLine(tasks.tasks)];
+  if (run.status === "paused") {
+    const n = run.needsPerson;
+    parts.push(n ? tr("status.needs_person", { id: n.task, n: n.count, max: n.max }) : tr("status.paused"));
+  }
+  const running = tasks.tasks.filter((t) => t.status === "in_progress");
+  if (running.length)
+    parts.push(tr("status.running", { list: running.map((t) => t.awaiting ? `${t.id} (${tr("status.awaiting_mark")})` : t.id).join(", ") }));
+  const failed = tasks.tasks.filter((t) => t.status === "failed");
+  if (failed.length)
+    parts.push(tr("status.failed", { list: failed.map((t) => t.id).join(", ") }));
+  return parts.join(" · ");
+}
+async function readBrief(host, root, runId2) {
+  const dir = runDir(root, runId2);
+  const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => {
+    return;
+  }), readTasks(host, dir).catch(() => {
+    return;
+  })]);
+  return run && tasks ? briefStatus(run, tasks) : undefined;
+}
+function list(value) {
+  return Array.isArray(value) ? value.join(", ") : "";
+}
+function alertLine(e, tasks, tool, grace) {
+  const id = String(e.task ?? "");
+  const task = tasks.find((t) => t.id === id);
+  const agent = typeof e.agent === "string" ? e.agent : task?.awaiting?.agent;
+  switch (e.action) {
+    case "await": {
+      const what = task?.awaiting ? awaitingWhat(task) : [list(e.pids) && `pid ${list(e.pids)}`, typeof e.host === "string" ? e.host : ""].filter(Boolean).join(", ");
+      return `${id}: its subagent's loop ended while a process it started still runs (${what || "its background work"}). ${id} stays in progress with its ` + `locks and no attempt spent, waiting for that process: do not release it and do not open another subagent for it; the subagent comes back when the process ends.`;
+    }
+    case "await-ended": {
+      const how = agent ? resumeHow(tool, agent) : "the same subagent";
+      const by = tool === "claude" ? `Claude Code normally reopens that subagent by itself; if it does not, resume it now (${how})` : `Resume that same subagent now (${how})`;
+      return `${id}: the process its subagent waited for ended. ${by}, so it reads the result and finishes. If it does not come back within ${grace}, ${id} goes back to the queue.`;
+    }
+    case "agent-ended": {
+      const n = Number(e.agentEnded ?? 0);
+      const max = Number(e.max ?? 0);
+      const why = e.expired ? "did not come back after its process ended" : "ended without finishing";
+      if (e.to === "failed")
+        return `${id}: its subagent ${why}, ${n} times (the run's limit ${max}): ${id} failed and the run is paused for a person. Tell the user; do not start tasks. When they decide: jtasks retry ${id}, then jtasks unpause.`;
+      return `${id}: its subagent ${why}: back to pending, ready to start again with a new subagent (ends without finishing: ${n} of ${max}; no attempt spent).`;
+    }
+    case "lost":
+      return `${id}: its locks were taken away (forced by someone, or expired): ${e.to === "failed" ? `failed (${task?.error ?? "attempts used up"})` : "back to pending"}.`;
+    case "renew-lost":
+      return `${id}: some of its locks are held by someone else now (${list(e.refused)}): its subagent must claim them again before done.`;
+    case "pause":
+      return `the run was paused by ${e.actor}.`;
+    default:
+      if (e.to === "failed")
+        return `${id}: failed (${e.action} by ${e.actor}): ${task?.error ?? ""}`.trim();
+      return `${id}: ${e.action} by ${e.actor} (now ${e.to ?? "?"}).`;
+  }
+}
+function alertText(run, tasks, entries, tool) {
+  const grace = run.awaitGrace ?? "5m";
+  const lines = [`jtasks: run ${run.id} changed without your asking (read from the run's log now, not from the conversation):`];
+  for (const e of entries)
+    lines.push(`- ${alertLine(e, tasks.tasks, tool, grace)}`);
+  lines.push(`Status now: ${briefStatus(run, tasks)}`);
+  const c = counts(tasks.tasks);
+  if (run.status === "paused")
+    lines.push("The run is paused: do not call jtasks next or start. Tell the user what happened and wait for them.");
+  else if (c.remaining === 0)
+    lines.push("Nothing is left: confirm with jtasks status.");
+  else
+    lines.push("Go on with the protocol: jtasks next for whatever is ready, and leave the tasks waiting for a process alone.");
+  return lines.join(`
+`);
+}
+function alertNotice(run, tasks, entries) {
+  const parts = entries.map((e) => {
+    const id = String(e.task ?? "");
+    const task = tasks.tasks.find((t) => t.id === id);
+    if (e.action === "agent-ended" && e.to === "failed")
+      return tr("alert.needs_person", { run: run.id, id, n: Number(e.agentEnded ?? 0) });
+    if (e.to === "failed")
+      return tr("alert.failed", { id, error: task?.error ?? String(e.action) });
+    switch (e.action) {
+      case "await":
+        return tr("alert.await", { id, what: task?.awaiting ? awaitingWhat(task) : list(e.pids) || String(e.host ?? "") });
+      case "await-ended":
+        return tr("alert.await_ended", { id });
+      case "agent-ended":
+        return tr("alert.agent_ended", { id, n: Number(e.agentEnded ?? 0), max: Number(e.max ?? 0) });
+      case "lost":
+        return tr("alert.lost", { id });
+      case "renew-lost":
+        return tr("alert.renew_lost", { id });
+      case "pause":
+        return tr("alert.paused_by", { run: run.id, actor: String(e.actor) });
+      default:
+        return tr("alert.by_other", { id, action: String(e.action), actor: String(e.actor) });
+    }
+  });
+  return parts.join(" · ");
+}
 // src/gc.ts
 var SKIP = new Set(["node_modules", ".git"]);
 var MAX_FILES = 20000;
@@ -9763,8 +10705,8 @@ async function mainBranch(host, repo) {
   const r = await git(host, repo, ["symbolic-ref", "--short", "-q", "HEAD"]);
   return r.code === 0 ? r.stdout.trim() || undefined : undefined;
 }
-async function merged(host, repo, branch, base) {
-  const r = await git(host, repo, ["merge-base", "--is-ancestor", `refs/heads/${branch}`, `refs/heads/${base}`]);
+async function merged(host, repo, branch, base2) {
+  const r = await git(host, repo, ["merge-base", "--is-ancestor", `refs/heads/${branch}`, `refs/heads/${base2}`]);
   return r.code === 0 ? true : r.code === 1 ? false : undefined;
 }
 async function worktreeFinding(host, dir, gitFile) {
@@ -9783,16 +10725,16 @@ async function worktreeFinding(host, dir, gitFile) {
   if (ref)
     f.branch = ref[1].trim();
   if (owner && await host.stat(owner)) {
-    const list = await git(host, owner, ["worktree", "list", "--porcelain"]);
+    const list2 = await git(host, owner, ["worktree", "list", "--porcelain"]);
     const insensitive = caseInsensitive(host.platform);
     const norm = (p) => insensitive ? normalize(p).toLowerCase() : normalize(p);
-    f.known = list.code === 0 && list.stdout.split(`
+    f.known = list2.code === 0 && list2.stdout.split(`
 `).some((l) => l.startsWith("worktree ") && norm(l.slice(9).trim()) === norm(dir));
-    const base = await mainBranch(host, owner);
-    if (base)
-      f.base = base;
-    if (f.branch && base) {
-      const isMerged2 = await merged(host, owner, f.branch, base);
+    const base2 = await mainBranch(host, owner);
+    if (base2)
+      f.base = base2;
+    if (f.branch && base2) {
+      const isMerged2 = await merged(host, owner, f.branch, base2);
       if (isMerged2 !== undefined)
         f.merged = isMerged2;
     }
@@ -10422,10 +11364,14 @@ function buildView(state, locks, platform, tool) {
         break;
       case "in_progress": {
         const w = waiting.get(t.id);
-        st = w ? "waiting" : "running";
+        st = w || t.awaiting ? "waiting" : "running";
         detail = w ? waitingText(w, state, platform) : profileDetail(state.tasks, t, tool);
         if (w?.yielded)
           note = tr("view.waits_for", { files: w.yielded.join(", ") });
+        if (t.awaiting) {
+          detail = t.awaiting.endedAt ? tr("view.awaiting_back") : tr("view.awaiting", { what: awaitingWhat(t) });
+          note = detail;
+        }
         break;
       }
       default: {
@@ -10544,7 +11490,8 @@ async function loadView(host, root, run, tool) {
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => []);
   const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool);
-  const notice = runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
+  const needs = runFile.status === "paused" ? runFile.needsPerson : undefined;
+  const notice = needs ? tr("view.needs_person", { id: needs.task, n: needs.count }) : runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
   return notice ? { ...view, notice } : view;
 }
 async function loadRunsView(host, root) {
@@ -10614,14 +11561,14 @@ async function checkHome(host) {
     return { name: "home", status: "ok", detail: tr("doctor.home_absent", { home }) };
   if (stat.kind !== "dir")
     return { name: "home", status: "fail", detail: tr("doctor.home_not_dir", { home }), fix: tr("doctor.home_fix") };
-  const probe = join(home, `.doctor-${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e6).toString(36)}.tmp`);
+  const probe2 = join(home, `.doctor-${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e6).toString(36)}.tmp`);
   try {
-    await host.writeText(probe, `doctor
+    await host.writeText(probe2, `doctor
 `);
   } catch (error) {
     return { name: "home", status: "fail", detail: tr("doctor.home_not_writable", { home, message: error.message }), fix: tr("doctor.home_fix") };
   } finally {
-    await host.remove(probe).catch(() => {});
+    await host.remove(probe2).catch(() => {});
   }
   const effects = await readEffects(host, globalLedger(host));
   return { name: "home", status: "ok", detail: tr("doctor.home_ok", { home, n: effects.length }) };
@@ -10796,6 +11743,7 @@ export {
   validateGraph,
   validateBatch,
   userHome,
+  unregisterProcs,
   unarchive,
   ttlMs,
   tr,
@@ -10809,6 +11757,7 @@ export {
   takeKeys,
   tags,
   systemLocale,
+  sweepAwaiting,
   summaryText,
   summaryTail,
   stringify,
@@ -10822,6 +11771,7 @@ export {
   slash,
   skillHosts,
   shortHead,
+  shortCommand,
   shellSegments,
   sharedWarnings,
   sharedTouched,
@@ -10845,6 +11795,7 @@ export {
   resumeText,
   resumeNow,
   resumeIfDue,
+  resumeHow,
   resumeAtOf,
   resolveRun,
   resolve,
@@ -10863,6 +11814,7 @@ export {
   releaseHolds,
   relativeInside,
   relConflicts,
+  registerProcs,
   recordGlobalEffect,
   recordEffect,
   rearmKeepalive,
@@ -10875,10 +11827,14 @@ export {
   readJsonArg,
   readJson,
   readEffects,
+  readBrief,
+  readAlerts,
   protocolText,
   progressSignature,
   progressLine,
   progress,
+  procAlive,
+  probe,
   possession,
   planFromJson,
   pausedTasks,
@@ -10887,6 +11843,7 @@ export {
   pauseNotice,
   pauseForFailure,
   parseTicket,
+  parseTasklist,
   parseDuration,
   parseArgs,
   ownerOf,
@@ -10899,9 +11856,11 @@ export {
   moveDir,
   missingKeys,
   markLost,
+  logEnd,
   log,
   loadView,
   loadRunsView,
+  liveProcs,
   listRuns,
   listDrafts,
   lineText,
@@ -10926,6 +11885,7 @@ export {
   jlockBin,
   isNameKey,
   isMerged,
+  isAlert,
   isAbsolute,
   installedJlock,
   installJlock,
@@ -10982,18 +11942,27 @@ export {
   canRenew,
   bullet,
   buildView,
+  briefStatus,
   branchExists,
   blockerText,
   basename,
   barCells,
   bar,
   backToPending,
+  awaitingWhat,
+  awaitingLine,
+  awaitGraceMs,
+  awaitBack,
   atomicWrite,
   assess,
   archiveDir,
   appendLog,
   ancestors,
+  alertText,
+  alertNotice,
+  alertLine,
   agentOfOwner,
+  agentEnded,
   addUsage,
   addExcludeLine,
   actorOf,
@@ -11022,8 +11991,10 @@ export {
   DEFAULT_PROFILES,
   DEFAULT_PROFILE,
   DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_MAX_AGENT_ENDED,
   DEFAULT_KEEPALIVE_TRIES,
   DEFAULT_HOLD_TTL,
+  DEFAULT_AWAIT_GRACE,
   CATALOGS,
   BAR_CELLS,
   BACKOFF_MS,

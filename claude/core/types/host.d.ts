@@ -4,6 +4,8 @@ export interface RunOptions {
     env?: Record<string, string>;
     stdin?: string;
     timeoutMs?: number;
+    /** Told the child's pid once it started, when the host knows it (rev. 5.8: `jtasks exec` registers it in the task). */
+    onStart?: (pid: number) => void | Promise<void>;
 }
 export interface RunResult {
     code: number;
@@ -72,4 +74,9 @@ export interface Host {
     stat(path: string): Promise<FileStat | undefined>;
     run(argv: readonly string[], options?: RunOptions): Promise<RunResult>;
     spawn(argv: readonly string[], options?: SpawnOptions): Promise<Resident>;
+    /**
+     * Whether a process with this pid exists now (rev. 5.8), when the host can tell cheaply (Node: a signal 0);
+     * absent, the core asks the system (`tasklist`, `ps`) through `run`.
+     */
+    alive?(pid: number): Promise<boolean | undefined>;
 }

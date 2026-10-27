@@ -2,7 +2,7 @@
 import type { Host, Resident } from "./host.js";
 import type { HoldMode } from "./jlock.js";
 import type { ToolName } from "./schema.js";
-export declare const VERSION = "0.2.0";
+export declare const VERSION = "0.3.0";
 export interface ToolContext {
     host: Host;
     /** Where the command runs: the repository or a folder inside it. */

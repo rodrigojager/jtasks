@@ -41,14 +41,15 @@ import {
 import { unarchive } from "./housekeeping.ts"
 import { chainKeys, changedUnder, claimStats, keepEdits, lastDeadlock, ownFiles, ownKeys, patchesUnder, readLog, reapplyPatches, releasedEdits, takenSince, type ReapplyReport } from "./keep.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, progressSignature, readKeepalive, rearmKeepalive } from "./keepalive.ts"
-import { formatWhen, kindLabel, resumeText } from "./transient.ts"
+import { agentOfOwner, formatWhen, kindLabel, resumeText } from "./transient.ts"
+import { awaitGraceMs, awaitingWhat, liveProcs, probe, procAlive, registerProcs, shortCommand, unregisterProcs } from "./procs.ts"
 import { slugify } from "./ids.ts"
 import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, PATCH_MOVES, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
-import { DEFAULT_HOLD_TTL, type Hold, type RunFile, type Task, type TasksFile, type Yielded } from "./schema.ts"
+import { DEFAULT_AWAIT_GRACE, DEFAULT_HOLD_TTL, DEFAULT_MAX_AGENT_ENDED, type Awaiting, type Hold, type RunFile, type Task, type TaskProcess, type TasksFile, type Yielded } from "./schema.ts"
 import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
@@ -74,6 +75,13 @@ export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<Ru
   }
   if (!entry.tasks) throw new ToolError(tr("run.no_tasks", { run: entry.run.id }))
   return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks }
+}
+
+/** The run of a command, after a pass over its tasks waiting for a process (rev. 5.8): `next` and `status`. */
+async function sweptRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState> {
+  const state = await resolveRun(ctx, args)
+  if (!state.tasks.tasks.some((t) => t.status === "in_progress" && t.awaiting)) return state
+  return (await sweepAwaiting(ctx, state.run.id)).length ? reload(ctx, state) : state
 }
 
 /** Re-reads run.json and tasks.json (inside the write lock, before deciding). */
@@ -205,7 +213,7 @@ export async function releaseHolds(ctx: ToolContext, run: string, task: string):
 defineAction(
   "next",
   async (ctx, args) => {
-    const found = await resolveRun(ctx, args)
+    const found = await sweptRun(ctx, args)
     // A task waiting for what it yielded takes it back first, if it is free now.
     const back = await retakeYielded(ctx, found)
     const state = back.length ? await reload(ctx, found) : found
@@ -372,6 +380,8 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   const ready = selectReady(state, assessments, platform)
   const lines = [progressLine(state.tasks.tasks)]
   if (state.run.status === "paused") lines.push(tr("status.paused"))
+  const needs = state.run.status === "paused" ? state.run.needsPerson : undefined
+  if (needs) lines.push(tr("status.needs_person", { id: needs.task, n: needs.count, max: needs.max }))
   const pause = state.run.status === "paused" ? state.run.pause : undefined
   if (pause) lines.push(pauseStatusLine(pause, ctx.host.now()))
   const keepalive = keepaliveStatus(state.run, state.tasks, await readKeepalive(ctx.host, state.dir), keepaliveTries(ctx.host))
@@ -380,6 +390,8 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   const byKey = new Map([...repoLocks, ...groupLocks].map((l) => [l.key, l]))
   const waiting = waitingOf(state, [...byKey.values()])
   if (running.length) lines.push(tr("status.running", { list: running.map((t) => `${t.id} (${t.owner ?? "?"})`).join(" · ") }))
+  const awaiting = running.filter((t) => t.awaiting)
+  if (awaiting.length) lines.push(tr("status.awaiting", { list: awaiting.map((t) => awaitingLine(t, state.run, ctx.host.now())).join(" · ") }))
   if (waiting.size)
     lines.push(tr("frontier.waiting_list", { list: [...waiting].map(([id, w]) => `${id} ${waitingText(w, state, platform)}`).join(" | ") }))
   if (ready.length) lines.push(tr("status.ready", { list: ready.map((t) => t.id).join(", ") }))
@@ -419,13 +431,24 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
       status: state.run.status,
       keepalive: state.run.keepalive !== false,
       counts: counts(state.tasks.tasks),
-      inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null })),
+      inProgress: running.map((t) => ({ id: t.id, owner: t.owner, waitingFor: waiting.get(t.id) ?? null, awaiting: t.awaiting ?? null })),
       ready: ready.map((t) => t.id),
       blocked: blocked.map((a) => ({ id: a.task.id, reasons: a.blockers.map((b) => blockerText(b, state, platform)) })),
       locks,
       ...(pause ? { pause } : {}),
+      ...(needs ? { needsPerson: needs } : {}),
     },
   }
+}
+
+/** A task waiting for its process, in `status`: what and since when, or since when its process ended. */
+export function awaitingLine(task: Task, run: RunFile, now: Date): string {
+  const a = task.awaiting!
+  if (a.endedAt) {
+    const until = new Date(Date.parse(a.endedAt) + awaitGraceMs(run, DEFAULT_AWAIT_GRACE)).toISOString()
+    return tr("status.awaiting_ended", { id: task.id, at: formatWhen(a.endedAt, now), until: formatWhen(until, now) })
+  }
+  return tr("status.awaiting_item", { id: task.id, what: awaitingWhat(task), since: formatWhen(a.since, now) })
 }
 
 /** The status line of a transient pause: why, what it kept and when it ends. */
@@ -438,7 +461,7 @@ function pauseStatusLine(pause: NonNullable<RunFile["pause"]>, now: Date): strin
 defineAction(
   "status",
   async (ctx, args) => {
-    const state = await resolveRun(ctx, args)
+    const state = await sweptRun(ctx, args)
     const s = await statusOf(ctx, state)
     if (!args.options.claims) return ok(s.text, s.data)
     // --claims (rev. 5.6): the run's most contested files, from its log.
@@ -622,6 +645,13 @@ function closeTask(task: Task, status: Task["status"], now: string) {
   task.owner = null
   task.finishedAt = now
   delete task.holds
+  leaveProgress(task)
+}
+
+/** What only an in-progress task has (rev. 5.8): its processes and its wait for them. */
+function leaveProgress(task: Task) {
+  delete task.procs
+  delete task.awaiting
 }
 
 /** What a task leaving `in_progress` without a commit did with its edits (rev. 5.6). */
@@ -789,6 +819,8 @@ defineAction(
         const copy = clone(state.tasks)
         const t = copy.tasks.find((x) => x.id === task.id)!
         if (t.status !== "in_progress") throw new ToolError(tr("claim.left", { id: task.id, status: t.status }))
+        // Its subagent is at work: a wait for its process is over (rev. 5.8).
+        delete t.awaiting
         // What it had yielded goes back where it was; the rest joins `claimed`.
         const back = takeBackEntries(t, keys, state.root, platform)
         const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f))
@@ -940,6 +972,7 @@ defineAction(
       const copy = clone(state.tasks)
       const t = copy.tasks.find((x) => x.id === task.id)!
       if (t.status !== "in_progress") throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }))
+      delete t.awaiting
       const changed = await changedUnder(ctx.host, state, wanted)
       const { mine, untouched } = await ownFiles(ctx.host, state, t, changed)
       const report = await keepEdits(ctx.host, state, t, mine, "yield")
@@ -1113,6 +1146,7 @@ defineAction(
 export function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed" {
   task.owner = null
   delete task.holds
+  leaveProgress(task)
   if (task.attempts >= maxAttempts) {
     task.status = "failed"
     task.error = tr("attempts.exhausted", { why, attempts: task.attempts, max: maxAttempts })
@@ -1127,14 +1161,14 @@ export function backToPending(task: Task, maxAttempts: number, why: string, now:
 defineAction(
   "release",
   async (ctx, args) => {
+    // --agent-ended: the host saw the subagent's loop end with its task still in progress (rev. 5.8: `agentEnded`).
+    if (args.options["agent-ended"]) return agentEndedAnswer(await agentEnded(ctx, args, { waiting: textArg(args, "waiting") }))
     let kept = NOTHING_KEPT
     let to: string = "pending"
-    // --agent-ended: the host saw the subagent's loop end with its task still in progress (logged as such).
-    const ended = !!args.options["agent-ended"]
-    const t = await transition(ctx, args, ended ? "agent-ended" : "release", async (task, state) => {
+    const t = await transition(ctx, args, "release", async (task, state) => {
       if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
       kept = await keepTask(ctx, state, task)
-      to = backToPending(task, state.run.maxAttempts, tr(ended ? "release.agent_ended" : "release.released"), ctx.host.now().toISOString())
+      to = backToPending(task, state.run.maxAttempts, tr("release.released"), ctx.host.now().toISOString())
       return keptLog(kept)
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
@@ -1150,9 +1184,232 @@ defineAction(
   "help.release",
 )
 
+addUsage("help.release.agent_ended")
+
+// ── The end of a subagent, and the wait for its processes (rev. 5.8) ──────────────────────────────────────────
+
+/** What the end of a task's subagent did. */
+export interface AgentEnd {
+  /**
+   * `awaiting`: a process of the task lives (or the host says the agent waits on its background work): the task stays
+   * in progress with its locks, nothing spent. `pending`: back to the queue, counted in `agentEnded` (not in
+   * `attempts`). `limit`: that count reached the run's `maxAgentEnded`: failed, and the run paused for a person.
+   */
+  outcome: "awaiting" | "pending" | "limit"
+  task: Task
+  tasks: TasksFile
+  state: RunState
+  kept: Kept
+  /** Ends without finishing so far, and the run's limit. */
+  count: number
+  max: number
+  /** What giving the locks back said ("" while awaiting). */
+  released: string
+  back: string[]
+}
+
+/**
+ * The subagent of an in-progress task ended its loop (`release --agent-ended`, the host's end of a subagent), or the
+ * wait for its process ran out (`expired`). Its registered processes are looked at first: while one lives (or the host
+ * says the agent waits, `waiting`), the task waits for it in progress, with its locks; otherwise it goes back to the
+ * queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person.
+ */
+export async function agentEnded(ctx: ToolContext, args: ParsedArgs, opts: { waiting?: string; expired?: boolean } = {}): Promise<AgentEnd> {
+  const first = await resolveRun(ctx, args)
+  const before = findTask(first, taskIdArg(args))
+  const live = opts.expired ? [] : await liveProcs(ctx.host, before.procs ?? [])
+  const waiting = opts.expired ? undefined : opts.waiting
+  const waits = live.length > 0 || !!waiting
+  let outcome: AgentEnd["outcome"] = waits ? "awaiting" : "pending"
+  let kept = NOTHING_KEPT
+  let count = 0
+  let max = DEFAULT_MAX_AGENT_ENDED
+  const t = await transition(ctx, args, waits ? "await" : "agent-ended", async (task, state) => {
+    if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+    // The subagent came back while the clock decided: nothing to expire.
+    if (opts.expired && !task.awaiting) throw new ToolError(tr("wait.back", { id: task.id }))
+    const now = ctx.host.now().toISOString()
+    max = state.run.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED
+    count = task.agentEnded ?? 0
+    if (waits) {
+      const agent = ctx.agent ?? task.awaiting?.agent ?? agentOfOwner(task.owner)
+      const awaiting: Awaiting = { since: now, pids: live.map((p) => p.pid) }
+      if (agent) awaiting.agent = agent
+      if (waiting) awaiting.host = waiting
+      task.awaiting = awaiting
+      return { pids: awaiting.pids, ...(waiting ? { host: waiting } : {}), ...(agent ? { agent } : {}) }
+    }
+    kept = await keepTask(ctx, state, task)
+    count += 1
+    task.agentEnded = count
+    // The attempt its start counted is given back: a subagent that ended is not a failed attempt.
+    task.attempts = Math.max(0, task.attempts - 1)
+    const why = tr(opts.expired ? "release.await_expired" : "release.agent_ended")
+    if (count >= max) {
+      closeTask(task, "failed", now)
+      task.error = tr("agent_ended.limit", { why, n: count, max })
+      await writeRun(ctx.host, state.dir, { ...state.run, status: "paused", needsPerson: { reason: "agent-ended", task: task.id, count, max, at: now } })
+      outcome = "limit"
+    } else {
+      task.owner = null
+      delete task.holds
+      leaveProgress(task)
+      task.status = "pending"
+      delete task.startedAt
+    }
+    return { agentEnded: count, max, ...(opts.expired ? { expired: true } : {}), ...(outcome === "limit" ? { paused: true } : {}), ...keptLog(kept) }
+  })
+  const released = outcome === "awaiting" ? "" : await giveBack(ctx, t.state.run.id, t.task.id)
+  const back = outcome === "awaiting" ? [] : retakenLines(await retakeYielded(ctx, t.state))
+  return { outcome, task: t.task, tasks: t.tasks, state: t.state, kept, count, max, released, back }
+}
+
+function agentEndedAnswer(e: AgentEnd): ToolResult {
+  const id = e.task.id
+  const lines: string[] = []
+  if (e.outcome === "awaiting") lines.push(tr("release.awaiting", { id, what: awaitingWhat(e.task) }))
+  else if (e.outcome === "limit")
+    lines.push(`${id} ${tr("release.failed_now", { error: e.task.error ?? "" })}; ${e.released}${keptNote(e.kept)}`, tr("release.needs_person", { run: e.state.run.id, id }))
+  else lines.push(`${id} ${tr("release.ended_pending", { n: e.count, max: e.max })}; ${e.released}${keptNote(e.kept)}`)
+  lines.push(progressLine(e.tasks.tasks), ...e.back)
+  return ok(lines.join("\n"), {
+    run: e.state.run.id,
+    task: id,
+    status: e.task.status,
+    outcome: e.outcome,
+    agentEnded: e.count,
+    maxAgentEnded: e.max,
+    ...(e.task.awaiting ? { awaiting: e.task.awaiting } : {}),
+    ...keptLog(e.kept),
+  })
+}
+
+/** The subagent of an awaiting task is at work again (the host saw its loop start): the wait is over. */
+export async function awaitBack(ctx: ToolContext, run: string, taskId: string, how: string): Promise<boolean> {
+  let first: RunState
+  try {
+    first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } })
+  } catch {
+    return false
+  }
+  if (!first.tasks.tasks.some((t) => t.id === taskId && t.awaiting)) return false
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first)
+    const copy = clone(state.tasks)
+    const t = copy.tasks.find((x) => x.id === taskId)
+    if (!t?.awaiting || t.status !== "in_progress") return false
+    delete t.awaiting
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+    await writeTicket(ctx.host, state.dir, tasks, t.id)
+    await log(ctx, state, { action: "await-back", task: t.id, how })
+    return true
+  })
+}
+
+/** What one pass over the awaiting tasks did: a process ended (the agent should come back now), or the wait ran out. */
+export interface AwaitEvent {
+  task: string
+  what: "ended" | "expired"
+  agent?: string
+}
+
+/**
+ * One pass over the run's awaiting tasks (the hosts' clock; `next` and `status` too). A task whose processes all
+ * ended is marked (`endedAt`: the subagent should come back now, and the host or the orchestrator resumes it); one
+ * whose subagent did not come back within the run's `awaitGrace` counts as ended (`agentEnded`, `expired`). `host`
+ * answers for a wait the host itself declared (`--waiting`): true while its agent still waits, false once it does not,
+ * undefined when it cannot tell (the pids decide then; with none, such a wait is left for its host). Never throws.
+ */
+export async function sweepAwaiting(ctx: ToolContext, run: string, host?: (task: Task) => Promise<boolean | undefined>): Promise<AwaitEvent[]> {
+  let first: RunState
+  try {
+    first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } })
+  } catch {
+    return []
+  }
+  const out: AwaitEvent[] = []
+  const grace = awaitGraceMs(first.run, DEFAULT_AWAIT_GRACE)
+  for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && t.awaiting)) {
+    const a = task.awaiting!
+    try {
+      let alive = a.host && host ? await host(task).catch(() => undefined) : undefined
+      if (alive === undefined) {
+        if (a.host && !host && !a.pids.length) continue
+        const procs: TaskProcess[] = a.pids.map((pid) => task.procs?.find((p) => p.pid === pid) ?? { pid, startedAt: a.since, command: "", by: "wait" })
+        alive = (await liveProcs(ctx.host, procs)).length > 0
+      }
+      if (alive) continue
+      const now = ctx.host.now()
+      let endedAt = a.endedAt
+      if (!endedAt) {
+        const at = now.toISOString()
+        endedAt = at
+        const marked = await withLock(ctx.host, first.dir, async () => {
+          const state = await reload(ctx, first)
+          const copy = clone(state.tasks)
+          const t = copy.tasks.find((x) => x.id === task.id)
+          if (!t?.awaiting || t.status !== "in_progress" || t.awaiting.endedAt) return false
+          t.awaiting.endedAt = at
+          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+          await log(ctx, state, { action: "await-ended", task: t.id, pids: t.awaiting.pids, ...(t.awaiting.agent ? { agent: t.awaiting.agent } : {}), grace: first.run.awaitGrace ?? DEFAULT_AWAIT_GRACE })
+          return true
+        })
+        if (marked) out.push({ task: task.id, what: "ended", ...(a.agent ? { agent: a.agent } : {}) })
+      }
+      if (now.getTime() - Date.parse(endedAt) < grace) continue
+      await agentEnded({ ...ctx, ...(a.agent ? { agent: a.agent } : {}) }, { action: "release", positionals: [task.id], options: { run } }, { expired: true })
+      out.push({ task: task.id, what: "expired", ...(a.agent ? { agent: a.agent } : {}) })
+    } catch {
+      // The task moved meanwhile (done, back, released): left as it is.
+    }
+  }
+  return out
+}
+
+defineAction(
+  "wait",
+  async (ctx, args) => {
+    const first = await resolveRun(ctx, args)
+    const task = findTask(first, taskIdArg(args))
+    if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+    const raw = typeof args.options.pid === "string" ? args.options.pid : undefined
+    if (!raw) {
+      // Without --pid: the task's processes, alive or not.
+      const list: string[] = []
+      for (const p of task.procs ?? []) list.push(`${p.pid} ${shortCommand(p.command, 60)} (${tr((await procAlive(ctx.host, p)) ? "wait.alive" : "wait.gone")})`)
+      return ok(list.length ? tr("wait.list", { id: task.id, list: list.join(" · ") }) : tr("wait.none", { id: task.id }), { task: task.id, procs: task.procs ?? [] })
+    }
+    const parts = raw.split(",").map((x) => x.trim()).filter(Boolean)
+    const bad = parts.find((p) => !/^\d+$/.test(p))
+    if (bad || !parts.length) throw new ToolError(tr("wait.bad_pid", { value: bad ?? raw }), 2)
+    const now = ctx.host.now().toISOString()
+    const label = textArg(args, "command")
+    const procs: TaskProcess[] = []
+    const dead: number[] = []
+    for (const pid of parts.map(Number)) {
+      const seen = await probe(ctx.host, pid, true)
+      if (seen.alive !== true) {
+        dead.push(pid)
+        continue
+      }
+      const proc: TaskProcess = { pid, startedAt: now, command: shortCommand(label ?? seen.image ?? `pid ${pid}`), by: "wait" }
+      if (seen.image) proc.image = seen.image
+      procs.push(proc)
+    }
+    if (!procs.length) throw new ToolError(tr("wait.dead", { list: dead.join(", ") }))
+    const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx))
+    if (!t) throw new ToolError(tr("task.not_running", { id: task.id, status: "?" }))
+    const lines = [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })]
+    if (dead.length) lines.push(tr("wait.not_alive", { list: dead.join(", ") }))
+    return ok(lines.join("\n"), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead })
+  },
+  "help.wait",
+)
+
 function reopen(task: Task) {
   if (task.status !== "skipped" && task.status !== "failed") throw new ToolError(tr("retry.cannot", { id: task.id, status: task.status }))
   task.status = "pending"
+  delete task.agentEnded
   delete task.reason
   delete task.error
   delete task.finishedAt
@@ -1205,6 +1462,8 @@ async function setPaused(ctx: ToolContext, args: ParsedArgs, paused: boolean) {
     const from = state.run.status
     const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
     const run: RunFile = { ...state.run, status }
+    // A person unpausing has seen why it needed one (rev. 5.8).
+    if (!paused) delete run.needsPerson
     // A pause by hand over a transient one: the host no longer resumes it by itself (the tasks stay kept).
     if (paused && run.pause?.resumeAt) {
       const { resumeAt: _gone, ...pause } = run.pause
@@ -1240,8 +1499,11 @@ export async function leavePause(ctx: ToolContext, first: RunState, opts: { due?
     const pause = state.run.pause
     if (state.run.status !== "paused" || !pause) return undefined
     if (opts.due && (!pause.resumeAt || Date.parse(pause.resumeAt) > opts.due.getTime())) return undefined
+    // A run that also needs a person (rev. 5.8) waits for one: the clock does not resume it.
+    if (opts.auto && state.run.needsPerson) return undefined
     const run: RunFile = { ...state.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" }
     delete run.pause
+    delete run.needsPerson
     const signature = progressSignature(state.tasks)
     if (opts.auto) run.pauseStreak = { signature, n: state.run.pauseStreak?.signature === signature ? state.run.pauseStreak.n + 1 : 1 }
     else delete run.pauseStreak
@@ -1306,6 +1568,7 @@ defineAction(
       // A transient pause (rev. 5.7) kept its tasks in progress: their expired locks are taken back, not released.
       const transient = state.run.status === "paused" && !!state.run.pause
       delete run.pause
+      delete run.needsPerson
       if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
         run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }]
       const copy = clone(state.tasks)
@@ -1391,6 +1654,22 @@ export function serializeKey(root: string, entry: string): string {
   return `name:gt/${slugify(repo, 40)}/${slugify(entry, 60)}`
 }
 
+/**
+ * The task an `exec` runs for (rev. 5.8): `--task`, else the only task in progress of the caller (a subagent's own).
+ * Its process goes in the task's list while it runs, so the end of the subagent's loop meanwhile is not a death.
+ */
+function execTask(ctx: ToolContext, state: RunState, args: ParsedArgs): Task | undefined {
+  const id = typeof args.options.task === "string" ? args.options.task : undefined
+  if (id) {
+    const task = findTask(state, id)
+    if (task.status !== "in_progress") throw new ToolError(tr("exec.not_running", { id, status: task.status }))
+    return task
+  }
+  const actor = actorOf(ctx)
+  const mine = state.tasks.tasks.filter((t) => t.status === "in_progress" && t.owner === actor)
+  return mine.length === 1 ? mine[0] : undefined
+}
+
 defineAction(
   "exec",
   async (ctx, args) => {
@@ -1417,10 +1696,35 @@ defineAction(
           ...argv,
         ]
       : [...argv]
-    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: 10 * 60_000, env: jlockEnv() })
+    const target = state ? execTask(ctx, state, args) : undefined
+    const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : 10 * 60_000
+    // The child's pid, as the host tells it, goes in the task while the command runs (a host that cannot tell: none).
+    const pids: number[] = []
+    let registering: Promise<unknown> | undefined
+    const onStart =
+      state && target
+        ? (pid: number) => {
+            pids.push(pid)
+            registering = (async () => {
+              const seen = await probe(ctx.host, pid, true).catch(() => ({ alive: undefined, image: undefined }))
+              const proc: TaskProcess = { pid, startedAt: ctx.host.now().toISOString(), command: shortCommand(command), by: "exec" }
+              if (seen.image) proc.image = seen.image
+              await registerProcs(ctx.host, state.dir, target.id, [proc], actorOf(ctx))
+            })().catch(() => undefined)
+          }
+        : undefined
+    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs, env: jlockEnv(), ...(onStart ? { onStart } : {}) })
+    await registering
+    if (state && target && pids.length) await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {})
     const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct")
+    const registered = target && pids.length ? `; ${tr("exec.registered", { pid: pids[0]!, id: target.id })}` : ""
     const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "")
-    return { ok: r.code === 0, code: r.code, text: `${output}${output ? "\n" : ""}[${tr("exec.exit", { how, code: r.code })}]`, data: { code: r.code, serialized: !!entry } }
+    return {
+      ok: r.code === 0,
+      code: r.code,
+      text: `${output}${output ? "\n" : ""}[${tr("exec.exit", { how, code: r.code })}${registered}]`,
+      data: { code: r.code, serialized: !!entry, ...(target ? { task: target.id } : {}), ...(pids.length ? { pid: pids[0] } : {}) },
+    }
   },
   "help.exec",
 )

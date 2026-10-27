@@ -84,6 +84,31 @@ status de retry e o `session.error` v1. E a versão passa a 0.2.0 em todos os ma
 um teste que falha quando eles divergem: o `/plugin` do Claude Code compara a versão declarada, não os commits.
 Marcado com **[rev. 5.7]** na seção 18 (tickets 51 e 52).
 
+Revisão 5.8, 27/10/2026: fim de turno não é morte, e o orquestrador fica sabendo. No run do FlashEvents, um subagente
+deixou a suíte de testes rodando em segundo plano e encerrou o turno para esperar (o Claude Code o reabre quando o
+processo termina). O mod tratava todo fim de turno de subagente como morte: `release --agent-ended`, que gastava uma
+tentativa; na segunda pausa a tarefa virou falha ("tentativas esgotadas (2/2)"), as travas foram soltas com o
+subagente ainda rodando e2e, e o orquestrador não soube de nada: o keepalive só fala com tarefa pronta e nenhum
+subagente vivo, e tarefa em falha não é pronta. Agora: (1) `jtasks exec` registra na tarefa o processo que roda (pid,
+início, comando resumido; `--task`, ou a única tarefa em andamento de quem chama), e `jtasks wait <id> --pid <pid>`
+declara um processo lançado de outro jeito; `release --agent-ended` olha esses pids (e a palavra do host, `--waiting`):
+com algum vivo, a tarefa fica em andamento **aguardando processo** (`awaiting` na `tasks.json`; visível em `status`, no
+painel e na barra lateral), sem gastar tentativa e sem soltar travas; o retorno do mesmo subagente encerra a espera;
+o processo acabou e o subagente não voltou em `awaitGrace` (5 min por padrão), aí conta como fim de subagente
+(`src/procs.ts`, `agentEnded`/`sweepAwaiting`/`awaitBack` em `src/actions.ts`). (2) O fim de subagente sem concluir
+não gasta `maxAttempts`: tem contagem própria (`agentEnded`) e limite próprio (`maxAgentEnded`, 3 por padrão); ao
+estourá-lo a tarefa falha e a execução **pausa** com o motivo (`run.json` ganha `needsPerson`; `unpause`, `resume` e
+`retry` o resolvem). Falha só por `fail` explícito, por esse limite com pausa, ou pelo `maxAttempts` de `release`,
+posse perdida e `resume` (como antes, agora avisada). (3) Toda transição que o orquestrador não pediu (fim de
+subagente, aguardando processo, processo terminado, travas perdidas, falha, pausa por pessoa ou por outra janela) é
+lida do `log.jsonl` (`src/alerts.ts`) e o host manda na hora uma mensagem ao laço principal com a linha de status, e um
+aviso à pessoa; não depende de haver tarefa pronta. (4) Cada notificação de fim de subagente leva a linha de status
+lida na hora (no mod, `context` do `prompt.submit` de origem `task-notification`; no plugin, o resultado da chamada de
+subagente). (5) No OpenCode, o mesmo com os eventos de sessão; a lacuna (o OpenCode não reabre sozinho a sessão filha
+quando o processo termina) vira mensagem ao orquestrador para retomá-la com `task_id`. (6) Protocolo, skills e agentes
+dizem ao subagente para usar `exec`/`wait` em espera longa e ao orquestrador o que é "aguardando processo". Versão
+0.3.0. Marcado com **[rev. 5.8]** nas seções 5, 9 e 18 (ticket 53).
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -477,6 +502,10 @@ motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts (**[rev. 5]** ou ⏳ T02: src/, q
 - **[rev. 5.2]** `attempts` conta no `start` (cada tentativa começada conta uma vez): um `start` que não chegou ao
   `release` (janela morta, posse perdida) também conta; `release`, `resume` e posse perdida comparam com
   `maxAttempts` e viram `failed` quando chega; `retry` zera a contagem (o histórico fica no `log.jsonl`).
+- **[rev. 5.8]** O fim de um subagente sem concluir (`release --agent-ended`) não gasta `attempts`: devolve a que o
+  `start` contou e soma em `agentEnded`, com limite próprio (`maxAgentEnded`); no limite a tarefa falha e a execução
+  pausa com `needsPerson`. Com um processo da tarefa vivo (`procs`), nem isso: a tarefa fica `in_progress` com
+  `awaiting` e as travas. `retry` zera `agentEnded` também.
 
 ---
 
@@ -595,6 +624,13 @@ Toda ação da ferramenta que deixa algo no disco ou no git fora do próprio có
 - **Tentar de novo:** `jtasks retry T04`; histórico no `log.jsonl`; `attempts` conta.
 - **Falha automática:** `release` no fim de agente morto; no `maxAttempts` vira `failed`, dependentes ficam
   `blocked`, o resto segue. O goal termina com "restam N (M falhas)".
+- **[rev. 5.8] Fim de subagente não é morte por si:** o host chama `release --agent-ended`, e o núcleo olha primeiro
+  os processos da tarefa (`procs`, registrados por `exec --task` e `wait --pid`) e a palavra do host (`--waiting`):
+  com processo vivo, a tarefa fica em andamento aguardando processo, com as travas, sem gastar nada; o retorno do
+  subagente (no Claude Code, o `turn.start` dele; no OpenCode, a execução da sessão filha) encerra a espera; processo
+  morto e subagente sem voltar em `awaitGrace` contam como fim. O fim sem concluir conta em `agentEnded`, devolve a
+  tentativa que o `start` contou e, em `maxAgentEnded`, falha a tarefa e pausa a execução com `needsPerson`. O host
+  avisa o orquestrador de toda transição que ele não pediu, na hora, com a linha de status (`src/alerts.ts`).
 
 ---
 
@@ -903,6 +939,12 @@ motivo.
     subagente; no plugin, `session.execution.failed`, retry e `session.error`; protocolo, skills e documentação.
 24. **[rev. 5.7] Uma versão só** (ticket 52): 0.2.0 em `package.json`, `VERSION`, `plugin.json` e no pacote do
     OpenCode; `scripts/version.ts` (lista, `--check`, sobe) e `test/version.test.ts`.
+25. **[rev. 5.8] Fim de turno não é morte, e o orquestrador fica sabendo** (ticket 53): `src/procs.ts` (pids pelo
+    host, `tasklist`/`ps`, executável contra pid reusado), `exec --task`/`--timeout` registrando o pid, `jtasks wait`,
+    `agentEnded`/`sweepAwaiting`/`awaitBack`, `maxAgentEnded`/`awaitGrace`/`needsPerson`, `src/alerts.ts` (o que é
+    aviso, a mensagem, a linha de status); no mod, `--waiting` pelo status do agente e pelo Bash em segundo plano,
+    `claude/hooks/alerts.ts` e o `context` das notificações; no plugin, `src/alerts.ts`, `execute.after` e o evento
+    `alert` da TUI; protocolo (passos 8 e 9), skills, agentes, 0.3.0.
 
 ---
 

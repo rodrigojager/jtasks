@@ -4,13 +4,16 @@
 // keepalive: the root session going idle with ready tasks and no subagent alive gets a message that resumes it; and
 // the holds of the tasks this process started renewed before the run's holdTtl expires them (core's renew.ts); and a
 // session that fails on a transient failure of the provider (a usage or rate limit, an overloaded server, the network)
-// pauses the run with its task kept in progress, resumed later by the clock (rev. 5.7, ./src/transient.ts).
+// pauses the run with its task kept in progress, resumed later by the clock (rev. 5.7, ./src/transient.ts); and a
+// child session that ends while its process runs leaves its task waiting for it, every transition the root session did
+// not ask for is sent to it at once, and every subagent call's result carries the status line (rev. 5.8, ./src/alerts.ts).
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { awaitBack, ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, sweepAwaiting, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
+import { RunAlerts, statusTail } from "./src/alerts.ts"
 import { Bindings, type StorageLike } from "./src/binding.ts"
 import { contextText, injectSystem } from "./src/context.ts"
 import { judge } from "./src/guard.ts"
@@ -50,7 +53,12 @@ export interface ServerOptions {
   renewEveryMs?: number
   /** How often a transient pause is looked at for its `resumeAt` (tests use less). */
   resumeEveryMs?: number
+  /** How often the runs' logs are read for alerts, and (every fifth time) the tasks waiting for a process (rev. 5.8). */
+  alertEveryMs?: number
 }
+
+/** How often the runs' logs are read for what the root session must hear about (rev. 5.8). */
+export const ALERT_EVERY_MS = 3_000
 
 /** How often a transient pause is looked at for its `resumeAt`. */
 export const RESUME_EVERY_MS = 15_000
@@ -76,6 +84,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       const working = new Map<string, { root: string; sessions: Set<string> }>()
       // Set once the RPC exists (a give-up repaints the sidebar through its `changed`).
       let keepalive: RootKeepalive | undefined
+      // Set once the RPC exists: what a run does without the root session asking (rev. 5.8).
+      let alerts: RunAlerts | undefined
       let agentModels: { dispose(): Promise<void> } | undefined
 
       // Applies the profiles' models to their agents; answers the profiles whose agent does not exist (the editor is
@@ -115,6 +125,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         if (run) tctx.boundRun = run.run
         if (run) {
           const w = working.get(run.run) ?? { root: run.root, sessions: new Set<string>() }
+          if (!w.sessions.has(tctx.session!)) await alerts?.watch(run, tctx.session!).catch(() => undefined)
           w.sessions.add(tctx.session!)
           working.set(run.run, w)
         }
@@ -138,7 +149,9 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           await bindings.setTask(sessionID, { run: boundRun, task: id })
           await keepalive?.taskStarted(sessionID)
         }
-        if (result.ok && id && TASK_END.has(action)) await bindings.setTask(sessionID, undefined)
+        // A task waiting for its process (rev. 5.8) keeps its session's binding: the guard and the next end know it.
+        if (result.ok && id && TASK_END.has(action) && (result.data as { outcome?: string } | undefined)?.outcome !== "awaiting")
+          await bindings.setTask(sessionID, undefined)
         return result
       }
 
@@ -169,6 +182,9 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         await rpc.events.emit("changed", { run: run.run }).catch(() => {})
         return true
       }
+
+      // What a run does without the root session asking (rev. 5.8): a message to it, and a toast in the TUI.
+      alerts = new RunAlerts(host, { send, alert: (run, notice) => rpc.events.emit("alert" as never, { run, notice } as never) })
 
       keepalive = new RootKeepalive(host, bindings, {
         send,
@@ -225,6 +241,17 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         if (decision.agent && decision.agent !== input.agent) event.input = { ...input, agent: decision.agent }
       })
 
+      // The result of a subagent call carries the run's status line read at its end (rev. 5.8): the root session never
+      // answers it from a stale picture.
+      await ctx.tool.hook("execute.after", async (event) => {
+        if (!SUBAGENT_TOOLS.has(event.tool) || event.status !== "completed") return
+        const run = await bindings.run(event.sessionID)
+        if (!run) return
+        const tail = await statusTail(host, run)
+        const result = event.result as { content?: unknown }
+        if (tail && (typeof result.content === "string" || result.content === undefined)) event.result = { ...event.result, content: `${result.content ?? ""}${tail}` }
+      })
+
       await ctx.permission.hook("evaluate", async (event) => {
         await judge(host, bindings, event as never, fallbackDir)
       })
@@ -245,6 +272,15 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
             const data = next.value.data ?? next.value.properties
             failures.onEvent(type, data)
             if (data?.sessionID) void keepalive?.onEvent(type, data.sessionID).catch(() => undefined)
+            // A child session working again (resumed with task_id) whose task waited for its process (rev. 5.8).
+            if (type === "session.execution.started" && data?.sessionID) {
+              const child = data.sessionID
+              void (async () => {
+                const bound = await bindings.task(child)
+                const run = bound ? await bindings.run(child) : undefined
+                if (bound && run && run.run === bound.run) await awaitBack(sessionCtx(run, await bindings.root(child)), run.run, bound.task, "session.execution.started")
+              })().catch(() => undefined)
+            }
             if ((type !== "session.idle" && type !== "session.deleted") || !data?.sessionID) continue
             const end = type === "session.idle" ? "idle" : "deleted"
             const sessionID = data.sessionID
@@ -299,9 +335,30 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       }, options.resumeEveryMs ?? RESUME_EVERY_MS)
       ;(resumeTimer as { unref?: () => void }).unref?.()
 
+      // The runs' alerts for their root sessions, and every fifth pass the tasks waiting for a process (rev. 5.8): a
+      // process that ended tells the root to resume the same child session; one that does not come back counts as ended.
+      let alerting = false
+      let alertPasses = 0
+      const alertTimer = setInterval(() => {
+        if (alerting) return
+        alerting = true
+        void (async () => {
+          const sweep = alertPasses++ % 5 === 0
+          for (const [run, w] of working) {
+            const binding = { run, root: w.root }
+            if (sweep) await sweepAwaiting(sessionCtx(binding, [...w.sessions][0]!), run).catch(() => [])
+            for (const s of w.sessions) await alerts?.check(binding, s).catch(() => undefined)
+          }
+        })().finally(() => {
+          alerting = false
+        })
+      }, options.alertEveryMs ?? ALERT_EVERY_MS)
+      ;(alertTimer as { unref?: () => void }).unref?.()
+
       return async () => {
         clearInterval(renewTimer)
         clearInterval(resumeTimer)
+        clearInterval(alertTimer)
         await events?.return?.().catch(() => {})
         await agentModels?.dispose()
         await rpc.dispose().catch(() => {})

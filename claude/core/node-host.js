@@ -189,6 +189,8 @@ function createNodeHost() {
         child.stdout.on("data", (c) => stdout += c);
         child.stderr.on("data", (c) => stderr += c);
         const timer = options.timeoutMs ? setTimeout(() => child.kill(), options.timeoutMs) : undefined;
+        if (child.pid !== undefined && options.onStart)
+          Promise.resolve(options.onStart(child.pid)).catch(() => {});
         child.on("error", (error) => {
           if (timer)
             clearTimeout(timer);
@@ -213,6 +215,15 @@ function createNodeHost() {
       });
       child.stdin?.on("error", () => {});
       return new ChildResident(child);
+    },
+    async alive(pid) {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch (error) {
+        const code = error.code;
+        return code === "EPERM" ? true : code === "ESRCH" ? false : undefined;
+      }
     }
   };
 }

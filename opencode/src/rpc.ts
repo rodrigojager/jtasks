@@ -29,5 +29,14 @@ export const TasksRpc = Rpc.define({
         additionalProperties: false,
       },
     },
+    // What a run did without the root session asking (rev. 5.8): the TUI shows it as a toast.
+    alert: {
+      schema: {
+        type: "object",
+        properties: { run: { type: "string" }, notice: { type: "string" } },
+        required: ["run", "notice"],
+        additionalProperties: false,
+      },
+    },
   },
 })

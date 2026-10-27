@@ -34,7 +34,10 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
    - reads the ticket, then edits **only inside the ownership** (a folder covers everything in it);
    - needs one more file? `jtasks claim <id> <file>`. It waits in jlock's queue up to `--timeout` (60 s by default);
      refused for a deadlock? `jtasks yield <id>` (below);
-   - runs the build and the tests as usual (commands the run serializes go through `jtasks exec -- <command>`);
+   - runs the build and the tests as usual (commands the run serializes go through `jtasks exec -- <command>`); a
+     long one (a whole test suite, an end-to-end run) goes through `jtasks exec --task <id> -- <command>`, which
+     registers its process in the task; to end the turn and wait for a process left running in the background,
+     declare it first with `jtasks wait <id> --pid <pid>` (below, "Waiting for a process");
    - when every criterion holds: `jtasks done <id> --evidence "<what was run and what it showed>"`. The tool commits
      the ownership's changes and gives the locks back. If the task cannot be finished:
      `jtasks fail <id> --error "<why>"`. If it is not needed any more: `jtasks skip <id> --reason "<why>"`.
@@ -49,6 +52,26 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
 
 With the mod, when your turn ends while the run is not paused, has a ready task (or one in progress that nobody works on) and no subagent is running, the mod sends you a message that starts with `jtasks: run <id> is idle`. It is read from `tasks.json` at that moment, not from the conversation (which a compaction may have left stale): answer it with `jtasks next` and the subagents, not with text. After two such messages with no progress it stops and tells the user. It never fires after the user interrupts a turn, until the run moves. `jtasks keepalive off` turns it off for the run (`jtasks keepalive on` turns it back on and forgets the
 messages already sent); `jtasks status` says when it is off or has given up.
+
+## Waiting for a process
+
+The end of a subagent's loop with its task in progress is not always a death: it may have left a long command
+running and ended its turn to wait for it. So the host's end of a subagent looks first at the processes the task
+registered (`jtasks exec --task <id>` registers the one it starts, `jtasks wait <id> --pid <pid>` declares one started
+otherwise; `jtasks wait <id>` lists them): while one lives, the task stays **in progress, waiting for a process**,
+with its locks and without spending anything, and `jtasks status` says so. With the mod, a command a subagent runs with the Bash tool in the background is seen by the mod too, and so is Claude Code's own word that the agent waits on background work it owns: its task waits, and Claude Code reopens the same subagent when the work ends (the wait ends with it). If the host says the process ended and the subagent did not come back, resume it with SendMessage.
+
+When the process ends, the subagent is expected back; if it does not come back within the run's `awaitGrace` (5 min
+by default), the task counts as ended. A subagent that ends without finishing sends the task back to the queue
+without spending an attempt; after `maxAgentEnded` such ends (3 by default) the task fails and the run pauses for a
+person, with the reason in `jtasks status`: tell the user, and after they decide, `jtasks retry <id>` and
+`jtasks unpause`.
+
+As the orchestrator: leave a task waiting for a process alone (no `release`, no second subagent, not doing it
+yourself) and go on with the others. Whatever the run does without your asking (a subagent ended, a task went back
+to the queue, failed or waits for a process, a lock was lost, the run paused for a person) reaches you at once as a
+message that starts with `jtasks: run <id> changed without your asking`, with the status line: act on it, it is read
+from the run's log, not from the conversation. Every notification of a subagent's end carries the same status line.
 
 ## When something is in the way
 

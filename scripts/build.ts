@@ -73,7 +73,7 @@ export async function buildAll(): Promise<Bundle[]> {
 }
 
 /** How each agent calls the tool and opens subagents: what fills the `{{…}}` of the skills' sources (plan section 23). */
-export const HOSTS: Record<string, { calling: string; spawn: string; after: string; keepalive: string; transient: string; frontmatter: Record<string, string> }> = {
+export const HOSTS: Record<string, { calling: string; spawn: string; after: string; keepalive: string; transient: string; wait: string; frontmatter: Record<string, string> }> = {
   "claude-code": {
     calling:
       "In Claude Code with the jtasks mod, every `jtasks …` command below goes through the `mcp__jtasks__jtasks` " +
@@ -102,6 +102,11 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "is active again (at the reset the error gave, when Claude Code goes on after a usage limit, or after " +
       "`jtasks unpause`), the mod sends you a message naming the agent of each kept task: resume that same agent with " +
       "SendMessage and tell it to go on where it stopped, without calling `start` or `claim` again for what it holds.",
+    wait:
+      "With the mod, a command a subagent runs with the Bash tool in the background is seen by the mod too, and so is " +
+      "Claude Code's own word that the agent waits on background work it owns: its task waits, and Claude Code reopens " +
+      "the same subagent when the work ends (the wait ends with it). If the host says the process ended and the subagent " +
+      "did not come back, resume it with SendMessage.",
     frontmatter: { "to-jtasks": "disable-model-invocation: true\n" },
   },
   opencode: {
@@ -133,6 +138,11 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "`start` meanwhile. When the run is active again (at the reset, or after `jtasks unpause`), the plugin sends you " +
       "a message naming the session of each kept task: resume that same session (the subagent tool's `task_id`) and " +
       "tell it to go on where it stopped, without calling `start` or `claim` again for what it holds.",
+    wait:
+      "OpenCode does not reopen a subagent session when its process ends, so a subagent should rather run a long " +
+      "command in the foreground (`jtasks exec --task <id> -- <command>`). If one ends its session while a registered " +
+      "process runs, the plugin sends you a message when that process ends, naming the session: resume it (the " +
+      "subagent tool's `task_id`) so it reads the result and finishes.",
     frontmatter: {},
   },
   codex: {
@@ -151,6 +161,9 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "Here nothing pauses the run for you. If you (or an agent you started) hit a usage or rate limit, an overloaded " +
       "API or a dropped connection, do not release or fail the task: call `jtasks pause`, wait, and after " +
       "`jtasks unpause` go on with the same task where it stopped (it is still in progress, with its locks).",
+    wait:
+      "Here nothing ends or reopens an agent's loop for you: run long commands in the foreground " +
+      "(`jtasks exec --task <id> -- <command>` registers them), and `jtasks status` tells you which tasks wait.",
     frontmatter: {},
   },
 }
@@ -164,6 +177,7 @@ function fillSkill(text: string, host: string, skill: string): string {
     .replace("{{AFTER}}", h.after)
     .replace("{{KEEPALIVE}}", h.keepalive)
     .replace("{{TRANSIENT}}", h.transient)
+    .replace("{{WAIT}}", h.wait)
   const left = /\{\{\w+\}\}/.exec(out)
   if (left) throw new Error(`skills/source/${skill}/SKILL.md: ${left[0]} has no value for ${host}`)
   return out

@@ -71,6 +71,48 @@ export interface Task {
     patches?: SavedPatch[];
     /** Files of the run's `shared` the task touches without owning them (rev. 5.6): it will claim them. */
     touchesShared?: string[];
+    /** Processes the task runs (rev. 5.8): registered by `jtasks exec`, declared by `jtasks wait`. */
+    procs?: TaskProcess[];
+    /** Set while the task waits for a process its subagent left running when its loop ended (rev. 5.8). */
+    awaiting?: Awaiting;
+    /** Times its subagent ended without finishing (rev. 5.8): counted apart from `attempts`, up to `maxAgentEnded`. */
+    agentEnded?: number;
+}
+/** A process a task runs (rev. 5.8): its subagent's loop may end while it runs, and the task then waits for it. */
+export interface TaskProcess {
+    pid: number;
+    /** When jtasks registered it. */
+    startedAt: string;
+    /** The command, short. */
+    command: string;
+    /** `exec`: `jtasks exec` started it; `wait`: the subagent declared it with `jtasks wait`. */
+    by: "exec" | "wait";
+    /** The executable the system showed for the pid when it was registered: a pid reused by another program is not it. */
+    image?: string;
+}
+/**
+ * A task whose subagent's loop ended while a process of the task still ran (rev. 5.8): it stays in progress, with its
+ * locks and without spending an attempt, until the subagent comes back (the host resumes it when the process ends),
+ * or the process ended and the subagent did not come back within the run's `awaitGrace` (then it counts as ended).
+ */
+export interface Awaiting {
+    since: string;
+    /** The subagent whose loop ended: the one to come back (Claude Code's agent id, OpenCode's child session). */
+    agent?: string;
+    /** The processes alive when it ended. */
+    pids: number[];
+    /** What the host itself saw, when it says (Claude Code: the agent waits on background work it owns). */
+    host?: string;
+    /** When jtasks saw the processes end (or the host stop waiting): `awaitGrace` counts from here. */
+    endedAt?: string;
+}
+/** The run paused because a person is needed (rev. 5.8): a task's subagent ended without finishing too many times. */
+export interface NeedsPerson {
+    reason: "agent-ended";
+    task: string;
+    count: number;
+    max: number;
+    at: string;
 }
 export interface ClaudeProfile {
     /** The subagent type the spawn becomes, e.g. `jtasks:execute`, one of the agents the mod ships. */
@@ -136,6 +178,12 @@ export interface RunFile {
         signature: string;
         n: number;
     };
+    /** Ends of a task's subagent without finishing before the run pauses for a person (rev. 5.8; default 3). */
+    maxAgentEnded?: number;
+    /** How long a task waits for its subagent to come back after its process ended (rev. 5.8; default `5m`). */
+    awaitGrace?: string;
+    /** Set while the run is paused because a person is needed (rev. 5.8): `unpause` or `resume` ends it. */
+    needsPerson?: NeedsPerson;
 }
 /**
  * Why a provider call failed in a way that clears on its own: a rate limit, a usage limit or quota, an overloaded
@@ -193,6 +241,10 @@ export interface PlanInput {
     profiles?: Record<string, Profile>;
     serialize?: string[];
     maxAttempts?: number;
+    /** Ends of a task's subagent without finishing before the run pauses for a person (default 3). */
+    maxAgentEnded?: number;
+    /** How long a task waits for its subagent after its process ended (default `5m`). */
+    awaitGrace?: string;
     holdTtl?: string;
     /** False creates the run with the keepalive off. */
     keepalive?: boolean;
@@ -206,6 +258,10 @@ export interface PlanInput {
 export declare const DEFAULT_PROFILES: Record<string, Profile>;
 export declare const DEFAULT_PROFILE = "execute";
 export declare const DEFAULT_MAX_ATTEMPTS = 2;
+/** Ends of a task's subagent without finishing (not attempts) before the run pauses for a person (rev. 5.8). */
+export declare const DEFAULT_MAX_AGENT_ENDED = 3;
+/** After its process ended, how long a task waits for its subagent to come back before it counts as ended (rev. 5.8). */
+export declare const DEFAULT_AWAIT_GRACE = "5m";
 /** The `--ttl` of every hold: the lock expires by itself after this long if nobody gives it back. */
 export declare const DEFAULT_HOLD_TTL = "2h";
 export declare const DURATION: RegExp;

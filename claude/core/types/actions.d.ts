@@ -3,7 +3,7 @@ import { type RunState } from "./frontier.js";
 import type { Resident } from "./host.js";
 import { type HoldMode, type HoldOutcome, type Identity } from "./jlock.js";
 import { type ReapplyReport } from "./keep.js";
-import { type Task } from "./schema.js";
+import { type Awaiting, type RunFile, type Task, type TasksFile } from "./schema.js";
 import { type ParsedArgs, type ToolContext } from "./tool.js";
 /** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
 export declare function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState>;
@@ -44,6 +44,7 @@ export declare function releaseHolds(ctx: ToolContext, run: string, task: string
 export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
     text: string;
     data: {
+        needsPerson?: import("./schema.ts").NeedsPerson | undefined;
         pause?: import("./schema.ts").AutoPause | undefined;
         run: string;
         status: import("./schema.ts").RunStatus;
@@ -53,6 +54,7 @@ export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
             id: string;
             owner: string | null | undefined;
             waitingFor: import("./schema.ts").WaitingFor | null;
+            awaiting: Awaiting | null;
         }[];
         ready: string[];
         blocked: {
@@ -69,6 +71,8 @@ export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
         }[];
     };
 }>;
+/** A task waiting for its process, in `status`: what and since when, or since when its process ended. */
+export declare function awaitingLine(task: Task, run: RunFile, now: Date): string;
 /** The task's ownership as relative paths: files and claims; `.` (everything) when exclusive. */
 export declare function possession(task: Task): string[];
 export interface TreeSplit {
@@ -133,6 +137,51 @@ export interface Retaken {
 export declare function retakeYielded(ctx: ToolContext, first: RunState, only?: (task: Task) => boolean): Promise<Retaken[]>;
 /** In progress → pending (or failed at maxAttempts). Used by release, resume, lost (their edits: `keepTask`). */
 export declare function backToPending(task: Task, maxAttempts: number, why: string, now: string): "pending" | "failed";
+/** What the end of a task's subagent did. */
+export interface AgentEnd {
+    /**
+     * `awaiting`: a process of the task lives (or the host says the agent waits on its background work): the task stays
+     * in progress with its locks, nothing spent. `pending`: back to the queue, counted in `agentEnded` (not in
+     * `attempts`). `limit`: that count reached the run's `maxAgentEnded`: failed, and the run paused for a person.
+     */
+    outcome: "awaiting" | "pending" | "limit";
+    task: Task;
+    tasks: TasksFile;
+    state: RunState;
+    kept: Kept;
+    /** Ends without finishing so far, and the run's limit. */
+    count: number;
+    max: number;
+    /** What giving the locks back said ("" while awaiting). */
+    released: string;
+    back: string[];
+}
+/**
+ * The subagent of an in-progress task ended its loop (`release --agent-ended`, the host's end of a subagent), or the
+ * wait for its process ran out (`expired`). Its registered processes are looked at first: while one lives (or the host
+ * says the agent waits, `waiting`), the task waits for it in progress, with its locks; otherwise it goes back to the
+ * queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person.
+ */
+export declare function agentEnded(ctx: ToolContext, args: ParsedArgs, opts?: {
+    waiting?: string;
+    expired?: boolean;
+}): Promise<AgentEnd>;
+/** The subagent of an awaiting task is at work again (the host saw its loop start): the wait is over. */
+export declare function awaitBack(ctx: ToolContext, run: string, taskId: string, how: string): Promise<boolean>;
+/** What one pass over the awaiting tasks did: a process ended (the agent should come back now), or the wait ran out. */
+export interface AwaitEvent {
+    task: string;
+    what: "ended" | "expired";
+    agent?: string;
+}
+/**
+ * One pass over the run's awaiting tasks (the hosts' clock; `next` and `status` too). A task whose processes all
+ * ended is marked (`endedAt`: the subagent should come back now, and the host or the orchestrator resumes it); one
+ * whose subagent did not come back within the run's `awaitGrace` counts as ended (`agentEnded`, `expired`). `host`
+ * answers for a wait the host itself declared (`--waiting`): true while its agent still waits, false once it does not,
+ * undefined when it cannot tell (the pids decide then; with none, such a wait is left for its host). Never throws.
+ */
+export declare function sweepAwaiting(ctx: ToolContext, run: string, host?: (task: Task) => Promise<boolean | undefined>): Promise<AwaitEvent[]>;
 /** What leaving a transient pause did: the text for the orchestrator and the keys others took meanwhile. */
 export interface LeftPause {
     state: RunState;

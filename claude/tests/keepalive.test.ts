@@ -206,7 +206,7 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(s.submitted.length).toBe(1)
   })
 
-  test(`a subagent's end still only gives its task back (no message from its loop) · ${os}`, async ($, on) => {
+  test(`a subagent's end gives its task back; no keepalive message from its loop, only the alert of what happened (rev. 5.8) · ${os}`, async ($, on) => {
     const s = await scene($, on)
     await $.agent.spawn({ prompt: `--run ${s.run} --task T07 x`, description: 'T07', subagentType: 'general-purpose' } as never)
     const tasks = JSON.parse(s.machine.read(s.file)!)
@@ -215,6 +215,8 @@ for (const { os, root: ROOT } of ROOTS) {
     s.agents[0]!.status = 'completed'
     await $.turn.complete({ answer: 'parei', durationMs: 10, isAborted: false, turnId: 'a1', agentId: 'agent-1', reason: 'answer' } as never)
     expect(JSON.parse(s.machine.read(s.file)!).tasks[0]).toMatchObject({ status: 'pending', owner: null })
-    expect(s.submitted).toEqual([])
+    expect(s.submitted.length).toBe(1)
+    expect(s.submitted[0]).toContain('changed without your asking')
+    expect(s.submitted[0]).not.toContain('is idle')
   })
 }

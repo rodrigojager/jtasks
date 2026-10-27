@@ -73,12 +73,13 @@ export class Keepalive {
   }
 
   /**
-   * The run left a transient pause: `text` tells the orchestrator to resume the same agents. Sent when the session is
-   * idle and the box empty (a turn running, or a draft, makes it wait); never in a -p run or the SDK.
+   * A message for the orchestrator that does not wait for a ready task: the run left a transient pause (resume the
+   * same agents), or the run changed without its asking (rev. 5.8, ./alerts.ts). Sent when the session is idle and the
+   * box empty (a turn running, or a draft, makes it wait), several waiting ones as one; never in a -p run or the SDK.
    */
   deliver(text: string): void {
     if (!this.interactive) return
-    this.queued = text
+    this.queued = this.queued ? `${this.queued}\n\n${text}` : text
     void this.flush().catch(() => undefined)
   }
 

@@ -12,7 +12,13 @@ before the run's `holdTtl` expires them, so a task that runs for hours keeps its
 that dies on a transient failure of the API (a usage or session limit, a rate limit, an overloaded API, the network:
 read from the classic `StopFailure` event) pauses the run with its task kept in progress and its locks held; at the
 reset, at Claude Code's own `quota_auto_resume_fired` or on `jtasks unpause`, the mod tells the orchestrator to resume
-that same subagent with SendMessage (see [Transient failures](../docs/USAGE.md#transient-failures)).
+that same subagent with SendMessage (see [Transient failures](../docs/USAGE.md#transient-failures)). A subagent
+whose loop ends while it waits on background work it owns (Claude Code's `waiting`, or a Bash command it left
+running in the background) keeps its task in progress, waiting for that work, with its locks and nothing spent; its
+return ends the wait. Whatever the run does without the orchestrator asking (a subagent ended, a task back in the
+queue or waiting for a process, locks lost, a task failed, the run paused for a person) reaches the orchestrator at
+once as a message with the status line, and you as a toast; every notification of a subagent's end carries the
+status line too (see [Waiting for a process](../docs/USAGE.md#waiting-for-a-process)).
 
 The folder is self-contained: `core/core.js` is the core (generated from `../src` by `bun scripts/build.ts`), and
 the hooks module runs it with no Node and no `node_modules`. It needs `git`; `jlock` comes by itself: when it is
