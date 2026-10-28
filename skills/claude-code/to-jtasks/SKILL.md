@@ -1,7 +1,6 @@
 ---
 name: to-jtasks
 description: Break a plan, spec, issue or the current conversation into jtasks tasks (tracer-bullet vertical slices, each with what it delivers, acceptance criteria that fail today, the tasks that block it and the files it owns) and hand them to the `jtasks` tool in batches; the tool validates them, writes tasks.json and generates the tickets.
-disable-model-invocation: true
 ---
 
 # To jtasks

@@ -1,6 +1,6 @@
 {
   "name": "opencode-jtasks",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "jtasks for OpenCode v2: the jtasks tool, run binding, protocol in context, profiles and the ownership guard.",

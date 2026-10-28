@@ -107,7 +107,9 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "Claude Code's own word that the agent waits on background work it owns: its task waits, and Claude Code reopens " +
       "the same subagent when the work ends (the wait ends with it). If the host says the process ended and the subagent " +
       "did not come back, resume it with SendMessage.",
-    frontmatter: { "to-jtasks": "disable-model-invocation: true\n" },
+    // to-jtasks used to carry `disable-model-invocation: true` (inherited from the skill it came from); the owner
+    // wants the model to be able to call it, like on the other hosts.
+    frontmatter: {},
   },
   opencode: {
     calling:
