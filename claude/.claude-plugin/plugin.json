@@ -1,6 +1,6 @@
 {
   "name": "jtasks",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Deterministic task list with dependencies and file ownership (jlock): the jtasks tool, a Tasks pane, /jtasks, and the ownership guard for subagents.",
   "author": {
     "name": "Rodrigo Jäger"

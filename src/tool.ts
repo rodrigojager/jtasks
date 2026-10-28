@@ -11,7 +11,7 @@ import { validatePlan } from "./validate.ts"
 import { select, systemLocale, tr } from "./i18n.ts"
 import { jlockNotice } from "./setup.ts"
 
-export const VERSION = "0.3.0"
+export const VERSION = "0.3.1"
 
 export interface ToolContext {
   host: Host

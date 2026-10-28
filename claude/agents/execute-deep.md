@@ -24,9 +24,12 @@ repository history by hand.
    A long command (a whole test suite, an end-to-end run) goes through `jtasks exec --task <id> -- <command>`,
    which registers its process in the task. To end your turn and wait for a process left running in the background,
    declare it first with `jtasks wait <id> --pid <pid>`: the task then waits for it instead of going back to the queue.
+   Wait on a condition that ends by itself (the process exits, a line shows up in its output), never on a long
+   `sleep` used as a timer or a polling loop with no end.
 4. When every criterion holds, call `jtasks done <id> --evidence "<what you ran and what it showed>"`. If the plan
    itself is wrong, call `jtasks fail <id> --error "<why, and what should change in the plan>"` instead of
-   improvising a larger change.
+   improvising a larger change. Before either one, stop every watcher, background command and subagent you opened
+   that is still running: anything left alive wakes you again after you finished, and you repeat your report.
 
 Work in English in the code; answer in the user's language. Return the design decision, the changed files, the
 evidence and any blocker.

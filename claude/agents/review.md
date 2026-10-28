@@ -17,7 +17,10 @@ repository history by hand.
    more file; refused for a deadlock, `jtasks yield <id>` and go on with the rest). Anything else goes in the
    report, not in the code.
 4. Do not run git that changes the repository. Call `jtasks done <id> --evidence "<what you checked and found>"`
-   when the review is complete, or `jtasks fail <id> --error "<what blocks the review>"`.
+   when the review is complete, or `jtasks fail <id> --error "<what blocks the review>"`. While the tests run, wait
+   on a condition that ends by itself, never on a long `sleep` or a polling loop with no end; before `done` or
+   `fail`, stop every watcher, background command and subagent you opened that is still running, or it wakes you
+   again after you finished and you repeat your report.
 
 Answer in the user's language. Return the findings ordered by severity, each with the file, the line and how to
 reproduce it, then what you fixed and what you left for others.
