@@ -94,6 +94,14 @@ export class AlertWatch {
     return found ? WAITING.has(found.status) : false
   }
 
+  /** Whether a subagent is still at work or waiting (its status), or undefined when the engine does not say. */
+  private async agentAlive(agent: string): Promise<boolean | undefined> {
+    const list = await this.ui.agents().catch(() => undefined)
+    if (!list) return undefined
+    const found = list.find((a) => a.id === agent)
+    return found ? WAITING.has(found.status) : false
+  }
+
   /** The clock (every two seconds): the waits every fifth tick, then the log. Never overlaps itself. */
   async tick(): Promise<void> {
     if (this.busy) return
@@ -106,13 +114,16 @@ export class AlertWatch {
     }
   }
 
-  /** One pass over the bound run's tasks waiting for a process (core's sweepAwaiting); cheap when none waits. */
+  /**
+   * One pass over the bound run's tasks waiting for a process (core's sweepAwaiting), and over those in progress
+   * with processes registered but no wait (a wait lost: they wait again while their subagent is gone); cheap when none.
+   */
   async sweep(): Promise<void> {
     const bound = await this.port.getRun()
     if (!bound) return
     const host = createModHost(this.port, await this.port.cwd())
     const tasks = await readTasks(host, runDir(bound.root, bound.run)).catch(() => undefined)
-    if (!tasks?.tasks.some((t) => t.status === 'in_progress' && t.awaiting)) return
-    await sweepAwaiting(await this.ui.ctx(bound.run), bound.run, (task) => this.agentWaits(task))
+    if (!tasks?.tasks.some((t) => t.status === 'in_progress' && (t.awaiting || t.procs?.length))) return
+    await sweepAwaiting(await this.ui.ctx(bound.run), bound.run, (task) => this.agentWaits(task), (agent) => this.agentAlive(agent))
   }
 }

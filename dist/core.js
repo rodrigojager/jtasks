@@ -407,9 +407,12 @@ var en_default = {
   "keepalive.usage": "use: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "run {run}: keepalive on (the host reopens the loop when the orchestrator stops with ready tasks and nothing running)",
   "keepalive.off": "run {run}: keepalive off (only the model keeps the loop going)",
-  "keepalive.stalled": "run {run} is stopped with {what} to do and nothing running; {tries} message(s) without progress, the host gave up (jtasks keepalive on watches it again)",
-  "keepalive.error": "the run {run} stopped on an error with {what} to do and nothing running; after an error the host sends nothing (send a message to go on)",
+  "keepalive.stalled": "run {run} is stopped with {what} and nothing running; {tries} message(s) without progress, the host gave up (jtasks keepalive on watches it again)",
+  "keepalive.error": "the run {run} stopped on an error with {what} and nothing running; after an error the host sends nothing (send a message to go on)",
   "keepalive.dropped": "jtasks: keepalive message no longer needed (the run moved on)",
+  "keepalive.what_orphan": "{id} in progress with no agent",
+  "keepalive.what_orphan_agent": "{id} in progress with no agent (resume agent {agent} with {how})",
+  "keepalive.what_ready": "{list} to do",
   "patch.conflicts": "reapplied with conflicts (resolve the markers; the patch stays saved): {list}",
   "patch.failed": "patches that did not apply (nothing changed; they stay saved): {list}",
   "patch.reapplied": "patches reapplied: {files}",
@@ -535,8 +538,8 @@ var en_default = {
   "status.awaiting_item": "{id} ({what}, since {since})",
   "status.awaiting_mark": "waiting for a process",
   "status.keepalive_off": "keepalive: off",
-  "status.keepalive_stalled": "keepalive gave up: {what} to do, nothing running, {tries} message(s) without progress (jtasks keepalive on watches it again)",
-  "status.keepalive_error": "keepalive stopped after an error: {what} to do, nothing running (send a message to go on)",
+  "status.keepalive_stalled": "keepalive gave up: {what}, nothing running, {tries} message(s) without progress (jtasks keepalive on watches it again)",
+  "status.keepalive_error": "keepalive stopped after an error: {what}, nothing running (send a message to go on)",
   "status.keepalive_held": "keepalive: quiet after an interruption, until the run moves",
   "status.keepalive_nudged": "keepalive: reopened the loop at {at} (message {tries} of {max})",
   "status.queue": "({n} in the queue: {owners})",
@@ -594,7 +597,7 @@ var en_default = {
   "view.no_run": "no bound run",
   "view.no_runs": "no run (jtasks plan)",
   "view.paused": "paused",
-  "view.stalled": "⚠ stopped: {what} to do, nothing running",
+  "view.stalled": "⚠ stopped: {what}, nothing running",
   "view.auto_paused": "⏸ paused ({kind}): {when}",
   "view.awaiting": "waiting for {what}",
   "view.awaiting_back": "process ended; subagent coming back",
@@ -615,6 +618,7 @@ var en_default = {
   "wait.list": "processes of {id}: {list}",
   "wait.none": "{id} has no registered process (jtasks exec, or jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "not alive, left out: {list}",
+  "wait.still_awaiting": "{id} is still waiting for its subagent's process ({what}): this call does not end that wait, only that subagent does. The orchestrator leaves the task alone (no wait, release or second subagent); the host tells it when the process ends",
   "warnings.count": "{n} warning(s):",
   "yield.came_back": "{id} took back {files}",
   "yield.done": "{id} yielded {files} and stays in progress; {saved}",
@@ -912,9 +916,12 @@ var pt_BR_default = {
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "execução {run}: retomada ligada (o host reabre o laço quando o orquestrador para com tarefas prontas e nada rodando)",
   "keepalive.off": "execução {run}: retomada desligada (só o modelo mantém o laço andando)",
-  "keepalive.stalled": "a execução {run} está parada com {what} por fazer e nada rodando; {tries} mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)",
-  "keepalive.error": "a execução {run} parou num erro com {what} por fazer e nada rodando; depois de um erro o host não manda nada (mande uma mensagem para seguir)",
+  "keepalive.stalled": "a execução {run} está parada com {what} e nada rodando; {tries} mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)",
+  "keepalive.error": "a execução {run} parou num erro com {what} e nada rodando; depois de um erro o host não manda nada (mande uma mensagem para seguir)",
   "keepalive.dropped": "jtasks: a mensagem de retomada não é mais necessária (a execução andou)",
+  "keepalive.what_orphan": "{id} em andamento sem agente",
+  "keepalive.what_orphan_agent": "{id} em andamento sem agente (retome o agente {agent} com {how})",
+  "keepalive.what_ready": "{list} por fazer",
   "patch.conflicts": "reaplicados com conflito (resolva os marcadores; o patch continua guardado): {list}",
   "patch.failed": "patches que não aplicaram (nada mudou; continuam guardados): {list}",
   "patch.reapplied": "patches reaplicados: {files}",
@@ -1040,8 +1047,8 @@ var pt_BR_default = {
   "status.awaiting_item": "{id} ({what}, desde {since})",
   "status.awaiting_mark": "aguardando processo",
   "status.keepalive_off": "retomada: desligada",
-  "status.keepalive_stalled": "retomada desistiu: {what} por fazer, nada rodando, {tries} mensagem(ns) sem progresso (jtasks keepalive on volta a vigiar)",
-  "status.keepalive_error": "retomada parada depois de um erro: {what} por fazer, nada rodando (mande uma mensagem para seguir)",
+  "status.keepalive_stalled": "retomada desistiu: {what}, nada rodando, {tries} mensagem(ns) sem progresso (jtasks keepalive on volta a vigiar)",
+  "status.keepalive_error": "retomada parada depois de um erro: {what}, nada rodando (mande uma mensagem para seguir)",
   "status.keepalive_held": "retomada: em silêncio depois de uma interrupção, até a execução andar",
   "status.keepalive_nudged": "retomada: reabriu o laço em {at} (mensagem {tries} de {max})",
   "status.queue": "({n} na fila: {owners})",
@@ -1099,7 +1106,7 @@ var pt_BR_default = {
   "view.no_run": "sem execução ligada",
   "view.no_runs": "nenhuma execução (jtasks plan)",
   "view.paused": "pausada",
-  "view.stalled": "⚠ parada: {what} por fazer, nada rodando",
+  "view.stalled": "⚠ parada: {what}, nada rodando",
   "view.auto_paused": "⏸ pausada ({kind}): {when}",
   "view.awaiting": "aguardando {what}",
   "view.awaiting_back": "processo terminou; subagente voltando",
@@ -1120,6 +1127,7 @@ var pt_BR_default = {
   "wait.list": "processos de {id}: {list}",
   "wait.none": "{id} não tem processo registrado (jtasks exec, ou jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "não estão vivos, ficaram de fora: {list}",
+  "wait.still_awaiting": "{id} continua aguardando o processo do seu subagente ({what}): esta chamada não encerra a espera, só esse subagente encerra. O orquestrador não mexe na tarefa (nada de wait, release ou outro subagente); o host avisa quando o processo terminar",
   "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} pegou de volta {files}",
   "yield.done": "{id} cedeu {files} e continua em andamento; {saved}",
@@ -1417,9 +1425,12 @@ var es_default = {
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "ejecución {run}: reanudación activada (el host reabre el ciclo cuando el orquestador se detiene con tareas listas y nada en marcha)",
   "keepalive.off": "ejecución {run}: reanudación desactivada (solo el modelo mantiene el ciclo en marcha)",
-  "keepalive.stalled": "la ejecución {run} está detenida con {what} por hacer y nada en marcha; {tries} mensaje(s) sin progreso, el host se rindió (jtasks keepalive on vuelve a vigilarla)",
-  "keepalive.error": "la ejecución {run} se detuvo por un error con {what} por hacer y nada en marcha; tras un error el host no envía nada (envía un mensaje para seguir)",
+  "keepalive.stalled": "la ejecución {run} está detenida con {what} y nada en marcha; {tries} mensaje(s) sin progreso, el host se rindió (jtasks keepalive on vuelve a vigilarla)",
+  "keepalive.error": "la ejecución {run} se detuvo por un error con {what} y nada en marcha; tras un error el host no envía nada (envía un mensaje para seguir)",
   "keepalive.dropped": "jtasks: el mensaje de reanudación ya no hace falta (la ejecución avanzó)",
+  "keepalive.what_orphan": "{id} en curso sin agente",
+  "keepalive.what_orphan_agent": "{id} en curso sin agente (retoma el agente {agent} con {how})",
+  "keepalive.what_ready": "{list} por hacer",
   "patch.conflicts": "reaplicados con conflictos (resuelve los marcadores; el patch sigue guardado): {list}",
   "patch.failed": "patches que no se aplicaron (nada cambió; siguen guardados): {list}",
   "patch.reapplied": "patches reaplicados: {files}",
@@ -1545,8 +1556,8 @@ var es_default = {
   "status.awaiting_item": "{id} ({what}, desde {since})",
   "status.awaiting_mark": "esperando un proceso",
   "status.keepalive_off": "reanudación: desactivada",
-  "status.keepalive_stalled": "la reanudación se rindió: {what} por hacer, nada en marcha, {tries} mensaje(s) sin progreso (jtasks keepalive on vuelve a vigilarla)",
-  "status.keepalive_error": "reanudación detenida tras un error: {what} por hacer, nada en marcha (envía un mensaje para seguir)",
+  "status.keepalive_stalled": "la reanudación se rindió: {what}, nada en marcha, {tries} mensaje(s) sin progreso (jtasks keepalive on vuelve a vigilarla)",
+  "status.keepalive_error": "reanudación detenida tras un error: {what}, nada en marcha (envía un mensaje para seguir)",
   "status.keepalive_held": "reanudación: en silencio tras una interrupción, hasta que la ejecución avance",
   "status.keepalive_nudged": "reanudación: reabrió el ciclo a las {at} (mensaje {tries} de {max})",
   "status.queue": "({n} en la cola: {owners})",
@@ -1604,7 +1615,7 @@ var es_default = {
   "view.no_run": "sin ejecución ligada",
   "view.no_runs": "ninguna ejecución (jtasks plan)",
   "view.paused": "en pausa",
-  "view.stalled": "⚠ detenida: {what} por hacer, nada en marcha",
+  "view.stalled": "⚠ detenida: {what}, nada en marcha",
   "view.auto_paused": "⏸ en pausa ({kind}): {when}",
   "view.awaiting": "esperando {what}",
   "view.awaiting_back": "proceso terminado; el subagente vuelve",
@@ -1625,6 +1636,7 @@ var es_default = {
   "wait.list": "procesos de {id}: {list}",
   "wait.none": "{id} no tiene procesos registrados (jtasks exec, o jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "no están vivos, se dejaron fuera: {list}",
+  "wait.still_awaiting": "{id} sigue esperando el proceso de su subagente ({what}): esta llamada no termina la espera, solo ese subagente la termina. El orquestador no toca la tarea (ni wait, ni release, ni otro subagente); el host avisa cuando el proceso termine",
   "warnings.count": "{n} aviso(s):",
   "yield.came_back": "{id} recuperó {files}",
   "yield.done": "{id} cedió {files} y sigue en curso; {saved}",
@@ -1922,9 +1934,12 @@ var fr_default = {
   "keepalive.usage": "usage : jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "exécution {run} : relance activée (l'hôte relance la boucle quand l'orchestrateur s'arrête avec des tâches prêtes et rien en cours)",
   "keepalive.off": "exécution {run} : relance désactivée (seul le modèle fait avancer la boucle)",
-  "keepalive.stalled": "l'exécution {run} est arrêtée avec {what} à faire et rien en cours ; {tries} message(s) sans progrès, l'hôte abandonne (jtasks keepalive on la surveille à nouveau)",
-  "keepalive.error": "l'exécution {run} s'est arrêtée sur une erreur avec {what} à faire et rien en cours ; après une erreur l'hôte n'envoie rien (envoyez un message pour continuer)",
+  "keepalive.stalled": "l'exécution {run} est arrêtée avec {what} et rien en cours ; {tries} message(s) sans progrès, l'hôte abandonne (jtasks keepalive on la surveille à nouveau)",
+  "keepalive.error": "l'exécution {run} s'est arrêtée sur une erreur avec {what} et rien en cours ; après une erreur l'hôte n'envoie rien (envoyez un message pour continuer)",
   "keepalive.dropped": "jtasks : le message de relance n'est plus nécessaire (l'exécution a avancé)",
+  "keepalive.what_orphan": "{id} en cours sans agent",
+  "keepalive.what_orphan_agent": "{id} en cours sans agent (reprenez l'agent {agent} avec {how})",
+  "keepalive.what_ready": "{list} à faire",
   "patch.conflicts": "réappliqués avec conflits (résolvez les marqueurs; le patch reste gardé): {list}",
   "patch.failed": "patchs qui ne se sont pas appliqués (rien n'a changé; ils restent gardés): {list}",
   "patch.reapplied": "patchs réappliqués: {files}",
@@ -2050,8 +2065,8 @@ var fr_default = {
   "status.awaiting_item": "{id} ({what}, depuis {since})",
   "status.awaiting_mark": "en attente d'un processus",
   "status.keepalive_off": "relance : désactivée",
-  "status.keepalive_stalled": "relance abandonnée : {what} à faire, rien en cours, {tries} message(s) sans progrès (jtasks keepalive on la surveille à nouveau)",
-  "status.keepalive_error": "relance arrêtée après une erreur : {what} à faire, rien en cours (envoyez un message pour continuer)",
+  "status.keepalive_stalled": "relance abandonnée : {what}, rien en cours, {tries} message(s) sans progrès (jtasks keepalive on la surveille à nouveau)",
+  "status.keepalive_error": "relance arrêtée après une erreur : {what}, rien en cours (envoyez un message pour continuer)",
   "status.keepalive_held": "relance : en silence après une interruption, jusqu'à ce que l'exécution avance",
   "status.keepalive_nudged": "relance : boucle relancée à {at} (message {tries} sur {max})",
   "status.queue": "({n} dans la file d'attente: {owners})",
@@ -2109,7 +2124,7 @@ var fr_default = {
   "view.no_run": "aucune exécution liée",
   "view.no_runs": "aucune exécution (jtasks plan)",
   "view.paused": "en pause",
-  "view.stalled": "⚠ arrêtée : {what} à faire, rien en cours",
+  "view.stalled": "⚠ arrêtée : {what}, rien en cours",
   "view.auto_paused": "⏸ en pause ({kind}): {when}",
   "view.awaiting": "attend {what}",
   "view.awaiting_back": "processus terminé; le sous-agent revient",
@@ -2130,6 +2145,7 @@ var fr_default = {
   "wait.list": "processus de {id}: {list}",
   "wait.none": "{id} n'a aucun processus enregistré (jtasks exec, ou jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "pas vivants, laissés de côté: {list}",
+  "wait.still_awaiting": "{id} attend toujours le processus de son sous-agent ({what}) : cet appel ne met pas fin à l'attente, seul ce sous-agent le fait. L'orchestrateur ne touche pas à la tâche (ni wait, ni release, ni autre sous-agent) ; l'hôte prévient quand le processus se termine",
   "warnings.count": "{n} avertissement(s):",
   "yield.came_back": "{id} a repris {files}",
   "yield.done": "{id} a cédé {files} et reste en cours; {saved}",
@@ -2427,9 +2443,12 @@ var de_default = {
   "keepalive.usage": "Aufruf: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "Lauf {run}: Wiederaufnahme an (der Host öffnet die Schleife wieder, wenn der Orchestrator mit bereiten Aufgaben stoppt und nichts läuft)",
   "keepalive.off": "Lauf {run}: Wiederaufnahme aus (nur das Modell hält die Schleife in Gang)",
-  "keepalive.stalled": "Lauf {run} steht mit {what} offen und nichts läuft; {tries} Nachricht(en) ohne Fortschritt, der Host gibt auf (jtasks keepalive on beobachtet ihn wieder)",
-  "keepalive.error": "Lauf {run} hat bei einem Fehler angehalten, {what} offen, nichts läuft; nach einem Fehler sendet der Host nichts (schick eine Nachricht, um weiterzumachen)",
+  "keepalive.stalled": "Lauf {run} steht mit {what} und nichts läuft; {tries} Nachricht(en) ohne Fortschritt, der Host gibt auf (jtasks keepalive on beobachtet ihn wieder)",
+  "keepalive.error": "Lauf {run} hat bei einem Fehler angehalten, {what}, nichts läuft; nach einem Fehler sendet der Host nichts (schick eine Nachricht, um weiterzumachen)",
   "keepalive.dropped": "jtasks: die Wiederaufnahme-Nachricht ist nicht mehr nötig (der Lauf ist weitergegangen)",
+  "keepalive.what_orphan": "{id} in Arbeit ohne Agent",
+  "keepalive.what_orphan_agent": "{id} in Arbeit ohne Agent (setze Agent {agent} mit {how} fort)",
+  "keepalive.what_ready": "{list} offen",
   "patch.conflicts": "mit Konflikten wieder angewendet (löse die Markierungen; der Patch bleibt aufbewahrt): {list}",
   "patch.failed": "Patches, die nicht angewendet wurden (nichts geändert; sie bleiben aufbewahrt): {list}",
   "patch.reapplied": "Patches wieder angewendet: {files}",
@@ -2555,8 +2574,8 @@ var de_default = {
   "status.awaiting_item": "{id} ({what}, seit {since})",
   "status.awaiting_mark": "wartet auf einen Prozess",
   "status.keepalive_off": "Wiederaufnahme: aus",
-  "status.keepalive_stalled": "Wiederaufnahme aufgegeben: {what} offen, nichts läuft, {tries} Nachricht(en) ohne Fortschritt (jtasks keepalive on beobachtet ihn wieder)",
-  "status.keepalive_error": "Wiederaufnahme nach einem Fehler gestoppt: {what} offen, nichts läuft (schick eine Nachricht, um weiterzumachen)",
+  "status.keepalive_stalled": "Wiederaufnahme aufgegeben: {what}, nichts läuft, {tries} Nachricht(en) ohne Fortschritt (jtasks keepalive on beobachtet ihn wieder)",
+  "status.keepalive_error": "Wiederaufnahme nach einem Fehler gestoppt: {what}, nichts läuft (schick eine Nachricht, um weiterzumachen)",
   "status.keepalive_held": "Wiederaufnahme: still nach einer Unterbrechung, bis der Lauf weitergeht",
   "status.keepalive_nudged": "Wiederaufnahme: Schleife um {at} wieder geöffnet (Nachricht {tries} von {max})",
   "status.queue": "({n} in der Warteschlange: {owners})",
@@ -2614,7 +2633,7 @@ var de_default = {
   "view.no_run": "kein gebundener Lauf",
   "view.no_runs": "kein Lauf (jtasks plan)",
   "view.paused": "pausiert",
-  "view.stalled": "⚠ steht: {what} offen, nichts läuft",
+  "view.stalled": "⚠ steht: {what}, nichts läuft",
   "view.auto_paused": "⏸ pausiert ({kind}): {when}",
   "view.awaiting": "wartet auf {what}",
   "view.awaiting_back": "Prozess beendet; Subagent kommt zurück",
@@ -2635,6 +2654,7 @@ var de_default = {
   "wait.list": "Prozesse von {id}: {list}",
   "wait.none": "{id} hat keinen registrierten Prozess (jtasks exec oder jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "nicht am Leben, ausgelassen: {list}",
+  "wait.still_awaiting": "{id} wartet weiter auf den Prozess seines Subagenten ({what}): dieser Aufruf beendet das Warten nicht, nur dieser Subagent. Der Orchestrator lässt die Aufgabe in Ruhe (kein wait, kein release, kein zweiter Subagent); der Host meldet sich, wenn der Prozess endet",
   "warnings.count": "{n} Warnung(en):",
   "yield.came_back": "{id} hat {files} zurückgenommen",
   "yield.done": "{id} hat {files} abgegeben und bleibt in Arbeit; {saved}",
@@ -2932,9 +2952,12 @@ var it_default = {
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "esecuzione {run}: ripresa attiva (l'host riapre il ciclo quando l'orchestratore si ferma con attività pronte e niente in corso)",
   "keepalive.off": "esecuzione {run}: ripresa disattivata (solo il modello porta avanti il ciclo)",
-  "keepalive.stalled": "l'esecuzione {run} è ferma con {what} da fare e niente in corso; {tries} messaggio/i senza progressi, l'host rinuncia (jtasks keepalive on la sorveglia di nuovo)",
-  "keepalive.error": "l'esecuzione {run} si è fermata per un errore con {what} da fare e niente in corso; dopo un errore l'host non invia nulla (manda un messaggio per proseguire)",
+  "keepalive.stalled": "l'esecuzione {run} è ferma con {what} e niente in corso; {tries} messaggio/i senza progressi, l'host rinuncia (jtasks keepalive on la sorveglia di nuovo)",
+  "keepalive.error": "l'esecuzione {run} si è fermata per un errore con {what} e niente in corso; dopo un errore l'host non invia nulla (manda un messaggio per proseguire)",
   "keepalive.dropped": "jtasks: il messaggio di ripresa non serve più (l'esecuzione è andata avanti)",
+  "keepalive.what_orphan": "{id} in corso senza agente",
+  "keepalive.what_orphan_agent": "{id} in corso senza agente (riprendi l'agente {agent} con {how})",
+  "keepalive.what_ready": "{list} da fare",
   "patch.conflicts": "riapplicate con conflitti (risolvi i marcatori; la patch resta salvata): {list}",
   "patch.failed": "patch che non si sono applicate (nulla è cambiato; restano salvate): {list}",
   "patch.reapplied": "patch riapplicate: {files}",
@@ -3060,8 +3083,8 @@ var it_default = {
   "status.awaiting_item": "{id} ({what}, da {since})",
   "status.awaiting_mark": "in attesa di un processo",
   "status.keepalive_off": "ripresa: disattivata",
-  "status.keepalive_stalled": "ripresa abbandonata: {what} da fare, niente in corso, {tries} messaggio/i senza progressi (jtasks keepalive on la sorveglia di nuovo)",
-  "status.keepalive_error": "ripresa fermata dopo un errore: {what} da fare, niente in corso (manda un messaggio per proseguire)",
+  "status.keepalive_stalled": "ripresa abbandonata: {what}, niente in corso, {tries} messaggio/i senza progressi (jtasks keepalive on la sorveglia di nuovo)",
+  "status.keepalive_error": "ripresa fermata dopo un errore: {what}, niente in corso (manda un messaggio per proseguire)",
   "status.keepalive_held": "ripresa: in silenzio dopo un'interruzione, finché l'esecuzione non avanza",
   "status.keepalive_nudged": "ripresa: ciclo riaperto alle {at} (messaggio {tries} di {max})",
   "status.queue": "({n} in coda: {owners})",
@@ -3119,7 +3142,7 @@ var it_default = {
   "view.no_run": "nessuna esecuzione legata",
   "view.no_runs": "nessuna esecuzione (jtasks plan)",
   "view.paused": "in pausa",
-  "view.stalled": "⚠ ferma: {what} da fare, niente in corso",
+  "view.stalled": "⚠ ferma: {what}, niente in corso",
   "view.auto_paused": "⏸ in pausa ({kind}): {when}",
   "view.awaiting": "attende {what}",
   "view.awaiting_back": "processo terminato; il subagente torna",
@@ -3140,6 +3163,7 @@ var it_default = {
   "wait.list": "processi di {id}: {list}",
   "wait.none": "{id} non ha processi registrati (jtasks exec, o jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "non vivi, lasciati fuori: {list}",
+  "wait.still_awaiting": "{id} aspetta ancora il processo del suo subagente ({what}): questa chiamata non chiude l'attesa, solo quel subagente la chiude. L'orchestratore non tocca il task (niente wait, release o altro subagente); l'host avvisa quando il processo finisce",
   "warnings.count": "{n} avviso/i:",
   "yield.came_back": "{id} ha ripreso {files}",
   "yield.done": "{id} ha ceduto {files} e resta in corso; {saved}",
@@ -3437,9 +3461,12 @@ var zh_CN_default = {
   "keepalive.usage": "用法：jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "运行 {run}：自动续跑已开启(编排者在有就绪任务且无任何运行时停下，宿主会重新开启循环)",
   "keepalive.off": "运行 {run}：自动续跑已关闭(只有模型推动循环)",
-  "keepalive.stalled": "运行 {run} 已停下，还有 {what} 待做且无任何运行；{tries} 条消息没有进展，宿主已放弃(jtasks keepalive on 重新监视)",
-  "keepalive.error": "运行 {run} 因错误停下，还有 {what} 待做且无任何运行；出错后宿主不会发送任何消息(发一条消息即可继续)",
+  "keepalive.stalled": "运行 {run} 已停下，{what}，且无任何运行；{tries} 条消息没有进展，宿主已放弃(jtasks keepalive on 重新监视)",
+  "keepalive.error": "运行 {run} 因错误停下，{what}，且无任何运行；出错后宿主不会发送任何消息(发一条消息即可继续)",
   "keepalive.dropped": "jtasks：不再需要自动续跑消息(运行已推进)",
+  "keepalive.what_orphan": "{id} 进行中但没有代理",
+  "keepalive.what_orphan_agent": "{id} 进行中但没有代理(用 {how} 恢复代理 {agent})",
+  "keepalive.what_ready": "{list} 待做",
   "patch.conflicts": "重新应用时有冲突（请解决冲突标记；补丁仍保存着）：{list}",
   "patch.failed": "未能应用的补丁（没有任何改动；仍保存着）：{list}",
   "patch.reapplied": "补丁已重新应用：{files}",
@@ -3565,8 +3592,8 @@ var zh_CN_default = {
   "status.awaiting_item": "{id}（{what}，自 {since} 起）",
   "status.awaiting_mark": "等待进程",
   "status.keepalive_off": "自动续跑：关闭",
-  "status.keepalive_stalled": "自动续跑已放弃：{what} 待做，无任何运行，{tries} 条消息没有进展(jtasks keepalive on 重新监视)",
-  "status.keepalive_error": "自动续跑在出错后停止：{what} 待做，无任何运行(发一条消息即可继续)",
+  "status.keepalive_stalled": "自动续跑已放弃：{what}，无任何运行，{tries} 条消息没有进展(jtasks keepalive on 重新监视)",
+  "status.keepalive_error": "自动续跑在出错后停止：{what}，无任何运行(发一条消息即可继续)",
   "status.keepalive_held": "自动续跑：中断后保持安静，直到运行推进",
   "status.keepalive_nudged": "自动续跑：于 {at} 重新开启循环(第 {tries} 条，共 {max} 条)",
   "status.queue": "（队列中 {n} 个：{owners}）",
@@ -3624,7 +3651,7 @@ var zh_CN_default = {
   "view.no_run": "未绑定运行",
   "view.no_runs": "没有运行（jtasks plan）",
   "view.paused": "已暂停",
-  "view.stalled": "⚠ 已停下：{what} 待做，无任何运行",
+  "view.stalled": "⚠ 已停下：{what}，无任何运行",
   "view.auto_paused": "⏸ 已暂停（{kind}）：{when}",
   "view.awaiting": "等待 {what}",
   "view.awaiting_back": "进程已结束；子智能体即将回来",
@@ -3645,6 +3672,7 @@ var zh_CN_default = {
   "wait.list": "{id} 的进程：{list}",
   "wait.none": "{id} 没有登记的进程（jtasks exec，或 jtasks wait {id} --pid <pid>）",
   "wait.not_alive": "未存活，已略过：{list}",
+  "wait.still_awaiting": "{id} 仍在等待其子代理的进程({what})：这次调用不会结束等待，只有那个子代理才能结束。编排者不碰这个任务(不调用 wait、release，也不开另一个子代理)；进程结束时宿主会通知",
   "warnings.count": "{n} 个警告：",
   "yield.came_back": "{id} 取回了 {files}",
   "yield.done": "{id} 让出了 {files}，仍在进行中；{saved}",
@@ -3942,9 +3970,12 @@ var ja_default = {
   "keepalive.usage": "使い方: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "実行 {run}: 自動再開オン(準備済みタスクがあり何も動いていない状態でオーケストレーターが止まると、ホストがループを再開する)",
   "keepalive.off": "実行 {run}: 自動再開オフ(ループを進めるのはモデルだけ)",
-  "keepalive.stalled": "実行 {run} は {what} が残ったまま停止し、何も動いていません。進捗のないメッセージ {tries} 件でホストは断念しました(jtasks keepalive on で再び監視)",
-  "keepalive.error": "実行 {run} はエラーで止まりました。{what} が残り、何も動いていません。エラーの後、ホストは何も送りません(続けるにはメッセージを送ってください)",
+  "keepalive.stalled": "実行 {run} は停止しています: {what}、何も動いていません。進捗のないメッセージ {tries} 件でホストは断念しました(jtasks keepalive on で再び監視)",
+  "keepalive.error": "実行 {run} はエラーで止まりました: {what}、何も動いていません。エラーの後、ホストは何も送りません(続けるにはメッセージを送ってください)",
   "keepalive.dropped": "jtasks: 自動再開のメッセージは不要になりました(実行が進みました)",
+  "keepalive.what_orphan": "{id} は進行中だがエージェントなし",
+  "keepalive.what_orphan_agent": "{id} は進行中だがエージェントなし(エージェント {agent} を {how} で再開)",
+  "keepalive.what_ready": "{list} が残り",
   "patch.conflicts": "競合ありで再適用（マーカーを解決する。パッチは保存されたまま）: {list}",
   "patch.failed": "適用できなかったパッチ（何も変わっていない。保存されたまま）: {list}",
   "patch.reapplied": "パッチを再適用: {files}",
@@ -4070,8 +4101,8 @@ var ja_default = {
   "status.awaiting_item": "{id}（{what}、{since} から）",
   "status.awaiting_mark": "プロセス待機中",
   "status.keepalive_off": "自動再開: オフ",
-  "status.keepalive_stalled": "自動再開を断念: {what} が残り、何も動いていない、進捗のないメッセージ {tries} 件(jtasks keepalive on で再び監視)",
-  "status.keepalive_error": "エラーの後で自動再開は停止: {what} が残り、何も動いていない(続けるにはメッセージを送ってください)",
+  "status.keepalive_stalled": "自動再開を断念: {what}、何も動いていない、進捗のないメッセージ {tries} 件(jtasks keepalive on で再び監視)",
+  "status.keepalive_error": "エラーの後で自動再開は停止: {what}、何も動いていない(続けるにはメッセージを送ってください)",
   "status.keepalive_held": "自動再開: 中断のあと、実行が進むまで待機中",
   "status.keepalive_nudged": "自動再開: {at} にループを再開({max} 件中 {tries} 件目のメッセージ)",
   "status.queue": "（キューに {n}: {owners}）",
@@ -4129,7 +4160,7 @@ var ja_default = {
   "view.no_run": "結び付いた実行なし",
   "view.no_runs": "実行なし（jtasks plan）",
   "view.paused": "一時停止中",
-  "view.stalled": "⚠ 停止中: {what} が残り、何も動いていない",
+  "view.stalled": "⚠ 停止中: {what}、何も動いていない",
   "view.auto_paused": "⏸ 一時停止中（{kind}）: {when}",
   "view.awaiting": "{what} を待機",
   "view.awaiting_back": "プロセス終了。サブエージェント復帰待ち",
@@ -4150,6 +4181,7 @@ var ja_default = {
   "wait.list": "{id} のプロセス: {list}",
   "wait.none": "{id} に登録されたプロセスはない（jtasks exec、または jtasks wait {id} --pid <pid>）",
   "wait.not_alive": "生きていないため除外: {list}",
+  "wait.still_awaiting": "{id} はサブエージェントのプロセス({what})を待ち続けています: この呼び出しでは待機は終わらず、終わらせるのはそのサブエージェントだけです。オーケストレーターはこのタスクに触れません(wait も release も別のサブエージェントもなし)。プロセスが終わればホストが知らせます",
   "warnings.count": "警告 {n} 件:",
   "yield.came_back": "{id} が {files} を取り戻した",
   "yield.done": "{id} は {files} を譲り、進行中のまま。{saved}",
@@ -4447,9 +4479,12 @@ var ru_default = {
   "keepalive.usage": "использование: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "прогон {run}: автовозобновление включено (хост снова запускает цикл, когда оркестратор останавливается при готовых задачах и ничего не выполняется)",
   "keepalive.off": "прогон {run}: автовозобновление выключено (цикл держит только модель)",
-  "keepalive.stalled": "прогон {run} стоит, осталось {what}, ничего не выполняется; {tries} сообщ. без прогресса, хост сдался (jtasks keepalive on снова следит за ним)",
-  "keepalive.error": "прогон {run} остановился на ошибке, осталось {what}, ничего не выполняется; после ошибки хост ничего не отправляет (напишите сообщение, чтобы продолжить)",
+  "keepalive.stalled": "прогон {run} стоит, {what}, ничего не выполняется; {tries} сообщ. без прогресса, хост сдался (jtasks keepalive on снова следит за ним)",
+  "keepalive.error": "прогон {run} остановился на ошибке, {what}, ничего не выполняется; после ошибки хост ничего не отправляет (напишите сообщение, чтобы продолжить)",
   "keepalive.dropped": "jtasks: сообщение автовозобновления больше не нужно (прогон продвинулся)",
+  "keepalive.what_orphan": "{id} в работе без агента",
+  "keepalive.what_orphan_agent": "{id} в работе без агента (возобновите агента {agent} через {how})",
+  "keepalive.what_ready": "осталось {list}",
   "patch.conflicts": "применены заново с конфликтами (разрешите маркеры; патч остаётся сохранённым): {list}",
   "patch.failed": "патчи, которые не применились (ничего не изменилось; они остаются сохранёнными): {list}",
   "patch.reapplied": "патчи применены заново: {files}",
@@ -4575,8 +4610,8 @@ var ru_default = {
   "status.awaiting_item": "{id} ({what}, с {since})",
   "status.awaiting_mark": "ждёт процесс",
   "status.keepalive_off": "автовозобновление: выключено",
-  "status.keepalive_stalled": "автовозобновление сдалось: осталось {what}, ничего не выполняется, {tries} сообщ. без прогресса (jtasks keepalive on снова следит за ним)",
-  "status.keepalive_error": "автовозобновление остановлено после ошибки: осталось {what}, ничего не выполняется (напишите сообщение, чтобы продолжить)",
+  "status.keepalive_stalled": "автовозобновление сдалось: {what}, ничего не выполняется, {tries} сообщ. без прогресса (jtasks keepalive on снова следит за ним)",
+  "status.keepalive_error": "автовозобновление остановлено после ошибки: {what}, ничего не выполняется (напишите сообщение, чтобы продолжить)",
   "status.keepalive_held": "автовозобновление: молчит после прерывания, пока прогон не продвинется",
   "status.keepalive_nudged": "автовозобновление: цикл перезапущен в {at} (сообщение {tries} из {max})",
   "status.queue": "(в очереди: {n} — {owners})",
@@ -4634,7 +4669,7 @@ var ru_default = {
   "view.no_run": "нет привязанного прогона",
   "view.no_runs": "нет прогонов (jtasks plan)",
   "view.paused": "на паузе",
-  "view.stalled": "⚠ стоит: осталось {what}, ничего не выполняется",
+  "view.stalled": "⚠ стоит: {what}, ничего не выполняется",
   "view.auto_paused": "⏸ на паузе ({kind}): {when}",
   "view.awaiting": "ждёт {what}",
   "view.awaiting_back": "процесс завершён; субагент возвращается",
@@ -4655,6 +4690,7 @@ var ru_default = {
   "wait.list": "процессы {id}: {list}",
   "wait.none": "у {id} нет записанных процессов (jtasks exec или jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "не живы, пропущены: {list}",
+  "wait.still_awaiting": "{id} по-прежнему ждёт процесс своего субагента ({what}): этот вызов не завершает ожидание, это делает только тот субагент. Оркестратор не трогает задачу (ни wait, ни release, ни другого субагента); хост сообщит, когда процесс завершится",
   "warnings.count": "предупреждений: {n}",
   "yield.came_back": "{id} забрала обратно {files}",
   "yield.done": "{id} уступила {files} и остаётся в работе; {saved}",
@@ -4952,9 +4988,12 @@ var ar_default = {
   "keepalive.usage": "الاستخدام: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "التشغيل {run}: الاستئناف التلقائي مفعّل (يعيد المضيف فتح الحلقة عندما يتوقف المنسّق ومهام جاهزة باقية ولا شيء يعمل)",
   "keepalive.off": "التشغيل {run}: الاستئناف التلقائي معطّل (النموذج وحده يُبقي الحلقة دائرة)",
-  "keepalive.stalled": "التشغيل {run} متوقف وما زال {what} ولا شيء يعمل؛ {tries} رسالة بلا تقدّم، وتوقّف المضيف عن المحاولة (jtasks keepalive on يعيد المراقبة)",
-  "keepalive.error": "توقّف التشغيل {run} عند خطأ وما زال {what} ولا شيء يعمل؛ بعد الخطأ لا يرسل المضيف شيئًا (أرسل رسالة للمتابعة)",
+  "keepalive.stalled": "التشغيل {run} متوقف و{what} ولا شيء يعمل؛ {tries} رسالة بلا تقدّم، وتوقّف المضيف عن المحاولة (jtasks keepalive on يعيد المراقبة)",
+  "keepalive.error": "توقّف التشغيل {run} عند خطأ و{what} ولا شيء يعمل؛ بعد الخطأ لا يرسل المضيف شيئًا (أرسل رسالة للمتابعة)",
   "keepalive.dropped": "jtasks: لم تعد رسالة الاستئناف لازمة (تقدّم التشغيل)",
+  "keepalive.what_orphan": "{id} قيد التنفيذ بلا وكيل",
+  "keepalive.what_orphan_agent": "{id} قيد التنفيذ بلا وكيل (استأنف الوكيل {agent} عبر {how})",
+  "keepalive.what_ready": "ما زال {list}",
   "patch.conflicts": "أُعيد تطبيقها مع تعارضات (حُلّ العلامات؛ تبقى الرقعة محفوظة): {list}",
   "patch.failed": "رُقع لم تُطبَّق (لم يتغير شيء؛ تبقى محفوظة): {list}",
   "patch.reapplied": "أُعيد تطبيق الرُّقع: {files}",
@@ -5080,8 +5119,8 @@ var ar_default = {
   "status.awaiting_item": "{id} ({what}، منذ {since})",
   "status.awaiting_mark": "بانتظار عملية",
   "status.keepalive_off": "الاستئناف التلقائي: معطّل",
-  "status.keepalive_stalled": "توقّف الاستئناف التلقائي: ما زال {what}، لا شيء يعمل، {tries} رسالة بلا تقدّم (jtasks keepalive on يعيد المراقبة)",
-  "status.keepalive_error": "توقّف الاستئناف التلقائي بعد خطأ: ما زال {what}، لا شيء يعمل (أرسل رسالة للمتابعة)",
+  "status.keepalive_stalled": "توقّف الاستئناف التلقائي: {what}، لا شيء يعمل، {tries} رسالة بلا تقدّم (jtasks keepalive on يعيد المراقبة)",
+  "status.keepalive_error": "توقّف الاستئناف التلقائي بعد خطأ: {what}، لا شيء يعمل (أرسل رسالة للمتابعة)",
   "status.keepalive_held": "الاستئناف التلقائي: صامت بعد مقاطعة، حتى يتقدّم التشغيل",
   "status.keepalive_nudged": "الاستئناف التلقائي: أُعيد فتح الحلقة في {at} (الرسالة {tries} من {max})",
   "status.queue": "(في الطابور: {n}؛ {owners})",
@@ -5139,7 +5178,7 @@ var ar_default = {
   "view.no_run": "لا تشغيل مرتبط",
   "view.no_runs": "لا تشغيل (jtasks plan)",
   "view.paused": "متوقف مؤقتًا",
-  "view.stalled": "⚠ متوقف: ما زال {what}، لا شيء يعمل",
+  "view.stalled": "⚠ متوقف: {what}، لا شيء يعمل",
   "view.auto_paused": "⏸ متوقف مؤقتًا ({kind}): {when}",
   "view.awaiting": "بانتظار {what}",
   "view.awaiting_back": "انتهت العملية؛ الوكيل الفرعي عائد",
@@ -5160,6 +5199,7 @@ var ar_default = {
   "wait.list": "عمليات {id}: {list}",
   "wait.none": "لا توجد عملية مسجلة لـ {id} (jtasks exec، أو jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "ليست حية، تُركت: {list}",
+  "wait.still_awaiting": "ما زالت {id} تنتظر عملية وكيلها الفرعي ({what}): هذا الاستدعاء لا يُنهي الانتظار، وحده ذلك الوكيل الفرعي يُنهيه. لا يلمس المنسّق المهمة (لا wait ولا release ولا وكيل فرعي آخر)؛ ويُخبره المضيف عند انتهاء العملية",
   "warnings.count": "تحذيرات ({n}):",
   "yield.came_back": "استعادت {id} الملفات {files}",
   "yield.done": "تنازلت {id} عن {files} وبقيت قيد التنفيذ؛ {saved}",
@@ -5457,9 +5497,12 @@ var hi_default = {
   "keepalive.usage": "उपयोग: jtasks keepalive on|off [--run <id>]",
   "keepalive.on": "रन {run}: स्वतः पुनरारंभ चालू (तैयार कार्य हों और कुछ न चल रहा हो तब ऑर्केस्ट्रेटर रुके तो होस्ट लूप फिर खोलता है)",
   "keepalive.off": "रन {run}: स्वतः पुनरारंभ बंद (लूप को केवल मॉडल आगे बढ़ाता है)",
-  "keepalive.stalled": "रन {run} रुका है, {what} बाकी है और कुछ नहीं चल रहा; {tries} संदेश बिना प्रगति के, होस्ट ने हार मानी (jtasks keepalive on फिर निगरानी करता है)",
-  "keepalive.error": "रन {run} एक त्रुटि पर रुक गया, {what} बाकी है और कुछ नहीं चल रहा; त्रुटि के बाद होस्ट कुछ नहीं भेजता (आगे बढ़ने के लिए संदेश भेजें)",
+  "keepalive.stalled": "रन {run} रुका है, {what} और कुछ नहीं चल रहा; {tries} संदेश बिना प्रगति के, होस्ट ने हार मानी (jtasks keepalive on फिर निगरानी करता है)",
+  "keepalive.error": "रन {run} एक त्रुटि पर रुक गया, {what} और कुछ नहीं चल रहा; त्रुटि के बाद होस्ट कुछ नहीं भेजता (आगे बढ़ने के लिए संदेश भेजें)",
   "keepalive.dropped": "jtasks: स्वतः पुनरारंभ संदेश की अब ज़रूरत नहीं (रन आगे बढ़ गया)",
+  "keepalive.what_orphan": "{id} प्रगति में है पर कोई एजेंट नहीं",
+  "keepalive.what_orphan_agent": "{id} प्रगति में है पर कोई एजेंट नहीं (एजेंट {agent} को {how} से फिर शुरू करें)",
+  "keepalive.what_ready": "{list} बाकी",
   "patch.conflicts": "टकराव के साथ फिर लागू (मार्कर सुलझाएँ; patch सहेजा रहता है): {list}",
   "patch.failed": "जो patch लागू नहीं हुए (कुछ नहीं बदला; वे सहेजे रहते हैं): {list}",
   "patch.reapplied": "patch फिर लागू किए गए: {files}",
@@ -5585,8 +5628,8 @@ var hi_default = {
   "status.awaiting_item": "{id} ({what}, {since} से)",
   "status.awaiting_mark": "प्रक्रिया की प्रतीक्षा",
   "status.keepalive_off": "स्वतः पुनरारंभ: बंद",
-  "status.keepalive_stalled": "स्वतः पुनरारंभ ने हार मानी: {what} बाकी, कुछ नहीं चल रहा, {tries} संदेश बिना प्रगति के (jtasks keepalive on फिर निगरानी करता है)",
-  "status.keepalive_error": "त्रुटि के बाद स्वतः पुनरारंभ रुका: {what} बाकी, कुछ नहीं चल रहा (आगे बढ़ने के लिए संदेश भेजें)",
+  "status.keepalive_stalled": "स्वतः पुनरारंभ ने हार मानी: {what}, कुछ नहीं चल रहा, {tries} संदेश बिना प्रगति के (jtasks keepalive on फिर निगरानी करता है)",
+  "status.keepalive_error": "त्रुटि के बाद स्वतः पुनरारंभ रुका: {what}, कुछ नहीं चल रहा (आगे बढ़ने के लिए संदेश भेजें)",
   "status.keepalive_held": "स्वतः पुनरारंभ: रुकावट के बाद शांत, जब तक रन आगे न बढ़े",
   "status.keepalive_nudged": "स्वतः पुनरारंभ: {at} पर लूप फिर खोला ({max} में से संदेश {tries})",
   "status.queue": "(कतार में {n}: {owners})",
@@ -5644,7 +5687,7 @@ var hi_default = {
   "view.no_run": "कोई बँधा रन नहीं",
   "view.no_runs": "कोई रन नहीं (jtasks plan)",
   "view.paused": "रुका हुआ",
-  "view.stalled": "⚠ रुका: {what} बाकी, कुछ नहीं चल रहा",
+  "view.stalled": "⚠ रुका: {what}, कुछ नहीं चल रहा",
   "view.auto_paused": "⏸ रुका हुआ ({kind}): {when}",
   "view.awaiting": "{what} की प्रतीक्षा",
   "view.awaiting_back": "प्रक्रिया समाप्त; सबएजेंट लौट रहा है",
@@ -5665,6 +5708,7 @@ var hi_default = {
   "wait.list": "{id} की प्रक्रियाएँ: {list}",
   "wait.none": "{id} की कोई दर्ज प्रक्रिया नहीं (jtasks exec, या jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "जीवित नहीं, छोड़ी गईं: {list}",
+  "wait.still_awaiting": "{id} अब भी अपने सबएजेंट की प्रक्रिया ({what}) की प्रतीक्षा में है: यह कॉल प्रतीक्षा खत्म नहीं करती, सिर्फ वही सबएजेंट करता है। ऑर्केस्ट्रेटर इस टास्क को नहीं छूता (न wait, न release, न दूसरा सबएजेंट); प्रक्रिया खत्म होने पर होस्ट बताता है",
   "warnings.count": "{n} चेतावनी:",
   "yield.came_back": "{id} ने {files} वापस लीं",
   "yield.done": "{id} ने {files} छोड़ीं और प्रगति में बना है; {saved}",
@@ -6875,7 +6919,7 @@ function protocolText(run, summary, spawn, notes = []) {
     "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
     "6. If a claim is refused for a deadlock, run jtasks yield <id> and do other parts; release only when nothing else can move.",
     "7. If a subagent dies on a provider failure that clears by itself (a usage or rate limit, an overloaded server, the network), the host pauses the run and keeps its task in " + "progress with its locks: do not release it and do not open another subagent for it; when the run is active again, resume that same subagent.",
-    '8. A task "waiting for a process" (jtasks status) is in progress: its subagent ended its loop to wait for a command it left running and comes back ' + "when it ends. Do not release it, do not open another subagent for it, do not do it yourself; go on with the other tasks. If the host says the " + "process ended and the subagent did not come back, resume that same subagent; one that never comes back counts as ended without finishing.",
+    '8. A task "waiting for a process" (jtasks status) is in progress: its subagent ended its loop to wait for a command it left running and comes back ' + "when it ends. Do not release it, do not open another subagent for it, do not do it yourself, and never call jtasks wait (or exec) on it: declaring " + "its processes is its subagent's job, not yours, even with the same pids; go on with the other tasks. If the host says the " + "process ended and the subagent did not come back, resume that same subagent; one that never comes back counts as ended without finishing.",
     `9. A message that starts with "jtasks: run <id> changed without your asking" is a fact read from the run's log (a subagent ended, a task went back ` + "to the queue, failed, or waits for a process, a lock was lost, the run paused for a person): act on it now (jtasks next; or, paused, tell the user and stop). " + "Every notification of a subagent's end carries the run's status line read at that moment: trust it over the conversation's summary.",
     ...notes
   ].join(`
@@ -7721,155 +7765,6 @@ function blockerText(b, state, platform) {
     }
   }
 }
-// src/keepalive.ts
-var DEFAULT_KEEPALIVE_TRIES = 2;
-var KEEPALIVE_FILE = "keepalive.json";
-function progressSignature(tasks) {
-  const c = counts(tasks.tasks);
-  const running = tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id).sort();
-  return `${c.done}/${c.skipped}/${c.failed}|${running.join(",")}`;
-}
-function isOrphan(owner, actor) {
-  if (!owner || owner === "cli" || owner.startsWith("cli/"))
-    return true;
-  if (!actor)
-    return true;
-  return owner === actor || owner.startsWith(`${actor}/`);
-}
-function keepaliveTries(host) {
-  const text = host.env("JTASKS_KEEPALIVE_TRIES")?.trim();
-  const raw = text ? Number(text) : NaN;
-  return Number.isInteger(raw) && raw >= 0 ? raw : DEFAULT_KEEPALIVE_TRIES;
-}
-function keepaliveDecision(input) {
-  const { state } = input;
-  const run = state.run;
-  const c = counts(state.tasks.tasks);
-  if (run.status === "paused")
-    return { action: "none", reason: "paused" };
-  if (run.status === "done" || c.remaining === 0)
-    return { action: "none", reason: "finished" };
-  if (run.keepalive === false)
-    return { action: "none", reason: "off" };
-  if (input.liveAgents > 0)
-    return { action: "none", reason: "agents-running" };
-  const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id);
-  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor)).map((t) => t.id);
-  if (!ready.length && !orphans.length)
-    return { action: "none", reason: "nothing-ready" };
-  const signature = progressSignature(state.tasks);
-  const last = input.last?.signature === signature ? input.last : undefined;
-  if (last?.action === "held")
-    return { action: "none", reason: "held" };
-  if (last?.action === "stalled")
-    return { action: "none", reason: "stalled" };
-  const what = [...ready, ...orphans].join(", ");
-  if (input.cause === "error")
-    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last?.tries ?? 0, ready, orphans, cause: "error" };
-  const tries = (last?.tries ?? 0) + 1;
-  const max = input.maxTries ?? DEFAULT_KEEPALIVE_TRIES;
-  if (tries > max) {
-    return { action: "stalled", notice: tr("keepalive.stalled", { run: run.id, what, tries: max }), signature, tries, ready, orphans };
-  }
-  return { action: "nudge", text: nudgeText(run, state.tasks, ready, orphans), signature, tries, ready, orphans };
-}
-function nudgeText(run, tasks, ready, orphans) {
-  const c = counts(tasks.tasks);
-  const head = [`jtasks: run ${run.id} is idle`, `done ${c.done}/${c.total}`, `${c.remaining} left`];
-  if (ready.length)
-    head.push(`ready: ${ready.join(", ")}`);
-  head.push("no subagent is running");
-  const lines = [head.join(" · ") + "."];
-  for (const id of orphans)
-    lines.push(`${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`);
-  lines.push("This is a fact read from tasks.json now, not from the conversation's summary. Continue the protocol now: call jtasks next and open the subagents. " + "If something depends on the person, call jtasks pause and ask them.");
-  return lines.join(`
-`);
-}
-async function readKeepalive(host, dir) {
-  return readJson(host, join(dir, KEEPALIVE_FILE)).catch(() => {
-    return;
-  });
-}
-async function writeKeepalive(host, dir, memory) {
-  await atomicWrite(host, join(dir, KEEPALIVE_FILE), stringify(memory));
-}
-async function clearKeepalive(host, dir) {
-  await host.remove(join(dir, KEEPALIVE_FILE)).catch(() => {});
-}
-async function rearmKeepalive(host, dir) {
-  const memory = await readKeepalive(host, dir);
-  if (memory && memory.action !== "nudge")
-    await clearKeepalive(host, dir);
-}
-async function checkKeepalive(host, check) {
-  const dir = runDir(check.root, check.run);
-  const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => {
-    return;
-  }), readTasks(host, dir).catch(() => {
-    return;
-  })]);
-  if (!run || !tasks)
-    return { action: "none", reason: "finished" };
-  const state = { root: check.root, dir, run, tasks };
-  const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 });
-  if (quick.action === "none")
-    return quick;
-  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
-  const locks = await (star ? jlockList(host) : jlockList(host, { under: check.root })).catch(() => []);
-  const last = check.fresh ? undefined : await readKeepalive(host, dir);
-  const decision = keepaliveDecision({ state, locks, platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, last, maxTries: keepaliveTries(host), cause: check.cause });
-  if (check.commit && decision.action !== "none") {
-    const at = host.now().toISOString();
-    const memory = { signature: decision.signature, action: decision.action, tries: decision.tries, at, ready: decision.ready, orphans: decision.orphans };
-    if (decision.action === "stalled" && decision.cause)
-      memory.cause = decision.cause;
-    await writeKeepalive(host, dir, memory);
-    const actor = check.actor ?? "host";
-    const cause = decision.action === "stalled" && decision.cause ? { cause: decision.cause } : {};
-    await appendLog(host, dir, { at, actor, action: `keepalive-${decision.action}`, tries: decision.tries, ready: decision.ready, orphans: decision.orphans, ...cause }).catch(() => {});
-  }
-  return decision;
-}
-async function holdKeepalive(host, root, runId2) {
-  const dir = runDir(root, runId2);
-  const tasks = await readTasks(host, dir).catch(() => {
-    return;
-  });
-  if (!tasks)
-    return;
-  await writeKeepalive(host, dir, { signature: progressSignature(tasks), action: "held", tries: 0, at: host.now().toISOString() });
-}
-function keepaliveStatus(run, tasks, memory, maxTries) {
-  if (run.keepalive === false)
-    return tr("status.keepalive_off");
-  if (run.status === "paused" && run.pause)
-    return;
-  if (!memory || memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
-    return;
-  const what = [...memory.ready ?? [], ...memory.orphans ?? []].join(", ");
-  if (memory.action === "stalled")
-    return tr(memory.cause === "error" ? "status.keepalive_error" : "status.keepalive_stalled", { what, tries: maxTries });
-  if (memory.action === "held")
-    return tr("status.keepalive_held");
-  return tr("status.keepalive_nudged", { at: memory.at, tries: memory.tries, max: maxTries });
-}
-function keepaliveNotice(run, tasks, memory) {
-  if (memory?.action !== "stalled" || run.status !== "active" || run.keepalive === false)
-    return;
-  if (memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
-    return;
-  return tr("view.stalled", { what: [...memory.ready ?? [], ...memory.orphans ?? []].join(", ") });
-}
-async function stalledNotice(host, root, runId2) {
-  const dir = runDir(root, runId2);
-  const [run, tasks, memory] = await Promise.all([readRun(host, dir).catch(() => {
-    return;
-  }), readTasks(host, dir).catch(() => {
-    return;
-  }), readKeepalive(host, dir)]);
-  return run && tasks ? keepaliveNotice(run, tasks, memory) : undefined;
-}
 // src/transient.ts
 var KIND_TABLE = {
   rate_limit: "rate_limit",
@@ -8187,6 +8082,218 @@ function pauseViewNotice(pause, now) {
   const when = pause.resumeAt ? tr("pause.when_at", { at: formatWhen(pause.resumeAt, now) }) : tr("pause.when_person");
   return tr("view.auto_paused", { kind: kindLabel(pause.kind), when });
 }
+
+// src/keepalive.ts
+var DEFAULT_KEEPALIVE_TRIES = 2;
+var KEEPALIVE_FILE = "keepalive.json";
+function progressSignature(tasks) {
+  const c = counts(tasks.tasks);
+  const running = tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id).sort();
+  return `${c.done}/${c.skipped}/${c.failed}|${running.join(",")}`;
+}
+function isOrphan(owner, actor) {
+  if (!owner || owner === "cli" || owner.startsWith("cli/"))
+    return true;
+  if (!actor)
+    return true;
+  return owner === actor || owner.startsWith(`${actor}/`);
+}
+function keepaliveTries(host) {
+  const text = host.env("JTASKS_KEEPALIVE_TRIES")?.trim();
+  const raw = text ? Number(text) : NaN;
+  return Number.isInteger(raw) && raw >= 0 ? raw : DEFAULT_KEEPALIVE_TRIES;
+}
+function keepaliveDecision(input) {
+  const { state } = input;
+  const run = state.run;
+  const c = counts(state.tasks.tasks);
+  if (run.status === "paused")
+    return { action: "none", reason: "paused" };
+  if (run.status === "done" || c.remaining === 0)
+    return { action: "none", reason: "finished" };
+  if (run.keepalive === false)
+    return { action: "none", reason: "off" };
+  if (input.liveAgents > 0)
+    return { action: "none", reason: "agents-running" };
+  const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id);
+  const orphanTasks = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor));
+  const orphans = orphanTasks.map((t) => t.id);
+  if (!ready.length && !orphans.length)
+    return { action: "none", reason: "nothing-ready" };
+  const agents = {};
+  for (const t of orphanTasks) {
+    const agent = agentOfOwner(t.owner);
+    if (agent)
+      agents[t.id] = agent;
+  }
+  const tool = toolOf(input.actor);
+  const signature = progressSignature(state.tasks);
+  const last = input.last?.signature === signature ? input.last : undefined;
+  if (last?.action === "held")
+    return { action: "none", reason: "held" };
+  if (last?.action === "stalled")
+    return { action: "none", reason: "stalled" };
+  const what = keepaliveWhat(ready, orphans, agents, tool);
+  if (input.cause === "error")
+    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last?.tries ?? 0, ready, orphans, agents, cause: "error" };
+  const tries = (last?.tries ?? 0) + 1;
+  const max = input.maxTries ?? DEFAULT_KEEPALIVE_TRIES;
+  if (tries > max) {
+    return { action: "stalled", notice: tr("keepalive.stalled", { run: run.id, what, tries: max }), signature, tries, ready, orphans, agents };
+  }
+  return { action: "nudge", text: nudgeText(run, state.tasks, ready, orphans, agents, tool), signature, tries, ready, orphans, agents };
+}
+function toolOf(actor) {
+  return actor ? actor.split(":")[0] : undefined;
+}
+var RESUME_TOOL = { claude: "SendMessage", opencode: "task_id" };
+function keepaliveWhat(ready, orphans, agents = {}, tool) {
+  const parts = [];
+  if (ready.length)
+    parts.push(tr("keepalive.what_ready", { list: ready.join(", ") }));
+  for (const id of orphans) {
+    const agent = agents[id];
+    const how = tool ? RESUME_TOOL[tool] : undefined;
+    parts.push(agent && how ? tr("keepalive.what_orphan_agent", { id, agent, how }) : tr("keepalive.what_orphan", { id }));
+  }
+  return parts.join("; ");
+}
+function nudgeText(run, tasks, ready, orphans, agents = {}, tool) {
+  const c = counts(tasks.tasks);
+  const head = [`jtasks: run ${run.id} is idle`, `done ${c.done}/${c.total}`, `${c.remaining} left`];
+  if (ready.length)
+    head.push(`ready: ${ready.join(", ")}`);
+  head.push("no subagent is running");
+  const lines = [head.join(" · ") + "."];
+  for (const id of orphans) {
+    const agent = agents[id];
+    lines.push(agent ? `${id} is in progress with no agent running: its subagent ${agent} ended its loop without finishing it. Resume that same subagent (${resumeHow(tool, agent)}) if its work is not over; ` + `otherwise continue it yourself, or call jtasks release ${id} and open a subagent for it. Do not call jtasks wait on it.` : `${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`);
+  }
+  lines.push("This is a fact read from tasks.json now, not from the conversation's summary. Continue the protocol now: call jtasks next and open the subagents. " + "If something depends on the person, call jtasks pause and ask them.");
+  return lines.join(`
+`);
+}
+var ACTIVITY = new Set(["start", "claim", "procs", "await", "await-back", "await-ended", "agent-ended", "done", "fail", "skip", "release", "yield", "retake", "reclaim", "lost"]);
+function hadActivity(entries, since, actor) {
+  const from = Date.parse(since);
+  if (Number.isNaN(from))
+    return false;
+  return entries.some((e) => {
+    const action = String(e.action ?? "");
+    if (!ACTIVITY.has(action))
+      return false;
+    if (action === "procs" && actor && e.actor === actor)
+      return false;
+    const at = Date.parse(String(e.at ?? ""));
+    return !Number.isNaN(at) && at > from;
+  });
+}
+async function readLog(host, dir) {
+  const text = await host.readText(join(dir, "log.jsonl")).catch(() => {
+    return;
+  }) ?? "";
+  const out = [];
+  for (const line of text.split(`
+`)) {
+    if (!line.trim())
+      continue;
+    try {
+      out.push(JSON.parse(line));
+    } catch {}
+  }
+  return out;
+}
+async function readKeepalive(host, dir) {
+  return readJson(host, join(dir, KEEPALIVE_FILE)).catch(() => {
+    return;
+  });
+}
+async function writeKeepalive(host, dir, memory) {
+  await atomicWrite(host, join(dir, KEEPALIVE_FILE), stringify(memory));
+}
+async function clearKeepalive(host, dir) {
+  await host.remove(join(dir, KEEPALIVE_FILE)).catch(() => {});
+}
+async function rearmKeepalive(host, dir) {
+  const memory = await readKeepalive(host, dir);
+  if (memory && memory.action !== "nudge")
+    await clearKeepalive(host, dir);
+}
+async function checkKeepalive(host, check) {
+  const dir = runDir(check.root, check.run);
+  const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => {
+    return;
+  }), readTasks(host, dir).catch(() => {
+    return;
+  })]);
+  if (!run || !tasks)
+    return { action: "none", reason: "finished" };
+  const state = { root: check.root, dir, run, tasks };
+  const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 });
+  if (quick.action === "none")
+    return quick;
+  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
+  const locks = await (star ? jlockList(host) : jlockList(host, { under: check.root })).catch(() => []);
+  let last = check.fresh ? undefined : await readKeepalive(host, dir);
+  if (last && last.action !== "held" && hadActivity(await readLog(host, dir), last.at, check.actor))
+    last = undefined;
+  const decision = keepaliveDecision({ state, locks, platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, last, maxTries: keepaliveTries(host), cause: check.cause });
+  if (check.commit && decision.action !== "none") {
+    const at = host.now().toISOString();
+    const memory = { signature: decision.signature, action: decision.action, tries: decision.tries, at, ready: decision.ready, orphans: decision.orphans };
+    if (Object.keys(decision.agents).length)
+      memory.agents = decision.agents;
+    const tool = toolOf(check.actor);
+    if (tool)
+      memory.tool = tool;
+    if (decision.action === "stalled" && decision.cause)
+      memory.cause = decision.cause;
+    await writeKeepalive(host, dir, memory);
+    const actor = check.actor ?? "host";
+    const cause = decision.action === "stalled" && decision.cause ? { cause: decision.cause } : {};
+    await appendLog(host, dir, { at, actor, action: `keepalive-${decision.action}`, tries: decision.tries, ready: decision.ready, orphans: decision.orphans, ...cause }).catch(() => {});
+  }
+  return decision;
+}
+async function holdKeepalive(host, root, runId2) {
+  const dir = runDir(root, runId2);
+  const tasks = await readTasks(host, dir).catch(() => {
+    return;
+  });
+  if (!tasks)
+    return;
+  await writeKeepalive(host, dir, { signature: progressSignature(tasks), action: "held", tries: 0, at: host.now().toISOString() });
+}
+function keepaliveStatus(run, tasks, memory, maxTries) {
+  if (run.keepalive === false)
+    return tr("status.keepalive_off");
+  if (run.status === "paused" && run.pause)
+    return;
+  if (!memory || memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
+    return;
+  const what = keepaliveWhat(memory.ready ?? [], memory.orphans ?? [], memory.agents, memory.tool);
+  if (memory.action === "stalled")
+    return tr(memory.cause === "error" ? "status.keepalive_error" : "status.keepalive_stalled", { what, tries: maxTries });
+  if (memory.action === "held")
+    return tr("status.keepalive_held");
+  return tr("status.keepalive_nudged", { at: memory.at, tries: memory.tries, max: maxTries });
+}
+function keepaliveNotice(run, tasks, memory) {
+  if (memory?.action !== "stalled" || run.status !== "active" || run.keepalive === false)
+    return;
+  if (memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0)
+    return;
+  return tr("view.stalled", { what: keepaliveWhat(memory.ready ?? [], memory.orphans ?? [], memory.agents, memory.tool) });
+}
+async function stalledNotice(host, root, runId2) {
+  const dir = runDir(root, runId2);
+  const [run, tasks, memory] = await Promise.all([readRun(host, dir).catch(() => {
+    return;
+  }), readTasks(host, dir).catch(() => {
+    return;
+  }), readKeepalive(host, dir)]);
+  return run && tasks ? keepaliveNotice(run, tasks, memory) : undefined;
+}
 // src/housekeeping.ts
 function archiveDir(host, root, run) {
   return join(jtasksHome(host), "archive", slugify(basename(root), 40), run);
@@ -8367,7 +8474,7 @@ async function reversePatch(host, root, patch) {
 
 // src/keep.ts
 var HOLDING = new Set(["start", "claim", "renew", "retake", "reclaim"]);
-async function readLog(host, dir) {
+async function readLog2(host, dir) {
   const text = await host.readText(join(dir, "log.jsonl")).catch(() => {
     return;
   }) ?? "";
@@ -8386,7 +8493,7 @@ var strings = (v) => Array.isArray(v) ? v.filter((x) => typeof x === "string") :
 async function takenSince(host, dir, task, keys) {
   let since = "";
   const others = [];
-  for (const e of await readLog(host, dir)) {
+  for (const e of await readLog2(host, dir)) {
     if (!e.at || !e.action || !HOLDING.has(e.action))
       continue;
     if (e.task === task)
@@ -8509,7 +8616,7 @@ function chainKeys(chain, owner) {
 }
 async function lastDeadlock(host, dir, task) {
   let chain;
-  for (const e of await readLog(host, dir))
+  for (const e of await readLog2(host, dir))
     if (e.action === "claim-deadlock" && e.task === task && typeof e.chain === "string")
       chain = e.chain;
   return chain;
@@ -8520,7 +8627,7 @@ async function releasedEdits(host, state) {
   const running = new Set(state.tasks.tasks.filter((t) => t.status === "in_progress").map((t) => t.id));
   const insensitive = caseInsensitive(host.platform);
   const keyOf = (f) => normalizeKey(f, state.root, host.platform);
-  for (const e of await readLog(host, state.dir)) {
+  for (const e of await readLog2(host, state.dir)) {
     if (!e.action)
       continue;
     if (RELEASING.has(e.action) && e.task && !running.has(e.task)) {
@@ -8546,7 +8653,7 @@ var CONTESTED = {
 };
 async function claimStats(host, state, describe) {
   const byFile = new Map;
-  for (const e of await readLog(host, state.dir)) {
+  for (const e of await readLog2(host, state.dir)) {
     const field = e.action ? CONTESTED[e.action] : undefined;
     if (!field)
       continue;
@@ -8618,7 +8725,13 @@ function shortCommand(command, max = 120) {
   const one = command.trim().replace(/\s+/g, " ");
   return one.length > max ? `${one.slice(0, max - 1)}…` : one;
 }
-async function registerProcs(host, dir, taskId, procs, actor) {
+function endsWait(task, agent) {
+  const a = task.awaiting;
+  if (!a || !agent)
+    return false;
+  return a.agent ? a.agent === agent : true;
+}
+async function registerProcs(host, dir, taskId, procs, actor, agent) {
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir);
     if (!tasks)
@@ -8629,8 +8742,16 @@ async function registerProcs(host, dir, taskId, procs, actor) {
       return;
     const pids = new Set(procs.map((p) => p.pid));
     task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs];
-    const back = !!task.awaiting;
-    delete task.awaiting;
+    const back = endsWait(task, agent);
+    if (back)
+      delete task.awaiting;
+    else if (task.awaiting) {
+      const added = procs.map((p) => p.pid).filter((pid) => !task.awaiting.pids.includes(pid));
+      if (added.length) {
+        task.awaiting.pids = [...task.awaiting.pids, ...added];
+        delete task.awaiting.endedAt;
+      }
+    }
     await writeTasks(host, dir, copy, tasks.revision);
     const at = host.now().toISOString();
     if (back)
@@ -9231,7 +9352,7 @@ function chainText(chain, run) {
 }
 async function cameBack(ctx, state, task, files) {
   let found;
-  for (const e of await readLog(ctx.host, state.dir)) {
+  for (const e of await readLog2(ctx.host, state.dir)) {
     if (e.task !== task)
       continue;
     if (e.action === "yield")
@@ -9762,7 +9883,7 @@ async function awaitBack(ctx, run, taskId, how) {
     return true;
   });
 }
-async function sweepAwaiting(ctx, run, host) {
+async function sweepAwaiting(ctx, run, host, agentAlive) {
   let first;
   try {
     first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } });
@@ -9770,6 +9891,33 @@ async function sweepAwaiting(ctx, run, host) {
     return [];
   }
   const out = [];
+  if (agentAlive)
+    for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && t.procs?.length)) {
+      try {
+        const agent = agentOfOwner(task.owner);
+        if (!agent || await agentAlive(agent).catch(() => {
+          return;
+        }) !== false)
+          continue;
+        const live = await liveProcs(ctx.host, task.procs);
+        if (!live.length)
+          continue;
+        const rewaited = await withLock(ctx.host, first.dir, async () => {
+          const state = await reload(ctx, first);
+          const copy = clone(state.tasks);
+          const t = copy.tasks.find((x) => x.id === task.id);
+          if (!t || t.status !== "in_progress" || t.awaiting)
+            return false;
+          t.awaiting = { since: ctx.host.now().toISOString(), pids: live.map((p) => p.pid), agent };
+          const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+          await writeTicket(ctx.host, state.dir, tasks, t.id);
+          await log(ctx, state, { action: "await", task: t.id, from: "in_progress", to: "in_progress", pids: t.awaiting.pids, agent, how: "sweep" });
+          return true;
+        });
+        if (rewaited)
+          first = await reload(ctx, first);
+      } catch {}
+    }
   const grace = awaitGraceMs(first.run, DEFAULT_AWAIT_GRACE);
   for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && t.awaiting)) {
     const a = task.awaiting;
@@ -9845,14 +9993,14 @@ defineAction("wait", async (ctx, args) => {
   }
   if (!procs.length)
     throw new ToolError(tr("wait.dead", { list: dead.join(", ") }));
-  const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx));
+  const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx), ctx.agent);
   if (!t)
     throw new ToolError(tr("task.not_running", { id: task.id, status: "?" }));
-  const lines = [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })];
+  const lines = t.awaiting ? [tr("wait.still_awaiting", { id: task.id, what: awaitingWhat(t) })] : [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })];
   if (dead.length)
     lines.push(tr("wait.not_alive", { list: dead.join(", ") }));
   return ok(lines.join(`
-`), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead });
+`), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead, ...t.awaiting ? { awaiting: t.awaiting } : {} });
 }, "help.wait");
 function reopen(task) {
   if (task.status !== "skipped" && task.status !== "failed")
@@ -10119,7 +10267,7 @@ defineAction("exec", async (ctx, args) => {
       const proc = { pid, startedAt: ctx.host.now().toISOString(), command: shortCommand(command), by: "exec" };
       if (seen.image)
         proc.image = seen.image;
-      await registerProcs(ctx.host, state.dir, target.id, [proc], actorOf(ctx));
+      await registerProcs(ctx.host, state.dir, target.id, [proc], actorOf(ctx), ctx.agent);
     })().catch(() => {
       return;
     });
@@ -10646,7 +10794,7 @@ function alertLine(e, tasks, tool, grace) {
   switch (e.action) {
     case "await": {
       const what = task?.awaiting ? awaitingWhat(task) : [list(e.pids) && `pid ${list(e.pids)}`, typeof e.host === "string" ? e.host : ""].filter(Boolean).join(", ");
-      return `${id}: its subagent's loop ended while a process it started still runs (${what || "its background work"}). ${id} stays in progress with its ` + `locks and no attempt spent, waiting for that process: do not release it and do not open another subagent for it; the subagent comes back when the process ends.`;
+      return `${id}: its subagent's loop ended while a process it started still runs (${what || "its background work"}). ${id} stays in progress with its ` + `locks and no attempt spent, waiting for that process: do not release it, do not call jtasks wait on it and do not open another subagent for it; the subagent comes back when the process ends.`;
     }
     case "await-ended": {
       const how = agent ? resumeHow(tool, agent) : "the same subagent";
@@ -11924,6 +12072,7 @@ export {
   leavePause,
   lang,
   kindLabel,
+  keepaliveWhat,
   keepaliveTries,
   keepaliveStatus,
   keepaliveNotice,
@@ -11954,6 +12103,7 @@ export {
   holdArgv,
   headerText,
   hasExcludeLine,
+  hadActivity,
   globalLedger,
   gitOk,
   git,
@@ -11964,6 +12114,7 @@ export {
   findTask,
   excludeFile,
   ensureJlock,
+  endsWait,
   effectsOf,
   effectLine,
   earliestExpiry,

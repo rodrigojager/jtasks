@@ -246,7 +246,7 @@ export const register: Register = (on) => {
     keepalive = new Keepalive(
       port,
       {
-        agents: async () => (await $.agent.list()).map((a) => ({ status: a.status })),
+        agents: async () => (await $.agent.list()).map((a) => ({ id: a.id, status: a.status })),
         draft: async () => (await $.prompt.read()).text,
         submit: (text) => $.prompt.submit({ text }),
         // The status line carries the plugin's name already; the toast and the notification do not.
@@ -497,10 +497,10 @@ export const register: Register = (on) => {
       const mine = agents?.[e.agentId]
       if (agents && mine?.paused) await p.setAgents({ ...agents, [e.agentId]: { ...mine, paused: false } }).catch(() => undefined)
       // A subagent whose task waited for its process is back (Claude Code reopened it): the wait is over (rev. 5.8).
-      if (agents && mine && (mine.awaiting || mine.background?.length)) {
+      // Its place may not say so (a wait the clock put back, 0.3.3): awaitBack looks at the task itself.
+      if (agents && mine && (mine.awaiting || mine.background?.length))
         await p.setAgents({ ...(await p.getAgents()), [e.agentId]: { ...mine, paused: false, awaiting: false, background: [] } }).catch(() => undefined)
-        if (mine.awaiting) await awaitBack(await sessionCtx(p, mine.run), mine.run, mine.task, 'turn.start').catch(() => false)
-      }
+      if (agents && mine) await awaitBack(await sessionCtx(p, mine.run), mine.run, mine.task, 'turn.start').catch(() => false)
     }
     return next(e)
   })

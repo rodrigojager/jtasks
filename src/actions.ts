@@ -1319,8 +1319,17 @@ export interface AwaitEvent {
  * whose subagent did not come back within the run's `awaitGrace` counts as ended (`agentEnded`, `expired`). `host`
  * answers for a wait the host itself declared (`--waiting`): true while its agent still waits, false once it does not,
  * undefined when it cannot tell (the pids decide then; with none, such a wait is left for its host). Never throws.
+ *
+ * `agentAlive` (a host that knows its agents' status) also catches a task that lost its wait: in progress, not
+ * awaiting, its subagent not alive, and processes registered in it still running (the wait cleared by someone
+ * else's `jtasks wait`, before 0.3.3). Such a task waits for them again, and their end is told like any other.
  */
-export async function sweepAwaiting(ctx: ToolContext, run: string, host?: (task: Task) => Promise<boolean | undefined>): Promise<AwaitEvent[]> {
+export async function sweepAwaiting(
+  ctx: ToolContext,
+  run: string,
+  host?: (task: Task) => Promise<boolean | undefined>,
+  agentAlive?: (agent: string) => Promise<boolean | undefined>,
+): Promise<AwaitEvent[]> {
   let first: RunState
   try {
     first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } })
@@ -1328,6 +1337,29 @@ export async function sweepAwaiting(ctx: ToolContext, run: string, host?: (task:
     return []
   }
   const out: AwaitEvent[] = []
+  if (agentAlive) for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && t.procs?.length)) {
+    try {
+      const agent = agentOfOwner(task.owner)
+      // Only a task a subagent had, and only when the host says that subagent is gone: one at work runs its own commands.
+      if (!agent || (await agentAlive(agent).catch(() => undefined)) !== false) continue
+      const live = await liveProcs(ctx.host, task.procs!)
+      if (!live.length) continue
+      const rewaited = await withLock(ctx.host, first.dir, async () => {
+        const state = await reload(ctx, first)
+        const copy = clone(state.tasks)
+        const t = copy.tasks.find((x) => x.id === task.id)
+        if (!t || t.status !== "in_progress" || t.awaiting) return false
+        t.awaiting = { since: ctx.host.now().toISOString(), pids: live.map((p) => p.pid), agent }
+        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+        await writeTicket(ctx.host, state.dir, tasks, t.id)
+        await log(ctx, state, { action: "await", task: t.id, from: "in_progress", to: "in_progress", pids: t.awaiting.pids, agent, how: "sweep" })
+        return true
+      })
+      if (rewaited) first = await reload(ctx, first)
+    } catch {
+      // The task moved meanwhile: left as it is.
+    }
+  }
   const grace = awaitGraceMs(first.run, DEFAULT_AWAIT_GRACE)
   for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && t.awaiting)) {
     const a = task.awaiting!
@@ -1397,11 +1429,15 @@ defineAction(
       procs.push(proc)
     }
     if (!procs.length) throw new ToolError(tr("wait.dead", { list: dead.join(", ") }))
-    const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx))
+    const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx), ctx.agent)
     if (!t) throw new ToolError(tr("task.not_running", { id: task.id, status: "?" }))
-    const lines = [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })]
+    // The task waits for its subagent's process and the caller is not that subagent (the orchestrator, most often):
+    // the wait goes on, and the caller is told to leave the task alone.
+    const lines = t.awaiting
+      ? [tr("wait.still_awaiting", { id: task.id, what: awaitingWhat(t) })]
+      : [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })]
     if (dead.length) lines.push(tr("wait.not_alive", { list: dead.join(", ") }))
-    return ok(lines.join("\n"), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead })
+    return ok(lines.join("\n"), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead, ...(t.awaiting ? { awaiting: t.awaiting } : {}) })
   },
   "help.wait",
 )
@@ -1709,7 +1745,7 @@ defineAction(
               const seen = await probe(ctx.host, pid, true).catch(() => ({ alive: undefined, image: undefined }))
               const proc: TaskProcess = { pid, startedAt: ctx.host.now().toISOString(), command: shortCommand(command), by: "exec" }
               if (seen.image) proc.image = seen.image
-              await registerProcs(ctx.host, state.dir, target.id, [proc], actorOf(ctx))
+              await registerProcs(ctx.host, state.dir, target.id, [proc], actorOf(ctx), ctx.agent)
             })().catch(() => undefined)
           }
         : undefined

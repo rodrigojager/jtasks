@@ -3,6 +3,7 @@ import { type RunState } from "./frontier.js";
 import type { Host } from "./host.js";
 import { type JlockLock } from "./jlock.js";
 import type { RunFile, TasksFile } from "./schema.js";
+import { type LogEntry } from "./store.js";
 /** Messages without progress before the host gives up and tells the person (`JTASKS_KEEPALIVE_TRIES`). */
 export declare const DEFAULT_KEEPALIVE_TRIES = 2;
 export declare const KEEPALIVE_FILE = "keepalive.json";
@@ -17,6 +18,10 @@ export interface KeepaliveMemory {
     at: string;
     ready?: string[];
     orphans?: string[];
+    /** The subagent each orphan had (its owner's `agent:<id>`), for "resume agent <id>". */
+    agents?: Record<string, string>;
+    /** The host that decided (`claude`, `opencode`): how an agent is resumed there. */
+    tool?: string;
     /** `error`: the turn ended on an API error or a refusal, and the host only told the person. */
     cause?: "error";
 }
@@ -45,6 +50,7 @@ export type KeepaliveDecision = {
     tries: number;
     ready: string[];
     orphans: string[];
+    agents: Record<string, string>;
 } | {
     action: "stalled";
     notice: string;
@@ -52,6 +58,7 @@ export type KeepaliveDecision = {
     tries: number;
     ready: string[];
     orphans: string[];
+    agents: Record<string, string>;
     cause?: "error";
 };
 /** The progress a message is sent for: what is finished and what is in progress. Any change is progress. */
@@ -59,8 +66,19 @@ export declare function progressSignature(tasks: TasksFile): string;
 export declare function keepaliveTries(host: Host): number;
 /** The decision at the end of the orchestrator's turn (pure: the host reads the files and jlock, then calls this). */
 export declare function keepaliveDecision(input: KeepaliveInput): KeepaliveDecision;
+/**
+ * What is left, for the person (their language): the ready tasks "to do"; a task in progress with no agent on it as
+ * such, never "to do", with the agent to resume when its owner names one.
+ */
+export declare function keepaliveWhat(ready: string[], orphans: string[], agents?: Record<string, string>, tool?: string): string;
 /** The message that reopens the loop: for the model, so English in every language (plan section 21). */
-export declare function nudgeText(run: RunFile, tasks: TasksFile, ready: string[], orphans: string[]): string;
+export declare function nudgeText(run: RunFile, tasks: TasksFile, ready: string[], orphans: string[], agents?: Record<string, string>, tool?: string): string;
+/**
+ * Whether the log has work on the tasks after `since` (the last message): then the same signature is no stall, it is
+ * a task whose subagent works in rounds (waits for its process, comes back, waits again). The orchestrator's own
+ * `procs` (a `jtasks wait` of its own) is not: answering the message with it would loop the messages.
+ */
+export declare function hadActivity(entries: LogEntry[], since: string, actor?: string): boolean;
 export declare function readKeepalive(host: Host, dir: string): Promise<KeepaliveMemory | undefined>;
 export declare function writeKeepalive(host: Host, dir: string, memory: KeepaliveMemory): Promise<void>;
 /** Forgets what was sent: the next end of turn starts counting again (a real unpause, `keepalive on` from off). */

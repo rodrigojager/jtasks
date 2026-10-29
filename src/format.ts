@@ -79,7 +79,8 @@ export function protocolText(run: string, summary: string, spawn: string, notes:
     "7. If a subagent dies on a provider failure that clears by itself (a usage or rate limit, an overloaded server, the network), the host pauses the run and keeps its task in " +
       "progress with its locks: do not release it and do not open another subagent for it; when the run is active again, resume that same subagent.",
     "8. A task \"waiting for a process\" (jtasks status) is in progress: its subagent ended its loop to wait for a command it left running and comes back " +
-      "when it ends. Do not release it, do not open another subagent for it, do not do it yourself; go on with the other tasks. If the host says the " +
+      "when it ends. Do not release it, do not open another subagent for it, do not do it yourself, and never call jtasks wait (or exec) on it: declaring " +
+      "its processes is its subagent's job, not yours, even with the same pids; go on with the other tasks. If the host says the " +
       "process ended and the subagent did not come back, resume that same subagent; one that never comes back counts as ended without finishing.",
     '9. A message that starts with "jtasks: run <id> changed without your asking" is a fact read from the run\'s log (a subagent ended, a task went back ' +
       "to the queue, failed, or waits for a process, a lock was lost, the run paused for a person): act on it now (jtasks next; or, paused, tell the user and stop). " +

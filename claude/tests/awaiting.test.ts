@@ -117,6 +117,58 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(s.submitted.some((m) => m.includes('T13: its subagent did not come back after its process ended: back to pending'))).toBe(true)
   })
 
+  test(`the orchestrator's wait on a task waiting for its subagent's process keeps the wait (T17, fase3) · ${os}`, async ($, on) => {
+    const s = await scene($, on, { awaitGrace: '1h' })
+    s.machine.alive.add(4242)
+    await $.tool.call({ tool: TOOL, command: 'wait T13 --pid 4242 --command "bun test"', agentId: 'agent-1' } as never)
+    s.agents[0]!.status = 'completed'
+    await s.end('t1')
+    expect(s.t13()).toMatchObject({ status: 'in_progress', awaiting: { agent: 'agent-1', pids: [4242] } })
+    // The orchestrator (no agentId) declares the same pid 21 s later: the wait goes on, and it is told to keep off.
+    const answer = String((await $.tool.call({ tool: TOOL, command: 'wait T13 --pid 4242' })).result)
+    expect(answer).toContain('T13 continua aguardando o processo do seu subagente')
+    expect(s.t13()).toMatchObject({ status: 'in_progress', awaiting: { agent: 'agent-1', pids: [4242] } })
+    expect(s.log().some((e) => e.action === 'await-back')).toBe(false)
+    // The process ends: the orchestrator is told to resume that same agent, as for any wait.
+    s.machine.alive.delete(4242)
+    for (let i = 0; i < 5; i++) {
+      await s.clock.advance(2000)
+      await s.clock.settle()
+    }
+    expect(s.submitted.some((m) => m.includes('T13: the process its subagent waited for ended.') && m.includes('SendMessage to agent agent-1'))).toBe(true)
+  })
+
+  test(`a task that lost its wait (its agent gone, its process alive) waits again; the end of the process is told · ${os}`, async ($, on) => {
+    const s = await scene($, on, { awaitGrace: '1h' })
+    s.machine.alive.add(4242)
+    await $.tool.call({ tool: TOOL, command: 'wait T13 --pid 4242', agentId: 'agent-1' } as never)
+    s.agents[0]!.status = 'completed'
+    await s.end('t1')
+    // The wait lost as 0.3.2 lost it (someone else's wait cleared it): in progress, no wait, the process alive.
+    const file = `${s.dir}/tasks.json`
+    const tasks = JSON.parse(s.machine.read(file)!)
+    delete tasks.tasks[0].awaiting
+    tasks.revision++
+    s.machine.write(file, JSON.stringify(tasks))
+    for (let i = 0; i < 5; i++) {
+      await s.clock.advance(2000)
+      await s.clock.settle()
+    }
+    expect(s.t13()).toMatchObject({ status: 'in_progress', awaiting: { agent: 'agent-1', pids: [4242] } })
+    expect(s.log().some((e) => e.action === 'await' && e.how === 'sweep' && e.agent === 'agent-1')).toBe(true)
+    s.machine.alive.delete(4242)
+    for (let i = 0; i < 5; i++) {
+      await s.clock.advance(2000)
+      await s.clock.settle()
+    }
+    expect(s.log().some((e) => e.action === 'await-ended' && e.task === 'T13')).toBe(true)
+    expect(s.submitted.some((m) => m.includes('T13: the process its subagent waited for ended.') && m.includes('SendMessage to agent agent-1'))).toBe(true)
+    // The agent comes back: the wait the clock put back is over too.
+    s.agents[0]!.status = 'running'
+    await $.turn.start({ prompt: 'the process ended', turnId: 't2', agentId: 'agent-1' } as never)
+    expect(s.t13().awaiting).toBeUndefined()
+  })
+
   test(`the ends of a subagent run out: failed, the run paused for a person, and the orchestrator and the person told at once · ${os}`, async ($, on) => {
     const s = await scene($, on, { maxAgentEnded: 1 })
     await s.end('t1')

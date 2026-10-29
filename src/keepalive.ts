@@ -10,8 +10,9 @@ import type { Host } from "./host.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
 import { join } from "./paths.ts"
 import type { RunFile, TasksFile } from "./schema.ts"
-import { appendLog, atomicWrite, readJson, readRun, readTasks, runDir, stringify } from "./store.ts"
+import { appendLog, atomicWrite, readJson, readRun, readTasks, runDir, stringify, type LogEntry } from "./store.ts"
 import { tr } from "./i18n.ts"
+import { agentOfOwner, resumeHow } from "./transient.ts"
 
 /** Messages without progress before the host gives up and tells the person (`JTASKS_KEEPALIVE_TRIES`). */
 export const DEFAULT_KEEPALIVE_TRIES = 2
@@ -28,6 +29,10 @@ export interface KeepaliveMemory {
   at: string
   ready?: string[]
   orphans?: string[]
+  /** The subagent each orphan had (its owner's `agent:<id>`), for "resume agent <id>". */
+  agents?: Record<string, string>
+  /** The host that decided (`claude`, `opencode`): how an agent is resumed there. */
+  tool?: string
   /** `error`: the turn ended on an API error or a refusal, and the host only told the person. */
   cause?: "error"
 }
@@ -51,8 +56,8 @@ export type KeepaliveQuiet = "paused" | "off" | "finished" | "agents-running" | 
 
 export type KeepaliveDecision =
   | { action: "none"; reason: KeepaliveQuiet }
-  | { action: "nudge"; text: string; signature: string; tries: number; ready: string[]; orphans: string[] }
-  | { action: "stalled"; notice: string; signature: string; tries: number; ready: string[]; orphans: string[]; cause?: "error" }
+  | { action: "nudge"; text: string; signature: string; tries: number; ready: string[]; orphans: string[]; agents: Record<string, string> }
+  | { action: "stalled"; notice: string; signature: string; tries: number; ready: string[]; orphans: string[]; agents: Record<string, string>; cause?: "error" }
 
 /** The progress a message is sent for: what is finished and what is in progress. Any change is progress. */
 export function progressSignature(tasks: TasksFile): string {
@@ -88,37 +93,112 @@ export function keepaliveDecision(input: KeepaliveInput): KeepaliveDecision {
   if (input.liveAgents > 0) return { action: "none", reason: "agents-running" }
   const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id)
   // A task waiting for its process (rev. 5.8) is no orphan: its subagent comes back when the process ends.
-  const orphans = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor)).map((t) => t.id)
+  const orphanTasks = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor))
+  const orphans = orphanTasks.map((t) => t.id)
   if (!ready.length && !orphans.length) return { action: "none", reason: "nothing-ready" }
+  const agents: Record<string, string> = {}
+  for (const t of orphanTasks) {
+    const agent = agentOfOwner(t.owner)
+    if (agent) agents[t.id] = agent
+  }
+  const tool = toolOf(input.actor)
   const signature = progressSignature(state.tasks)
   const last = input.last?.signature === signature ? input.last : undefined
   if (last?.action === "held") return { action: "none", reason: "held" }
   if (last?.action === "stalled") return { action: "none", reason: "stalled" }
-  const what = [...ready, ...orphans].join(", ")
+  const what = keepaliveWhat(ready, orphans, agents, tool)
   if (input.cause === "error")
-    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last?.tries ?? 0, ready, orphans, cause: "error" }
+    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last?.tries ?? 0, ready, orphans, agents, cause: "error" }
   const tries = (last?.tries ?? 0) + 1
   const max = input.maxTries ?? DEFAULT_KEEPALIVE_TRIES
   if (tries > max) {
-    return { action: "stalled", notice: tr("keepalive.stalled", { run: run.id, what, tries: max }), signature, tries, ready, orphans }
+    return { action: "stalled", notice: tr("keepalive.stalled", { run: run.id, what, tries: max }), signature, tries, ready, orphans, agents }
   }
-  return { action: "nudge", text: nudgeText(run, state.tasks, ready, orphans), signature, tries, ready, orphans }
+  return { action: "nudge", text: nudgeText(run, state.tasks, ready, orphans, agents, tool), signature, tries, ready, orphans, agents }
+}
+
+/** The host of an actor (`claude:<session>` → `claude`). */
+function toolOf(actor: string | undefined): string | undefined {
+  return actor ? actor.split(":")[0] : undefined
+}
+
+/** The tool a person resumes an agent with in each host (a name, the same in every language). */
+const RESUME_TOOL: Record<string, string> = { claude: "SendMessage", opencode: "task_id" }
+
+/**
+ * What is left, for the person (their language): the ready tasks "to do"; a task in progress with no agent on it as
+ * such, never "to do", with the agent to resume when its owner names one.
+ */
+export function keepaliveWhat(ready: string[], orphans: string[], agents: Record<string, string> = {}, tool?: string): string {
+  const parts: string[] = []
+  if (ready.length) parts.push(tr("keepalive.what_ready", { list: ready.join(", ") }))
+  for (const id of orphans) {
+    const agent = agents[id]
+    const how = tool ? RESUME_TOOL[tool] : undefined
+    parts.push(agent && how ? tr("keepalive.what_orphan_agent", { id, agent, how }) : tr("keepalive.what_orphan", { id }))
+  }
+  return parts.join("; ")
 }
 
 /** The message that reopens the loop: for the model, so English in every language (plan section 21). */
-export function nudgeText(run: RunFile, tasks: TasksFile, ready: string[], orphans: string[]): string {
+export function nudgeText(run: RunFile, tasks: TasksFile, ready: string[], orphans: string[], agents: Record<string, string> = {}, tool?: string): string {
   const c = counts(tasks.tasks)
   const head = [`jtasks: run ${run.id} is idle`, `done ${c.done}/${c.total}`, `${c.remaining} left`]
   if (ready.length) head.push(`ready: ${ready.join(", ")}`)
   head.push("no subagent is running")
   const lines = [head.join(" · ") + "."]
-  for (const id of orphans)
-    lines.push(`${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`)
+  for (const id of orphans) {
+    const agent = agents[id]
+    lines.push(
+      agent
+        ? `${id} is in progress with no agent running: its subagent ${agent} ended its loop without finishing it. Resume that same subagent (${resumeHow(tool, agent)}) if its work is not over; ` +
+            `otherwise continue it yourself, or call jtasks release ${id} and open a subagent for it. Do not call jtasks wait on it.`
+        : `${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`,
+    )
+  }
   lines.push(
     "This is a fact read from tasks.json now, not from the conversation's summary. Continue the protocol now: call jtasks next and open the subagents. " +
       "If something depends on the person, call jtasks pause and ask them.",
   )
   return lines.join("\n")
+}
+
+/**
+ * Work on the tasks, as the log records it: what a subagent (or anyone) does on a task, and what the host does when
+ * one ends or comes back. The keepalive's own entries, renewals and pauses are not.
+ */
+const ACTIVITY = new Set(["start", "claim", "procs", "await", "await-back", "await-ended", "agent-ended", "done", "fail", "skip", "release", "yield", "retake", "reclaim", "lost"])
+
+/**
+ * Whether the log has work on the tasks after `since` (the last message): then the same signature is no stall, it is
+ * a task whose subagent works in rounds (waits for its process, comes back, waits again). The orchestrator's own
+ * `procs` (a `jtasks wait` of its own) is not: answering the message with it would loop the messages.
+ */
+export function hadActivity(entries: LogEntry[], since: string, actor?: string): boolean {
+  const from = Date.parse(since)
+  if (Number.isNaN(from)) return false
+  return entries.some((e) => {
+    const action = String(e.action ?? "")
+    if (!ACTIVITY.has(action)) return false
+    if (action === "procs" && actor && e.actor === actor) return false
+    const at = Date.parse(String(e.at ?? ""))
+    return !Number.isNaN(at) && at > from
+  })
+}
+
+/** The run's log, line by line (a line cut by a writer is skipped). */
+async function readLog(host: Host, dir: string): Promise<LogEntry[]> {
+  const text = (await host.readText(join(dir, "log.jsonl")).catch(() => undefined)) ?? ""
+  const out: LogEntry[] = []
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue
+    try {
+      out.push(JSON.parse(line) as LogEntry)
+    } catch {
+      // never ours to fix
+    }
+  }
+  return out
 }
 
 export async function readKeepalive(host: Host, dir: string): Promise<KeepaliveMemory | undefined> {
@@ -168,11 +248,17 @@ export async function checkKeepalive(host: Host, check: KeepaliveCheck): Promise
   if (quick.action === "none") return quick
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
   const locks = await (star ? jlockList(host) : jlockList(host, { under: check.root })).catch(() => [])
-  const last = check.fresh ? undefined : await readKeepalive(host, dir)
+  let last = check.fresh ? undefined : await readKeepalive(host, dir)
+  // Work went on since the last message (a subagent claimed, waited, came back, finished…) though the signature did
+  // not move: the count starts over. A hold (the person's Esc) is theirs to lift, never the log's.
+  if (last && last.action !== "held" && hadActivity(await readLog(host, dir), last.at, check.actor)) last = undefined
   const decision = keepaliveDecision({ state, locks, platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, last, maxTries: keepaliveTries(host), cause: check.cause })
   if (check.commit && decision.action !== "none") {
     const at = host.now().toISOString()
     const memory: KeepaliveMemory = { signature: decision.signature, action: decision.action, tries: decision.tries, at, ready: decision.ready, orphans: decision.orphans }
+    if (Object.keys(decision.agents).length) memory.agents = decision.agents
+    const tool = toolOf(check.actor)
+    if (tool) memory.tool = tool
     if (decision.action === "stalled" && decision.cause) memory.cause = decision.cause
     await writeKeepalive(host, dir, memory)
     const actor = check.actor ?? "host"
@@ -196,7 +282,7 @@ export function keepaliveStatus(run: RunFile, tasks: TasksFile, memory: Keepaliv
   // A transient pause has its own line; nothing the keepalive did before it counts while it lasts.
   if (run.status === "paused" && run.pause) return undefined
   if (!memory || memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0) return undefined
-  const what = [...(memory.ready ?? []), ...(memory.orphans ?? [])].join(", ")
+  const what = keepaliveWhat(memory.ready ?? [], memory.orphans ?? [], memory.agents, memory.tool)
   if (memory.action === "stalled") return tr(memory.cause === "error" ? "status.keepalive_error" : "status.keepalive_stalled", { what, tries: maxTries })
   if (memory.action === "held") return tr("status.keepalive_held")
   return tr("status.keepalive_nudged", { at: memory.at, tries: memory.tries, max: maxTries })
@@ -206,7 +292,7 @@ export function keepaliveStatus(run: RunFile, tasks: TasksFile, memory: Keepaliv
 export function keepaliveNotice(run: RunFile, tasks: TasksFile, memory: KeepaliveMemory | undefined): string | undefined {
   if (memory?.action !== "stalled" || run.status !== "active" || run.keepalive === false) return undefined
   if (memory.signature !== progressSignature(tasks) || counts(tasks.tasks).remaining === 0) return undefined
-  return tr("view.stalled", { what: [...(memory.ready ?? []), ...(memory.orphans ?? [])].join(", ") })
+  return tr("view.stalled", { what: keepaliveWhat(memory.ready ?? [], memory.orphans ?? [], memory.agents, memory.tool) })
 }
 
 /** The sidebar's line for a run read now, or undefined when the host has not given up on it as it stands. */

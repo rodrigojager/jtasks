@@ -11,7 +11,7 @@ import { createModHost, type Port } from './mod-host.ts'
 /** What the keepalive needs from $ besides the port (closures built in session.start). */
 export interface KeepaliveUi {
   /** The session's agents and their status ($.agent.list), or undefined when the engine does not answer. */
-  agents(): Promise<{ status: string }[] | undefined>
+  agents(): Promise<{ id: string; status: string }[] | undefined>
   /** The person's draft in the prompt box ($.prompt.read). */
   draft(): Promise<string>
   submit(text: string): Promise<unknown>
@@ -23,6 +23,14 @@ export interface KeepaliveUi {
 
 /** Agents whose loop can still end and wake the orchestrator. */
 const ALIVE = new Set(['pending', 'running', 'waiting'])
+
+/**
+ * How long a subagent of the run that the engine already lists as ended, while the mod has not handled its end yet
+ * (`release --agent-ended` in register.tsx's endOfAgent: its place here is still an ordinary one), counts as alive.
+ * Its task is neither an orphan nor waiting until then (T17 of FlashEvents' fase3: a nudge 14 ms before the await).
+ * Past it, an end that never came is no reason to stay quiet.
+ */
+export const ENDING_GRACE_MS = 15_000
 
 export class Keepalive {
   /** A message is on its way (submitted, not delivered yet): never a second one. */
@@ -36,17 +44,38 @@ export class Keepalive {
   /** That message is on its way: let it through, whatever the run looks like. */
   private resuming = false
 
+  /** Subagents whose end is not handled yet, by id: when the keepalive first saw them so. */
+  private readonly ending = new Map<string, number>()
+
   constructor(
     private readonly port: Port,
     private readonly ui: KeepaliveUi,
     private readonly interactive: boolean,
+    private readonly endingGraceMs = ENDING_GRACE_MS,
   ) {}
 
-  /** The subagents alive now: the engine's list, else the ones the mod saw spawned for the run. */
-  private async liveAgents(run: string): Promise<number> {
+  /**
+   * The subagents alive now: the engine's list (plus the ones whose end the mod is still handling: `ending`), else
+   * the ones the mod saw spawned for the run.
+   */
+  private async liveAgents(run: string): Promise<{ live: number; ending: boolean }> {
     const listed = await this.ui.agents().catch(() => undefined)
-    if (listed) return listed.filter((a) => ALIVE.has(a.status)).length
-    return Object.values(await this.port.getAgents()).filter((a) => a.run === run).length
+    if (!listed) return { live: Object.values(await this.port.getAgents()).filter((a) => a.run === run).length, ending: false }
+    const live = listed.filter((a) => ALIVE.has(a.status)).length
+    const places = await this.port.getAgents().catch(() => ({}) as Awaited<ReturnType<Port['getAgents']>>)
+    const now = Date.now()
+    const seen = new Set<string>()
+    let ending = false
+    for (const a of listed) {
+      const place = places[a.id]
+      if (ALIVE.has(a.status) || !place || place.run !== run || place.awaiting || place.paused) continue
+      seen.add(a.id)
+      const since = this.ending.get(a.id) ?? now
+      this.ending.set(a.id, since)
+      if (now - since < this.endingGraceMs) ending = true
+    }
+    for (const id of [...this.ending.keys()]) if (!seen.has(id)) this.ending.delete(id)
+    return { live: live + (ending ? 1 : 0), ending }
   }
 
   private async actor(): Promise<string> {
@@ -143,10 +172,13 @@ export class Keepalive {
     }
     this.deferred = false
     const host = createModHost(this.port, await this.port.cwd())
+    const agents = await this.liveAgents(bound.run)
+    // A subagent's end still being handled: decide again on the clock, once its task waits or went back.
+    if (agents.ending) this.deferred = true
     const decision = await checkKeepalive(host, {
       root: bound.root,
       run: bound.run,
-      liveAgents: await this.liveAgents(bound.run),
+      liveAgents: agents.live,
       actor: await this.actor(),
       commit: true,
       ...(cause ? { cause } : {}),
@@ -179,7 +211,7 @@ export class Keepalive {
     const bound = await this.port.getRun()
     if (!bound) return false
     const host = createModHost(this.port, await this.port.cwd())
-    const decision = await checkKeepalive(host, { root: bound.root, run: bound.run, liveAgents: await this.liveAgents(bound.run), actor: await this.actor(), fresh: true })
+    const decision = await checkKeepalive(host, { root: bound.root, run: bound.run, liveAgents: (await this.liveAgents(bound.run)).live, actor: await this.actor(), fresh: true })
     return decision.action !== 'none'
   }
 }

@@ -103,7 +103,7 @@ export function alertLine(e: LogEntry, tasks: Task[], tool: string | undefined, 
       const what = task?.awaiting ? awaitingWhat(task) : [list(e.pids) && `pid ${list(e.pids)}`, typeof e.host === "string" ? e.host : ""].filter(Boolean).join(", ")
       return (
         `${id}: its subagent's loop ended while a process it started still runs (${what || "its background work"}). ${id} stays in progress with its ` +
-        `locks and no attempt spent, waiting for that process: do not release it and do not open another subagent for it; the subagent comes back when the process ends.`
+        `locks and no attempt spent, waiting for that process: do not release it, do not call jtasks wait on it and do not open another subagent for it; the subagent comes back when the process ends.`
       )
     }
     case "await-ended": {

@@ -234,6 +234,13 @@ the sidebar show it), with its locks and nothing spent. The same subagent coming
 reopens it when its background work ends; in OpenCode the host tells the orchestrator to resume the session with
 `task_id`). If the process ended and the subagent did not come back within `awaitGrace` (5 min), it counts as ended.
 
+Only that subagent ends the wait: a `jtasks wait <id> --pid` (or an `exec`) from the orchestrator, from the CLI or
+from another agent on a waiting task leaves it waiting, adds any new pid to the wait and answers that the task still
+waits for its subagent and is not the caller's to touch. The orchestrator never calls `wait` on such a task. A task
+that lost its wait anyway (in progress, its subagent no longer alive, processes registered in it still running) waits
+for them again on the Claude Code mod's clock (`await` with `how: "sweep"` in the log), and their end is told like any
+other.
+
 A subagent that ends without finishing sends its task back to pending **without spending an attempt**: it is counted
 in `agentEnded`, and at `maxAgentEnded` (3) the task fails and the run pauses for a person (`needsPerson` in
 `run.json`, explained by `status`); `retry <id>` and `unpause` go on. Both limits are plan fields (`maxAgentEnded`,
@@ -311,7 +318,14 @@ next and open the subagents. If something depends on the person, call jtasks pau
   execution that failed) nothing is sent, since it could fail the same way: the person is told at once instead.
 - The same progress (done, skipped, failed, in progress) twice more than `JTASKS_KEEPALIVE_TRIES` times: the host
   gives up and tells the person in their language (Claude Code: a toast, a notification, the status line and a line
-  in the pane; OpenCode: a line in the sidebar and a toast), and stays quiet until the run moves.
+  in the pane; OpenCode: a line in the sidebar and a toast), and stays quiet until the run moves. Work on the tasks
+  logged since the last message (a subagent's `claim`, `procs`, `await`, `await-back`, `done`…; not the orchestrator's
+  own `wait`) is progress too: the count starts over, even after a give-up. A task in progress with no agent is
+  named as such, never "to do", with the subagent to resume (`retome o agente <id> com SendMessage`) when its owner
+  names one.
+- Claude Code: a subagent the engine already lists as ended, whose end the mod has not handled yet (its
+  `release --agent-ended`), counts as alive for up to 15 s, and the decision is taken again on the clock: its task is
+  neither an orphan nor waiting until then.
 - What it sent lives in the run's `keepalive.json` and in `log.jsonl` (`keepalive-nudge`, `keepalive-stalled`);
   `jtasks status` shows `retomada: desligada` or the last message or give-up. `jtasks keepalive off` turns it off for
   the run, `jtasks keepalive on` back on (forgetting a give-up, not a count in progress); a plan with

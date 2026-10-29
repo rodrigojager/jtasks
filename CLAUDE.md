@@ -39,6 +39,12 @@ linha de status também nas notificações de fim de subagente; versão 0.3.0.
 Ticket 56: a pessoa vê as mensagens do host ao orquestrador como uma etiqueta e poucas palavras (`deliveryLabel` em
 `src/alerts.ts`; no mod, `ui.render` de `UserMessage`; no plugin, a `description` do `session.synthetic`); o modelo
 lê o texto inteiro; versão 0.3.3.
+Ticket 57: só o subagente que espera encerra a espera (`endsWait` em `src/procs.ts`; o `wait` do orquestrador mantém
+`awaiting` e soma os pids); tarefa em andamento sem espera, sem agente vivo e com processos vivos volta a aguardar
+(`sweepAwaiting` com `agentAlive`, relógio do mod); o keepalive zera a contagem com trabalho no log desde a última
+mensagem (`hadActivity`), não conta como órfã a tarefa cujo fim de subagente o mod ainda não tratou
+(`ENDING_GRACE_MS` em `claude/hooks/keepalive.ts`) e diz "em andamento sem agente (retome o agente <id> com
+SendMessage)"; versão 0.3.3.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

@@ -26,11 +26,18 @@ export declare function liveProcs(host: Host, procs: TaskProcess[]): Promise<Tas
 /** A command line cut for the task's list and the messages. */
 export declare function shortCommand(command: string, max?: number): string;
 /**
- * Adds processes to an in-progress task (one with the same pid is replaced). A subagent registering a process is
- * at work: a wait for its earlier process is over (`awaiting` cleared). Answers the task as written, or undefined when
- * it is not in progress any more.
+ * Whether a registration by `agent` (the subagent that calls, undefined for the orchestrator, the CLI or a host) ends
+ * the task's wait: only the agent that waits (or, when the wait names none, a subagent) is back at work. The
+ * orchestrator declaring the same pids (T17, run fase3 of FlashEvents) is not the agent coming back.
  */
-export declare function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string): Promise<Task | undefined>;
+export declare function endsWait(task: Task, agent: string | undefined): boolean;
+/**
+ * Adds processes to an in-progress task (one with the same pid is replaced). The subagent the task waits for
+ * registering a process is at work again: the wait for its earlier process is over (`awaiting` cleared). Anyone else
+ * (the orchestrator, another agent) leaves the wait as it is, with the new pids added to it. Answers the task as
+ * written (`awaiting` still there when the wait goes on), or undefined when it is not in progress any more.
+ */
+export declare function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string, agent?: string): Promise<Task | undefined>;
 /** Takes processes off a task's list (its `exec` ended); a task no longer in progress has no list. */
 export declare function unregisterProcs(host: Host, dir: string, taskId: string, pids: number[]): Promise<void>;
 /** The run's grace after a waited process ended, in milliseconds. */

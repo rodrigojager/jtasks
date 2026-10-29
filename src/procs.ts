@@ -79,11 +79,23 @@ export function shortCommand(command: string, max = 120): string {
 }
 
 /**
- * Adds processes to an in-progress task (one with the same pid is replaced). A subagent registering a process is
- * at work: a wait for its earlier process is over (`awaiting` cleared). Answers the task as written, or undefined when
- * it is not in progress any more.
+ * Whether a registration by `agent` (the subagent that calls, undefined for the orchestrator, the CLI or a host) ends
+ * the task's wait: only the agent that waits (or, when the wait names none, a subagent) is back at work. The
+ * orchestrator declaring the same pids (T17, run fase3 of FlashEvents) is not the agent coming back.
  */
-export async function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string): Promise<Task | undefined> {
+export function endsWait(task: Task, agent: string | undefined): boolean {
+  const a = task.awaiting
+  if (!a || !agent) return false
+  return a.agent ? a.agent === agent : true
+}
+
+/**
+ * Adds processes to an in-progress task (one with the same pid is replaced). The subagent the task waits for
+ * registering a process is at work again: the wait for its earlier process is over (`awaiting` cleared). Anyone else
+ * (the orchestrator, another agent) leaves the wait as it is, with the new pids added to it. Answers the task as
+ * written (`awaiting` still there when the wait goes on), or undefined when it is not in progress any more.
+ */
+export async function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string, agent?: string): Promise<Task | undefined> {
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir)
     if (!tasks) return undefined
@@ -92,8 +104,16 @@ export async function registerProcs(host: Host, dir: string, taskId: string, pro
     if (!task || task.status !== "in_progress") return undefined
     const pids = new Set(procs.map((p) => p.pid))
     task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs]
-    const back = !!task.awaiting
-    delete task.awaiting
+    const back = endsWait(task, agent)
+    if (back) delete task.awaiting
+    else if (task.awaiting) {
+      // Still waiting: for these too (a process the orchestrator saw is one more to wait for, never one less).
+      const added = procs.map((p) => p.pid).filter((pid) => !task.awaiting!.pids.includes(pid))
+      if (added.length) {
+        task.awaiting.pids = [...task.awaiting.pids, ...added]
+        delete task.awaiting.endedAt
+      }
+    }
     await writeTasks(host, dir, copy, tasks.revision)
     const at = host.now().toISOString()
     if (back) await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {})

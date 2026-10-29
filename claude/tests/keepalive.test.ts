@@ -206,6 +206,26 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(s.submitted.length).toBe(1)
   })
 
+  test(`a subagent whose loop just ended is no orphan until the mod has handled its end (T17, fase3: a nudge 14 ms before the await) · ${os}`, async ($, on) => {
+    const s = await scene($, on)
+    await $.agent.spawn({ prompt: `--run ${s.run} --task T07 x`, description: 'T07', subagentType: 'general-purpose' } as never)
+    await $.tool.call({ tool: TOOL, command: 'start T07', agentId: 'agent-1' } as never)
+    s.machine.alive.add(4242)
+    await $.tool.call({ tool: TOOL, command: 'wait T07 --pid 4242', agentId: 'agent-1' } as never)
+    // The engine lists the agent as ended already; its turn.complete has not reached the mod yet.
+    s.agents[0]!.status = 'completed'
+    await s.end()
+    expect(s.submitted).toEqual([])
+    expect(s.log().filter((a) => a.startsWith('keepalive'))).toEqual([])
+    // Its end arrives: the task waits for its process. The clock decides again, and stays quiet.
+    await $.turn.complete({ answer: 'esperando os testes', durationMs: 10, isAborted: false, turnId: 'a1', agentId: 'agent-1', reason: 'answer' } as never)
+    await s.clock.advance(2000)
+    await s.clock.settle()
+    expect(JSON.parse(s.machine.read(s.file)!).tasks[0]).toMatchObject({ status: 'in_progress', awaiting: { agent: 'agent-1', pids: [4242] } })
+    expect(s.log().filter((a) => a.startsWith('keepalive'))).toEqual([])
+    expect(s.submitted.some((m) => m.includes('is idle'))).toBe(false)
+  })
+
   test(`a subagent's end gives its task back; no keepalive message from its loop, only the alert of what happened (rev. 5.8) · ${os}`, async ($, on) => {
     const s = await scene($, on)
     await $.agent.spawn({ prompt: `--run ${s.run} --task T07 x`, description: 'T07', subagentType: 'general-purpose' } as never)

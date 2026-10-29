@@ -180,8 +180,12 @@ export interface AwaitEvent {
  * whose subagent did not come back within the run's `awaitGrace` counts as ended (`agentEnded`, `expired`). `host`
  * answers for a wait the host itself declared (`--waiting`): true while its agent still waits, false once it does not,
  * undefined when it cannot tell (the pids decide then; with none, such a wait is left for its host). Never throws.
+ *
+ * `agentAlive` (a host that knows its agents' status) also catches a task that lost its wait: in progress, not
+ * awaiting, its subagent not alive, and processes registered in it still running (the wait cleared by someone
+ * else's `jtasks wait`, before 0.3.3). Such a task waits for them again, and their end is told like any other.
  */
-export declare function sweepAwaiting(ctx: ToolContext, run: string, host?: (task: Task) => Promise<boolean | undefined>): Promise<AwaitEvent[]>;
+export declare function sweepAwaiting(ctx: ToolContext, run: string, host?: (task: Task) => Promise<boolean | undefined>, agentAlive?: (agent: string) => Promise<boolean | undefined>): Promise<AwaitEvent[]>;
 /** What leaving a transient pause did: the text for the orchestrator and the keys others took meanwhile. */
 export interface LeftPause {
     state: RunState;

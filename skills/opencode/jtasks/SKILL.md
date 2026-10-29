@@ -68,7 +68,8 @@ person, with the reason in `jtasks status`: tell the user, and after they decide
 `jtasks unpause`.
 
 As the orchestrator: leave a task waiting for a process alone (no `release`, no second subagent, not doing it
-yourself) and go on with the others. Whatever the run does without your asking (a subagent ended, a task went back
+yourself, and never `jtasks wait` or `jtasks exec` on it: declaring its processes is its subagent's job, even with the
+same pids) and go on with the others. Whatever the run does without your asking (a subagent ended, a task went back
 to the queue, failed or waits for a process, a lock was lost, the run paused for a person) reaches you at once as a
 message that starts with `jtasks: run <id> changed without your asking`, with the status line: act on it, it is read
 from the run's log, not from the conversation. Every notification of a subagent's end carries the same status line.

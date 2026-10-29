@@ -3,9 +3,10 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { RunState } from "../src/frontier.ts"
 import type { JlockLock } from "../src/jlock.ts"
-import { checkKeepalive, holdKeepalive, keepaliveDecision, keepaliveTries, progressSignature, readKeepalive, type KeepaliveInput } from "../src/keepalive.ts"
+import { checkKeepalive, hadActivity, holdKeepalive, keepaliveDecision, keepaliveNotice, keepaliveStatus, keepaliveTries, keepaliveWhat, progressSignature, readKeepalive, type KeepaliveInput } from "../src/keepalive.ts"
 import { toTask } from "../src/plan.ts"
 import { DEFAULT_PROFILES, type PlanTask, type RunFile, type Task } from "../src/schema.ts"
+import { appendLog } from "../src/store.ts"
 import { validatePlan } from "../src/validate.ts"
 import { cleanupTemp, host, makeRepo, tasks, tasksOk } from "./helpers.ts"
 
@@ -77,10 +78,57 @@ describe("keepaliveDecision", () => {
     expect(d.action).toBe("nudge")
     if (d.action === "nudge") {
       expect(d.orphans).toEqual(["T05"])
-      expect(d.text).toContain("T05 is in progress and no subagent is running: continue it yourself, or call jtasks release T05")
+      expect(d.agents).toEqual({ T05: "a1" })
+      // Its owner names the subagent: resume that one (SendMessage in Claude Code), never declare its processes.
+      expect(d.text).toContain("T05 is in progress with no agent running: its subagent a1 ended its loop without finishing it. Resume that same subagent (SendMessage to agent a1)")
+      expect(d.text).toContain("or call jtasks release T05 and open a subagent for it. Do not call jtasks wait on it.")
     }
+    // With no subagent in the owner (the orchestrator's own), as before.
+    const own = decide(state([{ id: "T05", title: "a", status: "in_progress", owner: ACTOR }, { id: "T06", title: "b", dependsOn: ["T05"] }]))
+    if (own.action === "nudge") expect(own.text).toContain("T05 is in progress and no subagent is running: continue it yourself, or call jtasks release T05")
+    else throw new Error(own.action)
     const theirs = state([{ id: "T05", title: "a", status: "in_progress", owner: "opencode:ses_9/agent:x" }, { id: "T06", title: "b", dependsOn: ["T05"] }])
     expect(decide(theirs)).toEqual({ action: "none", reason: "nothing-ready" })
+  })
+
+  test("the give-up for a task in progress with no agent says so, never \"to do\", and names the agent to resume (T17, fase3)", () => {
+    const s = state([
+      { id: "T16", title: "a", status: "done" },
+      { id: "T17", title: "b", status: "in_progress", owner: `${ACTOR}/agent:a924` },
+      { id: "T18", title: "c", dependsOn: ["T17"] },
+      { id: "T19", title: "d" },
+    ])
+    const signature = progressSignature(s.tasks)
+    const d = decide(s, { last: { signature, action: "nudge", tries: 2, at: "2026-10-28T19:57:54.321Z" } })
+    expect(d.action).toBe("stalled")
+    if (d.action === "stalled")
+      expect(d.notice).toBe(
+        `a execução ${RUN} está parada com T19 por fazer; T17 em andamento sem agente (retome o agente a924 com SendMessage) e nada rodando; 2 mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)`,
+      )
+    // OpenCode resumes by the session's task_id; a host that cannot resume (or no agent known) only says what it is.
+    expect(keepaliveWhat([], ["T17"], { T17: "ses_1" }, "opencode")).toBe("T17 em andamento sem agente (retome o agente ses_1 com task_id)")
+    expect(keepaliveWhat([], ["T17"], { T17: "x" }, "cli")).toBe("T17 em andamento sem agente")
+    expect(keepaliveWhat(["T01", "T02"], ["T17"])).toBe("T01, T02 por fazer; T17 em andamento sem agente")
+    // The status line and the pane read the same from what the host kept.
+    const memory = { signature, action: "stalled" as const, tries: 3, at: "x", ready: [], orphans: ["T17"], agents: { T17: "a924" }, tool: "claude" }
+    expect(keepaliveStatus(s.run, s.tasks, memory, 2)).toBe("retomada desistiu: T17 em andamento sem agente (retome o agente a924 com SendMessage), nada rodando, 2 mensagem(ns) sem progresso (jtasks keepalive on volta a vigiar)")
+    expect(keepaliveNotice(s.run, s.tasks, memory)).toBe("⚠ parada: T17 em andamento sem agente (retome o agente a924 com SendMessage), nada rodando")
+  })
+
+  test("work in the log since the last message is no stall: the subagent's own steps count, the orchestrator's wait does not", () => {
+    const at = "2026-10-28T19:44:13.148Z"
+    const agent = `${ACTOR}/agent:a924`
+    // The await the subagent's end wrote 14 ms after the message (the race of T17) counts.
+    expect(hadActivity([{ at: "2026-10-28T19:44:13.162Z", actor: agent, action: "await", task: "T17" }], at, ACTOR)).toBe(true)
+    for (const action of ["procs", "await-back", "claim", "done", "await-ended", "agent-ended"])
+      expect(hadActivity([{ at: "2026-10-28T19:50:00.000Z", actor: agent, action, task: "T17" }], at, ACTOR), action).toBe(true)
+    // Before the message, the keepalive's own entries, renewals: no.
+    expect(hadActivity([{ at: "2026-10-28T19:44:13.000Z", actor: agent, action: "claim", task: "T17" }], at, ACTOR)).toBe(false)
+    expect(hadActivity([{ at: "2026-10-28T19:50:00.000Z", actor: ACTOR, action: "keepalive-nudge" }], at, ACTOR)).toBe(false)
+    expect(hadActivity([{ at: "2026-10-28T19:50:00.000Z", actor: ACTOR, action: "renew", task: "T17" }], at, ACTOR)).toBe(false)
+    // The orchestrator answering with a wait of its own would loop the messages: not work.
+    expect(hadActivity([{ at: "2026-10-28T19:58:12.271Z", actor: ACTOR, action: "procs", task: "T17" }], at, ACTOR)).toBe(false)
+    expect(hadActivity([], "junk", ACTOR)).toBe(false)
   })
 
   test("the same progress again: tries go up, then the host gives up and tells the person; progress starts over", () => {
@@ -194,6 +242,31 @@ describe("keepalive in the tool", () => {
     expect(await readKeepalive(host, dir)).toBeUndefined()
     expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0 })).toMatchObject({ action: "nudge", tries: 1 })
     expect(await checkKeepalive(host, { root: repo, run, liveAgents: 2 })).toEqual({ action: "none", reason: "agents-running" })
+  })
+
+  test("a subagent that works in rounds (waits, comes back, waits again) starts the count over; the orchestrator's own wait does not", async () => {
+    const repo = makeRepo("keepalive-rounds")
+    const r = await tasksOk(repo, ["plan", JSON.stringify(PLAN)])
+    const { dir, run } = r.data as { dir: string; run: string }
+    await tasksOk(repo, ["start", "T01"], { tool: "claude", session: "s1", agent: "a1" })
+    const check = () => checkKeepalive(host, { root: repo, run, liveAgents: 0, actor: "claude:s1", commit: true })
+    expect(await check()).toMatchObject({ action: "nudge", tries: 1, orphans: ["T01"], agents: { T01: "a1" } })
+    expect(await check()).toMatchObject({ action: "nudge", tries: 2 })
+    await Bun.sleep(5)
+    // The subagent came back and did something (the same signature: T01 still in progress).
+    await appendLog(host, dir, { at: host.now().toISOString(), actor: "claude:s1/agent:a1", action: "claim", task: "T01", files: ["src/a.ts"] })
+    expect(await check()).toMatchObject({ action: "nudge", tries: 1 })
+    await Bun.sleep(5)
+    await appendLog(host, dir, { at: host.now().toISOString(), actor: "claude:s1", action: "procs", task: "T01", pids: [1], by: "wait" })
+    expect(await check()).toMatchObject({ action: "nudge", tries: 2 })
+    const stalled = await check()
+    expect(stalled).toMatchObject({ action: "stalled", tries: 3 })
+    if (stalled.action === "stalled") expect(stalled.notice).toContain("T01 em andamento sem agente (retome o agente a1 com SendMessage)")
+    expect(await readKeepalive(host, dir)).toMatchObject({ action: "stalled", agents: { T01: "a1" }, tool: "claude" })
+    // Even a give-up is lifted by work: the next end of turn speaks again.
+    await Bun.sleep(5)
+    await appendLog(host, dir, { at: host.now().toISOString(), actor: "claude:s1", action: "await-back", task: "T01", how: "turn.start" })
+    expect(await check()).toMatchObject({ action: "nudge", tries: 1 })
   })
 
   test("help lists the action", async () => {

@@ -198,6 +198,65 @@ describe("the end of a subagent", () => {
     expect(t01(dir).status).toBe("failed")
   })
 
+  test("only the waiting subagent ends the wait: the orchestrator's wait with the same pids (T17, fase3) keeps it and adds new ones", async () => {
+    const { repo, dir } = await newRun()
+    const agent = { tool: "claude" as const, session: "s1", agent: "a1" }
+    const orchestrator = { tool: "claude" as const, session: "s1" }
+    await tasksOk(repo, ["start", "T01"], agent)
+    const first = sleeper()
+    const second = sleeper()
+    await tasksOk(repo, ["wait", "T01", "--pid", String(first.pid)], agent)
+    await tasksOk(repo, ["release", "T01", "--agent-ended"], agent)
+    expect(t01(dir).awaiting).toMatchObject({ agent: "a1", pids: [first.pid] })
+    // The orchestrator declares the same pid: the wait goes on, and it is told to leave the task alone.
+    const same = await tasksOk(repo, ["wait", "T01", "--pid", String(first.pid)], orchestrator)
+    expect(same.text).toContain("T01 continua aguardando o processo do seu subagente")
+    expect(same.text).toContain("O orquestrador não mexe na tarefa")
+    expect(t01(dir).awaiting).toMatchObject({ agent: "a1", pids: [first.pid] })
+    // A new pid is one more to wait for, never the end of the wait.
+    await tasksOk(repo, ["wait", "T01", "--pid", `${first.pid},${second.pid}`], orchestrator)
+    expect(t01(dir).awaiting).toMatchObject({ agent: "a1", pids: [first.pid, second.pid] })
+    // Another subagent is no more the waiting one than the orchestrator.
+    await tasksOk(repo, ["wait", "T01", "--pid", String(second.pid)], { ...agent, agent: "b2" })
+    expect(t01(dir).awaiting).toBeDefined()
+    expect(logOf(dir).some((e) => e.action === "await-back")).toBe(false)
+    // The waiting subagent itself registering a process is back at work: the wait is over.
+    const back = await tasksOk(repo, ["wait", "T01", "--pid", String(second.pid)], agent)
+    expect(back.text).toContain(`T01 aguarda ${second.pid}`)
+    expect(t01(dir).awaiting).toBeUndefined()
+    expect(logOf(dir).filter((e) => e.action === "await-back")).toMatchObject([{ task: "T01", how: "procs", actor: "claude:s1/agent:a1" }])
+  })
+
+  test("a task that lost its wait waits again while its subagent is gone and its processes live; their end is told", async () => {
+    const { repo, run, dir } = await newRun()
+    await tasksOk(repo, ["start", "T01"], { tool: "claude" as const, session: "s1", agent: "a1" })
+    const child = sleeper()
+    // Registered and never waited for (the wait cleared by someone else's wait before 0.3.3, or never declared).
+    await tasksOk(repo, ["wait", "T01", "--pid", String(child.pid)], { tool: "claude" as const, session: "s1", agent: "a1" })
+    expect(t01(dir).awaiting).toBeUndefined()
+    const ctx = context(repo, { tool: "claude" as const, session: "s1" })
+    // No word on the agent, or the agent at work: left alone.
+    expect(await sweepAwaiting(ctx, run)).toEqual([])
+    expect(await sweepAwaiting(ctx, run, undefined, async () => true)).toEqual([])
+    expect(await sweepAwaiting(ctx, run, undefined, async () => undefined)).toEqual([])
+    expect(t01(dir).awaiting).toBeUndefined()
+    // The agent is gone and the process lives: the task waits for it again, with the agent its owner names.
+    const asked: string[] = []
+    const gone = async (agent: string) => {
+      asked.push(agent)
+      return false
+    }
+    expect(await sweepAwaiting(ctx, run, undefined, gone)).toEqual([])
+    expect(asked).toEqual(["a1"])
+    expect(t01(dir)).toMatchObject({ status: "in_progress", awaiting: { agent: "a1", pids: [child.pid] } })
+    expect(logOf(dir).at(-1)).toMatchObject({ action: "await", task: "T01", how: "sweep", agent: "a1", pids: [child.pid] })
+    // The process ends: the usual "ended", naming the agent to resume.
+    child.kill()
+    await child.exited
+    expect(await sweepAwaiting(ctx, run, undefined, gone)).toEqual([{ task: "T01", what: "ended", agent: "a1" }])
+    expect(logOf(dir).at(-1)).toMatchObject({ action: "await-ended", task: "T01", agent: "a1" })
+  })
+
   test("agentEnded as a function: expired waits only for a task still waiting", async () => {
     const { repo, run } = await newRun()
     await tasksOk(repo, ["start", "T01"])
