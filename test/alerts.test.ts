@@ -3,8 +3,10 @@
 
 import { afterAll, describe, expect, test } from "bun:test"
 import { join } from "node:path"
-import { alertNotice, alertText, briefStatus, isAlert, logEnd, readAlerts, readBrief } from "../src/alerts.ts"
-import { keepaliveDecision } from "../src/keepalive.ts"
+import { alertNotice, alertText, briefStatus, deliveryKind, deliveryLabel, isAlert, logEnd, readAlerts, readBrief } from "../src/alerts.ts"
+import { keepaliveDecision, nudgeText } from "../src/keepalive.ts"
+import type { AutoPause } from "../src/schema.ts"
+import { resumeText } from "../src/transient.ts"
 import { readRun, readTasks, type LogEntry } from "../src/store.ts"
 import { cleanupTemp, host, makeRepo, releaseGroup, tasksOk } from "./helpers.ts"
 
@@ -61,6 +63,13 @@ describe("reading a run's log", () => {
     expect(text).toContain("Go on with the protocol: jtasks next")
     expect(alertNotice(file, tasks, read.entries)).toBe("T01 voltou à fila: o subagente terminou sem concluir (1/3)")
     expect(await readBrief(host, repo, run)).toBe("feitas 0/2 (0%) · restam 2")
+    // The person sees a few words for each message the host sends; the model reads the whole text.
+    expect(deliveryKind(text)).toBe("alert")
+    expect(deliveryLabel(text)).toBe("aviso da execução")
+    expect(deliveryLabel(nudgeText(file, tasks, ["T01"], []))).toBe("execução parada, retomando")
+    const pause = { kind: "rate_limit", detail: "429", tasks: [] } as unknown as AutoPause
+    expect(deliveryLabel(resumeText(file, pause, [], "claude"))).toBe("execução volta da pausa")
+    expect(deliveryLabel("something else")).toBe("mensagem")
   })
 
   test("the waits and the limit read as such; a paused run says to stop", async () => {

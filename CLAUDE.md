@@ -36,6 +36,9 @@ manda retomar o mesmo agente; ticket 52: versão 0.2.0 em todos os manifestos, `
 com pausa `needsPerson` no limite; `awaitGrace`), e tudo o que a execução faz sem o orquestrador pedir vira mensagem
 imediata para ele e aviso para a pessoa (`src/alerts.ts`, `claude/hooks/alerts.ts`, `opencode/src/alerts.ts`), com a
 linha de status também nas notificações de fim de subagente; versão 0.3.0.
+Ticket 56: a pessoa vê as mensagens do host ao orquestrador como uma etiqueta e poucas palavras (`deliveryLabel` em
+`src/alerts.ts`; no mod, `ui.render` de `UserMessage`; no plugin, a `description` do `session.synthetic`); o modelo
+lê o texto inteiro; versão 0.3.3.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

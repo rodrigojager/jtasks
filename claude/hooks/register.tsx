@@ -11,7 +11,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { awaitBack, ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readBrief, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { awaitBack, deliveryLabel, ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readBrief, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { AlertWatch } from './alerts.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
@@ -28,6 +28,8 @@ const viewAtom = atom({ plugin: 'jtasks', key: 'view' } as const, null as PaneVi
 const collapsedAtom = atom({ plugin: 'jtasks', key: 'collapsed' } as const, false)
 const AGENTS = { plugin: 'jtasks', key: 'agents' } as const
 const FULL_NAME = 'mcp__jtasks__jtasks'
+/** The tag on the rows of the messages the mod sends the orchestrator: not the person's words, not the model's. */
+const TAG_COLOR = 'suggestion'
 
 /** Actions that may name another run than the bound one (they create, bind or only list). */
 const ANY_RUN = new Set(['plan', 'resume', 'import', 'runs', 'ledger', 'gc', 'help', 'version', 'validate', 'clean', 'archive', 'undo'])
@@ -362,6 +364,21 @@ export const register: Register = (on) => {
   on('ui.close', { id: 'tasks' }, async ($, e, next) => {
     paneOpen = false
     return next(e)
+  })
+
+  // A message the mod sent the orchestrator (an alert, the keepalive's nudge, the end of a pause) is for the model: the
+  // person sees a tag and a few words in its row (the toast and the pane carry the details). Drawing only: the stored
+  // message and what the model reads stay as they were.
+  on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
+    const origin = e.props.origin
+    if (origin.kind !== 'plugin' || origin.name !== 'jtasks') return next(e)
+    const { Text } = $.ui.resolve(e)
+    return (
+      <Text>
+        <Text backgroundColor={TAG_COLOR} color="inverseText" bold>{' jtasks '}</Text>
+        <Text dimColor>{` ${deliveryLabel(e.props.text)}`}</Text>
+      </Text>
+    )
   })
 
   on('ui.render', { component: 'Pane', requestId: 'tasks' }, async ($, e) => {

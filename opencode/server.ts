@@ -10,7 +10,7 @@
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { awaitBack, ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, sweepAwaiting, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { awaitBack, deliveryLabel, ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, sweepAwaiting, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
 import { RunAlerts, statusTail } from "./src/alerts.ts"
@@ -163,7 +163,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       const send =
         typeof session.synthetic === "function"
           ? (sessionID: string, text: string) =>
-              session.synthetic!({ sessionID, text, description: "jtasks keepalive", delivery: "queue", metadata: { source: PLUGIN_ID } })
+              session.synthetic!({ sessionID, text, description: `jtasks · ${deliveryLabel(text)}`, delivery: "queue", metadata: { source: PLUGIN_ID } })
           : undefined
 
       // Transient failures (rev. 5.7): the last failure of each session, read from the event stream.

@@ -149,6 +149,10 @@ Se um turno termina com tarefa pronta e nenhum subagente rodando (depois de uma 
 mod manda ao Claude uma mensagem que reabre o laço; depois de duas sem progresso, ele para e avisa você. Para
 parar de propósito, o Claude chama `jtasks pause` e pergunta; `jtasks keepalive off` desliga isso.
 
+Essas mensagens, e as que contam o que a execução fez sozinha, são para o Claude: no transcript você vê só uma
+etiqueta `jtasks` e poucas palavras ("aviso da execução", "execução parada, retomando"); o toast e o painel trazem
+os detalhes.
+
 Se um subagente (ou o próprio Claude) morre numa falha que passa sozinha, como limite de uso ou de sessão, limite
 de requisições, API sobrecarregada ou queda de conexão, o mod pausa a execução em vez de devolver a tarefa: ela
 continua em andamento com as travas, e o painel diz por quê e até quando. No reset (o horário que o erro deu, ou

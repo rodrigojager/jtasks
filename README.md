@@ -144,6 +144,9 @@ If a turn ends with a task ready and no subagent running (after a compaction, sa
 that reopens the loop; after two with no progress it stops and tells you. To stop on purpose, Claude calls `jtasks
 pause` and asks you; `jtasks keepalive off` turns this off.
 
+These messages, and the ones about what the run did by itself, are for Claude: in the transcript you see only a
+`jtasks` tag and a few words ("run alert", "run idle, resuming"); the toast and the pane carry the details.
+
 If a subagent (or Claude itself) dies on a failure that clears by itself, such as a usage or session limit, a rate
 limit, an overloaded API or a dropped connection, the mod pauses the run instead of giving the task back: the task
 stays in progress with its locks, and the pane says why and until when. At the reset (the time the error gave, or

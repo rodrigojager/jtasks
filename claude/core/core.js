@@ -179,6 +179,10 @@ var en_default = {
   "clean.deleted": "deleted: {target}",
   "clean.effects": "effects still active (they stay; undo each with the command beside it, if you want):",
   "clean.which": "say which: jtasks clean <run> [--yes] (or --all)",
+  "delivery.alert": "run alert",
+  "delivery.idle": "run idle, resuming",
+  "delivery.other": "message",
+  "delivery.resume": "run back from pause",
   "doctor.claude_absent": "Claude Code not found (nothing to check)",
   "doctor.claude_mod_absent": "the jtasks mod is not installed (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "the jtasks mod is installed",
@@ -680,6 +684,10 @@ var pt_BR_default = {
   "clean.deleted": "apagado: {target}",
   "clean.effects": "efeitos ainda ativos (ficam; desfaça com o comando ao lado, se quiser):",
   "clean.which": "diga qual: jtasks clean <run> [--yes] (ou --all)",
+  "delivery.alert": "aviso da execução",
+  "delivery.idle": "execução parada, retomando",
+  "delivery.other": "mensagem",
+  "delivery.resume": "execução volta da pausa",
   "doctor.claude_absent": "Claude Code não encontrado (nada a conferir)",
   "doctor.claude_mod_absent": "o mod jtasks não está instalado (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "o mod jtasks está instalado",
@@ -1181,6 +1189,10 @@ var es_default = {
   "clean.deleted": "borrado: {target}",
   "clean.effects": "efectos aún activos (se quedan; deshaz cada uno con el comando de al lado, si quieres):",
   "clean.which": "di cuál: jtasks clean <run> [--yes] (o --all)",
+  "delivery.alert": "aviso de la ejecución",
+  "delivery.idle": "ejecución parada, reanudando",
+  "delivery.other": "mensaje",
+  "delivery.resume": "ejecución vuelve de la pausa",
   "doctor.claude_absent": "Claude Code no encontrado (nada que comprobar)",
   "doctor.claude_mod_absent": "el mod jtasks no está instalado (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "el mod jtasks está instalado",
@@ -1682,6 +1694,10 @@ var fr_default = {
   "clean.deleted": "supprimé: {target}",
   "clean.effects": "effets encore actifs (ils restent; annulez chacun avec la commande à côté, si vous voulez):",
   "clean.which": "précisez laquelle: jtasks clean <run> [--yes] (ou --all)",
+  "delivery.alert": "alerte de l'exécution",
+  "delivery.idle": "exécution arrêtée, reprise",
+  "delivery.other": "message",
+  "delivery.resume": "exécution reprend après la pause",
   "doctor.claude_absent": "Claude Code introuvable (rien à vérifier)",
   "doctor.claude_mod_absent": "le mod jtasks n'est pas installé (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "le mod jtasks est installé",
@@ -2183,6 +2199,10 @@ var de_default = {
   "clean.deleted": "gelöscht: {target}",
   "clean.effects": "noch aktive Effekte (sie bleiben; mach jeden bei Bedarf mit dem Befehl daneben rückgängig):",
   "clean.which": "sag, welchen: jtasks clean <run> [--yes] (oder --all)",
+  "delivery.alert": "Hinweis zum Lauf",
+  "delivery.idle": "Lauf steht, wird fortgesetzt",
+  "delivery.other": "Nachricht",
+  "delivery.resume": "Lauf nach Pause zurück",
   "doctor.claude_absent": "Claude Code nicht gefunden (nichts zu prüfen)",
   "doctor.claude_mod_absent": "der jtasks-Mod ist nicht installiert (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "der jtasks-Mod ist installiert",
@@ -2684,6 +2704,10 @@ var it_default = {
   "clean.deleted": "eliminato: {target}",
   "clean.effects": "effetti ancora attivi (restano; annulla ciascuno con il comando accanto, se vuoi):",
   "clean.which": "indica quale: jtasks clean <run> [--yes] (o --all)",
+  "delivery.alert": "avviso dell'esecuzione",
+  "delivery.idle": "esecuzione ferma, si riprende",
+  "delivery.other": "messaggio",
+  "delivery.resume": "esecuzione torna dalla pausa",
   "doctor.claude_absent": "Claude Code non trovato (niente da verificare)",
   "doctor.claude_mod_absent": "il mod jtasks non è installato (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "il mod jtasks è installato",
@@ -3185,6 +3209,10 @@ var zh_CN_default = {
   "clean.deleted": "已删除：{target}",
   "clean.effects": "仍生效的副作用（会保留；如需撤销，运行各自旁边的命令）：",
   "clean.which": "请指明：jtasks clean <run> [--yes]（或 --all）",
+  "delivery.alert": "运行提醒",
+  "delivery.idle": "运行已停，正在恢复",
+  "delivery.other": "消息",
+  "delivery.resume": "运行从暂停中恢复",
   "doctor.claude_absent": "未找到 Claude Code（无需检查）",
   "doctor.claude_mod_absent": "jtasks mod 未安装（/plugin install jtasks --marketplace rodrigojager/jtasks）",
   "doctor.claude_mod_installed": "jtasks mod 已安装",
@@ -3686,6 +3714,10 @@ var ja_default = {
   "clean.deleted": "削除した: {target}",
   "clean.effects": "まだ有効な副作用（残る。取り消すなら各行の横のコマンドで）:",
   "clean.which": "どれか指定する: jtasks clean <run> [--yes]（または --all）",
+  "delivery.alert": "実行の通知",
+  "delivery.idle": "実行が停止中、再開します",
+  "delivery.other": "メッセージ",
+  "delivery.resume": "実行が一時停止から復帰",
   "doctor.claude_absent": "Claude Code が見つからない（確認対象なし）",
   "doctor.claude_mod_absent": "jtasks の mod がインストールされていない（/plugin install jtasks --marketplace rodrigojager/jtasks）",
   "doctor.claude_mod_installed": "jtasks の mod はインストール済み",
@@ -4187,6 +4219,10 @@ var ru_default = {
   "clean.deleted": "удалено: {target}",
   "clean.effects": "эффекты ещё активны (остаются; при желании отмените каждый командой рядом с ним):",
   "clean.which": "укажите какой: jtasks clean <run> [--yes] (или --all)",
+  "delivery.alert": "оповещение запуска",
+  "delivery.idle": "запуск стоит, возобновляем",
+  "delivery.other": "сообщение",
+  "delivery.resume": "запуск снова после паузы",
   "doctor.claude_absent": "Claude Code не найден (проверять нечего)",
   "doctor.claude_mod_absent": "мод jtasks не установлен (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "мод jtasks установлен",
@@ -4688,6 +4724,10 @@ var ar_default = {
   "clean.deleted": "حُذف: {target}",
   "clean.effects": "آثار لا تزال نشطة (تبقى؛ تراجع عن كل منها بالأمر المجاور له إن أردت):",
   "clean.which": "حدّد أيّها: jtasks clean <run> [--yes] (أو --all)",
+  "delivery.alert": "تنبيه من التشغيل",
+  "delivery.idle": "التشغيل متوقف، استئناف",
+  "delivery.other": "رسالة",
+  "delivery.resume": "عودة التشغيل بعد الإيقاف المؤقت",
   "doctor.claude_absent": "لم يُعثر على Claude Code (لا شيء للفحص)",
   "doctor.claude_mod_absent": "التعديل jtasks غير مثبّت (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "التعديل jtasks مثبّت",
@@ -5189,6 +5229,10 @@ var hi_default = {
   "clean.deleted": "हटाया गया: {target}",
   "clean.effects": "अब भी सक्रिय प्रभाव (ये बने रहते हैं; चाहें तो हर एक को बगल वाली कमांड से पूर्ववत करें):",
   "clean.which": "बताएँ कौन सा: jtasks clean <run> [--yes] (या --all)",
+  "delivery.alert": "रन की सूचना",
+  "delivery.idle": "रन रुका, फिर शुरू",
+  "delivery.other": "संदेश",
+  "delivery.resume": "रन विराम से वापस",
   "doctor.claude_absent": "Claude Code नहीं मिला (जाँचने को कुछ नहीं)",
   "doctor.claude_mod_absent": "jtasks mod इंस्टॉल नहीं है (/plugin install jtasks --marketplace rodrigojager/jtasks)",
   "doctor.claude_mod_installed": "jtasks mod इंस्टॉल है",
@@ -6555,7 +6599,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.3.2";
+var VERSION = "0.3.3";
 
 class ToolError extends Error {
   code;
@@ -10645,6 +10689,19 @@ function alertText(run, tasks, entries, tool) {
   return lines.join(`
 `);
 }
+function deliveryKind(text) {
+  const head = /jtasks: run \S+ (changed without your asking|is idle|is active again)/.exec(text)?.[1];
+  if (head === "changed without your asking")
+    return "alert";
+  if (head === "is idle")
+    return "idle";
+  if (head === "is active again")
+    return "resume";
+  return "other";
+}
+function deliveryLabel(text) {
+  return tr(`delivery.${deliveryKind(text)}`);
+}
 function alertNotice(run, tasks, entries) {
   const parts = entries.map((e) => {
     const id = String(e.task ?? "");
@@ -11917,6 +11974,8 @@ export {
   detachedHold,
   describeOwner,
   describeKey,
+  deliveryLabel,
+  deliveryKind,
   defineAction,
   currentBranch,
   createdText,

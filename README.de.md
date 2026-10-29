@@ -157,6 +157,10 @@ der Mod Claude eine Nachricht, die die Schleife wieder öffnet; nach zwei ohne F
 Bescheid. Um absichtlich anzuhalten, ruft Claude `jtasks pause` auf und fragt dich; `jtasks keepalive off`
 schaltet das ab.
 
+Diese Nachrichten, und die über das, was der Lauf von selbst getan hat, sind für Claude: im Transkript siehst du
+nur ein `jtasks`-Etikett und wenige Wörter („Hinweis zum Lauf“, „Lauf steht, wird fortgesetzt“); Toast und Panel
+zeigen die Details.
+
 Stirbt ein Subagent (oder Claude selbst) an einer Störung, die von selbst vergeht, etwa einem Nutzungs- oder
 Sitzungslimit, einem Anfragelimit, einer überlasteten API oder einer abgebrochenen Verbindung, pausiert der Mod den
 Lauf, statt die Aufgabe zurückzugeben: Sie bleibt mit ihren Sperren in Arbeit, und das Panel sagt, warum und bis

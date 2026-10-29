@@ -28,5 +28,14 @@ export declare function alertLine(e: LogEntry, tasks: Task[], tool: string | und
  * status line, and what to do now.
  */
 export declare function alertText(run: RunFile, tasks: TasksFile, entries: LogEntry[], tool: string | undefined): string;
+/** What a message the host sent the orchestrator is about: alerts, the keepalive's nudge, the end of a transient pause. */
+export type DeliveryKind = "alert" | "idle" | "resume" | "other";
+/** The kind of a message the host sent (alertText, nudgeText, resumeText), read from its head line. */
+export declare function deliveryKind(text: string): DeliveryKind;
+/**
+ * What the person sees in place of a message the host sent the orchestrator (a few words, in their language): the
+ * model reads the whole text, the person has the toast and the pane for the details.
+ */
+export declare function deliveryLabel(text: string): string;
 /** What the person reads (toast, notification), in their language: one short phrase per entry. */
 export declare function alertNotice(run: RunFile, tasks: TasksFile, entries: LogEntry[]): string;

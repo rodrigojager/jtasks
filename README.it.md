@@ -151,6 +151,10 @@ Se un turno finisce con un'attività pronta e nessun subagente in corso (dopo un
 il mod manda a Claude un messaggio che riapre il ciclo; dopo due senza progressi si ferma e ti avvisa. Per
 fermarsi di proposito, Claude chiama `jtasks pause` e ti chiede; `jtasks keepalive off` lo disattiva.
 
+Questi messaggi, e quelli su ciò che l'esecuzione ha fatto da sola, sono per Claude: nel transcript vedi solo
+un'etichetta `jtasks` e poche parole ("avviso dell'esecuzione", "esecuzione ferma, si riprende"); il toast e il
+pannello portano i dettagli.
+
 Se un subagente (o Claude stesso) muore per un guasto che passa da solo, come un limite d'uso o di sessione, un
 limite di richieste, un'API sovraccarica o una connessione caduta, il mod mette in pausa l'esecuzione invece di
 restituire l'attività: resta in corso con i suoi lock, e il pannello dice perché e fino a quando. Al reset (l'ora

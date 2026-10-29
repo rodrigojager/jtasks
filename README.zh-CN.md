@@ -117,6 +117,8 @@ Claude 调用 `jtasks next`，在同一个回复中为每个就绪任务打开�
 
 如果一轮结束时有就绪任务且没有子代理在运行（例如压缩之后），mod 会给 Claude 发一条重新开启循环的消息；连续两条没有进展后，它会停下并通知你。要有意停下时，Claude 会调用 `jtasks pause` 并询问你；`jtasks keepalive off` 可关闭此功能。
 
+这些消息，以及告知运行自行做了什么的消息，都是给 Claude 的：在对话记录里你只会看到一个 `jtasks`标签和几个字（“运行提醒”“运行已停，正在恢复”）；详情在弹出通知和面板里。
+
 如果子代理（或 Claude 本身）因会自行恢复的故障而终止，例如用量或会话限制、请求频率限制、API 过载或连接中断，mod 会暂停运行，而不是把任务退回：任务保持进行中并持有锁，面板会说明原因和恢复时间。到了重置时间（错误给出的时间，或 Claude Code 在用量限制后自行继续时），或执行 `jtasks unpause`，运行重新变为活动状态，并提示 Claude 用 SendMessage 恢复同一个子代理，而不是新开一个。无效密钥、拒绝或上下文溢出仍按原来的方式处理。获取新版本：`claude plugin marketplace update jtasks`，然后 `claude plugin update jtasks@jtasks`，再重启 Claude Code。
 
 ## 配合 OpenCode

@@ -147,6 +147,26 @@ export function alertText(run: RunFile, tasks: TasksFile, entries: LogEntry[], t
   return lines.join("\n")
 }
 
+/** What a message the host sent the orchestrator is about: alerts, the keepalive's nudge, the end of a transient pause. */
+export type DeliveryKind = "alert" | "idle" | "resume" | "other"
+
+/** The kind of a message the host sent (alertText, nudgeText, resumeText), read from its head line. */
+export function deliveryKind(text: string): DeliveryKind {
+  const head = /jtasks: run \S+ (changed without your asking|is idle|is active again)/.exec(text)?.[1]
+  if (head === "changed without your asking") return "alert"
+  if (head === "is idle") return "idle"
+  if (head === "is active again") return "resume"
+  return "other"
+}
+
+/**
+ * What the person sees in place of a message the host sent the orchestrator (a few words, in their language): the
+ * model reads the whole text, the person has the toast and the pane for the details.
+ */
+export function deliveryLabel(text: string): string {
+  return tr(`delivery.${deliveryKind(text)}`)
+}
+
 /** What the person reads (toast, notification), in their language: one short phrase per entry. */
 export function alertNotice(run: RunFile, tasks: TasksFile, entries: LogEntry[]): string {
   const parts = entries.map((e) => {

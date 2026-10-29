@@ -318,6 +318,11 @@ next and open the subagents. If something depends on the person, call jtasks pau
   `"keepalive": false` starts off. A real `unpause` (or a `resume` that leaves a pause) starts the count over; on a run
   that was not paused they change nothing, so a model that answers the message with them cannot loop it.
 - Codex (the CLI alone) has no keepalive: the loop depends on the model.
+- The messages the host sends the orchestrator (this one, the [alerts](#waiting-for-a-process) of what the run did by
+  itself, the end of a transient pause) are for the model. The person sees a few words in their place, in their
+  language: in Claude Code, the row is drawn as a `jtasks` tag and a label (`aviso da execução`, `execução parada,
+  retomando`, `execução volta da pausa`); in OpenCode, the label is the synthetic message's `description`, the only
+  thing its TUI draws. The model still reads the whole text; the toast and the pane carry the details.
 
 ### Transient failures
 

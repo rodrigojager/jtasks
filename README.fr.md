@@ -156,6 +156,10 @@ envoie à Claude un message qui relance la boucle ; après deux sans progrès, i
 s'arrêter exprès, Claude appelle `jtasks pause` et vous pose la question ; `jtasks keepalive off` désactive ce
 comportement.
 
+Ces messages, et ceux qui racontent ce que l'exécution a fait seule, sont pour Claude : dans le transcript vous ne
+voyez qu'une étiquette `jtasks` et quelques mots (« alerte de l'exécution », « exécution arrêtée, reprise ») ; le
+toast et le panneau donnent les détails.
+
 Si un sous-agent (ou Claude lui-même) meurt sur une panne qui passe d'elle-même, comme une limite d'utilisation ou
 de session, une limite de requêtes, une API surchargée ou une connexion coupée, le mod met l'exécution en pause au
 lieu de rendre la tâche: elle reste en cours avec ses verrous, et le panneau dit pourquoi et jusqu'à quand. Au

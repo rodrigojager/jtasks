@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Host, Resident } from "../core/core.js"
+import { tr } from "../core/core.js"
 import { createNodeHost } from "../core/node-host.js"
 import { PLUGIN_ID, TOOL_NAME } from "../server.ts"
 import { cleanupTemp, fakeHost, makeRepo, sh, writeFiles } from "./fake-host.ts"
@@ -278,6 +279,8 @@ describe("OpenCode plugin", () => {
     await until(() => h.synthetics.length === 1)
     expect(h.synthetics[0]).toMatchObject({ sessionID: "s1", delivery: "queue" })
     expect(h.synthetics[0]!.text).toContain(`jtasks: run ${run} is idle · done 0/2 · 2 left · ready: T01 · no subagent is running.`)
+    // The TUI draws only the description: a few words for the person; the model reads the text.
+    expect((h.synthetics[0] as { description?: string }).description).toBe(`jtasks · ${tr("delivery.idle")}`)
 
     turn("succeeded")
     await until(() => h.synthetics.length === 2)
@@ -314,6 +317,7 @@ describe("OpenCode plugin", () => {
     await until(() => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks[0].status === "pending")
     // The root also hears of that end by itself (rev. 5.8): an alert, apart from the keepalive's messages.
     await until(() => h.synthetics.some((s) => s.text.includes("changed without your asking") && s.text.includes("T01: its subagent ended without finishing")))
+    expect((h.synthetics.find((s) => s.text.includes("changed without your asking")) as { description?: string }).description).toBe(`jtasks · ${tr("delivery.alert")}`)
     const idle = () => h.synthetics.filter((s) => s.text.includes("is idle")).length
     turn("succeeded")
     await until(() => idle() === 3)
