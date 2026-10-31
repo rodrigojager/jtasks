@@ -10,6 +10,7 @@ interface LogLine {
     uncommitted?: unknown;
     chain?: unknown;
     files?: unknown;
+    dropped?: unknown;
 }
 export declare function readLog(host: Host, dir: string): Promise<LogLine[]>;
 /**
@@ -64,6 +65,19 @@ export declare function emptyReapply(): ReapplyReport;
  * `task.patches`; the caller writes tasks.json.
  */
 export declare function reapplyPatches(host: Host, state: RunState, task: Task, which: (p: SavedPatch) => boolean): Promise<ReapplyReport>;
+/**
+ * Edits of the task kept aside that `task.patches` lost (ticket 58): an active `restore` effect of the task in the
+ * ledger whose patch is still where it was saved (never reapplied, never undone), that no task's `patches` lists, no
+ * `reapply` effect took and no `start --fresh` dropped. A release whose tasks.json write lost a race leaves exactly
+ * that: the files back at HEAD, the patches on disk, nothing that brings them back.
+ */
+export declare function orphanKept(host: Host, state: RunState, task: Task): Promise<SavedPatch[]>;
+/** Puts the task's orphaned kept edits (`orphanKept`) back in `task.patches`; answers them. The caller writes tasks.json. */
+export declare function recoverKept(host: Host, state: RunState, task: Task): Promise<SavedPatch[]>;
+/** Every edit the task keeps aside: its `patches` and the orphans of the ledger. */
+export declare function keptOf(host: Host, state: RunState, task: Task): Promise<SavedPatch[]>;
+/** The id of the active `patch` effect that saved `patch` (absolute): `undo <e-id>` drops it. */
+export declare function patchEffectId(host: Host, state: RunState, patch: string): Promise<string | undefined>;
 /** The patches of `task` whose file is covered by one of `keys` (absolute jlock keys). */
 export declare function patchesUnder(state: RunState, platform: string, keys: string[]): (p: SavedPatch) => boolean;
 /**

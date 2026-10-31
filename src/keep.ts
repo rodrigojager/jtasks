@@ -9,9 +9,9 @@ import { status as gitStatus } from "./git.ts"
 import type { Host } from "./host.ts"
 import { jlockList } from "./jlock.ts"
 import { ALL, conflicts, covers, normalizeKey } from "./keys.ts"
-import { recordEffect } from "./ledger.ts"
+import { readEffects, recordEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, nextPatchNumber, patchRel, restoreFile, writePatch } from "./patches.ts"
-import { caseInsensitive, join } from "./paths.ts"
+import { basename, caseInsensitive, join, slash } from "./paths.ts"
 import type { SavedPatch, Task } from "./schema.ts"
 import { SCRATCH } from "./store.ts"
 
@@ -25,6 +25,7 @@ interface LogLine {
   uncommitted?: unknown
   chain?: unknown
   files?: unknown
+  dropped?: unknown
 }
 
 export async function readLog(host: Host, dir: string): Promise<LogLine[]> {
@@ -185,6 +186,53 @@ export async function reapplyPatches(host: Host, state: RunState, task: Task, wh
   if (left.length) task.patches = left
   else delete task.patches
   return report
+}
+
+/**
+ * Edits of the task kept aside that `task.patches` lost (ticket 58): an active `restore` effect of the task in the
+ * ledger whose patch is still where it was saved (never reapplied, never undone), that no task's `patches` lists, no
+ * `reapply` effect took and no `start --fresh` dropped. A release whose tasks.json write lost a race leaves exactly
+ * that: the files back at HEAD, the patches on disk, nothing that brings them back.
+ */
+export async function orphanKept(host: Host, state: RunState, task: Task): Promise<SavedPatch[]> {
+  const insensitive = caseInsensitive(host.platform)
+  const norm = (p: string) => (insensitive ? slash(p).toLowerCase() : slash(p))
+  const effects = await readEffects(host, join(state.dir, "ledger.jsonl"))
+  const taken = new Set<string>()
+  for (const t of [...state.tasks.tasks.filter((x) => x.id !== task.id), task]) for (const p of t.patches ?? []) taken.add(norm(join(state.dir, p.patch)))
+  for (const e of effects) if (e.type === "reapply" && e.state === "active" && e.patch) taken.add(norm(e.patch))
+  for (const e of await readLog(host, state.dir)) if (e.action === "fresh" && e.task === task.id) for (const p of strings(e.dropped)) taken.add(norm(join(state.dir, p)))
+  const out: SavedPatch[] = []
+  const dir = norm(state.dir)
+  for (const e of effects) {
+    if (e.type !== "restore" || e.state !== "active" || e.task !== task.id || e.run !== state.run.id || !e.patch || !e.path) continue
+    const abs = norm(e.patch)
+    if (taken.has(abs) || !(await host.stat(e.patch))) continue
+    taken.add(abs)
+    const rel = abs.startsWith(`${dir}/`) ? slash(e.patch).slice(dir.length + 1) : `patches/${task.id}/${basename(e.patch)}`
+    out.push({ file: e.path, patch: rel, at: e.at, by: "release" })
+  }
+  return out
+}
+
+/** Puts the task's orphaned kept edits (`orphanKept`) back in `task.patches`; answers them. The caller writes tasks.json. */
+export async function recoverKept(host: Host, state: RunState, task: Task): Promise<SavedPatch[]> {
+  const found = await orphanKept(host, state, task)
+  if (found.length) task.patches = [...(task.patches ?? []), ...found]
+  return found
+}
+
+/** Every edit the task keeps aside: its `patches` and the orphans of the ledger. */
+export async function keptOf(host: Host, state: RunState, task: Task): Promise<SavedPatch[]> {
+  return [...(task.patches ?? []), ...(await orphanKept(host, state, task))]
+}
+
+/** The id of the active `patch` effect that saved `patch` (absolute): `undo <e-id>` drops it. */
+export async function patchEffectId(host: Host, state: RunState, patch: string): Promise<string | undefined> {
+  const insensitive = caseInsensitive(host.platform)
+  const norm = (p: string) => (insensitive ? slash(p).toLowerCase() : slash(p))
+  const effects = await readEffects(host, join(state.dir, "ledger.jsonl"))
+  return effects.find((e) => e.type === "patch" && e.state === "active" && !!e.patch && norm(e.patch) === norm(patch))?.id
 }
 
 /** The patches of `task` whose file is covered by one of `keys` (absolute jlock keys). */

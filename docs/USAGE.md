@@ -121,7 +121,8 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `start <id> [--fresh]` | in progress; holds the ownership (`jlock hold --no-wait`); reapplies the edits an earlier attempt left as patches (`--fresh`: leaves them out) |
 | | `claim <id> [<file…>] [--timeout 60s]` | one more file; waits in jlock's queue; `timeout` and `deadlock` answered; without files, takes back what the task yielded |
 | | `yield <id> [<file…>]` | gives back only the contested files (without files: the ones that close the cycle of its last deadlock); the task stays in progress, its edits of them kept as patches, reapplied when they are its again (see [Deadlock and yield](#deadlock-and-yield)) |
-| | `done <id> --evidence "…"` | checks git and the locks, commits the ownership only (`T04: title`), releases |
+| | `done <id> --evidence "…"` | brings back the edits the task keeps aside (`--3way`), checks git and the locks, commits the ownership only (`T04: title`), releases; refused while kept edits cannot come back (see [Done never leaves kept edits behind](#done-never-leaves-kept-edits-behind)) |
+| | `adopt <id> --from <task>` | the task in progress `<id>` takes the edits `<task>` keeps aside (one already done, for instance), into its own commit; no revert |
 | | `skip <id> --reason "…"` / `fail <id> --error "…"` | skipped (frees dependents) / failed (blocks them) |
 | | `release <id>` | in progress → pending (failed at `maxAttempts`); its uncommitted edits are kept as patches and the tree is left clean (see [Releasing keeps the edits](#releasing-keeps-the-edits)) |
 | | `release <id> --agent-ended [--waiting "…"]` | what the hosts call when a subagent's loop ends: waits while a process of the task lives, otherwise back to pending without spending an attempt (see [Waiting for a process](#waiting-for-a-process)) |
@@ -209,6 +210,47 @@ and the answer says so. If a patch cannot be made, the file stays on disk and is
 log; another task's `done` then neither refuses for it nor commits it, and says `T04, released, has pending edits
 in: …` (the same for a run from before this). The orchestrator never has to hold such files with a `jlock hold` of
 its own.
+
+### Done never leaves kept edits behind
+
+A task never becomes done while it keeps edits aside (ticket 58). Before anything is committed, `done` brings back,
+with `git apply --3way`, every patch of the task: the ones in its `patches`, and the ones the ledger shows (an active
+`restore` of the task whose patch is still where it was saved, not reapplied, not undone, not dropped by
+`start --fresh`) when tasks.json lost them. The clean ones go in the commit (`kept edits brought back before the
+commit: …`). Otherwise `done` is refused and says how to resolve:
+
+- a patch of a file the task does not own now (it yielded it, or another task in progress owns it):
+  `jtasks claim <id> <file…>` (the claim reapplies it), then `done` again;
+- a conflict: the file keeps the markers; resolve them, then `done` again;
+- a patch that does not apply: bring the edit in by hand from the patch, drop the patch with the `jtasks undo <e-id>`
+  the answer shows (its `patch` effect), then `done` again.
+
+A subagent resumed after its task was released (`release --agent-ended`, `resume`, a lost lock) calls `done` on a
+task that is pending (or failed) and keeps its edits: the answer says so and tells it to `jtasks start <id>` again
+(`jtasks retry <id>` first when it failed); the start reapplies them, also the ones only the ledger had.
+
+What happened on 30/10/2026: a `release --agent-ended` kept 25 files as patches for 18 s inside the run's write
+lock; the lock was broken as "dead" after 10 s by the resumed subagent's `done`, which committed only what was still
+dirty; the release's tasks.json write then lost (stale revision), so `patches` stayed empty and the task was done
+without its code. The write lock now has a heartbeat (its holder writes `.write.lock/beat` every 2 s; only 10 s
+without a sign of life make it dead; a waiter waits up to 60 s), and the checks above cover a write lost anyway.
+
+#### Recovering the kept edits of a task already done
+
+The patches stay in `patches/<task>/` and the ledger. To bring them into a task in progress, without reverting the
+done task's commit (reverting may conflict with later commits):
+
+```
+jtasks claim T07 <each file of the patches>     # the adopting task owns them first
+jtasks adopt T07 --from T04                     # 3-way into the tree; T04's restores become undone
+jtasks done T07 --evidence "…"                  # the edits go in T07's commit
+```
+
+`adopt` refuses while a file is not in the adopting task's ownership (it lists the `claim` to run), leaves a conflict
+with markers to resolve before `done`, and keeps a patch that does not apply where it was. With jtasks 0.3.x (no
+`adopt`), the same is `jtasks undo <e-id> --force` for each active `restore` of the done task (`jtasks ledger` lists
+them), after the same `claim`: `--force` is needed because the file is now in the adopting task's ownership, and the
+claim must come first, or the edit lands on a file nobody owns and blocks every `done`.
 
 ### The guard
 

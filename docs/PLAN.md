@@ -496,6 +496,12 @@ motivo: ⛔ T04, 🔒 T02 ou ⏳ T02: types.ts (**[rev. 5]** ou ⏳ T02: src/, q
   trava curta por execução em volta de cada leitura-mudança-escrita (a pasta `.write.lock`, criada de forma
   exclusiva; com mais de 10 s é de um processo morto e é quebrada): sem ela, dois processos que leem a mesma revisão
   gravam os dois e uma mudança se perde. A `revision` continua recusando escrita baseada em leitura velha.
+  **[ticket 58]** Quem segura a trava escreve `.write.lock/beat` a cada 2 s enquanto trabalha, e só 10 s sem sinal de
+  vida a fazem morta (quem espera, espera até 60 s); cada um só remove a própria trava (`token`). Um `release` que
+  guardava 25 arquivos em patch levou 18 s, teve a trava quebrada por um `done`, e a tarefa ficou feita sem o código.
+  O `done` reaplica antes do commit as edições guardadas da tarefa (`patches` e os `restore` ativos do ledger que o
+  tasks.json perdeu) ou recusa dizendo como resolver; `adopt <id> --from <tarefa>` leva as edições guardadas de uma
+  tarefa já feita para uma em andamento, sem reverter.
 - **[rev. 5]** Cada tarefa em andamento guarda seus `hold`s (`holds: [{ keys, startedAt }]`); **[rev. 5.2]**
   qualquer sessão devolve a posse com `jlock release --group <run> --owner <dono>`; nenhum processo é encerrado por
   PID a partir de outra janela.

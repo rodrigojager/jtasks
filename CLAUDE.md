@@ -45,6 +45,12 @@ Ticket 57: só o subagente que espera encerra a espera (`endsWait` em `src/procs
 mensagem (`hadActivity`), não conta como órfã a tarefa cujo fim de subagente o mod ainda não tratou
 (`ENDING_GRACE_MS` em `claude/hooks/keepalive.ts`) e diz "em andamento sem agente (retome o agente <id> com
 SendMessage)"; versão 0.3.3.
+Ticket 58: tarefa nunca fica feita com edições guardadas. A trava `.write.lock` tem batimento (`beat` a cada 2 s,
+`token`; `src/store.ts`), porque um `release --agent-ended` de 18 s teve a trava quebrada por um `done` que commitou
+sem o código. O `done` reaplica antes do commit os `patches` e os `restore` ativos que o tasks.json perdeu
+(`orphanKept`/`recoverKept` em `src/keep.ts`), ou recusa dizendo como resolver; o `start` também os recupera. Tarefa
+liberada recebe no `done` a instrução de `start`. `jtasks adopt <id> --from <tarefa>` leva as edições guardadas de
+uma tarefa já feita para uma em andamento, sem revert (na 0.3.x: `claim` + `undo <e-id> --force` em cada `restore`).
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

@@ -138,6 +138,12 @@ var en_default = {
     effect: "effect",
     undo: "undo"
   },
+  "adopt.claim_first": "{id} does not own {files} yet: ask for them with jtasks claim {id} {files}, then adopt again (the edits of {from} only go into {id}'s ownership)",
+  "adopt.conflicts": "resolve the conflict markers before jtasks done {id}",
+  "adopt.done": "{id} took {n} kept edit(s) of {from} into the tree; they go in {id}'s commit",
+  "adopt.no_from": "whose edits? jtasks adopt {id} --from <task>",
+  "adopt.none": "{from} keeps no edits aside",
+  "adopt.source_running": "{id} is in progress: its kept edits come back by themselves (claim, start, done)",
   "agent_ended.limit": "{why} {n} times (limit {max}); the run was paused for a person",
   "alert.agent_ended": "{id} went back to the queue: its subagent ended without finishing ({n}/{max})",
   "alert.await": "{id} waits for its process ({what}); its subagent comes back when it ends",
@@ -236,6 +242,13 @@ var en_default = {
   "done.outside": "{id} cannot be done: files changed outside its ownership: {files}. Ask for them with jtasks claim {id} <file>, or undo those changes",
   "done.released_edits": "{id}, released, has pending edits in: {files} (left on disk, out of this commit)",
   "done.wrong_branch": "the checkout is on {branch}, but the run commits on {run_branch}",
+  "done.kept": "{id} still keeps edits aside ({files}); run done again to bring them back first",
+  "done.kept_away": "{id} keeps edits aside for files it does not own now: {files}. Take them back with jtasks claim {id} {files} (the claim reapplies them), then done again",
+  "done.kept_back": "kept edits brought back before the commit: {files}",
+  "done.kept_conflict": "{id}: its kept edits came back with conflicts in {files}; done was refused. Resolve the conflict markers, then done again",
+  "done.kept_failed": "{id}: kept edits did not apply ({message}); done was refused: {list}. Bring each edit in by hand from its patch, drop the patch with the jtasks undo shown, then done again",
+  "done.released": "{id} is not in progress (it is {status}): it was released and keeps its edits as patches ({files}). Take it back with jtasks start {id} (the start reapplies them), then done again",
+  "done.released_failed": "{id} is not in progress (it is {status}): it was released and keeps its edits as patches ({files}). Reopen it with jtasks retry {id}, take it back with jtasks start {id} (the start reapplies them), then done again",
   "draft.already_open": "a draft is already open: {ids} (go on with jtasks plan --add, or close it with --commit)",
   "draft.batch_accepted": "batch accepted: {n} task(s) ({ids}); the draft has {total}. Close it with jtasks plan --commit",
   "draft.batch_refused": "batch refused, the draft did not change.",
@@ -303,6 +316,7 @@ var en_default = {
   "guard.unresolved": "{id}: the path {raw} has a variable, a substitution or a glob and cannot be checked; use the literal path, or Edit/Write",
   "help.archive": "archive <run>                         moves the run to JTASKS_HOME/archive (resume brings it)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  one more file (none: what it yielded); waits in the queue",
+  "help.adopt": "adopt <id> --from <task>              takes the edits another task keeps aside (e.g. a done one)",
   "help.clean": "clean <run>|--all [--yes]             deletes the run's folder (listing the active effects first)",
   "help.doctor": "doctor [--fix [--yes]]                is this machine ready? --fix --yes installs what is missing",
   "help.done": 'done <id> --evidence "…"              checks git and ownership; commits the ownership; done',
@@ -647,6 +661,12 @@ var pt_BR_default = {
     effect: "efeito",
     undo: "desfazer"
   },
+  "adopt.claim_first": "{id} ainda não tem a posse de {files}: peça com jtasks claim {id} {files} e rode o adopt de novo (as edições de {from} só entram na posse de {id})",
+  "adopt.conflicts": "resolva os marcadores de conflito antes do jtasks done {id}",
+  "adopt.done": "{id} trouxe para a árvore {n} edição(ões) guardada(s) de {from}; elas entram no commit de {id}",
+  "adopt.no_from": "edições de quem? jtasks adopt {id} --from <tarefa>",
+  "adopt.none": "{from} não tem edições guardadas",
+  "adopt.source_running": "{id} está em andamento: as edições guardadas dela voltam sozinhas (claim, start, done)",
   "agent_ended.limit": "{why} {n} vezes (limite {max}); a execução foi pausada para uma pessoa",
   "alert.agent_ended": "{id} voltou à fila: o subagente terminou sem concluir ({n}/{max})",
   "alert.await": "{id} aguarda o processo ({what}); o subagente volta quando ele terminar",
@@ -745,6 +765,13 @@ var pt_BR_default = {
   "done.outside": "{id} não pode ser concluída: arquivos modificados fora da posse: {files}. Peça-os com jtasks claim {id} <arquivo>, ou desfaça essas mudanças",
   "done.released_edits": "{id}, liberada, tem edições pendentes em: {files} (ficam no disco, fora deste commit)",
   "done.wrong_branch": "o checkout está em {branch}, mas a execução commita em {run_branch}",
+  "done.kept": "{id} ainda tem edições guardadas ({files}); rode o done de novo para trazê-las antes",
+  "done.kept_away": "{id} tem edições guardadas de arquivos que não estão na posse dela agora: {files}. Retome-os com jtasks claim {id} {files} (o claim as reaplica) e rode o done de novo",
+  "done.kept_back": "edições guardadas trazidas de volta antes do commit: {files}",
+  "done.kept_conflict": "{id}: as edições guardadas voltaram com conflitos em {files}; o done foi recusado. Resolva os marcadores de conflito e rode o done de novo",
+  "done.kept_failed": "{id}: edições guardadas não se aplicaram ({message}); o done foi recusado: {list}. Traga cada edição à mão a partir do patch, descarte o patch com o jtasks undo indicado e rode o done de novo",
+  "done.released": "{id} não está em andamento (está {status}): foi liberada e guarda as edições em patch ({files}). Retome com jtasks start {id} (o start as reaplica) e rode o done de novo",
+  "done.released_failed": "{id} não está em andamento (está {status}): foi liberada e guarda as edições em patch ({files}). Reabra com jtasks retry {id}, retome com jtasks start {id} (o start as reaplica) e rode o done de novo",
   "draft.already_open": "já há um rascunho aberto: {ids} (continue com jtasks plan --add, ou feche com --commit)",
   "draft.batch_accepted": "lote aceito: {n} tarefa(s) ({ids}); rascunho com {total}. Feche com jtasks plan --commit",
   "draft.batch_refused": "lote recusado, o rascunho não mudou.",
@@ -812,6 +839,7 @@ var pt_BR_default = {
   "guard.unresolved": "{id}: o caminho {raw} tem variável, substituição ou glob e não pode ser conferido; use o caminho literal, ou Edit/Write",
   "help.archive": "archive <run>                         move a execução para JTASKS_HOME/archive (resume a traz)",
   "help.claim": "claim <id> [<arquivo…>] [--timeout 60s]  mais um arquivo (sem: o que cedeu); espera na fila",
+  "help.adopt": "adopt <id> --from <tarefa>            assume as edições guardadas de outra tarefa (ex.: feita)",
   "help.clean": "clean <run>|--all [--yes]             apaga a pasta da execução (lista antes os efeitos ativos)",
   "help.doctor": "doctor [--fix [--yes]]                a máquina está pronta? --fix --yes instala o que falta",
   "help.done": 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
@@ -1156,6 +1184,12 @@ var es_default = {
     effect: "efecto",
     undo: "deshacer"
   },
+  "adopt.claim_first": "{id} aún no posee {files}: pídelos con jtasks claim {id} {files} y vuelve a hacer adopt (las ediciones de {from} solo entran en la posesión de {id})",
+  "adopt.conflicts": "resuelve los marcadores de conflicto antes de jtasks done {id}",
+  "adopt.done": "{id} trajo al árbol {n} edición(es) guardada(s) de {from}; entran en el commit de {id}",
+  "adopt.no_from": "¿ediciones de quién? jtasks adopt {id} --from <tarea>",
+  "adopt.none": "{from} no guarda ediciones",
+  "adopt.source_running": "{id} está en curso: sus ediciones guardadas vuelven solas (claim, start, done)",
   "agent_ended.limit": "{why} {n} veces (límite {max}); la ejecución se pausó para una persona",
   "alert.agent_ended": "{id} volvió a la cola: su subagente terminó sin acabar ({n}/{max})",
   "alert.await": "{id} espera su proceso ({what}); su subagente vuelve cuando termine",
@@ -1254,6 +1288,13 @@ var es_default = {
   "done.outside": "{id} no puede terminarse: archivos cambiados fuera de su posesión: {files}. Pídelos con jtasks claim {id} <archivo>, o deshaz esos cambios",
   "done.released_edits": "{id}, liberada, tiene ediciones pendientes en: {files} (quedan en el disco, fuera de este commit)",
   "done.wrong_branch": "el checkout está en {branch}, pero la ejecución hace commit en {run_branch}",
+  "done.kept": "{id} aún guarda ediciones ({files}); ejecuta done otra vez para traerlas antes",
+  "done.kept_away": "{id} guarda ediciones de archivos que ahora no posee: {files}. Recupéralos con jtasks claim {id} {files} (el claim las reaplica) y ejecuta done otra vez",
+  "done.kept_back": "ediciones guardadas traídas de vuelta antes del commit: {files}",
+  "done.kept_conflict": "{id}: sus ediciones guardadas volvieron con conflictos en {files}; done fue rechazado. Resuelve los marcadores de conflicto y ejecuta done otra vez",
+  "done.kept_failed": "{id}: ediciones guardadas que no se aplicaron ({message}); done fue rechazado: {list}. Trae cada edición a mano desde su patch, descarta el patch con el jtasks undo indicado y ejecuta done otra vez",
+  "done.released": "{id} no está en curso (está {status}): fue liberada y guarda sus ediciones como patch ({files}). Retómala con jtasks start {id} (el start las reaplica) y ejecuta done otra vez",
+  "done.released_failed": "{id} no está en curso (está {status}): fue liberada y guarda sus ediciones como patch ({files}). Reábrela con jtasks retry {id}, retómala con jtasks start {id} (el start las reaplica) y ejecuta done otra vez",
   "draft.already_open": "ya hay un borrador abierto: {ids} (sigue con jtasks plan --add, o ciérralo con --commit)",
   "draft.batch_accepted": "lote aceptado: {n} tarea(s) ({ids}); el borrador tiene {total}. Ciérralo con jtasks plan --commit",
   "draft.batch_refused": "lote rechazado, el borrador no cambió.",
@@ -1321,6 +1362,7 @@ var es_default = {
   "guard.unresolved": "{id}: la ruta {raw} tiene una variable, una sustitución o un glob y no se puede comprobar; usa la ruta literal, o Edit/Write",
   "help.archive": "archive <run>                         la mueve a JTASKS_HOME/archive (resume la devuelve)",
   "help.claim": "claim <id> [<archivo…>] [--timeout 60s]  un archivo más (sin: lo cedido); espera en la cola",
+  "help.adopt": "adopt <id> --from <tarea>             toma las ediciones que otra tarea guarda (p. ej. hecha)",
   "help.clean": "clean <run>|--all [--yes]             borra su carpeta (lista antes los efectos activos)",
   "help.doctor": "doctor [--fix [--yes]]                ¿está lista la máquina? --fix --yes instala lo que falta",
   "help.done": 'done <id> --evidence "…"              comprueba git y posesión; commit de la posesión; hecha',
@@ -1665,6 +1707,12 @@ var fr_default = {
     effect: "effet",
     undo: "annuler"
   },
+  "adopt.claim_first": "{id} ne possède pas encore {files}: demandez-les avec jtasks claim {id} {files}, puis refaites adopt (les modifications de {from} n'entrent que dans la possession de {id})",
+  "adopt.conflicts": "résolvez les marqueurs de conflit avant jtasks done {id}",
+  "adopt.done": "{id} a ramené dans l'arbre {n} modification(s) gardée(s) de {from}; elles entrent dans le commit de {id}",
+  "adopt.no_from": "les modifications de qui? jtasks adopt {id} --from <tâche>",
+  "adopt.none": "{from} ne garde aucune modification",
+  "adopt.source_running": "{id} est en cours: ses modifications gardées reviennent d'elles-mêmes (claim, start, done)",
   "agent_ended.limit": "{why} {n} fois (limite {max}); l'exécution a été mise en pause pour une personne",
   "alert.agent_ended": "{id} est revenue dans la file d'attente: son sous-agent s'est arrêté sans finir ({n}/{max})",
   "alert.await": "{id} attend son processus ({what}); son sous-agent revient quand il se termine",
@@ -1763,6 +1811,13 @@ var fr_default = {
   "done.outside": "{id} ne peut pas être terminée: fichiers modifiés hors de sa possession: {files}. Demandez-les avec jtasks claim {id} <fichier>, ou annulez ces changements",
   "done.released_edits": "{id}, libérée, a des modifications en attente dans: {files} (laissées sur le disque, hors de ce commit)",
   "done.wrong_branch": "le checkout est sur {branch}, mais l'exécution commite sur {run_branch}",
+  "done.kept": "{id} garde encore des modifications ({files}); relancez done pour les ramener d'abord",
+  "done.kept_away": "{id} garde des modifications de fichiers qu'elle ne possède plus: {files}. Reprenez-les avec jtasks claim {id} {files} (le claim les réapplique), puis relancez done",
+  "done.kept_back": "modifications gardées ramenées avant le commit: {files}",
+  "done.kept_conflict": "{id}: ses modifications gardées sont revenues avec des conflits dans {files}; done a été refusé. Résolvez les marqueurs de conflit, puis relancez done",
+  "done.kept_failed": "{id}: des modifications gardées ne se sont pas appliquées ({message}); done a été refusé: {list}. Reportez chaque modification à la main depuis son patch, écartez le patch avec le jtasks undo indiqué, puis relancez done",
+  "done.released": "{id} n'est pas en cours (elle est {status}): elle a été libérée et garde ses modifications en patch ({files}). Reprenez-la avec jtasks start {id} (le start les réapplique), puis relancez done",
+  "done.released_failed": "{id} n'est pas en cours (elle est {status}): elle a été libérée et garde ses modifications en patch ({files}). Rouvrez-la avec jtasks retry {id}, reprenez-la avec jtasks start {id} (le start les réapplique), puis relancez done",
   "draft.already_open": "un brouillon est déjà ouvert: {ids} (continuez avec jtasks plan --add, ou fermez-le avec --commit)",
   "draft.batch_accepted": "lot accepté: {n} tâche(s) ({ids}); le brouillon en a {total}. Fermez-le avec jtasks plan --commit",
   "draft.batch_refused": "lot refusé, le brouillon n'a pas changé.",
@@ -1830,6 +1885,7 @@ var fr_default = {
   "guard.unresolved": "{id}: le chemin {raw} contient une variable, une substitution ou un glob et ne peut pas être vérifié; utilisez le chemin littéral, ou Edit/Write",
   "help.archive": "archive <run>                         la déplace vers JTASKS_HOME/archive (resume la ramène)",
   "help.claim": "claim <id> [<fichier…>] [--timeout 60s]  un fichier de plus (sans: le cédé); attend en file",
+  "help.adopt": "adopt <id> --from <tâche>             prend les modifications gardées d'une autre tâche",
   "help.clean": "clean <run>|--all [--yes]             supprime son dossier (liste d'abord les effets actifs)",
   "help.doctor": "doctor [--fix [--yes]]                machine prête? --fix --yes installe ce qui manque",
   "help.done": 'done <id> --evidence "…"              vérifie git et possession; commite la possession; terminée',
@@ -2174,6 +2230,12 @@ var de_default = {
     effect: "Effekt",
     undo: "rückgängig machen"
   },
+  "adopt.claim_first": "{id} besitzt {files} noch nicht: fordere sie mit jtasks claim {id} {files} an und führe adopt erneut aus (die Änderungen von {from} kommen nur in den Besitz von {id})",
+  "adopt.conflicts": "löse die Konfliktmarkierungen vor jtasks done {id}",
+  "adopt.done": "{id} hat {n} aufbewahrte Änderung(en) von {from} in den Baum geholt; sie kommen in den Commit von {id}",
+  "adopt.no_from": "wessen Änderungen? jtasks adopt {id} --from <aufgabe>",
+  "adopt.none": "{from} bewahrt keine Änderungen auf",
+  "adopt.source_running": "{id} ist in Arbeit: ihre aufbewahrten Änderungen kommen von selbst zurück (claim, start, done)",
   "agent_ended.limit": "{why}, {n}-mal (Grenze {max}); der Lauf wurde für eine Person pausiert",
   "alert.agent_ended": "{id} ist zurück in der Warteschlange: ihr Subagent endete, ohne fertig zu werden ({n}/{max})",
   "alert.await": "{id} wartet auf ihren Prozess ({what}); ihr Subagent kommt zurück, wenn er endet",
@@ -2272,6 +2334,13 @@ var de_default = {
   "done.outside": "{id} kann nicht abgeschlossen werden: Dateien außerhalb ihres Besitzes geändert: {files}. Fordere sie mit jtasks claim {id} <datei> an oder mach diese Änderungen rückgängig",
   "done.released_edits": "{id}, freigegeben, hat offene Änderungen in: {files} (bleiben auf der Festplatte, nicht in diesem Commit)",
   "done.wrong_branch": "der Checkout steht auf {branch}, aber der Lauf committet auf {run_branch}",
+  "done.kept": "{id} bewahrt noch Änderungen auf ({files}); führe done erneut aus, um sie zuerst zurückzuholen",
+  "done.kept_away": "{id} bewahrt Änderungen an Dateien auf, die sie jetzt nicht besitzt: {files}. Hol sie mit jtasks claim {id} {files} zurück (der claim wendet sie wieder an) und führe done erneut aus",
+  "done.kept_back": "aufbewahrte Änderungen vor dem Commit zurückgeholt: {files}",
+  "done.kept_conflict": "{id}: ihre aufbewahrten Änderungen kamen mit Konflikten in {files} zurück; done wurde abgelehnt. Löse die Konfliktmarkierungen und führe done erneut aus",
+  "done.kept_failed": "{id}: aufbewahrte Änderungen ließen sich nicht anwenden ({message}); done wurde abgelehnt: {list}. Übernimm jede Änderung von Hand aus ihrem Patch, verwirf den Patch mit dem angegebenen jtasks undo und führe done erneut aus",
+  "done.released": "{id} ist nicht in Arbeit (Status {status}): sie wurde freigegeben und bewahrt ihre Änderungen als Patch auf ({files}). Übernimm sie wieder mit jtasks start {id} (der start wendet sie wieder an) und führe done erneut aus",
+  "done.released_failed": "{id} ist nicht in Arbeit (Status {status}): sie wurde freigegeben und bewahrt ihre Änderungen als Patch auf ({files}). Öffne sie mit jtasks retry {id} wieder, übernimm sie mit jtasks start {id} (der start wendet sie wieder an) und führe done erneut aus",
   "draft.already_open": "ein Entwurf ist bereits offen: {ids} (weiter mit jtasks plan --add oder schließen mit --commit)",
   "draft.batch_accepted": "Batch angenommen: {n} Aufgabe(n) ({ids}); der Entwurf hat {total}. Schließ ihn mit jtasks plan --commit",
   "draft.batch_refused": "Batch abgelehnt, der Entwurf ist unverändert.",
@@ -2339,6 +2408,7 @@ var de_default = {
   "guard.unresolved": "{id}: der Pfad {raw} enthält eine Variable, eine Ersetzung oder ein Glob und lässt sich nicht prüfen; nimm den wörtlichen Pfad, oder Edit/Write",
   "help.archive": "archive <run>                         verschiebt nach JTASKS_HOME/archive (resume holt zurück)",
   "help.claim": "claim <id> [<datei…>] [--timeout 60s] eine Datei mehr (ohne: das Abgegebene); wartet in Reihe",
+  "help.adopt": "adopt <id> --from <aufgabe>           übernimmt die aufbewahrten Änderungen einer anderen Aufgabe",
   "help.clean": "clean <run>|--all [--yes]             löscht den Ordner des Laufs (listet erst aktive Effekte)",
   "help.doctor": "doctor [--fix [--yes]]                ist der Rechner bereit? --fix --yes installiert, was fehlt",
   "help.done": 'done <id> --evidence "…"              prüft git und Besitz; committet den Besitz; erledigt',
@@ -2683,6 +2753,12 @@ var it_default = {
     effect: "effetto",
     undo: "annullamento"
   },
+  "adopt.claim_first": "{id} non possiede ancora {files}: chiedili con jtasks claim {id} {files} e rifai adopt (le modifiche di {from} entrano solo nel possesso di {id})",
+  "adopt.conflicts": "risolvi i marcatori di conflitto prima di jtasks done {id}",
+  "adopt.done": "{id} ha riportato nell'albero {n} modifica/e salvata/e di {from}; entrano nel commit di {id}",
+  "adopt.no_from": "le modifiche di chi? jtasks adopt {id} --from <task>",
+  "adopt.none": "{from} non ha modifiche salvate",
+  "adopt.source_running": "{id} è in corso: le sue modifiche salvate tornano da sole (claim, start, done)",
   "agent_ended.limit": "{why} {n} volte (limite {max}); l'esecuzione è stata messa in pausa per una persona",
   "alert.agent_ended": "{id} è tornata in coda: il suo subagente è terminato senza finire ({n}/{max})",
   "alert.await": "{id} attende il suo processo ({what}); il subagente torna quando termina",
@@ -2781,6 +2857,13 @@ var it_default = {
   "done.outside": "{id} non può essere completata: file modificati fuori dal suo possesso: {files}. Chiedili con jtasks claim {id} <file>, o annulla quelle modifiche",
   "done.released_edits": "{id}, rilasciata, ha modifiche in sospeso in: {files} (restano sul disco, fuori da questo commit)",
   "done.wrong_branch": "il checkout è su {branch}, ma l'esecuzione fa commit su {run_branch}",
+  "done.kept": "{id} ha ancora modifiche salvate ({files}); esegui di nuovo done per riportarle prima",
+  "done.kept_away": "{id} ha modifiche salvate di file che ora non possiede: {files}. Riprendili con jtasks claim {id} {files} (il claim le riapplica) ed esegui di nuovo done",
+  "done.kept_back": "modifiche salvate riportate prima del commit: {files}",
+  "done.kept_conflict": "{id}: le sue modifiche salvate sono tornate con conflitti in {files}; done è stato rifiutato. Risolvi i marcatori di conflitto ed esegui di nuovo done",
+  "done.kept_failed": "{id}: modifiche salvate non applicate ({message}); done è stato rifiutato: {list}. Riporta a mano ogni modifica dalla sua patch, scarta la patch con il jtasks undo indicato ed esegui di nuovo done",
+  "done.released": "{id} non è in corso (stato: {status}): è stata rilasciata e tiene le modifiche come patch ({files}). Riprendila con jtasks start {id} (lo start le riapplica) ed esegui di nuovo done",
+  "done.released_failed": "{id} non è in corso (stato: {status}): è stata rilasciata e tiene le modifiche come patch ({files}). Riaprila con jtasks retry {id}, riprendila con jtasks start {id} (lo start le riapplica) ed esegui di nuovo done",
   "draft.already_open": "c'è già una bozza aperta: {ids} (continua con jtasks plan --add, o chiudila con --commit)",
   "draft.batch_accepted": "lotto accettato: {n} attività ({ids}); la bozza ne ha {total}. Chiudila con jtasks plan --commit",
   "draft.batch_refused": "lotto rifiutato, la bozza non è cambiata.",
@@ -2848,6 +2931,7 @@ var it_default = {
   "guard.unresolved": "{id}: il percorso {raw} ha una variabile, una sostituzione o un glob e non si può verificare; usa il percorso letterale, o Edit/Write",
   "help.archive": "archive <run>                         la sposta in JTASKS_HOME/archive (resume la riporta)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  un altro file (senza: ciò che ha ceduto); attende in coda",
+  "help.adopt": "adopt <id> --from <task>              prende le modifiche salvate di un altro task (es. done)",
   "help.clean": "clean <run>|--all [--yes]             elimina la cartella (elencando prima gli effetti attivi)",
   "help.doctor": "doctor [--fix [--yes]]                la macchina è pronta? --fix --yes installa ciò che manca",
   "help.done": 'done <id> --evidence "…"              verifica git e possesso; commit del possesso; done',
@@ -3192,6 +3276,12 @@ var zh_CN_default = {
     effect: "副作用",
     undo: "撤销"
   },
+  "adopt.claim_first": "{id} 还没有 {files} 的所有权：先用 jtasks claim {id} {files} 申请，再执行 adopt（{from} 的修改只进入 {id} 的所有权）",
+  "adopt.conflicts": "在 jtasks done {id} 之前请解决冲突标记",
+  "adopt.done": "{id} 已把 {from} 保存的 {n} 处修改带回工作区；它们会进入 {id} 的提交",
+  "adopt.no_from": "谁的修改？jtasks adopt {id} --from <任务>",
+  "adopt.none": "{from} 没有保存的修改",
+  "adopt.source_running": "{id} 正在进行中：它保存的修改会自行恢复（claim、start、done）",
   "agent_ended.limit": "{why}，已 {n} 次（上限 {max}）；运行已暂停，等待人工处理",
   "alert.agent_ended": "{id} 已回到队列：其子智能体未完成就结束了（{n}/{max}）",
   "alert.await": "{id} 正在等待其进程（{what}）；进程结束后子智能体会回来",
@@ -3290,6 +3380,13 @@ var zh_CN_default = {
   "done.outside": "{id} 无法完成：所有权之外的文件被修改：{files}。用 jtasks claim {id} <文件> 申请，或撤回这些修改",
   "done.released_edits": "已释放的 {id} 在以下文件中有未完成的修改：{files}（留在磁盘上，不进入此次提交）",
   "done.wrong_branch": "当前检出在 {branch}，但该运行提交到 {run_branch}",
+  "done.kept": "{id} 仍有保存的修改（{files}）；请再次执行 done，先把它们带回",
+  "done.kept_away": "{id} 保存了现在不归它所有的文件的修改：{files}。用 jtasks claim {id} {files} 取回（claim 会重新应用），然后再次执行 done",
+  "done.kept_back": "提交前已带回保存的修改：{files}",
+  "done.kept_conflict": "{id}：保存的修改带回时在 {files} 中有冲突；done 被拒绝。解决冲突标记后再次执行 done",
+  "done.kept_failed": "{id}：保存的修改无法应用（{message}）；done 被拒绝：{list}。请根据补丁手动加入每处修改，用所示的 jtasks undo 丢弃补丁，然后再次执行 done",
+  "done.released": "{id} 不在进行中（当前为 {status}）：它已被释放，修改保存为补丁（{files}）。用 jtasks start {id} 取回（start 会重新应用），然后再次执行 done",
+  "done.released_failed": "{id} 不在进行中（当前为 {status}）：它已被释放，修改保存为补丁（{files}）。用 jtasks retry {id} 重新打开，用 jtasks start {id} 取回（start 会重新应用），然后再次执行 done",
   "draft.already_open": "已有打开的草稿：{ids}（用 jtasks plan --add 继续，或用 --commit 关闭）",
   "draft.batch_accepted": "批次已接受：{n} 个任务（{ids}）；草稿共 {total} 个。用 jtasks plan --commit 关闭",
   "draft.batch_refused": "批次被拒绝，草稿未改变。",
@@ -3357,6 +3454,7 @@ var zh_CN_default = {
   "guard.unresolved": "{id}：路径 {raw} 含有变量、命令替换或通配符，无法检查；请使用字面路径，或 Edit/Write",
   "help.archive": "archive <run>                         将运行移到 JTASKS_HOME/archive（resume 取回）",
   "help.claim": "claim <id> [<文件…>] [--timeout 60s]  再申请一个文件（不带：取回让出的）；在队列中等待",
+  "help.adopt": "adopt <id> --from <任务>               接收另一任务保存的修改（例如已完成的）",
   "help.clean": "clean <run>|--all [--yes]             删除运行的文件夹（先列出生效的副作用）",
   "help.doctor": "doctor [--fix [--yes]]                本机是否就绪？--fix --yes 安装缺少的部分",
   "help.done": 'done <id> --evidence "…"              检查 git 和所有权；提交所有权内的文件；完成',
@@ -3701,6 +3799,12 @@ var ja_default = {
     effect: "副作用",
     undo: "取り消し"
   },
+  "adopt.claim_first": "{id} はまだ {files} を所有していない: jtasks claim {id} {files} で求めてから adopt をやり直す（{from} の編集は {id} の所有権にだけ入る）",
+  "adopt.conflicts": "jtasks done {id} の前に競合マーカーを解決する",
+  "adopt.done": "{id} は {from} が保存した編集 {n} 件を作業ツリーに戻した。{id} のコミットに入る",
+  "adopt.no_from": "誰の編集? jtasks adopt {id} --from <タスク>",
+  "adopt.none": "{from} には保存された編集がない",
+  "adopt.source_running": "{id} は進行中: 保存された編集は自動で戻る（claim、start、done）",
   "agent_ended.limit": "{why}（{n} 回、上限 {max}）。実行は人の判断待ちで一時停止した",
   "alert.agent_ended": "{id} はキューに戻った: サブエージェントが完了せずに終了（{n}/{max}）",
   "alert.await": "{id} はプロセス（{what}）を待機中。終了するとサブエージェントが戻る",
@@ -3799,6 +3903,13 @@ var ja_default = {
   "done.outside": "{id} は完了できない: 所有権外のファイルが変更された: {files}。jtasks claim {id} <ファイル> で求めるか、その変更を元に戻す",
   "done.released_edits": "解放された {id} に未完了の編集がある: {files}（ディスクに残し、このコミットには含めない）",
   "done.wrong_branch": "チェックアウトは {branch} だが、この実行は {run_branch} にコミットする",
+  "done.kept": "{id} にはまだ保存された編集がある（{files}）。もう一度 done を実行して先に戻す",
+  "done.kept_away": "{id} は今は所有していないファイルの編集を保存している: {files}。jtasks claim {id} {files} で取り戻し（claim が再適用する）、もう一度 done を実行する",
+  "done.kept_back": "コミット前に保存された編集を戻した: {files}",
+  "done.kept_conflict": "{id}: 保存された編集が {files} で競合ありで戻った。done は拒否された。競合マーカーを解決して、もう一度 done を実行する",
+  "done.kept_failed": "{id}: 保存された編集が適用できなかった（{message}）。done は拒否された: {list}。各編集をパッチから手で取り込み、示された jtasks undo でパッチを捨て、もう一度 done を実行する",
+  "done.released": "{id} は進行中でない（現在 {status}）: 解放され、編集をパッチとして保存している（{files}）。jtasks start {id} で取り戻し（start が再適用する）、もう一度 done を実行する",
+  "done.released_failed": "{id} は進行中でない（現在 {status}）: 解放され、編集をパッチとして保存している（{files}）。jtasks retry {id} で再開し、jtasks start {id} で取り戻し（start が再適用する）、もう一度 done を実行する",
   "draft.already_open": "下書きがすでに開いている: {ids}（jtasks plan --add で続けるか、--commit で閉じる）",
   "draft.batch_accepted": "バッチを受理: タスク {n} 件（{ids}）。下書きは計 {total} 件。jtasks plan --commit で閉じる",
   "draft.batch_refused": "バッチは拒否、下書きは変わっていない。",
@@ -3866,6 +3977,7 @@ var ja_default = {
   "guard.unresolved": "{id}: パス {raw} には変数、置換、またはグロブがあり確認できない。リテラルのパスか Edit/Write を使う",
   "help.archive": "archive <run>                         実行を JTASKS_HOME/archive へ移す（resume で戻す）",
   "help.claim": "claim <id> [<ファイル…>] [--timeout 60s]  ファイルを追加で求める（なし: 譲ったもの）。キューで待つ",
+  "help.adopt": "adopt <id> --from <タスク>             別のタスクが保存した編集を引き継ぐ（完了済みも）",
   "help.clean": "clean <run>|--all [--yes]             実行のフォルダを削除（先に有効な副作用を一覧）",
   "help.doctor": "doctor [--fix [--yes]]                このマシンは準備済みか? --fix --yes で不足分をインストール",
   "help.done": 'done <id> --evidence "…"              git と所有権を確認し、所有権をコミット。完了',
@@ -4210,6 +4322,12 @@ var ru_default = {
     effect: "эффект",
     undo: "отмена"
   },
+  "adopt.claim_first": "{id} ещё не владеет {files}: запросите их через jtasks claim {id} {files} и повторите adopt (правки {from} попадают только во владение {id})",
+  "adopt.conflicts": "разрешите маркеры конфликтов до jtasks done {id}",
+  "adopt.done": "{id} вернула в рабочее дерево {n} сохранённых правок {from}; они войдут в коммит {id}",
+  "adopt.no_from": "чьи правки? jtasks adopt {id} --from <задача>",
+  "adopt.none": "у {from} нет сохранённых правок",
+  "adopt.source_running": "{id} в работе: её сохранённые правки вернутся сами (claim, start, done)",
   "agent_ended.limit": "{why}, {n} раз(а) (лимит {max}); прогон поставлен на паузу до решения человека",
   "alert.agent_ended": "{id} вернулась в очередь: её субагент завершился, не доделав ({n}/{max})",
   "alert.await": "{id} ждёт свой процесс ({what}); субагент вернётся, когда он завершится",
@@ -4308,6 +4426,13 @@ var ru_default = {
   "done.outside": "{id} нельзя завершить: файлы изменены вне её владения: {files}. Запросите их через jtasks claim {id} <файл> или отмените эти изменения",
   "done.released_edits": "у освобождённой {id} есть незавершённые правки в: {files} (остаются на диске, вне этого коммита)",
   "done.wrong_branch": "checkout на {branch}, но прогон коммитит в {run_branch}",
+  "done.kept": "у {id} ещё есть сохранённые правки ({files}); запустите done снова, чтобы сначала их вернуть",
+  "done.kept_away": "{id} хранит правки файлов, которыми сейчас не владеет: {files}. Верните их через jtasks claim {id} {files} (claim применит их заново) и запустите done снова",
+  "done.kept_back": "сохранённые правки возвращены перед коммитом: {files}",
+  "done.kept_conflict": "{id}: сохранённые правки вернулись с конфликтами в {files}; done отклонён. Разрешите маркеры конфликтов и запустите done снова",
+  "done.kept_failed": "{id}: сохранённые правки не применились ({message}); done отклонён: {list}. Перенесите каждую правку вручную из её патча, отбросьте патч указанным jtasks undo и запустите done снова",
+  "done.released": "{id} не в работе (статус: {status}): она была освобождена и хранит правки как патчи ({files}). Возьмите её снова через jtasks start {id} (start применит их заново) и запустите done снова",
+  "done.released_failed": "{id} не в работе (статус: {status}): она была освобождена и хранит правки как патчи ({files}). Откройте её через jtasks retry {id}, возьмите через jtasks start {id} (start применит их заново) и запустите done снова",
   "draft.already_open": "черновик уже открыт: {ids} (продолжайте через jtasks plan --add или закройте через --commit)",
   "draft.batch_accepted": "пакет принят, задач: {n} ({ids}); всего в черновике: {total}. Закройте через jtasks plan --commit",
   "draft.batch_refused": "пакет отклонён, черновик не изменился.",
@@ -4375,6 +4500,7 @@ var ru_default = {
   "guard.unresolved": "{id}: путь {raw} содержит переменную, подстановку или glob и не может быть проверен; используйте буквальный путь или Edit/Write",
   "help.archive": "archive <run>                         переносит прогон в JTASKS_HOME/archive (resume вернёт)",
   "help.claim": "claim <id> [<файл…>] [--timeout 60s]  ещё один файл (без файла: уступленное); ждёт в очереди",
+  "help.adopt": "adopt <id> --from <задача>            забирает сохранённые правки другой задачи (напр. done)",
   "help.clean": "clean <run>|--all [--yes]             удаляет папку прогона (сперва список активных эффектов)",
   "help.doctor": "doctor [--fix [--yes]]                машина готова? --fix --yes устанавливает недостающее",
   "help.done": 'done <id> --evidence "…"              проверяет git и владение; коммитит владение; done',
@@ -4719,6 +4845,12 @@ var ar_default = {
     effect: "أثر",
     undo: "تراجع"
   },
+  "adopt.claim_first": "{id} لا تملك {files} بعد: اطلبها بالأمر jtasks claim {id} {files} ثم أعد adopt (تعديلات {from} تدخل في ملكية {id} فقط)",
+  "adopt.conflicts": "حُلّ علامات التعارض قبل jtasks done {id}",
+  "adopt.done": "أعادت {id} إلى شجرة العمل {n} تعديلًا محفوظًا من {from}؛ ستدخل في إيداع {id}",
+  "adopt.no_from": "تعديلات من؟ jtasks adopt {id} --from <task>",
+  "adopt.none": "لا تحفظ {from} أي تعديلات",
+  "adopt.source_running": "{id} قيد التنفيذ: تعديلاتها المحفوظة تعود وحدها (claim، start، done)",
   "agent_ended.limit": "{why} {n} مرات (الحد {max})؛ أُوقف التشغيل مؤقتًا بانتظار شخص",
   "alert.agent_ended": "عادت {id} إلى الطابور: انتهى وكيلها الفرعي دون أن يُكمل ({n}/{max})",
   "alert.await": "{id} تنتظر عمليتها ({what})؛ يعود وكيلها الفرعي عند انتهائها",
@@ -4817,6 +4949,13 @@ var ar_default = {
   "done.outside": "لا يمكن إنجاز {id}: ملفات تغيّرت خارج ملكيتها: {files}. اطلبها بالأمر jtasks claim {id} <file>، أو تراجع عن تلك التغييرات",
   "done.released_edits": "لدى {id} المحرَّرة تعديلات معلّقة في: {files} (تبقى على القرص، خارج هذا الإيداع)",
   "done.wrong_branch": "الـ checkout على {branch}، لكن التشغيل يودِع على {run_branch}",
+  "done.kept": "ما زالت {id} تحفظ تعديلات ({files})؛ شغّل done مرة أخرى لإعادتها أولًا",
+  "done.kept_away": "تحفظ {id} تعديلات لملفات لا تملكها الآن: {files}. استعدها بالأمر jtasks claim {id} {files} (يعيد claim تطبيقها) ثم شغّل done مرة أخرى",
+  "done.kept_back": "أُعيدت التعديلات المحفوظة قبل الإيداع: {files}",
+  "done.kept_conflict": "{id}: عادت تعديلاتها المحفوظة مع تعارضات في {files}؛ رُفض done. حُلّ علامات التعارض ثم شغّل done مرة أخرى",
+  "done.kept_failed": "{id}: لم تُطبَّق تعديلات محفوظة ({message})؛ رُفض done: {list}. أدخل كل تعديل يدويًا من رقعته، وتخلّص من الرقعة بأمر jtasks undo المبيَّن، ثم شغّل done مرة أخرى",
+  "done.released": "{id} ليست قيد التنفيذ (الحالة: {status}): أُفرج عنها وتحفظ تعديلاتها كرُقع ({files}). استعدها بالأمر jtasks start {id} (يعيد start تطبيقها) ثم شغّل done مرة أخرى",
+  "done.released_failed": "{id} ليست قيد التنفيذ (الحالة: {status}): أُفرج عنها وتحفظ تعديلاتها كرُقع ({files}). أعد فتحها بالأمر jtasks retry {id}، واستعدها بالأمر jtasks start {id} (يعيد start تطبيقها) ثم شغّل done مرة أخرى",
   "draft.already_open": "توجد مسودة مفتوحة بالفعل: {ids} (تابع بالأمر jtasks plan --add، أو أغلقها بـ --commit)",
   "draft.batch_accepted": "قُبلت الدفعة، المهام: {n} ({ids})؛ في المسودة الآن: {total}. أغلقها بالأمر jtasks plan --commit",
   "draft.batch_refused": "رُفضت الدفعة، لم تتغير المسودة.",
@@ -4884,6 +5023,7 @@ var ar_default = {
   "guard.unresolved": "{id}: المسار {raw} فيه متغير أو استبدال أو glob ولا يمكن التحقق منه؛ استخدم المسار الحرفي، أو Edit/Write",
   "help.archive": "archive <run>                         ينقل التشغيل إلى JTASKS_HOME/archive (يعيده resume)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  ملف آخر (بلا ملف: ما تنازلت عنه)؛ ينتظر في الطابور",
+  "help.adopt": "adopt <id> --from <task>              يأخذ التعديلات التي تحفظها مهمة أخرى (مثل مهمة منجزة)",
   "help.clean": "clean <run>|--all [--yes]             يحذف مجلد التشغيل (يسرد الآثار النشطة أولًا)",
   "help.doctor": "doctor [--fix [--yes]]                هل الجهاز جاهز؟ --fix --yes يثبّت ما ينقص",
   "help.done": 'done <id> --evidence "…"              يفحص git والملكية؛ يودِع الملكية؛ done',
@@ -5228,6 +5368,12 @@ var hi_default = {
     effect: "प्रभाव",
     undo: "पूर्ववत"
   },
+  "adopt.claim_first": "{id} के पास अभी {files} का स्वामित्व नहीं है: उन्हें jtasks claim {id} {files} से माँगें, फिर adopt दोबारा चलाएँ ({from} के संपादन केवल {id} के स्वामित्व में जाते हैं)",
+  "adopt.conflicts": "jtasks done {id} से पहले टकराव मार्कर सुलझाएँ",
+  "adopt.done": "{id} ने {from} के {n} सहेजे संपादन वर्किंग ट्री में लौटाए; वे {id} के commit में जाएँगे",
+  "adopt.no_from": "किसके संपादन? jtasks adopt {id} --from <कार्य>",
+  "adopt.none": "{from} के पास कोई सहेजा संपादन नहीं है",
+  "adopt.source_running": "{id} प्रगति पर है: उसके सहेजे संपादन अपने आप लौटते हैं (claim, start, done)",
   "agent_ended.limit": "{why}, {n} बार (सीमा {max}); रन किसी व्यक्ति के लिए रोका गया",
   "alert.agent_ended": "{id} कतार में लौटा: उसका सबएजेंट बिना पूरा किए समाप्त हुआ ({n}/{max})",
   "alert.await": "{id} अपनी प्रक्रिया ({what}) की प्रतीक्षा में; उसके खत्म होने पर सबएजेंट लौटेगा",
@@ -5326,6 +5472,13 @@ var hi_default = {
   "done.outside": "{id} पूरा नहीं हो सकता: स्वामित्व के बाहर फ़ाइलें बदलीं: {files}। उन्हें jtasks claim {id} <फ़ाइल> से माँगें, या वे बदलाव वापस लें",
   "done.released_edits": "छोड़े गए {id} के लंबित संपादन इनमें हैं: {files} (डिस्क पर रहते हैं, इस commit से बाहर)",
   "done.wrong_branch": "checkout {branch} पर है, पर रन {run_branch} पर commit करता है",
+  "done.kept": "{id} के पास अभी भी सहेजे संपादन हैं ({files}); पहले उन्हें लौटाने के लिए done फिर चलाएँ",
+  "done.kept_away": "{id} ने उन फ़ाइलों के संपादन सहेजे हैं जो अब उसके स्वामित्व में नहीं हैं: {files}। उन्हें jtasks claim {id} {files} से वापस लें (claim उन्हें फिर लागू करता है), फिर done चलाएँ",
+  "done.kept_back": "commit से पहले सहेजे संपादन लौटाए गए: {files}",
+  "done.kept_conflict": "{id}: सहेजे संपादन {files} में टकराव के साथ लौटे; done अस्वीकार हुआ। टकराव मार्कर सुलझाएँ, फिर done चलाएँ",
+  "done.kept_failed": "{id}: सहेजे संपादन लागू नहीं हुए ({message}); done अस्वीकार हुआ: {list}। हर संपादन उसके patch से हाथ से लाएँ, दिखाए गए jtasks undo से patch हटाएँ, फिर done चलाएँ",
+  "done.released": "{id} प्रगति पर नहीं है (यह {status} है): इसे छोड़ा गया था और इसके संपादन patch के रूप में सहेजे हैं ({files})। इसे jtasks start {id} से वापस लें (start उन्हें फिर लागू करता है), फिर done चलाएँ",
+  "done.released_failed": "{id} प्रगति पर नहीं है (यह {status} है): इसे छोड़ा गया था और इसके संपादन patch के रूप में सहेजे हैं ({files})। इसे jtasks retry {id} से फिर खोलें, jtasks start {id} से वापस लें (start उन्हें फिर लागू करता है), फिर done चलाएँ",
   "draft.already_open": "एक ड्राफ़्ट पहले से खुला है: {ids} (jtasks plan --add से जारी रखें, या --commit से बंद करें)",
   "draft.batch_accepted": "बैच स्वीकृत: {n} कार्य ({ids}); ड्राफ़्ट में कुल {total}। jtasks plan --commit से बंद करें",
   "draft.batch_refused": "बैच अस्वीकृत, ड्राफ़्ट नहीं बदला।",
@@ -5393,6 +5546,7 @@ var hi_default = {
   "guard.unresolved": "{id}: पथ {raw} में चर, प्रतिस्थापन या glob है और उसे जाँचा नहीं जा सकता; शाब्दिक पथ, या Edit/Write इस्तेमाल करें",
   "help.archive": "archive <run>                         रन JTASKS_HOME/archive में भेजता है (resume लौटाता है)",
   "help.claim": "claim <id> [<file…>] [--timeout 60s]  एक और फ़ाइल (बिना फ़ाइल: जो छोड़ा था); कतार में रुकता है",
+  "help.adopt": "adopt <id> --from <कार्य>              दूसरे कार्य के सहेजे संपादन ले लेता है (जैसे पूरा हो चुका)",
   "help.clean": "clean <run>|--all [--yes]             रन का फ़ोल्डर हटाता है (पहले सक्रिय प्रभाव दिखाता है)",
   "help.doctor": "doctor [--fix [--yes]]                मशीन तैयार है? --fix --yes जो नहीं है उसे इंस्टॉल करता है",
   "help.done": 'done <id> --evidence "…"              git और स्वामित्व जाँचता है; स्वामित्व commit करता है; पूरा',
@@ -6436,15 +6590,25 @@ async function writeTasks(host, dir, tasks, expected) {
   return next;
 }
 var LOCK_STALE_MS = 1e4;
-var LOCK_WAIT_MS = 20000;
+var LOCK_WAIT_MS = 60000;
+var LOCK_BEAT_MS = 2000;
+var LOCK_STEP_MS = 200;
+async function lockSeen(host, lock) {
+  const stat = await host.stat(lock);
+  if (!stat)
+    return;
+  const beat = await host.stat(join(lock, "beat"));
+  return Math.max(stat.mtimeMs, beat?.mtimeMs ?? 0);
+}
 async function withLock(host, dir, fn) {
   const lock = join(dir, ".write.lock");
+  const token = `${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e9).toString(36)}`;
   const deadline = host.now().getTime() + LOCK_WAIT_MS;
   for (;; ) {
     if (await host.mkdirExclusive(lock))
       break;
-    const stat = await host.stat(lock);
-    if (stat && host.now().getTime() - stat.mtimeMs > LOCK_STALE_MS) {
+    const seen = await lockSeen(host, lock);
+    if (seen !== undefined && host.now().getTime() - seen > LOCK_STALE_MS) {
       await host.remove(lock, { recursive: true }).catch(() => {});
       continue;
     }
@@ -6452,10 +6616,32 @@ async function withLock(host, dir, fn) {
       throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }));
     await host.sleep(15 + Math.floor(host.random() * 35));
   }
+  await host.writeText(join(lock, "token"), token).catch(() => {});
+  let finished = false;
+  let writing = Promise.resolve();
+  (async () => {
+    let last = host.now().getTime();
+    for (;; ) {
+      await host.sleep(LOCK_STEP_MS);
+      if (finished)
+        return;
+      if (host.now().getTime() - last < LOCK_BEAT_MS)
+        continue;
+      last = host.now().getTime();
+      writing = host.writeText(join(lock, "beat"), String(last)).catch(() => {});
+      await writing;
+    }
+  })();
   try {
     return await fn();
   } finally {
-    await host.remove(lock, { recursive: true }).catch(() => {});
+    finished = true;
+    await writing;
+    const owner = await host.readText(join(lock, "token")).catch(() => {
+      return;
+    });
+    if (owner === undefined || owner === token)
+      await host.remove(lock, { recursive: true }).catch(() => {});
   }
 }
 async function mutateTasks(host, dir, change) {
@@ -8602,6 +8788,50 @@ async function reapplyPatches(host, state, task, which) {
     delete task.patches;
   return report;
 }
+async function orphanKept(host, state, task) {
+  const insensitive = caseInsensitive(host.platform);
+  const norm = (p) => insensitive ? slash(p).toLowerCase() : slash(p);
+  const effects = await readEffects(host, join(state.dir, "ledger.jsonl"));
+  const taken = new Set;
+  for (const t of [...state.tasks.tasks.filter((x) => x.id !== task.id), task])
+    for (const p of t.patches ?? [])
+      taken.add(norm(join(state.dir, p.patch)));
+  for (const e of effects)
+    if (e.type === "reapply" && e.state === "active" && e.patch)
+      taken.add(norm(e.patch));
+  for (const e of await readLog2(host, state.dir))
+    if (e.action === "fresh" && e.task === task.id)
+      for (const p of strings(e.dropped))
+        taken.add(norm(join(state.dir, p)));
+  const out = [];
+  const dir = norm(state.dir);
+  for (const e of effects) {
+    if (e.type !== "restore" || e.state !== "active" || e.task !== task.id || e.run !== state.run.id || !e.patch || !e.path)
+      continue;
+    const abs = norm(e.patch);
+    if (taken.has(abs) || !await host.stat(e.patch))
+      continue;
+    taken.add(abs);
+    const rel = abs.startsWith(`${dir}/`) ? slash(e.patch).slice(dir.length + 1) : `patches/${task.id}/${basename(e.patch)}`;
+    out.push({ file: e.path, patch: rel, at: e.at, by: "release" });
+  }
+  return out;
+}
+async function recoverKept(host, state, task) {
+  const found = await orphanKept(host, state, task);
+  if (found.length)
+    task.patches = [...task.patches ?? [], ...found];
+  return found;
+}
+async function keptOf(host, state, task) {
+  return [...task.patches ?? [], ...await orphanKept(host, state, task)];
+}
+async function patchEffectId(host, state, patch) {
+  const insensitive = caseInsensitive(host.platform);
+  const norm = (p) => insensitive ? slash(p).toLowerCase() : slash(p);
+  const effects = await readEffects(host, join(state.dir, "ledger.jsonl"));
+  return effects.find((e) => e.type === "patch" && e.state === "active" && !!e.patch && norm(e.patch) === norm(patch))?.id;
+}
 function patchesUnder(state, platform, keys) {
   return (p) => keys.some((k) => covers(k, normalizeKey(p.file, state.root, platform)));
 }
@@ -9011,6 +9241,7 @@ defineAction("start", async (ctx, args) => {
     }
     const changed = clone(state.tasks);
     const t = changed.tasks.find((x) => x.id === task.id);
+    await recoverKept(ctx.host, state, t);
     t.status = "in_progress";
     t.attempts += 1;
     t.owner = actorOf(ctx);
@@ -9655,11 +9886,15 @@ defineAction("done", async (ctx, args) => {
   let commit = null;
   let claimed = [];
   let leftByOthers = [];
+  const broughtBack = evidence ? await bringBackKept(ctx, args) : undefined;
   const t = await transition(ctx, args, "done", async (task, state) => {
     if (task.status !== "in_progress")
       throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
     if (!evidence)
       throw new ToolError(tr("done.no_evidence", { id: task.id }), 2);
+    const kept = await keptOf(ctx.host, state, task);
+    if (kept.length)
+      throw new ToolError(tr("done.kept", { id: task.id, files: kept.map((p) => p.file).join(", ") }), 1, { kept: kept.map((p) => p.file) });
     const branch = await currentBranch(ctx.host, state.root);
     if (branch !== state.run.repo.branch)
       throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }));
@@ -9695,14 +9930,149 @@ defineAction("done", async (ctx, args) => {
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
   const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit");
   const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)];
+  if (broughtBack?.applied.length)
+    lines.push(tr("done.kept_back", { files: broughtBack.applied.join(", ") }));
   if (claimed.length)
     lines.push(tr("done.claimed", { files: claimed.join(", ") }));
   for (const g of leftByOthers)
     lines.push(tr("done.released_edits", { id: g.task, files: g.files.join(", ") }));
   lines.push(...retakenLines(await retakeYielded(ctx, t.state)));
   return ok(lines.join(`
-`), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed, releasedEdits: leftByOthers });
+`), {
+    run: t.state.run.id,
+    task: t.task.id,
+    commit,
+    counts: counts(t.tasks.tasks),
+    claimed,
+    releasedEdits: leftByOthers,
+    ...broughtBack?.applied.length ? { reapplied: broughtBack.applied } : {}
+  });
 }, "help.done");
+defineAction("adopt", async (ctx, args) => {
+  const from = textArg(args, "from");
+  if (!from)
+    throw new ToolError(tr("adopt.no_from", { id: taskIdArg(args) ?? "<id>" }), 2);
+  const first = await resolveRun(ctx, args);
+  const id = taskIdArg(args);
+  const insensitive = caseInsensitive(ctx.host.platform);
+  const r = await withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const task = findTask(state, id);
+    const source = findTask(state, from);
+    if (task.status !== "in_progress")
+      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
+    if (source.id === task.id || source.status === "in_progress")
+      throw new ToolError(tr("adopt.source_running", { id: source.id }));
+    const copy = clone(state.tasks);
+    const src = copy.tasks.find((t) => t.id === source.id);
+    await recoverKept(ctx.host, state, src);
+    const kept = src.patches ?? [];
+    if (!kept.length)
+      throw new ToolError(tr("adopt.none", { from: source.id }));
+    const away = kept.filter((p) => !inPossession(p.file, possession(task), insensitive)).map((p) => p.file);
+    if (away.length)
+      throw new ToolError(tr("adopt.claim_first", { id: task.id, from: source.id, files: away.join(" ") }), 1, { claim: away });
+    const effects = await readEffects(ctx.host, join(state.dir, "ledger.jsonl"));
+    const norm = (p) => insensitive ? p.replace(/\\/g, "/").toLowerCase() : p.replace(/\\/g, "/");
+    const report = emptyReapply();
+    const left = [];
+    for (const p of kept) {
+      const abs = join(state.dir, p.patch);
+      if (!await ctx.host.stat(abs))
+        continue;
+      const { result, message } = await applyPatch(ctx.host, state.root, abs, [p.file]);
+      if (result === "failed") {
+        report.failed.push({ file: p.file, patch: abs, message });
+        left.push(p);
+        continue;
+      }
+      let at = abs;
+      if (result !== "conflict") {
+        at = appliedPath(abs);
+        await ctx.host.mkdir(dirname(at));
+        await ctx.host.rename(abs, at);
+        report.applied.push(p.file);
+      } else
+        report.conflicts.push({ file: p.file, patch: abs });
+      if (result !== "already")
+        await recordEffect(ctx.host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } });
+      for (const e of effects)
+        if (e.type === "restore" && e.state === "active" && e.task === source.id && e.patch && norm(e.patch) === norm(abs))
+          await setEffectState(ctx.host, state.dir, state.run.id, e.id, "undone");
+    }
+    if (left.length)
+      src.patches = left;
+    else
+      delete src.patches;
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+    await writeTicket(ctx.host, state.dir, tasks, src.id);
+    await log(ctx, state, { action: "adopt", task: task.id, from: source.id, ...reapplyData(report) });
+    return { task: task.id, from: source.id, report };
+  });
+  const lines = [tr("adopt.done", { id: r.task, from: r.from, n: r.report.applied.length + r.report.conflicts.length }), ...reapplyLines(r.report)];
+  if (r.report.conflicts.length)
+    lines.push(tr("adopt.conflicts", { id: r.task }));
+  const all = !r.report.failed.length;
+  return { ok: all, code: all ? 0 : 1, text: lines.join(`
+`), data: { run: first.run.id, task: r.task, from: r.from, ...reapplyData(r.report) } };
+}, "help.adopt");
+async function bringBackKept(ctx, args) {
+  const first = await resolveRun(ctx, args);
+  const id = taskIdArg(args);
+  const insensitive = caseInsensitive(ctx.host.platform);
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first);
+    const original = findTask(state, id);
+    if (original.status !== "in_progress") {
+      if (!["pending", "failed"].includes(original.status))
+        return;
+      const kept2 = await keptOf(ctx.host, state, original);
+      if (!kept2.length)
+        return;
+      const files = kept2.map((p) => p.file).join(", ");
+      throw new ToolError(tr(original.status === "failed" ? "done.released_failed" : "done.released", { id: original.id, status: original.status, files }), 1, {
+        status: original.status,
+        kept: kept2.map((p) => p.file)
+      });
+    }
+    const copy = clone(state.tasks);
+    const task = copy.tasks.find((t) => t.id === original.id);
+    const recovered = await recoverKept(ctx.host, state, task);
+    const kept = task.patches ?? [];
+    if (!kept.length)
+      return;
+    const own = possession(task);
+    const others = state.tasks.tasks.filter((t) => t.id !== task.id && t.status === "in_progress").flatMap(possession);
+    const away = kept.filter((p) => !inPossession(p.file, own, insensitive) || inPossession(p.file, others, insensitive)).map((p) => p.file);
+    const reapply = away.length ? undefined : await reapplyPatches(ctx.host, state, task, () => true);
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+    await writeTicket(ctx.host, state.dir, tasks, task.id);
+    await log(ctx, state, {
+      action: "reapply",
+      task: task.id,
+      before: "done",
+      ...recovered.length ? { recovered: recovered.map((p) => p.file) } : {},
+      ...reapply ? reapplyData(reapply) : {}
+    });
+    if (away.length)
+      throw new ToolError(tr("done.kept_away", { id: task.id, files: away.join(" ") }), 1, { kept: away });
+    if (reapply.conflicts.length)
+      throw new ToolError(tr("done.kept_conflict", { id: task.id, files: reapply.conflicts.map((c) => c.file).join(", ") }), 1, {
+        conflicts: reapply.conflicts,
+        reapplied: reapply.applied
+      });
+    if (reapply.failed.length) {
+      const list = [];
+      for (const f of reapply.failed)
+        list.push(`${f.file} ← ${f.patch} (jtasks undo ${await patchEffectId(ctx.host, state, f.patch) ?? "?"})`);
+      throw new ToolError(tr("done.kept_failed", { id: task.id, list: list.join("; "), message: reapply.failed[0].message }), 1, {
+        failed: reapply.failed.map((f) => ({ file: f.file, patch: f.patch })),
+        reapplied: reapply.applied
+      });
+    }
+    return reapply;
+  });
+}
 defineAction("skip", async (ctx, args) => {
   const reason = textArg(args, "reason");
   let wasRunning = false;

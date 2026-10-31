@@ -94,29 +94,62 @@ export interface Mutation<R> {
 }
 
 const LOCK_STALE_MS = 10_000
-const LOCK_WAIT_MS = 20_000
+const LOCK_WAIT_MS = 60_000
+/** How often a live holder shows it is alive (ticket 58), and how often it looks whether its work ended. */
+const LOCK_BEAT_MS = 2_000
+const LOCK_STEP_MS = 200
+
+/** When a lock last showed life: the folder's creation or its holder's last heartbeat, whichever is newer. */
+async function lockSeen(host: Host, lock: string): Promise<number | undefined> {
+  const stat = await host.stat(lock)
+  if (!stat) return undefined
+  const beat = await host.stat(join(lock, "beat"))
+  return Math.max(stat.mtimeMs, beat?.mtimeMs ?? 0)
+}
 
 /**
  * A short lock around one read-change-write of a run's files: a folder created exclusively (atomic on every file
- * system, and reachable from every host). A lock older than 10 s belongs to a writer that died and is broken.
+ * system, and reachable from every host). Its holder writes a heartbeat in it every 2 s while it works, so a slow
+ * holder (a release keeping 25 files as patches, a commit with hooks) is never taken for a dead one: ticket 58, where
+ * a lock broken after 10 s let a `done` commit in the middle of a release. A lock with no sign of life for 10 s
+ * belongs to a writer that died and is broken. A holder removes only its own lock (its token).
  */
 export async function withLock<R>(host: Host, dir: string, fn: () => Promise<R>): Promise<R> {
   const lock = join(dir, ".write.lock")
+  const token = `${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e9).toString(36)}`
   const deadline = host.now().getTime() + LOCK_WAIT_MS
   for (;;) {
     if (await host.mkdirExclusive(lock)) break
-    const stat = await host.stat(lock)
-    if (stat && host.now().getTime() - stat.mtimeMs > LOCK_STALE_MS) {
+    const seen = await lockSeen(host, lock)
+    if (seen !== undefined && host.now().getTime() - seen > LOCK_STALE_MS) {
       await host.remove(lock, { recursive: true }).catch(() => {})
       continue
     }
     if (host.now().getTime() > deadline) throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }))
     await host.sleep(15 + Math.floor(host.random() * 35))
   }
+  await host.writeText(join(lock, "token"), token).catch(() => {})
+  let finished = false
+  let writing: Promise<unknown> = Promise.resolve()
+  void (async () => {
+    let last = host.now().getTime()
+    for (;;) {
+      await host.sleep(LOCK_STEP_MS)
+      if (finished) return
+      if (host.now().getTime() - last < LOCK_BEAT_MS) continue
+      last = host.now().getTime()
+      // Assigned with no await between the check above and here: the holder's `finally` waits for this write.
+      writing = host.writeText(join(lock, "beat"), String(last)).catch(() => {})
+      await writing
+    }
+  })()
   try {
     return await fn()
   } finally {
-    await host.remove(lock, { recursive: true }).catch(() => {})
+    finished = true
+    await writing
+    const owner = await host.readText(join(lock, "token")).catch(() => undefined)
+    if (owner === undefined || owner === token) await host.remove(lock, { recursive: true }).catch(() => {})
   }
 }
 

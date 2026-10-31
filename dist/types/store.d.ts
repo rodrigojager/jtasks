@@ -30,7 +30,10 @@ export interface Mutation<R> {
 }
 /**
  * A short lock around one read-change-write of a run's files: a folder created exclusively (atomic on every file
- * system, and reachable from every host). A lock older than 10 s belongs to a writer that died and is broken.
+ * system, and reachable from every host). Its holder writes a heartbeat in it every 2 s while it works, so a slow
+ * holder (a release keeping 25 files as patches, a commit with hooks) is never taken for a dead one: ticket 58, where
+ * a lock broken after 10 s let a `done` commit in the middle of a release. A lock with no sign of life for 10 s
+ * belongs to a writer that died and is broken. A holder removes only its own lock (its token).
  */
 export declare function withLock<R>(host: Host, dir: string, fn: () => Promise<R>): Promise<R>;
 /**

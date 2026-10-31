@@ -92,6 +92,13 @@ from the run's log, not from the conversation. Every notification of a subagent'
 - **A task you start again** (after a release, a failure or a lost lock) gets its earlier edits back: the answer of
   `start` lists the patches reapplied and any file left with conflict markers; resolve those before `done`.
 - **`done` refused for files outside the ownership**: `jtasks claim` them, or undo those changes.
+- **`done` and kept edits**: `done` first brings back the edits your task keeps as patches and commits them with the
+  rest. If it refuses, do what it says: a file you no longer own, `jtasks claim <id> <file…>`; a conflict, resolve the
+  markers; a patch that does not apply, bring it in by hand and drop it with the `jtasks undo <e-id>` it shows; then
+  `done` again. If it says your task is pending (it was released while you were away, for instance when your turn
+  ended), run `jtasks start <id>` (`jtasks retry <id>` first if it failed): the start gives your edits back.
+- **Edits a task already done left in patches**: never revert its commit. A task in progress claims those files and
+  takes them with `jtasks adopt <id> --from <done task>`; they go in its own commit.
 - **A shell write refused because its path "cannot be checked"**: the path keeps a variable, a `$(…)` or a glob.
   Write the literal path (a variable the same command assigns is fine: `S=/tmp/x; … > $S/f`), or use Edit/Write.
 - **`start` refused for a shared file** (`🔗` in `next` and `status`): the plan's `sharedPolicy` is `serialize` and

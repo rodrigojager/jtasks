@@ -39,7 +39,25 @@ import {
   type JlockLock,
 } from "./jlock.ts"
 import { unarchive } from "./housekeeping.ts"
-import { chainKeys, changedUnder, claimStats, keepEdits, lastDeadlock, ownFiles, ownKeys, patchesUnder, readLog, reapplyPatches, releasedEdits, takenSince, type ReapplyReport } from "./keep.ts"
+import {
+  chainKeys,
+  changedUnder,
+  claimStats,
+  emptyReapply,
+  keepEdits,
+  keptOf,
+  lastDeadlock,
+  ownFiles,
+  ownKeys,
+  patchEffectId,
+  patchesUnder,
+  readLog,
+  reapplyPatches,
+  recoverKept,
+  releasedEdits,
+  takenSince,
+  type ReapplyReport,
+} from "./keep.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, progressSignature, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { agentOfOwner, formatWhen, kindLabel, resumeText } from "./transient.ts"
 import { awaitGraceMs, awaitingWhat, liveProcs, probe, procAlive, registerProcs, shortCommand, unregisterProcs } from "./procs.ts"
@@ -311,6 +329,8 @@ defineAction(
       }
       const changed = clone(state.tasks)
       const t = changed.tasks.find((x) => x.id === task.id)!
+      // Kept edits tasks.json lost (ticket 58) come back with the others.
+      await recoverKept(ctx.host, state, t)
       t.status = "in_progress"
       t.attempts += 1
       t.owner = actorOf(ctx)
@@ -1036,9 +1056,14 @@ defineAction(
     let commit: string | null = null
     let claimed: string[] = []
     let leftByOthers: TreeSplit["released"] = []
+    // Edits the task keeps aside come back before anything is committed (ticket 58).
+    const broughtBack = evidence ? await bringBackKept(ctx, args) : undefined
     const t = await transition(ctx, args, "done", async (task, state) => {
       if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
       if (!evidence) throw new ToolError(tr("done.no_evidence", { id: task.id }), 2)
+      // Something kept new edits aside between the reapply and here: never done without them.
+      const kept = await keptOf(ctx.host, state, task)
+      if (kept.length) throw new ToolError(tr("done.kept", { id: task.id, files: kept.map((p) => p.file).join(", ") }), 1, { kept: kept.map((p) => p.file) })
       const branch = await currentBranch(ctx.host, state.root)
       if (branch !== state.run.repo.branch)
         throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }))
@@ -1082,13 +1107,149 @@ defineAction(
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit")
     const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)]
+    if (broughtBack?.applied.length) lines.push(tr("done.kept_back", { files: broughtBack.applied.join(", ") }))
     if (claimed.length) lines.push(tr("done.claimed", { files: claimed.join(", ") }))
     for (const g of leftByOthers) lines.push(tr("done.released_edits", { id: g.task, files: g.files.join(", ") }))
     lines.push(...retakenLines(await retakeYielded(ctx, t.state)))
-    return ok(lines.join("\n"), { run: t.state.run.id, task: t.task.id, commit, counts: counts(t.tasks.tasks), claimed, releasedEdits: leftByOthers })
+    return ok(lines.join("\n"), {
+      run: t.state.run.id,
+      task: t.task.id,
+      commit,
+      counts: counts(t.tasks.tasks),
+      claimed,
+      releasedEdits: leftByOthers,
+      ...(broughtBack?.applied.length ? { reapplied: broughtBack.applied } : {}),
+    })
   },
   "help.done",
 )
+
+// ── adopt ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+defineAction(
+  "adopt",
+  async (ctx, args) => {
+    // `adopt <id> --from <other>`: the in-progress task <id> takes the edits <other> keeps aside (ticket 58), for
+    // instance a task already done whose code stayed in patches: no revert, the edits come back into <id>'s commit.
+    const from = textArg(args, "from")
+    if (!from) throw new ToolError(tr("adopt.no_from", { id: taskIdArg(args) ?? "<id>" }), 2)
+    const first = await resolveRun(ctx, args)
+    const id = taskIdArg(args)
+    const insensitive = caseInsensitive(ctx.host.platform)
+    const r = await withLock(ctx.host, first.dir, async () => {
+      const state = await reload(ctx, first)
+      const task = findTask(state, id)
+      const source = findTask(state, from)
+      if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+      if (source.id === task.id || source.status === "in_progress") throw new ToolError(tr("adopt.source_running", { id: source.id }))
+      const copy = clone(state.tasks)
+      const src = copy.tasks.find((t) => t.id === source.id)!
+      await recoverKept(ctx.host, state, src)
+      const kept = src.patches ?? []
+      if (!kept.length) throw new ToolError(tr("adopt.none", { from: source.id }))
+      const away = kept.filter((p) => !inPossession(p.file, possession(task), insensitive)).map((p) => p.file)
+      if (away.length) throw new ToolError(tr("adopt.claim_first", { id: task.id, from: source.id, files: away.join(" ") }), 1, { claim: away })
+      const effects = await readEffects(ctx.host, join(state.dir, "ledger.jsonl"))
+      const norm = (p: string) => (insensitive ? p.replace(/\\/g, "/").toLowerCase() : p.replace(/\\/g, "/"))
+      const report = emptyReapply()
+      const left: typeof kept = []
+      for (const p of kept) {
+        const abs = join(state.dir, p.patch)
+        if (!(await ctx.host.stat(abs))) continue
+        const { result, message } = await applyPatch(ctx.host, state.root, abs, [p.file])
+        if (result === "failed") {
+          report.failed.push({ file: p.file, patch: abs, message })
+          left.push(p)
+          continue
+        }
+        let at = abs
+        if (result !== "conflict") {
+          at = appliedPath(abs)
+          await ctx.host.mkdir(dirname(at))
+          await ctx.host.rename(abs, at)
+          report.applied.push(p.file)
+        } else report.conflicts.push({ file: p.file, patch: abs })
+        if (result !== "already")
+          await recordEffect(ctx.host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } })
+        // The edit is back in the tree: the source's restore is over, nothing will bring it back a second time.
+        for (const e of effects)
+          if (e.type === "restore" && e.state === "active" && e.task === source.id && e.patch && norm(e.patch) === norm(abs))
+            await setEffectState(ctx.host, state.dir, state.run.id, e.id, "undone")
+      }
+      if (left.length) src.patches = left
+      else delete src.patches
+      const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+      await writeTicket(ctx.host, state.dir, tasks, src.id)
+      await log(ctx, state, { action: "adopt", task: task.id, from: source.id, ...reapplyData(report) })
+      return { task: task.id, from: source.id, report }
+    })
+    const lines = [tr("adopt.done", { id: r.task, from: r.from, n: r.report.applied.length + r.report.conflicts.length }), ...reapplyLines(r.report)]
+    if (r.report.conflicts.length) lines.push(tr("adopt.conflicts", { id: r.task }))
+    const all = !r.report.failed.length
+    return { ok: all, code: all ? 0 : 1, text: lines.join("\n"), data: { run: first.run.id, task: r.task, from: r.from, ...reapplyData(r.report) } }
+  },
+  "help.adopt",
+)
+
+/**
+ * Before a done (ticket 58): the edits the task keeps aside (its `patches`, and the ones the ledger shows but
+ * tasks.json lost) come back into the tree with `git apply --3way`, so its commit takes them. Refuses, saying how to
+ * resolve, when one is for a file that is not the task's now, comes back with conflicts or does not apply; and when
+ * the task is not in progress but keeps edits (a subagent resumed after its task was released), says to start it again.
+ * Writes what changed (the recovered patches, the reapply) even when it refuses.
+ */
+async function bringBackKept(ctx: ToolContext, args: ParsedArgs): Promise<ReapplyReport | undefined> {
+  const first = await resolveRun(ctx, args)
+  const id = taskIdArg(args)
+  const insensitive = caseInsensitive(ctx.host.platform)
+  return withLock(ctx.host, first.dir, async () => {
+    const state = await reload(ctx, first)
+    const original = findTask(state, id)
+    if (original.status !== "in_progress") {
+      if (!["pending", "failed"].includes(original.status)) return undefined
+      const kept = await keptOf(ctx.host, state, original)
+      if (!kept.length) return undefined
+      const files = kept.map((p) => p.file).join(", ")
+      throw new ToolError(tr(original.status === "failed" ? "done.released_failed" : "done.released", { id: original.id, status: original.status, files }), 1, {
+        status: original.status,
+        kept: kept.map((p) => p.file),
+      })
+    }
+    const copy = clone(state.tasks)
+    const task = copy.tasks.find((t) => t.id === original.id)!
+    const recovered = await recoverKept(ctx.host, state, task)
+    const kept = task.patches ?? []
+    if (!kept.length) return undefined
+    const own = possession(task)
+    const others = state.tasks.tasks.filter((t) => t.id !== task.id && t.status === "in_progress").flatMap(possession)
+    const away = kept.filter((p) => !inPossession(p.file, own, insensitive) || inPossession(p.file, others, insensitive)).map((p) => p.file)
+    const reapply = away.length ? undefined : await reapplyPatches(ctx.host, state, task, () => true)
+    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+    await writeTicket(ctx.host, state.dir, tasks, task.id)
+    await log(ctx, state, {
+      action: "reapply",
+      task: task.id,
+      before: "done",
+      ...(recovered.length ? { recovered: recovered.map((p) => p.file) } : {}),
+      ...(reapply ? reapplyData(reapply) : {}),
+    })
+    if (away.length) throw new ToolError(tr("done.kept_away", { id: task.id, files: away.join(" ") }), 1, { kept: away })
+    if (reapply!.conflicts.length)
+      throw new ToolError(tr("done.kept_conflict", { id: task.id, files: reapply!.conflicts.map((c) => c.file).join(", ") }), 1, {
+        conflicts: reapply!.conflicts,
+        reapplied: reapply!.applied,
+      })
+    if (reapply!.failed.length) {
+      const list: string[] = []
+      for (const f of reapply!.failed) list.push(`${f.file} ← ${f.patch} (jtasks undo ${(await patchEffectId(ctx.host, state, f.patch)) ?? "?"})`)
+      throw new ToolError(tr("done.kept_failed", { id: task.id, list: list.join("; "), message: reapply!.failed[0]!.message }), 1, {
+        failed: reapply!.failed.map((f) => ({ file: f.file, patch: f.patch })),
+        reapplied: reapply!.applied,
+      })
+    }
+    return reapply
+  })
+}
 
 // ── skip / fail / release / retry ─────────────────────────────────────────────────────────────────────────────
 
