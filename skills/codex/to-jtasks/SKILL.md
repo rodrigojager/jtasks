@@ -108,8 +108,9 @@ Present the proposed breakdown as a numbered list. For each task, show:
 
 The ownership is what lets tasks run in parallel in the same checkout, so get it right now:
 
-- List **files and folders**, relative to the repository. A folder owns everything inside it. `dir/**` is accepted
-  and becomes `dir`. **No other patterns**: `src/*.ts` is refused (jlock locks files and folders, not patterns).
+- List **files and folders**, relative to the repository (in a jproject container, the repository is `product/`:
+  relative to it, not to the container). A folder owns everything inside it. `dir/**` is accepted and becomes `dir`.
+  **No other patterns**: `src/*.ts` is refused (jlock locks files and folders, not patterns).
 - Two tasks with **no dependency between them must not share** a file or folder (the tool refuses the plan). Decide
   the order now (add a dependency) or split the file.
 - A **hub** file many slices touch (a central `types.ts`, a giant `routes.ts`) serializes everything: prefactor it

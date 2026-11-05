@@ -55,8 +55,17 @@ Ticket 59: o `wait --pid` do orquestrador numa tarefa que é dele cria `awaiting
 órfã enquanto o processo vive, e o fim do processo manda o orquestrador continuar a tarefa ele mesmo (`await-ended`
 com `inline`); tarefa de subagente segue o ticket 57. `taskOfPrompt` (`src/ids.ts`) ignora placeholders como `<id>`
 no prompt do spawn. O `done` faz `git add` em lotes de 16 caminhos; versão 0.3.4.
+Container jproject (framework de organização, seções 10.7, 11 e 12): `src/workspace.ts` é o único resolvedor de
+caminhos (`resolvePaths` → `{ repoRoot, dataDir, source, container, inRepo, shared }`), usado pelo núcleo, pela CLI, pelo
+mod e pelo plugin. Fora de um repositório git, o repositório é `<container>/<product_dir>` do container achado subindo
+do cwd (`<work_dir>/WORKSPACE.md` com front matter `jproject: 1`). A pasta de dados (`<dados>/runs/<run>/`) vem de
+`JTASKS_SCRATCH`, da configuração `JTASKS_HOME/config.json` (`jtasks config data-dir`, pergunta do `doctor --fix --yes`
+ou `--data-dir`), do `jtasks_data` do front matter, ou do legado `<repo>/.scratch/jtasks`; só o legado mexe em
+`.git/info/exclude`. O resultado que liga um run traz `bindPaths` (`root` e `data`), guardados no estado do mod e do
+plugin; o `gc` reconhece runs pela pasta de dados resolvida.
 
-Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
+Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node; `workspace.ts` resolve repositório e pasta de
+dados), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem
 velhas), `opencode/` (plugin), `claude/` (mod; tipos em `vendor/claude-code.d.ts`, `tsconfig.claude.json`),
 `skills/<agente>/<skill>/` (gerados de `skills/source/` pelo build, que também copia os do Claude Code para o mod). Verificação: `bun test`, `cd opencode && bun test`,

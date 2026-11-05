@@ -203,10 +203,19 @@ Windows أولًا: جرى التحقق من jlock و jtasks على Windows؛ و
 | المتغير | الافتراضي | الاستخدام |
 |---|---|---|
 | `JTASKS_HOME` | `~/.jtasks` | السجل العام والتشغيلات المؤرشفة |
+| `JTASKS_SCRATCH` | غير مضبوط | مكان بيانات التشغيل (مسار مطلق، أو نسبي إلى حاوية المشروع)؛ انظر أدناه |
 | `JTASKS_LANG` | لغة النظام | لغة الإجابات (`--lang` في الأمر له الأولوية) |
 | `JTASKS_RUN` | غير مضبوط | التشغيل الذي تعمل عليه واجهة CLI، بدلًا من `--run` |
 | `JLOCK_BIN` | `jlock` | الملف التنفيذي لـ jlock |
 | `JTASKS_NO_JLOCK_INSTALL` | غير مضبوط | `1`: لا يثبّت jlock من تلقاء نفسه أبدًا |
+
+تقع بيانات التشغيل (`tasks.json` و`run.json` والتذاكر وledger) في `<مجلد البيانات>/runs/<run>/`. في مستودع عادي هو
+المجلد القديم `.scratch/jtasks`، مخفيًا عن git عبر `.git/info/exclude` (المثال أعلاه). وفي حاوية jproject (مجلد ليس
+مستودع git، فيه `_work/WORKSPACE.md` يقول الـ front matter فيه `jproject: 1`، والمستودع في `product/`) هو
+`jtasks_data` الخاص بالحاوية، وافتراضيًا `_work/30-plan/jtasks`، ولا يكتب jtasks شيئًا داخل المستودع؛ افتح الوكيل في
+الحاوية أو في `product/`، كلاهما يعمل. يختار `JTASKS_SCRATCH` و`jtasks config data-dir <مسار>` (ويسأل عنه أيضًا
+`jtasks doctor --fix --yes`) مجلدًا آخر؛ ويعرض `jtasks config` أيّها المطبَّق. التفاصيل في
+[`docs/USAGE.md`](docs/USAGE.md#where-run-data-lives).
 
 إحدى عشرة لغة، هي نفسها لغات jlock: English، Português (Brasil)، Español، Français، Deutsch، Italiano، 简体中文، 日本語،
 Русский، العربية، हिन्दी. كل الأوامر في [`docs/USAGE.md`](docs/USAGE.md)؛ والتصميم (بالبرتغالية) في

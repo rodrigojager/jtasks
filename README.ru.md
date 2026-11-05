@@ -199,10 +199,19 @@ Anthropic, OpenAI, Moonshot/Kimi и провайдеры, совместимые
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
 | `JTASKS_HOME` | `~/.jtasks` | глобальный реестр и заархивированные прогоны |
+| `JTASKS_SCRATCH` | не задана | куда идут данные run (абсолютный путь или относительно контейнера проекта); см. ниже |
 | `JTASKS_LANG` | язык системы | язык ответов (`--lang` у команды важнее) |
 | `JTASKS_RUN` | не задана | прогон, с которым работает CLI, вместо `--run` |
 | `JLOCK_BIN` | `jlock` | исполняемый файл jlock |
 | `JTASKS_NO_JLOCK_INSTALL` | не задана | `1`: никогда не устанавливать jlock самостоятельно |
+
+Данные run (`tasks.json`, `run.json`, тикеты, ledger) лежат в `<папка данных>/runs/<run>/`. В обычном репозитории это
+старая папка `.scratch/jtasks`, скрытая от git через `.git/info/exclude` (пример выше). В контейнере jproject (папка,
+которая не является git-репозиторием, с `_work/WORKSPACE.md`, в front matter которого написано `jproject: 1`, и
+репозиторием в `product/`) это `jtasks_data` контейнера, по умолчанию `_work/30-plan/jtasks`, и jtasks ничего не
+пишет внутрь репозитория; агента можно открыть и в контейнере, и в `product/`. `JTASKS_SCRATCH` и
+`jtasks config data-dir <путь>` (об этом спрашивает и `jtasks doctor --fix --yes`) выбирают другую папку;
+`jtasks config` показывает, какая действует. Подробности в [`docs/USAGE.md`](docs/USAGE.md#where-run-data-lives).
 
 Одиннадцать языков, те же, что у jlock: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文,
 日本語, Русский, العربية, हिन्दी. Все команды описаны в [`docs/USAGE.md`](docs/USAGE.md); проект (на португальском) —

@@ -22,6 +22,11 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
   missing).
 - `jtasks runs` lists the runs of the repository. With more than one active, pass `--run <id>` to every command (or
   `resume <id>` once to bind it to this session).
+- The run's files (`tasks.json`, `run.json`, the tickets, the ledger) live in the **data folder** the tool resolves,
+  never where you guess: in a jproject container (a folder that is not a git repository, with `_work/WORKSPACE.md`
+  and the repository in `product/`), `_work/30-plan/jtasks/runs/<run>/` by default, outside the repository; in a
+  plain repository, `.scratch/jtasks/runs/<run>/`, hidden from git. `jtasks config` says which one applies here.
+  Open the session in the container or in the repository: both work. Read the tickets at the paths the tool prints.
 
 ## The loop
 

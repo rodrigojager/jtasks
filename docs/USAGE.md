@@ -20,7 +20,8 @@ jtasks doctor --fix --yes   # installs it: jlock, the OpenCode agents, the skill
 
 `jtasks doctor` checks, in this order: the version (jtasks and the runtime); `git`; `jlock` (in `PATH`, at least
 0.1.0, 0.1.1 for `--release-on-eof`, 0.2.0 for `jlock renew`, and its own `jlock doctor --json`); `JTASKS_HOME` (a writable folder, the
-global ledger); OpenCode (the agents `execute`, `execute-deep`, `review` in `~/.config/opencode/agents/`, the
+global ledger); the data folder (where run data goes when you work here, which rule chose it, and the saved
+setting: see [Where run data lives](#where-run-data-lives)); OpenCode (the agents `execute`, `execute-deep`, `review` in `~/.config/opencode/agents/`, the
 project's `.opencode/agents/` or `opencode.json`, and whether the plugin is configured); Claude Code (found, and
 whether the mod is installed; informative); the skills `to-jtasks` and `jtasks` of every agent installed
 (Claude Code, OpenCode, Codex); and the language with where it came from. Exit 0 with no failure (warnings do not
@@ -32,6 +33,13 @@ repository. A file that already exists is never replaced (it is reported). Each 
 global ledger (`jtasks ledger --all-projects`, ids `g-…`), and `jtasks undo <g-id>` removes it. It never installs the
 mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs `--fix`; in the mod and the plugin
 `doctor` only diagnoses. `JTASKS_USER_HOME` makes it look and install somewhere else than the user's home.
+
+`--fix --yes` also asks where jtasks should store run data, when no answer is saved yet: *"Where should jtasks store
+run data (tasks, tickets, ledger)? This folder should NOT be inside your versioned code. Default for jproject
+containers: `_work/30-plan/jtasks`. You can use any path, relative to the project container or absolute."* It asks
+only on a terminal; an empty answer saves nothing. Without a terminal (a script, an agent), give the answer as
+`--data-dir <path>`, or save it any time with `jtasks config data-dir <path>`; the question is printed so it is not
+missed. The answer goes to `JTASKS_HOME/config.json`.
 
 - **CLI:** the `jtasks` command above. jlock comes by itself: in every form, the first command that may need it
   installs a missing jlock through its official installer, records it in the global ledger (`jtasks undo <g-id>`
@@ -46,6 +54,49 @@ mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs
 The mod and the plugin carry their own copy of the core (`core/core.js`, built from `src/` by
 `bun scripts/build.ts`) and take the same commands as the CLI: `{ "command": "start T04" }`, and
 `{ "command": "plan --add", "json": [...] }` for JSON.
+
+## Where run data lives
+
+A run's files (`run.json`, `tasks.json`, the tickets, `ledger.jsonl`, `log.jsonl`, saved patches) live in
+`<data folder>/runs/<run>/`. Every form (CLI, mod, plugin) asks the core's one resolver (`resolvePaths` in
+`src/workspace.ts`) for the repository and the data folder, from the folder the agent was opened in:
+
+- **The repository**: the git repository of that folder; outside one, the repository of the **jproject container**
+  around it. A container is a folder that is not a git repository, with `<work_dir>/WORKSPACE.md` (usually
+  `_work/WORKSPACE.md`) starting with a YAML front matter that says `jproject: 1`:
+
+  ```
+  ---
+  jproject: 1
+  project: my-game
+  product_dir: product
+  work_dir: _work
+  secrets_dir: _secrets
+  jtasks_data: _work/30-plan/jtasks
+  ---
+  ```
+
+  The repository is then `<container>/<product_dir>`. The container is found by walking up from the current folder
+  (`_work` first, then any subfolder whose `WORKSPACE.md` names itself as `work_dir`), so opening the agent in the
+  container or anywhere inside `product/` gives the same answer.
+- **The data folder**, the first that applies:
+  1. `JTASKS_SCRATCH`: absolute, or relative to the container (to the repository when there is none);
+  2. the saved setting (`jtasks config data-dir <path>`, or the question of `jtasks doctor --fix --yes`): absolute,
+     or relative to the container (a relative setting is ignored outside a container);
+  3. `jtasks_data` of the container's front matter (relative to the container, or absolute; missing:
+     `_work/30-plan/jtasks`);
+  4. the legacy `<repo>/.scratch/jtasks`.
+
+Only the legacy mode writes inside the repository, and only it adds `.scratch/` to `.git/info/exclude` (an effect in
+the ledger, removed by `undo`). With the data outside the repository, nothing goes into it but the run's branch and
+its commits: no `.scratch`, no exclude line, and `git status` stays clean. An absolute data folder (the variable or
+the setting) may be shared by several repositories: `runs`, `status` and `clean --all` see only the current
+repository's runs (by the `repo.root` of each `run.json`). `jtasks config` prints the setting and what applies in the
+current folder; `jtasks doctor` has the same as its `data` check.
+
+The mod and the plugin keep, with the run bound to a session, both the repository root and the data folder the tool
+answered (`bindPaths` of the result), and read the run from there; a binding stored by an older version has no data
+folder and is read as a legacy run.
 
 ## The plan
 
@@ -105,7 +156,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | Group | Action | What it does |
 |---|---|---|
 | plan | `validate <json\|@file\|dir>` | validates a plan (or a folder of tickets) without writing; prints the warnings about shared files |
-| | `plan <json\|@file> [--name slug]` | creates the run: `run.json`, `tasks.json`, tickets, branch `gt/<run>`, `.scratch/` in `.git/info/exclude`, ledger |
+| | `plan <json\|@file> [--name slug]` | creates the run in the [data folder](#where-run-data-lives): `run.json`, `tasks.json`, tickets, branch `gt/<run>`, ledger (legacy mode: also `.scratch/` in `.git/info/exclude`) |
 | | `plan --draft [--name s] [--objective t] [--source r]` | opens a draft (not a run yet) |
 | | `plan --add <json\|@file>` | adds a batch; refused whole on any error of the batch |
 | | `plan --fix <id> <json\|@file>` | replaces one task of the draft |
@@ -132,8 +183,9 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | ledger | `ledger [--all-projects]` | every effect the tool created, and its state |
 | | `undo <e-id> \| --task <id> \| --run <run> [--force]` | undoes newest first (revert, branch, exclude line, folder) |
 | | `effects --check` | compares the ledger with disk and git: what disappeared, what was left |
-| machine | `doctor [--json] [--fix [--yes]]` | is this machine ready? `--fix --yes` installs what is missing, in the global ledger |
-| cleanup | `clean <run>\|--all [--yes]` | lists the active effects; with `--yes` removes the run's folder |
+| machine | `doctor [--json] [--fix [--yes]] [--data-dir <path>]` | is this machine ready? `--fix --yes` installs what is missing, in the global ledger, and saves the data folder |
+| | `config [data-dir <path> \| data-dir --unset]` | where run data goes (`JTASKS_HOME/config.json`); alone, the setting and what applies here |
+| cleanup | `clean <run>\|--all [--yes]` | lists the active effects; with `--yes` removes the run's folder (`--all`: the data folder, or this repository's runs in a shared one) |
 | | `archive <run>` | moves the run to `JTASKS_HOME/archive/<repo>/<run>` |
 | | `gc --scan <root> [--depth 4]` | read-only report: worktrees (orphan or not), runs, archived runs |
 | | `gc --remove <path> --yes` | removes one path the report lists |
@@ -175,7 +227,7 @@ jtasks yield T05 core/plan/adapters.ts  # or the ones you name (an entry of its 
 ```
 
 For each file given back, the uncommitted edit is saved as a patch of the run
-(`.scratch/jtasks/runs/<run>/patches/<task>/<n>-<file>.patch`: the diff against HEAD, or the whole content of a new
+(`<data folder>/runs/<run>/patches/<task>/<n>-<file>.patch`: the diff against HEAD, or the whole content of a new
 file), the file goes back to HEAD (a new file is deleted), and the key is released in jlock, so the other task gets
 it at once and its commit takes none of these edits. The task stays `in_progress` with its other locks; the entries
 move from `files`/`claimed` to `yielded`, the guard refuses its edits there, `status`, the pane and the sidebar show
@@ -304,7 +356,8 @@ notification. Every notification of a subagent's end also carries the status lin
 
 | Variable | Default | Use |
 |---|---|---|
-| `JTASKS_HOME` | `%USERPROFILE%\.jtasks` | global ledger index and archived runs |
+| `JTASKS_HOME` | `%USERPROFILE%\.jtasks` | global ledger index, archived runs and `config.json` |
+| `JTASKS_SCRATCH` | unset | the data folder, before the saved setting and the container's `jtasks_data` (see [Where run data lives](#where-run-data-lives)) |
 | `JTASKS_USER_HOME` | the user's home | where `jtasks doctor` looks for and installs agents and skills |
 | `JTASKS_RUN` | unset | the CLI's bound run |
 | `JTASKS_LANG` | unset | the language of the answers (see [Languages](#languages)) |

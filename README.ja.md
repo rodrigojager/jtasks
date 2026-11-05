@@ -150,10 +150,19 @@ Windows を優先: jlock と jtasks は Windows で検証済みです。Linux �
 | 変数 | 既定値 | 用途 |
 |---|---|---|
 | `JTASKS_HOME` | `~/.jtasks` | グローバル ledger とアーカイブされた実行 |
+| `JTASKS_SCRATCH` | 未設定 | run データの置き場所（絶対パス、またはプロジェクトのコンテナからの相対パス）。下記参照 |
 | `JTASKS_LANG` | システムの言語 | 応答の言語（コマンドの `--lang` が優先） |
 | `JTASKS_RUN` | 未設定 | `--run` の代わりに CLI が扱う実行 |
 | `JLOCK_BIN` | `jlock` | jlock の実行ファイル |
 | `JTASKS_NO_JLOCK_INSTALL` | 未設定 | `1`: jlock を自動でインストールしない |
+
+run データ（`tasks.json`、`run.json`、チケット、ledger）は `<データフォルダー>/runs/<run>/` に置かれます。通常の
+リポジトリでは従来の `.scratch/jtasks` で、`.git/info/exclude` により git から隠されます（上の例）。jproject
+コンテナ（git リポジトリではないフォルダーで、`_work/WORKSPACE.md` の front matter に `jproject: 1` があり、
+リポジトリが `product/` にあるもの）では、コンテナの `jtasks_data`（既定は `_work/30-plan/jtasks`）になり、jtasks は
+リポジトリの中に何も書きません。エージェントはコンテナでも `product/` でも開けます。`JTASKS_SCRATCH` と
+`jtasks config data-dir <パス>`（`jtasks doctor --fix --yes` でも尋ねられます）で別のフォルダーを選べます。
+どれが適用されるかは `jtasks config` が示します。詳しくは [`docs/USAGE.md`](docs/USAGE.md#where-run-data-lives)。
 
 jlock と同じ 11 言語に対応しています: English、Português (Brasil)、Español、Français、Deutsch、Italiano、简体中文、日本語、Русский、العربية、हिन्दी。すべてのコマンドは [`docs/USAGE.md`](docs/USAGE.md) にあります。設計（ポルトガル語）は [`docs/PLAN.md`](docs/PLAN.md)、設計と違う結果になった点は [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) にあります。
 

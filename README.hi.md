@@ -150,10 +150,13 @@ mod या प्लगइन के बिना, `jtasks` स्किल ह�
 | वेरिएबल | डिफ़ॉल्ट | उपयोग |
 |---|---|---|
 | `JTASKS_HOME` | `~/.jtasks` | वैश्विक ledger और आर्काइव किए गए रन |
+| `JTASKS_SCRATCH` | सेट नहीं | run डेटा कहाँ जाता है (absolute, या प्रोजेक्ट कंटेनर के सापेक्ष); नीचे देखें |
 | `JTASKS_LANG` | सिस्टम की भाषा | उत्तरों की भाषा (कमांड पर `--lang` को प्राथमिकता) |
 | `JTASKS_RUN` | सेट नहीं | वह रन जिस पर CLI काम करता है, `--run` की जगह |
 | `JLOCK_BIN` | `jlock` | jlock का executable |
 | `JTASKS_NO_JLOCK_INSTALL` | सेट नहीं | `1`: jlock को कभी अपने आप इंस्टॉल नहीं करता |
+
+run डेटा (`tasks.json`, `run.json`, टिकट, ledger) `<डेटा फ़ोल्डर>/runs/<run>/` में रहता है। साधारण रिपॉज़िटरी में यह पुराना `.scratch/jtasks` है, जो `.git/info/exclude` से git से छिपा रहता है (ऊपर का उदाहरण)। jproject कंटेनर में (ऐसा फ़ोल्डर जो git रिपॉज़िटरी नहीं है, जिसकी `_work/WORKSPACE.md` के front matter में `jproject: 1` लिखा है, और रिपॉज़िटरी `product/` में है) यह कंटेनर का `jtasks_data` है, डिफ़ॉल्ट `_work/30-plan/jtasks`, और jtasks रिपॉज़िटरी के अंदर कुछ नहीं लिखता; एजेंट को कंटेनर में या `product/` में खोलें, दोनों चलते हैं। `JTASKS_SCRATCH` और `jtasks config data-dir <पथ>` (जिसे `jtasks doctor --fix --yes` भी पूछता है) कोई दूसरा फ़ोल्डर चुनते हैं; `jtasks config` बताता है कि कौन-सा लागू है। विवरण [`docs/USAGE.md`](docs/USAGE.md#where-run-data-lives) में।
 
 ग्यारह भाषाएँ, वही जो jlock में हैं: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文, 日本語, Русский, العربية, हिन्दी। हर कमांड [`docs/USAGE.md`](docs/USAGE.md) में है; डिज़ाइन (पुर्तगाली में) [`docs/PLAN.md`](docs/PLAN.md) है, और जो अलग निकला वह [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) में है।
 

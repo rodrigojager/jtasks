@@ -150,10 +150,18 @@ Windows 优先：jlock 和 jtasks 已在 Windows 上验证；Linux 和 macOS 跟
 | 变量 | 默认值 | 用途 |
 |---|---|---|
 | `JTASKS_HOME` | `~/.jtasks` | 全局 ledger 和已归档的运行 |
+| `JTASKS_SCRATCH` | 未设置 | run 数据的存放位置（绝对路径，或相对于项目容器）；见下文 |
 | `JTASKS_LANG` | 系统语言 | 回答的语言（命令中的 `--lang` 优先） |
 | `JTASKS_RUN` | 未设置 | CLI 操作的运行，代替 `--run` |
 | `JLOCK_BIN` | `jlock` | jlock 可执行文件 |
 | `JTASKS_NO_JLOCK_INSTALL` | 未设置 | `1`：从不自行安装 jlock |
+
+run 数据（`tasks.json`、`run.json`、工单、ledger）位于 `<数据文件夹>/runs/<run>/`。在普通仓库中，这是旧的
+`.scratch/jtasks`，通过 `.git/info/exclude` 对 git 隐藏（即上面的示例）。在 jproject 容器中（一个不是 git 仓库的
+文件夹，其 `_work/WORKSPACE.md` 的 front matter 写有 `jproject: 1`，仓库位于 `product/`），它是容器的
+`jtasks_data`，默认为 `_work/30-plan/jtasks`，jtasks 不会在仓库内写入任何东西；在容器或 `product/` 中打开代理都可以。
+`JTASKS_SCRATCH` 和 `jtasks config data-dir <路径>`（`jtasks doctor --fix --yes` 也会询问）可以选择其他文件夹；
+`jtasks config` 显示当前适用的是哪一个。详见 [`docs/USAGE.md`](docs/USAGE.md#where-run-data-lives)。
 
 十一种语言，与 jlock 相同：English、Português (Brasil)、Español、Français、Deutsch、Italiano、简体中文、日本語、Русский、العربية、हिन्दी。所有命令见 [`docs/USAGE.md`](docs/USAGE.md)；设计文档（葡萄牙语）是 [`docs/PLAN.md`](docs/PLAN.md)，与设计不同的地方见 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md)。
 

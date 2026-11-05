@@ -191,10 +191,19 @@ Windows first: jlock and jtasks were validated on Windows; Linux and macOS follo
 | Variable | Default | Use |
 |---|---|---|
 | `JTASKS_HOME` | `~/.jtasks` | the global ledger and archived runs |
+| `JTASKS_SCRATCH` | unset | where run data goes (absolute, or relative to the project container); see below |
 | `JTASKS_LANG` | the system's | the language of the answers (`--lang` on a command wins) |
 | `JTASKS_RUN` | unset | the run the CLI works on, instead of `--run` |
 | `JLOCK_BIN` | `jlock` | the jlock executable |
 | `JTASKS_NO_JLOCK_INSTALL` | unset | `1`: never install jlock by itself |
+
+Run data (`tasks.json`, `run.json`, the tickets, the ledger) lives in `<data folder>/runs/<run>/`. In a plain
+repository that is the legacy `.scratch/jtasks`, hidden from git through `.git/info/exclude` (the example above). In
+a jproject container (a folder that is not a git repository, with `_work/WORKSPACE.md` whose front matter says
+`jproject: 1`, and the repository in `product/`) it is the container's `jtasks_data`, `_work/30-plan/jtasks` by
+default, and jtasks writes nothing inside the repository; open the agent in the container or in `product/`, either
+works. `JTASKS_SCRATCH` and `jtasks config data-dir <path>` (also asked by `jtasks doctor --fix --yes`) choose
+another folder; `jtasks config` shows which one applies. Details in [`docs/USAGE.md`](docs/USAGE.md#where-run-data-lives).
 
 Eleven languages, the same as jlock's: English, Português (Brasil), Español, Français, Deutsch, Italiano, 简体中文,
 日本語, Русский, العربية, हिन्दी. Every command is in [`docs/USAGE.md`](docs/USAGE.md); the design (in Portuguese) is
