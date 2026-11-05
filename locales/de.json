@@ -537,5 +537,13 @@
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "die WORKSPACE.md des Containers",
-  "data.source.legacy": "Altmodus: im Repository, verborgen durch .git/info/exclude"
+  "data.source.legacy": "Altmodus: im Repository, verborgen durch .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 }

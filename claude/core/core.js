@@ -666,7 +666,15 @@ var en_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "the container's WORKSPACE.md",
-  "data.source.legacy": "legacy: inside the repository, hidden by .git/info/exclude"
+  "data.source.legacy": "legacy: inside the repository, hidden by .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/pt-BR.json
 var pt_BR_default = {
@@ -1209,7 +1217,15 @@ var pt_BR_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "o WORKSPACE.md do container",
-  "data.source.legacy": "legado: dentro do repositório, escondido por .git/info/exclude"
+  "data.source.legacy": "legado: dentro do repositório, escondido por .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/es.json
 var es_default = {
@@ -1752,7 +1768,15 @@ var es_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "el WORKSPACE.md del contenedor",
-  "data.source.legacy": "heredado: dentro del repositorio, oculto por .git/info/exclude"
+  "data.source.legacy": "heredado: dentro del repositorio, oculto por .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/fr.json
 var fr_default = {
@@ -2295,7 +2319,15 @@ var fr_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "le WORKSPACE.md du conteneur",
-  "data.source.legacy": "ancien mode: dans le dépôt, caché par .git/info/exclude"
+  "data.source.legacy": "ancien mode: dans le dépôt, caché par .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/de.json
 var de_default = {
@@ -2838,7 +2870,15 @@ var de_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "die WORKSPACE.md des Containers",
-  "data.source.legacy": "Altmodus: im Repository, verborgen durch .git/info/exclude"
+  "data.source.legacy": "Altmodus: im Repository, verborgen durch .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/it.json
 var it_default = {
@@ -3381,7 +3421,15 @@ var it_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "il WORKSPACE.md del container",
-  "data.source.legacy": "modalità storica: nel repository, nascosta da .git/info/exclude"
+  "data.source.legacy": "modalità storica: nel repository, nascosta da .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/zh-CN.json
 var zh_CN_default = {
@@ -3924,7 +3972,15 @@ var zh_CN_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "容器的 WORKSPACE.md",
-  "data.source.legacy": "旧方式：在仓库内，由 .git/info/exclude 隐藏"
+  "data.source.legacy": "旧方式：在仓库内，由 .git/info/exclude 隐藏",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/ja.json
 var ja_default = {
@@ -4467,7 +4523,15 @@ var ja_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "コンテナの WORKSPACE.md",
-  "data.source.legacy": "従来方式: リポジトリ内、.git/info/exclude で隠す"
+  "data.source.legacy": "従来方式: リポジトリ内、.git/info/exclude で隠す",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/ru.json
 var ru_default = {
@@ -5010,7 +5074,15 @@ var ru_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "WORKSPACE.md контейнера",
-  "data.source.legacy": "старый режим: внутри репозитория, скрыто через .git/info/exclude"
+  "data.source.legacy": "старый режим: внутри репозитория, скрыто через .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/ar.json
 var ar_default = {
@@ -5553,7 +5625,15 @@ var ar_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "ملف WORKSPACE.md للحاوية",
-  "data.source.legacy": "الوضع القديم: داخل المستودع، مخفي عبر .git/info/exclude"
+  "data.source.legacy": "الوضع القديم: داخل المستودع، مخفي عبر .git/info/exclude",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 // locales/hi.json
 var hi_default = {
@@ -6096,7 +6176,15 @@ var hi_default = {
   "data.source.env": "JTASKS_SCRATCH",
   "data.source.config": "jtasks config",
   "data.source.workspace": "कंटेनर की WORKSPACE.md",
-  "data.source.legacy": "पुराना तरीका: रिपॉज़िटरी के अंदर, .git/info/exclude से छिपा"
+  "data.source.legacy": "पुराना तरीका: रिपॉज़िटरी के अंदर, .git/info/exclude से छिपा",
+  "container.needs_git": "This jproject container's product folder ({product}) is not a git repository. jtasks needs it to keep run data in the container. Run `git init` in that folder, or run `jtasks doctor --fix` in a terminal to be asked.",
+  "doctor.container_no_git": "the container's product folder is not a git repository: {product}",
+  "doctor.container_git_fix": "git init in {product} (jtasks doctor --fix asks first)",
+  "doctor.container_git_question": "{product} is not a git repository. jtasks needs one there to keep run data inside the jproject container: it is a condition for running tasks. Run `git init` there now? [y/N]",
+  "doctor.step_git_init": "git init in {product} (asks first)",
+  "doctor.git_init_skipped": "git init in {product} not done",
+  "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
+  "doctor.git_init_failed": "git init failed in {product}: {message}"
 };
 
 // src/i18n.ts
@@ -8039,11 +8127,20 @@ async function resolvePaths(host, cwd) {
     out.inRepo = rel;
   return out;
 }
+async function containerWithoutGit(host, cwd) {
+  const container = await findContainer(host, cwd);
+  if (!container)
+    return;
+  return await host.stat(join(container.product, ".git")) ? undefined : container;
+}
 async function requirePaths(host, cwd) {
   const paths = await resolvePaths(host, cwd);
-  if (!paths)
-    throw new ToolError(tr("git.not_a_repo", { cwd }));
-  return paths;
+  if (paths)
+    return paths;
+  const bare = await containerWithoutGit(host, cwd);
+  if (bare)
+    throw new ToolError(tr("container.needs_git", { product: bare.product }));
+  throw new ToolError(tr("git.not_a_repo", { cwd }));
 }
 async function requireRepo(host, cwd) {
   return (await requirePaths(host, cwd)).repoRoot;
@@ -12963,6 +13060,11 @@ async function checkData(ctx) {
   const paths = await resolvePaths(host, ctx.cwd).catch(() => {
     return;
   });
+  const bare = paths ? undefined : await containerWithoutGit(host, ctx.cwd).catch(() => {
+    return;
+  });
+  if (bare)
+    return { name: "data", status: "fail", detail: tr("doctor.container_no_git", { product: bare.product }), fix: tr("doctor.container_git_fix", { product: bare.product }) };
   const where = paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : tr("doctor.data_no_repo");
   const fix = saved ? undefined : tr("doctor.data_fix");
   if (paths?.container && paths.inRepo !== undefined)
@@ -13069,6 +13171,20 @@ async function installFile(host, from, to) {
   const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, undo: { kind: "remove-file" } });
   return tr("doctor.file_installed", { file: to, id: e.id });
 }
+async function gitInitProduct(ctx, product) {
+  const { host } = ctx;
+  const answer = ctx.ask ? (await ctx.ask(`${tr("doctor.container_git_question", { product })}
+> `).catch(() => {
+    return;
+  }))?.trim().toLowerCase() : undefined;
+  if (answer !== "y" && answer !== "yes")
+    return tr("doctor.git_init_skipped", { product });
+  const r = await git(host, product, ["init", "-q"]).catch((error) => ({ code: 1, stdout: "", stderr: error.message }));
+  if (r.code !== 0)
+    throw new ToolError(tr("doctor.git_init_failed", { product, message: r.stderr.trim() }));
+  const e = await recordGlobalEffect(host, { run: "doctor", type: "dir", repo: product, path: join(product, ".git"), undo: { kind: "rmdir" } });
+  return tr("doctor.git_init_done", { product, id: e.id });
+}
 async function fixSteps(ctx, checks, args) {
   const { host } = ctx;
   const pkg = ctx.packageRoot;
@@ -13076,6 +13192,11 @@ async function fixSteps(ctx, checks, args) {
   const jlock = checks.find((c) => c.name === "jlock");
   if (jlock?.fixable)
     steps.push({ what: tr("doctor.step_jlock"), run: () => installJlock2(ctx) });
+  const bare = await containerWithoutGit(host, ctx.cwd).catch(() => {
+    return;
+  });
+  if (bare)
+    steps.push({ what: tr("doctor.step_git_init", { product: bare.product }), run: () => gitInitProduct(ctx, bare.product) });
   const opencode = join(userHome(host), ".config/opencode");
   if (checks.find((c) => c.name === "opencode")?.status === "warn")
     for (const agent of OPENCODE_AGENTS) {
@@ -13159,10 +13280,15 @@ defineAction("config", async (ctx, args) => {
     const paths2 = await resolvePaths(host, ctx.cwd).catch(() => {
       return;
     });
+    const bare = paths2 ? undefined : await containerWithoutGit(host, ctx.cwd).catch(() => {
+      return;
+    });
     const lines = [
       saved ? tr("config.show", { value: saved, file }) : tr("config.none", { file }),
-      paths2 ? tr("doctor.data_here", { dir: paths2.dataDir, source: sourceText(paths2.source) }) : tr("doctor.data_no_repo")
+      paths2 ? tr("doctor.data_here", { dir: paths2.dataDir, source: sourceText(paths2.source) }) : bare ? tr("doctor.container_no_git", { product: bare.product }) : tr("doctor.data_no_repo")
     ];
+    if (bare)
+      lines.push(tr("doctor.container_git_fix", { product: bare.product }));
     if (!saved)
       lines.push("", tr("config.question"), tr("doctor.data_fix"));
     return ok(lines.join(`
@@ -13417,6 +13543,7 @@ export {
   covers,
   counts,
   copyGens,
+  containerWithoutGit,
   conflicts,
   configFile,
   commitReachable,

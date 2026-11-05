@@ -214,10 +214,22 @@ export async function resolvePaths(host: Host, cwd: string): Promise<RepoPaths |
   return out
 }
 
+/**
+ * The jproject container around `cwd` whose product folder is not a git repository of its own. Run data needs that
+ * repository, so this is a condition: `jtasks doctor --fix` offers to create it (`git init`).
+ */
+export async function containerWithoutGit(host: Host, cwd: string): Promise<Container | undefined> {
+  const container = await findContainer(host, cwd)
+  if (!container) return undefined
+  return (await host.stat(join(container.product, ".git"))) ? undefined : container
+}
+
 export async function requirePaths(host: Host, cwd: string): Promise<RepoPaths> {
   const paths = await resolvePaths(host, cwd)
-  if (!paths) throw new ToolError(tr("git.not_a_repo", { cwd }))
-  return paths
+  if (paths) return paths
+  const bare = await containerWithoutGit(host, cwd)
+  if (bare) throw new ToolError(tr("container.needs_git", { product: bare.product }))
+  throw new ToolError(tr("git.not_a_repo", { cwd }))
 }
 
 /** The repository's root for a command run in `cwd` (the container's product outside a repository). */

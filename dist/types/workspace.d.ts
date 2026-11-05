@@ -75,6 +75,11 @@ export declare function boundData(binding: {
  * own git repository, or, outside one (the agent opened in a jproject container), `<container>/<product_dir>`.
  */
 export declare function resolvePaths(host: Host, cwd: string): Promise<RepoPaths | undefined>;
+/**
+ * The jproject container around `cwd` whose product folder is not a git repository of its own. Run data needs that
+ * repository, so this is a condition: `jtasks doctor --fix` offers to create it (`git init`).
+ */
+export declare function containerWithoutGit(host: Host, cwd: string): Promise<Container | undefined>;
 export declare function requirePaths(host: Host, cwd: string): Promise<RepoPaths>;
 /** The repository's root for a command run in `cwd` (the container's product outside a repository). */
 export declare function requireRepo(host: Host, cwd: string): Promise<string>;

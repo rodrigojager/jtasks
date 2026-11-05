@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Host } from "../src/host.ts"
 import type { Check } from "../src/doctor.ts"
-import { cleanupTemp, host, makeRepo, REPO_ROOT, tasks, tempDir } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, REPO_ROOT, tasks, tempDir, writeFiles } from "./helpers.ts"
 
 afterAll(cleanupTemp)
 
@@ -89,5 +89,65 @@ describe("jtasks doctor", () => {
     expect(check(r, "opencode").status).toBe("ok")
     expect(check(r, "language").detail).toBe("en (--lang)")
     expect(r.text.split("\n").at(-1)).toMatch(/^ok: \d+, warnings: \d+, failures: 0$/)
+  })
+})
+
+/** A jproject container whose product/ is NOT a git repository yet (the condition jtasks needs). */
+function bareContainer(): { root: string; product: string } {
+  const root = tempDir("bare-container")
+  writeFiles(root, {
+    "_work/WORKSPACE.md": "---\njproject: 1\nproduct_dir: product\nwork_dir: _work\n---\n\n# Workspace\n",
+    "product/README.md": "# product\n",
+  })
+  return { root, product: join(root, "product") }
+}
+
+describe("a jproject container whose product folder is not a git repository", () => {
+  test("doctor fails the data check with the git init fix, and the run commands say why", async () => {
+    const { root } = bareContainer()
+    const home = tempDir("user-home")
+    const r = await doctor(root, { JTASKS_USER_HOME: home })
+    expect(check(r, "data")).toMatchObject({ status: "fail" })
+    expect(check(r, "data").detail).toContain("not a git repository")
+    expect(check(r, "data").fix).toContain("git init")
+    expect(r.code).toBe(20)
+    const run = await tasks(root, ["runs"])
+    expect(run.ok).toBe(false)
+    expect(run.text).toContain("git init")
+  })
+
+  test("config says it is a condition and does not invent a data folder", async () => {
+    const { root } = bareContainer()
+    const r = await tasks(root, ["config"])
+    expect(r.text).toContain("not a git repository")
+    expect((r.data as { resolved: unknown }).resolved).toBeNull()
+  })
+
+  test("doctor --fix asks on the terminal; a yes runs git init and records it in the ledger", async () => {
+    const { root, product } = bareContainer()
+    const home = tempDir("user-home")
+    const jhome = tempDir("jtasks-home")
+    const asked: string[] = []
+    const r = await tasks(root, ["doctor", "--fix", "--yes"], {
+      host: withEnv({ JTASKS_USER_HOME: home, JTASKS_HOME: jhome }),
+      packageRoot: REPO_ROOT,
+      ask: async (question: string) => (asked.push(question), "y"),
+    })
+    expect(asked.join("\n")).toContain("git init")
+    expect(await host.stat(join(product, ".git"))).toBeDefined()
+    expect(r.text).toContain("git init done")
+    expect(r.text).toContain("jtasks undo")
+  })
+
+  test("without a terminal answer nothing is initialized, even with --yes", async () => {
+    const { root, product } = bareContainer()
+    const home = tempDir("user-home")
+    const jhome = tempDir("jtasks-home")
+    const r = await tasks(root, ["doctor", "--fix", "--yes"], {
+      host: withEnv({ JTASKS_USER_HOME: home, JTASKS_HOME: jhome }),
+      packageRoot: REPO_ROOT,
+    })
+    expect(r.text).toContain("not done")
+    expect(await host.stat(join(product, ".git"))).toBeUndefined()
   })
 })

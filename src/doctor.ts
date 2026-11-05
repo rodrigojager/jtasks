@@ -9,12 +9,13 @@
 import { choose, systemLocale, tr } from "./i18n.ts"
 import type { Host } from "./host.ts"
 import { EOF_JLOCK, jlockBin, jlockEnv, MIN_JLOCK, RENEW_JLOCK, versionAtLeast } from "./jlock.ts"
+import { git } from "./git.ts"
 import { globalLedger, readEffects, recordGlobalEffect } from "./ledger.ts"
 import { dirname, join } from "./paths.ts"
 import { installJlock as installJlockWith, jlockInstallPath, userHome } from "./setup.ts"
 import { jtasksHome } from "./store.ts"
 import { defineAction, ok, ToolError, VERSION, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
-import { configFile, readConfig, resolvePaths, writeConfig, type DataSource } from "./workspace.ts"
+import { configFile, containerWithoutGit, readConfig, resolvePaths, writeConfig, type DataSource } from "./workspace.ts"
 
 export type CheckStatus = "ok" | "warn" | "fail"
 
@@ -115,6 +116,9 @@ async function checkData(ctx: ToolContext): Promise<Check> {
   const saved = (await readConfig(host)).dataDir
   const setting = saved ? tr("doctor.data_saved", { value: saved }) : tr("doctor.data_unset")
   const paths = await resolvePaths(host, ctx.cwd).catch(() => undefined)
+  // A jproject container without its own git repository: no run data until product/ is one (a condition, not a warning).
+  const bare = paths ? undefined : await containerWithoutGit(host, ctx.cwd).catch(() => undefined)
+  if (bare) return { name: "data", status: "fail", detail: tr("doctor.container_no_git", { product: bare.product }), fix: tr("doctor.container_git_fix", { product: bare.product }) }
   const where = paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : tr("doctor.data_no_repo")
   const fix = saved ? undefined : tr("doctor.data_fix")
   // A jproject container whose run data would land inside product/: what the container is meant to avoid.
@@ -236,6 +240,20 @@ async function installFile(host: Host, from: string, to: string): Promise<string
   return tr("doctor.file_installed", { file: to, id: e.id })
 }
 
+/**
+ * `git init` in a container's product folder, only after a yes on the terminal: it is never done silently. Recorded
+ * in the global ledger, so `jtasks undo` removes the `.git` folder it created.
+ */
+async function gitInitProduct(ctx: ToolContext, product: string): Promise<string> {
+  const { host } = ctx
+  const answer = ctx.ask ? (await ctx.ask(`${tr("doctor.container_git_question", { product })}\n> `).catch(() => undefined))?.trim().toLowerCase() : undefined
+  if (answer !== "y" && answer !== "yes") return tr("doctor.git_init_skipped", { product })
+  const r = await git(host, product, ["init", "-q"]).catch((error: Error) => ({ code: 1, stdout: "", stderr: error.message }))
+  if (r.code !== 0) throw new ToolError(tr("doctor.git_init_failed", { product, message: r.stderr.trim() }))
+  const e = await recordGlobalEffect(host, { run: "doctor", type: "dir", repo: product, path: join(product, ".git"), undo: { kind: "rmdir" } })
+  return tr("doctor.git_init_done", { product, id: e.id })
+}
+
 async function fixSteps(ctx: ToolContext, checks: Check[], args: ParsedArgs): Promise<FixStep[]> {
   const { host } = ctx
   const pkg = ctx.packageRoot!
@@ -243,6 +261,8 @@ async function fixSteps(ctx: ToolContext, checks: Check[], args: ParsedArgs): Pr
   const jlock = checks.find((c) => c.name === "jlock")
   if (jlock?.fixable)
     steps.push({ what: tr("doctor.step_jlock"), run: () => installJlock(ctx) })
+  const bare = await containerWithoutGit(host, ctx.cwd).catch(() => undefined)
+  if (bare) steps.push({ what: tr("doctor.step_git_init", { product: bare.product }), run: () => gitInitProduct(ctx, bare.product) })
   const opencode = join(userHome(host), ".config/opencode")
   if (checks.find((c) => c.name === "opencode")?.status === "warn")
     for (const agent of OPENCODE_AGENTS) {
@@ -319,10 +339,12 @@ defineAction(
     if (key === undefined) {
       const saved = (await readConfig(host)).dataDir
       const paths = await resolvePaths(host, ctx.cwd).catch(() => undefined)
+      const bare = paths ? undefined : await containerWithoutGit(host, ctx.cwd).catch(() => undefined)
       const lines = [
         saved ? tr("config.show", { value: saved, file }) : tr("config.none", { file }),
-        paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : tr("doctor.data_no_repo"),
+        paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : bare ? tr("doctor.container_no_git", { product: bare.product }) : tr("doctor.data_no_repo"),
       ]
+      if (bare) lines.push(tr("doctor.container_git_fix", { product: bare.product }))
       if (!saved) lines.push("", tr("config.question"), tr("doctor.data_fix"))
       return ok(lines.join("\n"), { file, dataDir: saved ?? null, resolved: paths ?? null })
     }
