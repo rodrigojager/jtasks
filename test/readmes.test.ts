@@ -3,6 +3,10 @@ import { existsSync, readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { blocks, LANGS, normalize, planOf, runBlock } from "../scripts/readme-example.ts"
 import { REPO_ROOT } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const read = (file: string) => readFileSync(join(REPO_ROOT, file), "utf8").replace(/\r\n/g, "\n")
 const BAR = read("README.md").split("\n").slice(0, 2).join("\n")

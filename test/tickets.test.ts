@@ -2,6 +2,10 @@ import { describe, expect, test } from "bun:test"
 import { toTask } from "../src/plan.ts"
 import { DEFAULT_PROFILES } from "../src/schema.ts"
 import { renderTicket, ticketFileName } from "../src/tickets.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 describe("tickets", () => {
   const tasks = [

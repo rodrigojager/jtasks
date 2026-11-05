@@ -9,6 +9,10 @@ import { DEFAULT_PROFILES, type PlanTask, type RunFile, type Task } from "../src
 import { appendLog } from "../src/store.ts"
 import { validatePlan } from "../src/validate.ts"
 import { cleanupTemp, host, makeRepo, tasks, tasksOk, dataPath } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 afterAll(cleanupTemp)
 

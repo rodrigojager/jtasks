@@ -8,6 +8,10 @@ import { join } from "node:path"
 import type { Host } from "../src/host.ts"
 import { findContainer, parseFrontMatter, readConfig, resolvePaths } from "../src/workspace.ts"
 import { cleanupTemp, host, sh, tasks, tasksOk, tempDir, writeFiles } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 afterAll(cleanupTemp)
 

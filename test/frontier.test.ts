@@ -3,6 +3,10 @@ import { assess, blockerText, selectReady, taskKeys, type RunState } from "../sr
 import type { JlockLock } from "../src/jlock.ts"
 import { toTask } from "../src/plan.ts"
 import { DEFAULT_PROFILES, type PlanTask, type RunFile } from "../src/schema.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const ROOT = "D:/Proj"
 

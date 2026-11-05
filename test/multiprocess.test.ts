@@ -9,6 +9,10 @@ import { foldLines, parseLines, type FoldState } from "../src/events.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
 import { readState, strip } from "../src/store.ts"
 import { CLI, cleanupTemp, host, makeRepo, releaseGroup, tasksOk, runPath } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const N = 8
 const runs: string[] = []

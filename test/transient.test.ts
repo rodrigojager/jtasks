@@ -4,6 +4,10 @@
 import { describe, expect, test } from "bun:test"
 import { classifyFailure, durationMs, resetOf, resumeAtOf, resumeText, MAX_AUTO_RESUMES, type ProviderFailure } from "../src/transient.ts"
 import type { AutoPause, RunFile } from "../src/schema.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 /** Noon UTC: an epoch a few hours ahead stays ahead in every time zone the tests run in. */
 const NOON = new Date(Date.UTC(2025, 9, 25, 12, 0, 0))

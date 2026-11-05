@@ -5,6 +5,10 @@
 import { describe, expect, test } from "bun:test"
 import { problems, versions } from "../scripts/version.ts"
 import { VERSION } from "../src/tool.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 describe("version", () => {
   test("package.json, the core's VERSION, plugin.json, the marketplace (when it says one) and the OpenCode package agree", () => {

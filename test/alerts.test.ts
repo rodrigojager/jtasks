@@ -9,6 +9,10 @@ import type { AutoPause } from "../src/schema.ts"
 import { resumeText } from "../src/transient.ts"
 import { readRun, readTasks, type LogEntry } from "../src/store.ts"
 import { cleanupTemp, host, makeRepo, releaseGroup, tasksOk, runPath, dataPath } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const runs: string[] = []
 afterAll(async () => {

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test"
 import { canonical, conflicts, firstConflict, normalizeKey, relConflicts } from "../src/keys.ts"
 import { join, normalize, relativeInside } from "../src/paths.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 describe("normalizeKey", () => {
   test("Windows: absolute, forward slashes, lower case, no trailing slash", () => {

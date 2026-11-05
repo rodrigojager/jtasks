@@ -11,6 +11,10 @@ import type { Effect } from "../src/ledger.ts"
 import type { TasksFile } from "../src/schema.ts"
 import { withTree } from "../src/serial.ts"
 import { cleanupTemp, context, makeRepo, releaseGroup, sh, tasks, tasksOk, tempDir, writeFiles, runPath } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const runs: string[] = []
 afterAll(async () => {

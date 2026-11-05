@@ -11,6 +11,10 @@ import { checkKeepalive } from "../src/keepalive.ts"
 import { parseTasklist, probe, procAlive } from "../src/procs.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
 import { cleanupTemp, context, host, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, runPath, dataPath } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const runs: string[] = []
 const children: { kill(): void }[] = []

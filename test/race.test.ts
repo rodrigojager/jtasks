@@ -13,6 +13,10 @@ import type { TasksFile } from "../src/schema.ts"
 import { mutateTasks, readTasks } from "../src/store.ts"
 import { actorHost, looksAtPid, Schedule } from "./race-host.ts"
 import { cleanupTemp, context, host, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, runPath, writeFiles } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const runs: string[] = []
 const children: { kill(): void }[] = []

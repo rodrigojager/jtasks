@@ -6,6 +6,10 @@ import { appendFileSync } from "node:fs"
 import { join } from "node:path"
 import { validatePlan } from "../src/validate.ts"
 import { cleanupTemp, makeRepo, releaseGroup, tasks, tasksOk, runPath } from "./helpers.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const runs: string[] = []
 afterAll(async () => {

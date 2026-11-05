@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import { checkEdit, checkShell, shellSegments, type GuardContext } from "../src/guard.ts"
+import { setDefaultTimeout } from "bun:test"
+
+// Real git and jlock processes: the preload's default reaches only the first file of a run.
+setDefaultTimeout(60_000)
 
 const base: GuardContext = {
   root: "D:/Proj",
