@@ -7360,7 +7360,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.4.0";
+var VERSION = "0.4.1";
 
 class ToolError extends Error {
   code;
