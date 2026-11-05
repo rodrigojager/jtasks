@@ -4,7 +4,9 @@
 import { afterAll, setDefaultTimeout } from "bun:test"
 import { mkdirSync, readdirSync, rmSync } from "node:fs"
 
-const root = (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : "/tmp/jtasks-tests").replace(/\\/g, "/")
+const root = (
+  process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : "/tmp/jtasks-tests")
+).replace(/\\/g, "/")
 const home = `${root}/oc-process-${process.pid}-${Date.now().toString(36)}`
 mkdirSync(`${home}/jlock`, { recursive: true })
 process.env.JTASKS_HOME = `${home}/jtasks`
