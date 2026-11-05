@@ -320,7 +320,8 @@ export const register: Register = (on) => {
       if (!p || !paneOpen) return
       const bound = await p.getRun()
       const dir = bound ? runDir(boundData(bound), bound.run) : undefined
-      const files = dir ? [`${dir}/tasks.json`, `${dir}/run.json`] : []
+      // The events change first; the snapshots follow (ticket 60).
+      const files = dir ? [`${dir}/events.jsonl`, `${dir}/tasks.json`, `${dir}/run.json`] : []
       const stats = await Promise.all(files.map((f) => p.stat(f).then((x) => x.mtimeMs, () => 0)))
       const current = `${bound?.run ?? ''}:${stats.join(',')}`
       if (!force && current === signature && !isLive(await read($, viewAtom))) return

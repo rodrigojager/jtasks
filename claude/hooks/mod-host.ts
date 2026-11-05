@@ -112,6 +112,15 @@ class SpawnedResident implements Resident {
   }
 }
 
+/**
+ * Appends standard input to the file named by the last argument in one write (`bun -e` / `node -e`): concurrent
+ * appends of whole lines never interleave on a local disk (verified for ticket 60 on Windows NTFS).
+ */
+export const APPEND_SCRIPT =
+  'const fs=require("fs"),p=require("path"),f=process.argv[process.argv.length-1],c=[];' +
+  'process.stdin.on("data",(d)=>c.push(d));' +
+  'process.stdin.on("end",()=>{fs.mkdirSync(p.dirname(f),{recursive:true});fs.appendFileSync(f,Buffer.concat(c))})'
+
 export function createModHost(port: Port, cwd: string): Host {
   const env = port.env
   const platform = platformOf(cwd)
@@ -144,6 +153,20 @@ export function createModHost(port: Port, cwd: string): Host {
       return undefined
     }
   }
+  // The runtime of the appending process: bun (Claude Code's own), else node; the first that answers is kept.
+  let appender: string | undefined
+  const runAppend = async (path: string, text: string): Promise<RunResult> => {
+    const tries = appender ? [appender] : (env.JTASKS_APPEND_RUNTIME ? [env.JTASKS_APPEND_RUNTIME] : ['bun', 'node'])
+    let last: RunResult = { code: 127, stdout: '', stderr: 'no bun or node to append with' }
+    for (const exe of tries) {
+      last = await run([exe, '-e', APPEND_SCRIPT, path], { stdin: text, timeoutMs: 30_000 })
+      // 127: this runtime is not there (the host's run turns a failed spawn into 127); the next one is tried.
+      if (last.code === 127) continue
+      if (last.code === 0) appender = exe
+      return last
+    }
+    return last
+  }
   const mkdirOne = async (path: string): Promise<boolean> =>
     (await run(isWin ? ['cmd', '/d', '/c', 'mkdir', win(path)] : ['mkdir', path])).code === 0
   return {
@@ -157,7 +180,10 @@ export function createModHost(port: Port, cwd: string): Host {
     readText,
     writeText: (path, text) => port.write(path, text),
     async appendText(path, text) {
-      await port.write(path, ((await readText(path)) ?? '') + text)
+      // One write by a short process (ticket 60): $.fs has no append, and reading and writing the whole file lost
+      // the lines two appends wrote at once (log.jsonl, events.jsonl).
+      const r = await runAppend(path, text)
+      if (r.code !== 0) throw new Error(`append ${path}: ${(r.stderr || r.stdout).trim()}`)
     },
     async rename(from, to) {
       const r = await run(isWin ? ['cmd', '/d', '/c', 'move', '/y', win(from), win(to)] : ['mv', '-f', from, to])
