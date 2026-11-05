@@ -85,6 +85,47 @@ describe("done: one commit per task", () => {
     ])
   })
 
+  test("done commits every owned path once when the full path list exceeds Windows argv limits", async () => {
+    const { repo, dir } = await newRun({ tasks: [{ id: "T01", title: "Many owned paths", files: ["src"] }] })
+    await tasksOk(repo, ["start", "T01"])
+    const paths = Array.from({ length: 884 }, (_, index) =>
+      `src/owned-${String(index).padStart(4, "0")}-${"x".repeat(70)}/leaf-${"y".repeat(38)}.txt`)
+    expect(["git", "add", "-A", "--", ...paths].join(" ").length).toBeGreaterThan(32767)
+    writeFiles(repo, Object.fromEntries(paths.map((p, index) => [p, `owned fixture ${index}\n`])))
+    const addCalls: string[][] = []
+    let commits = 0
+    // Exercise real Git/jlock with a deterministic Windows command-line boundary on every platform.
+    // The old single-add implementation is refused before staging; do not launch an oversized OS command.
+    const boundedHost: typeof host = {
+      ...host,
+      async run(argv, options) {
+        if (argv[0] === "git" && argv[1] === "add") {
+          const separator = argv.indexOf("--")
+          expect(argv.slice(1, separator + 1)).toEqual(["add", "-A", "--"])
+          addCalls.push(argv.slice(separator + 1))
+          if (argv.join(" ").length > 32767)
+            return { code: 127, stdout: "", stderr: "spawn E2BIG: Windows command line exceeds 32767 characters" }
+        }
+        if (argv[0] === "git" && argv[1] === "commit") commits++
+        return host.run(argv, options)
+      },
+    }
+    const done = await tasksOk(repo, ["done", "T01", "--evidence", "884 owned paths through bounded argv"], { host: boundedHost })
+    expect(done.ok).toBe(true)
+    expect(addCalls.length).toBeGreaterThan(1)
+    expect(addCalls.flat()).toEqual(paths)
+    expect(new Set(addCalls.flat()).size).toBe(paths.length)
+    expect(addCalls.every(batch => ["git", "add", "-A", "--", ...batch].join(" ").length <= 32767)).toBe(true)
+    expect(commits).toBe(1)
+    expect(commitFiles(repo).sort()).toEqual(paths)
+    expect(sh(repo, "git", "rev-list", "--count", "HEAD").trim()).toBe("2")
+    expect(sh(repo, "git", "status", "--porcelain", "--untracked-files=all")).toBe("")
+    expect(tasksFile(dir).tasks[0]!.status).toBe("done")
+    const effects = (await readEffects(host, join(dir, "ledger.jsonl"))).filter(effect => effect.type === "commit")
+    expect(effects.length).toBe(1)
+    expect(effects[0]!.ref).toBe(tasksFile(dir).tasks[0]!.commit!)
+  })
+
   test("done is refused without evidence, for a task not in progress, and with a file outside the ownership", async () => {
     const { repo, dir } = await newRun()
     expect((await tasks(repo, ["done", "T01", "--evidence", "x"])).text).toBe("T01 não está em andamento (está pending)")

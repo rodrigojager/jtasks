@@ -239,4 +239,31 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(s.submitted[0]).toContain('changed without your asking')
     expect(s.submitted[0]).not.toContain('is idle')
   })
+
+  test(`the orchestrator runs T07 itself with a background process declared: no "idle" message; its end says to continue T07 · ${os}`, async ($, on) => {
+    const s = await scene($, on)
+    expect(String((await $.tool.call({ tool: TOOL, command: 'start T07' })).result)).toContain('T07 em andamento')
+    // Before declaring anything, the end of its turn looks idle (the false positive of 2026-11-05).
+    await s.end('answer', 1)
+    expect(s.submitted.at(-1)).toContain('T07 is in progress and no subagent is running: continue it yourself')
+    expect(s.submitted.at(-1)).toContain('declare that process with jtasks wait T07 --pid <pid>')
+    // It declares its background test run: the task waits for it, and the ends of its turns stay quiet.
+    s.machine.alive.add(4242)
+    expect(String((await $.tool.call({ tool: TOOL, command: 'wait T07 --pid 4242 --command "bun test"' })).result)).toContain('um processo seu')
+    const before = s.submitted.length
+    for (let n = 2; n <= 5; n++) await s.end('answer', n)
+    expect(s.submitted.length).toBe(before)
+    expect(s.notes.concat(s.toasts).some((t) => t.includes('parou'))).toBe(false)
+    // The process ends: the clock's pass tells the orchestrator to continue T07 itself, with nothing given back.
+    s.machine.alive.delete(4242)
+    for (let i = 0; i < 6; i++) {
+      await s.clock.advance(2000)
+      await s.clock.settle()
+    }
+    const told = s.submitted.at(-1)!
+    expect(told).toContain('changed without your asking')
+    expect(told).toContain('T07: the process you waited for (pid 4242) ended. You run T07 yourself')
+    expect(JSON.parse(s.machine.read(s.file)!).tasks[0]).toMatchObject({ status: 'in_progress', owner: 'claude:session-1' })
+    expect(JSON.parse(s.machine.read(s.file)!).tasks[0].awaiting).toBeUndefined()
+  })
 }

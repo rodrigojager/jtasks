@@ -6,6 +6,8 @@ import { afterAll, describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { agentEnded, awaitBack, sweepAwaiting } from "../src/actions.ts"
+import { alertNotice, alertText, logEnd, readAlerts } from "../src/alerts.ts"
+import { checkKeepalive } from "../src/keepalive.ts"
 import { parseTasklist, probe, procAlive } from "../src/procs.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
 import { cleanupTemp, context, host, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk } from "./helpers.ts"
@@ -225,6 +227,66 @@ describe("the end of a subagent", () => {
     expect(back.text).toContain(`T01 aguarda ${second.pid}`)
     expect(t01(dir).awaiting).toBeUndefined()
     expect(logOf(dir).filter((e) => e.action === "await-back")).toMatchObject([{ task: "T01", how: "procs", actor: "claude:s1/agent:a1" }])
+    // The orchestrator's wait never made it its own (inline) wait: the task is its subagent's.
+    expect(logOf(dir).some((e) => e.inline === true)).toBe(false)
+  })
+
+  test("the orchestrator running a task itself: its wait --pid makes the task wait (no orphan), and the end tells it to continue", async () => {
+    const { repo, run, dir } = await newRun({ awaitGrace: "1s" })
+    const orchestrator = { tool: "claude" as const, session: "s1" }
+    await tasksOk(repo, ["start", "T01"], orchestrator)
+    await tasksOk(repo, ["start", "T02"], orchestrator)
+    const keepalive = () => checkKeepalive(host, { root: repo, run, liveAgents: 0, actor: "claude:s1" })
+    // Before: both in progress with nobody on them, as far as the keepalive can tell.
+    const idle = await keepalive()
+    expect(idle.action === "nudge" && idle.orphans).toEqual(["T01", "T02"])
+    const child = sleeper()
+    const r = await tasksOk(repo, ["wait", "T01", "--pid", String(child.pid), "--command", "bun test"], orchestrator)
+    expect(r.text).toContain(`T01 aguarda ${child.pid} (bun test), um processo seu`)
+    expect(t01(dir).awaiting).toMatchObject({ pids: [child.pid], inline: true })
+    expect(t01(dir).awaiting?.agent).toBeUndefined()
+    // T01 works; only T02 is still the orchestrator's to pick up.
+    const busy = await keepalive()
+    expect(busy.action === "nudge" && busy.orphans).toEqual(["T02"])
+    // Another pid of its own on the same task: one more to wait for.
+    const second = sleeper()
+    await tasksOk(repo, ["wait", "T01", "--pid", String(second.pid)], orchestrator)
+    expect(t01(dir).awaiting).toMatchObject({ pids: [child.pid, second.pid], inline: true })
+    const ctx = context(repo, orchestrator)
+    expect(await sweepAwaiting(ctx, run)).toEqual([])
+    child.kill()
+    second.kill()
+    await Promise.all([child.exited, second.exited])
+    const offset = await logEnd(host, repo, run)
+    expect(await sweepAwaiting(ctx, run)).toEqual([{ task: "T01", what: "ended" }])
+    // The wait is simply over: still in progress, still the orchestrator's, its locks kept, nothing spent.
+    expect(t01(dir)).toMatchObject({ status: "in_progress", owner: "claude:s1", attempts: 1 })
+    expect(t01(dir).awaiting).toBeUndefined()
+    expect(t01(dir).agentEnded).toBeUndefined()
+    expect(heldBy(run, "T01").length).toBeGreaterThan(0)
+    // The orchestrator hears of it at once, told to continue the task itself.
+    const alerts = await readAlerts(host, repo, run, offset, "claude:s1")
+    expect(alerts.entries).toMatchObject([{ action: "await-ended", task: "T01", inline: true, pids: [child.pid, second.pid] }])
+    const text = alertText(runOf(dir), tasksOf(dir), alerts.entries, "claude")
+    expect(text).toContain(`T01: the process you waited for (pid ${child.pid}, ${second.pid}) ended. You run T01 yourself`)
+    expect(text).toContain("continue T01 yourself now")
+    expect(alertNotice(runOf(dir), tasksOf(dir), alerts.entries)).toBe("T01: o seu processo terminou; continue a tarefa você mesmo")
+    // No awaitGrace for it: later passes give nothing back.
+    await Bun.sleep(1100)
+    expect(await sweepAwaiting(ctx, run)).toEqual([])
+    expect(t01(dir)).toMatchObject({ status: "in_progress", owner: "claude:s1" })
+    const after = await keepalive()
+    expect(after.action === "nudge" && after.orphans).toEqual(["T01", "T02"])
+  }, 60_000)
+
+  test("the CLI's wait --pid (no host session) keeps the old behavior: declared, no wait of its own", async () => {
+    const { repo, dir } = await newRun()
+    await tasksOk(repo, ["start", "T01"])
+    const child = sleeper()
+    await tasksOk(repo, ["wait", "T01", "--pid", String(child.pid)])
+    expect(t01(dir).awaiting).toBeUndefined()
+    child.kill()
+    await child.exited
   })
 
   test("a task that lost its wait waits again while its subagent is gone and its processes live; their end is told", async () => {

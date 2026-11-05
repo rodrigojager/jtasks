@@ -146,6 +146,9 @@ describe("OpenCode plugin", () => {
     await expect(h.subagent("s1", { agent: "build", description: "x", prompt: `--run ${run} --task T09 x` })).rejects.toThrow(
       `jtasks: a execução ${run} não tem a tarefa T09`,
     )
+    // Only documentation of the commands (`--task <id>`, `--run <run>`): no task, the call goes as it is.
+    const doc = { agent: "explore", description: "x", prompt: "see `jtasks exec --task <id> -- <command>`) and --run <run>" }
+    expect(await h.subagent("s1", doc)).toBe(doc)
     const plain = { agent: "explore", description: "x", prompt: "map the code" }
     expect(await h.subagent("s1", plain)).toBe(plain)
     const other = await h.call("s1", "status --run outra-261024-zzzz")

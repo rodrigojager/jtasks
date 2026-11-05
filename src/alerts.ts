@@ -107,6 +107,12 @@ export function alertLine(e: LogEntry, tasks: Task[], tool: string | undefined, 
       )
     }
     case "await-ended": {
+      // The orchestrator's own process, on a task it runs itself: nobody comes back for it but the orchestrator.
+      if (e.inline)
+        return (
+          `${id}: the process you waited for (${list(e.pids) ? `pid ${list(e.pids)}` : "your own"}) ended. You run ${id} yourself, so no subagent comes back for it: ` +
+          `continue ${id} yourself now (read that process's result and finish it), or call jtasks release ${id} and open a subagent for it.`
+        )
       const how = agent ? resumeHow(tool, agent) : "the same subagent"
       const by = tool === "claude" ? `Claude Code normally reopens that subagent by itself; if it does not, resume it now (${how})` : `Resume that same subagent now (${how})`
       return `${id}: the process its subagent waited for ended. ${by}, so it reads the result and finishes. If it does not come back within ${grace}, ${id} goes back to the queue.`
@@ -178,7 +184,7 @@ export function alertNotice(run: RunFile, tasks: TasksFile, entries: LogEntry[])
       case "await":
         return tr("alert.await", { id, what: task?.awaiting ? awaitingWhat(task) : list(e.pids) || String(e.host ?? "") })
       case "await-ended":
-        return tr("alert.await_ended", { id })
+        return tr(e.inline ? "alert.await_ended_inline" : "alert.await_ended", { id })
       case "agent-ended":
         return tr("alert.agent_ended", { id, n: Number(e.agentEnded ?? 0), max: Number(e.max ?? 0) })
       case "lost":

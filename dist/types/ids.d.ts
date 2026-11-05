@@ -4,3 +4,8 @@ export declare function yymmdd(date: Date): string;
 export declare function runId(slug: string, date: Date, random: () => number): string;
 /** The ticket number of a task: the digits of `T04` (`04`), or its position. */
 export declare function ticketNumber(id: string, index: number): string;
+/** The run and the task a subagent's prompt names with `--run <id>` and `--task <id>` (section 13). */
+export declare function taskOfPrompt(prompt: string): {
+    run?: string;
+    task?: string;
+};

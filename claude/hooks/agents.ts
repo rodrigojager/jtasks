@@ -3,14 +3,11 @@
 // reads) and the profile's effort on every model request of its loop; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
 // Bash, run through `jlock run` (one at a time on the machine).
 
-import { readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr } from '../core/core.js'
+import { readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr, taskOfPrompt } from '../core/core.js'
 import type { BoundRun } from '../types'
 
-export function taskOfPrompt(prompt: string): { run?: string; task?: string } {
-  const task = /--task[=\s]+([^\s]+)/.exec(prompt)?.[1]
-  const run = /--run[=\s]+([^\s]+)/.exec(prompt)?.[1]
-  return { run, task }
-}
+// `--run <id>` and `--task <id>` in a prompt: the core reads them (a placeholder such as `<id>` names no task).
+export { taskOfPrompt }
 
 export interface SpawnDecision {
   task?: string

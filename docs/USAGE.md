@@ -283,6 +283,12 @@ that lost its wait anyway (in progress, its subagent no longer alive, processes 
 for them again on the Claude Code mod's clock (`await` with `how: "sweep"` in the log), and their end is told like any
 other.
 
+A task the orchestrator runs itself (it started it, no subagent on it) is the exception: its own
+`jtasks wait <id> --pid <pid>` makes the task wait for that process (`awaiting.inline`), so the keepalive does not take
+the task as abandoned while the process runs. When the process ends the wait is simply over (no `awaitGrace`, nothing
+given back), the log gets `await-ended` with `inline: true`, and the orchestrator is told at once to continue the task
+itself. The CLI's `wait` and a wait on a subagent's task keep the behavior above.
+
 A subagent that ends without finishing sends its task back to pending **without spending an attempt**: it is counted
 in `agentEnded`, and at `maxAgentEnded` (3) the task fails and the run pauses for a person (`needsPerson` in
 `run.json`, explained by `status`); `retry <id>` and `unpause` go on. Both limits are plan fields (`maxAgentEnded`,

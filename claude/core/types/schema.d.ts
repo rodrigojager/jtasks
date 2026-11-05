@@ -105,6 +105,12 @@ export interface Awaiting {
     host?: string;
     /** When jtasks saw the processes end (or the host stop waiting): `awaitGrace` counts from here. */
     endedAt?: string;
+    /**
+     * The orchestrator runs the task itself (it owns it) and waits for a process of its own (`jtasks wait --pid`): no
+     * subagent comes back. The task is not idle while the process lives; when it ends the wait is over and the
+     * orchestrator is told to continue the task itself (no `awaitGrace`, nothing given back).
+     */
+    inline?: true;
 }
 /** The run paused because a person is needed (rev. 5.8): a task's subagent ended without finishing too many times. */
 export interface NeedsPerson {

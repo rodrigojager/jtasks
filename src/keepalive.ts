@@ -92,7 +92,8 @@ export function keepaliveDecision(input: KeepaliveInput): KeepaliveDecision {
   if (run.keepalive === false) return { action: "none", reason: "off" }
   if (input.liveAgents > 0) return { action: "none", reason: "agents-running" }
   const ready = selectReady(state, assess(state, input.locks, input.platform), input.platform).map((t) => t.id)
-  // A task waiting for its process (rev. 5.8) is no orphan: its subagent comes back when the process ends.
+  // A task waiting for its process (rev. 5.8) is no orphan: its subagent comes back when the process ends, or, for a
+  // task the orchestrator runs itself with a process of its own declared (`awaiting.inline`), the host tells it then.
   const orphanTasks = state.tasks.tasks.filter((t) => t.status === "in_progress" && !t.awaiting && isOrphan(t.owner, input.actor))
   const orphans = orphanTasks.map((t) => t.id)
   if (!ready.length && !orphans.length) return { action: "none", reason: "nothing-ready" }
@@ -153,7 +154,9 @@ export function nudgeText(run: RunFile, tasks: TasksFile, ready: string[], orpha
       agent
         ? `${id} is in progress with no agent running: its subagent ${agent} ended its loop without finishing it. Resume that same subagent (${resumeHow(tool, agent)}) if its work is not over; ` +
             `otherwise continue it yourself, or call jtasks release ${id} and open a subagent for it. Do not call jtasks wait on it.`
-        : `${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`,
+        : `${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it. ` +
+            `If you run it yourself and it waits on a long process you started (a background shell), declare that process with jtasks wait ${id} --pid <pid>: ` +
+            `the task then counts as working and you are told when the process ends.`,
     )
   }
   lines.push(

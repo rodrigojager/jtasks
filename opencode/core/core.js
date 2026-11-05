@@ -148,6 +148,7 @@ var en_default = {
   "alert.agent_ended": "{id} went back to the queue: its subagent ended without finishing ({n}/{max})",
   "alert.await": "{id} waits for its process ({what}); its subagent comes back when it ends",
   "alert.await_ended": "{id}: its process ended; waiting for its subagent to come back",
+  "alert.await_ended_inline": "{id}: your process ended; continue the task yourself",
   "alert.by_other": "{id}: {action} by {actor}",
   "alert.failed": "{id} failed: {error}",
   "alert.lost": "{id} lost its locks and went back to the queue",
@@ -629,6 +630,7 @@ var en_default = {
   "wait.dead": "no live process among {list}: nothing to wait for",
   "wait.declared": "{id} waits for {list}: if its subagent's loop ends meanwhile, the task stays in progress with its locks",
   "wait.gone": "ended",
+  "wait.inline": "{id} waits for {list}, a process of your own: the task counts as working while it runs, and the host tells you when it ends; then continue {id} yourself",
   "wait.list": "processes of {id}: {list}",
   "wait.none": "{id} has no registered process (jtasks exec, or jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "not alive, left out: {list}",
@@ -671,6 +673,7 @@ var pt_BR_default = {
   "alert.agent_ended": "{id} voltou à fila: o subagente terminou sem concluir ({n}/{max})",
   "alert.await": "{id} aguarda o processo ({what}); o subagente volta quando ele terminar",
   "alert.await_ended": "{id}: o processo terminou; aguardando o subagente voltar",
+  "alert.await_ended_inline": "{id}: o seu processo terminou; continue a tarefa você mesmo",
   "alert.by_other": "{id}: {action} por {actor}",
   "alert.failed": "{id} falhou: {error}",
   "alert.lost": "{id} perdeu as travas e voltou à fila",
@@ -1152,6 +1155,7 @@ var pt_BR_default = {
   "wait.dead": "nenhum processo vivo entre {list}: nada a aguardar",
   "wait.declared": "{id} aguarda {list}: se o laço do subagente terminar nesse meio-tempo, a tarefa continua em andamento com as travas",
   "wait.gone": "terminou",
+  "wait.inline": "{id} aguarda {list}, um processo seu: a tarefa conta como em trabalho enquanto ele roda, e o host avisa quando terminar; então continue {id} você mesmo",
   "wait.list": "processos de {id}: {list}",
   "wait.none": "{id} não tem processo registrado (jtasks exec, ou jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "não estão vivos, ficaram de fora: {list}",
@@ -1194,6 +1198,7 @@ var es_default = {
   "alert.agent_ended": "{id} volvió a la cola: su subagente terminó sin acabar ({n}/{max})",
   "alert.await": "{id} espera su proceso ({what}); su subagente vuelve cuando termine",
   "alert.await_ended": "{id}: su proceso terminó; esperando a que vuelva su subagente",
+  "alert.await_ended_inline": "{id}: tu proceso terminó; continúa la tarea tú mismo",
   "alert.by_other": "{id}: {action} por {actor}",
   "alert.failed": "{id} falló: {error}",
   "alert.lost": "{id} perdió sus bloqueos y volvió a la cola",
@@ -1675,6 +1680,7 @@ var es_default = {
   "wait.dead": "ningún proceso vivo entre {list}: nada que esperar",
   "wait.declared": "{id} espera {list}: si el bucle de su subagente termina mientras tanto, la tarea sigue en curso con sus bloqueos",
   "wait.gone": "terminado",
+  "wait.inline": "{id} espera {list}, un proceso tuyo: la tarea cuenta como en trabajo mientras corre, y el host te avisa cuando termine; entonces continúa {id} tú mismo",
   "wait.list": "procesos de {id}: {list}",
   "wait.none": "{id} no tiene procesos registrados (jtasks exec, o jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "no están vivos, se dejaron fuera: {list}",
@@ -1717,6 +1723,7 @@ var fr_default = {
   "alert.agent_ended": "{id} est revenue dans la file d'attente: son sous-agent s'est arrêté sans finir ({n}/{max})",
   "alert.await": "{id} attend son processus ({what}); son sous-agent revient quand il se termine",
   "alert.await_ended": "{id}: son processus s'est terminé; on attend le retour de son sous-agent",
+  "alert.await_ended_inline": "{id}: ton processus s'est terminé; continue la tâche toi-même",
   "alert.by_other": "{id}: {action} par {actor}",
   "alert.failed": "{id} en échec: {error}",
   "alert.lost": "{id} a perdu ses verrous et est revenue dans la file d'attente",
@@ -2198,6 +2205,7 @@ var fr_default = {
   "wait.dead": "aucun processus vivant parmi {list}: rien à attendre",
   "wait.declared": "{id} attend {list}: si la boucle de son sous-agent s'arrête entre-temps, la tâche reste en cours avec ses verrous",
   "wait.gone": "terminé",
+  "wait.inline": "{id} attend {list}, un processus à toi: la tâche compte comme en travail tant qu'il tourne, et l'hôte te prévient quand il se termine; continue alors {id} toi-même",
   "wait.list": "processus de {id}: {list}",
   "wait.none": "{id} n'a aucun processus enregistré (jtasks exec, ou jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "pas vivants, laissés de côté: {list}",
@@ -2240,6 +2248,7 @@ var de_default = {
   "alert.agent_ended": "{id} ist zurück in der Warteschlange: ihr Subagent endete, ohne fertig zu werden ({n}/{max})",
   "alert.await": "{id} wartet auf ihren Prozess ({what}); ihr Subagent kommt zurück, wenn er endet",
   "alert.await_ended": "{id}: ihr Prozess ist beendet; warte auf die Rückkehr ihres Subagenten",
+  "alert.await_ended_inline": "{id}: dein Prozess ist beendet; setze die Aufgabe selbst fort",
   "alert.by_other": "{id}: {action} durch {actor}",
   "alert.failed": "{id} gescheitert: {error}",
   "alert.lost": "{id} hat ihre Sperren verloren und ist zurück in der Warteschlange",
@@ -2721,6 +2730,7 @@ var de_default = {
   "wait.dead": "kein lebender Prozess unter {list}: nichts zu warten",
   "wait.declared": "{id} wartet auf {list}: endet die Schleife ihres Subagenten inzwischen, bleibt die Aufgabe mit ihren Sperren in Arbeit",
   "wait.gone": "beendet",
+  "wait.inline": "{id} wartet auf {list}, einen eigenen Prozess: die Aufgabe gilt als in Arbeit, solange er läuft, und der Host meldet sein Ende; dann setze {id} selbst fort",
   "wait.list": "Prozesse von {id}: {list}",
   "wait.none": "{id} hat keinen registrierten Prozess (jtasks exec oder jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "nicht am Leben, ausgelassen: {list}",
@@ -2763,6 +2773,7 @@ var it_default = {
   "alert.agent_ended": "{id} è tornata in coda: il suo subagente è terminato senza finire ({n}/{max})",
   "alert.await": "{id} attende il suo processo ({what}); il subagente torna quando termina",
   "alert.await_ended": "{id}: il processo è terminato; si attende il ritorno del subagente",
+  "alert.await_ended_inline": "{id}: il tuo processo è terminato; continua tu l'attività",
   "alert.by_other": "{id}: {action} da {actor}",
   "alert.failed": "{id} fallita: {error}",
   "alert.lost": "{id} ha perso i blocchi ed è tornata in coda",
@@ -3244,6 +3255,7 @@ var it_default = {
   "wait.dead": "nessun processo vivo tra {list}: niente da attendere",
   "wait.declared": "{id} attende {list}: se il ciclo del subagente termina nel frattempo, l'attività resta in corso con i suoi blocchi",
   "wait.gone": "terminato",
+  "wait.inline": "{id} attende {list}, un tuo processo: l'attività conta come in lavorazione finché gira, e l'host ti avvisa quando termina; poi continua tu {id}",
   "wait.list": "processi di {id}: {list}",
   "wait.none": "{id} non ha processi registrati (jtasks exec, o jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "non vivi, lasciati fuori: {list}",
@@ -3286,6 +3298,7 @@ var zh_CN_default = {
   "alert.agent_ended": "{id} 已回到队列：其子智能体未完成就结束了（{n}/{max}）",
   "alert.await": "{id} 正在等待其进程（{what}）；进程结束后子智能体会回来",
   "alert.await_ended": "{id}：其进程已结束；正在等待子智能体回来",
+  "alert.await_ended_inline": "{id}：你的进程已结束；请自己继续该任务",
   "alert.by_other": "{id}：{actor} 执行了 {action}",
   "alert.failed": "{id} 失败：{error}",
   "alert.lost": "{id} 失去了锁，已回到队列",
@@ -3767,6 +3780,7 @@ var zh_CN_default = {
   "wait.dead": "{list} 中没有存活的进程：无需等待",
   "wait.declared": "{id} 等待 {list}：若子智能体的循环在此期间结束，任务仍在进行中并保留锁",
   "wait.gone": "已结束",
+  "wait.inline": "{id} 等待你自己的进程 {list}：进程运行期间任务视为进行中，结束时宿主会通知你；然后自己继续 {id}",
   "wait.list": "{id} 的进程：{list}",
   "wait.none": "{id} 没有登记的进程（jtasks exec，或 jtasks wait {id} --pid <pid>）",
   "wait.not_alive": "未存活，已略过：{list}",
@@ -3809,6 +3823,7 @@ var ja_default = {
   "alert.agent_ended": "{id} はキューに戻った: サブエージェントが完了せずに終了（{n}/{max}）",
   "alert.await": "{id} はプロセス（{what}）を待機中。終了するとサブエージェントが戻る",
   "alert.await_ended": "{id}: プロセスが終了した。サブエージェントの復帰を待機中",
+  "alert.await_ended_inline": "{id}: あなたのプロセスが終了した。タスクを自分で続けること",
   "alert.by_other": "{id}: {actor} が {action}",
   "alert.failed": "{id} は失敗: {error}",
   "alert.lost": "{id} はロックを失い、キューに戻った",
@@ -4290,6 +4305,7 @@ var ja_default = {
   "wait.dead": "{list} に生きているプロセスはない: 待つものはない",
   "wait.declared": "{id} は {list} を待つ: その間にサブエージェントのループが終了しても、タスクはロックを持ったまま進行中",
   "wait.gone": "終了",
+  "wait.inline": "{id} は自分のプロセス {list} を待つ: 実行中はタスクが作業中とみなされ、終了するとホストが知らせる。その後 {id} を自分で続けること",
   "wait.list": "{id} のプロセス: {list}",
   "wait.none": "{id} に登録されたプロセスはない（jtasks exec、または jtasks wait {id} --pid <pid>）",
   "wait.not_alive": "生きていないため除外: {list}",
@@ -4332,6 +4348,7 @@ var ru_default = {
   "alert.agent_ended": "{id} вернулась в очередь: её субагент завершился, не доделав ({n}/{max})",
   "alert.await": "{id} ждёт свой процесс ({what}); субагент вернётся, когда он завершится",
   "alert.await_ended": "{id}: процесс завершился; ждём возвращения субагента",
+  "alert.await_ended_inline": "{id}: ваш процесс завершился; продолжите задачу сами",
   "alert.by_other": "{id}: {action} от {actor}",
   "alert.failed": "{id} провалена: {error}",
   "alert.lost": "{id} потеряла блокировки и вернулась в очередь",
@@ -4813,6 +4830,7 @@ var ru_default = {
   "wait.dead": "среди {list} нет живых процессов: ждать нечего",
   "wait.declared": "{id} ждёт {list}: если цикл субагента тем временем завершится, задача останется в работе с блокировками",
   "wait.gone": "завершён",
+  "wait.inline": "{id} ждёт {list}, ваш собственный процесс: пока он идёт, задача считается в работе, и хост сообщит о его завершении; затем продолжите {id} сами",
   "wait.list": "процессы {id}: {list}",
   "wait.none": "у {id} нет записанных процессов (jtasks exec или jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "не живы, пропущены: {list}",
@@ -4855,6 +4873,7 @@ var ar_default = {
   "alert.agent_ended": "عادت {id} إلى الطابور: انتهى وكيلها الفرعي دون أن يُكمل ({n}/{max})",
   "alert.await": "{id} تنتظر عمليتها ({what})؛ يعود وكيلها الفرعي عند انتهائها",
   "alert.await_ended": "{id}: انتهت عمليتها؛ بانتظار عودة وكيلها الفرعي",
+  "alert.await_ended_inline": "{id}: انتهت عمليتك؛ تابع المهمة بنفسك",
   "alert.by_other": "{id}: {action} بواسطة {actor}",
   "alert.failed": "فشلت {id}: {error}",
   "alert.lost": "فقدت {id} أقفالها وعادت إلى الطابور",
@@ -5336,6 +5355,7 @@ var ar_default = {
   "wait.dead": "لا توجد عملية حية بين {list}: لا شيء للانتظار",
   "wait.declared": "{id} تنتظر {list}: إذا انتهت حلقة وكيلها الفرعي في الأثناء، تبقى المهمة قيد التنفيذ مع أقفالها",
   "wait.gone": "انتهت",
+  "wait.inline": "{id} تنتظر {list}، وهي عملية خاصة بك: تُعد المهمة قيد العمل ما دامت تعمل، ويخبرك المضيف عند انتهائها؛ ثم تابع {id} بنفسك",
   "wait.list": "عمليات {id}: {list}",
   "wait.none": "لا توجد عملية مسجلة لـ {id} (jtasks exec، أو jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "ليست حية، تُركت: {list}",
@@ -5378,6 +5398,7 @@ var hi_default = {
   "alert.agent_ended": "{id} कतार में लौटा: उसका सबएजेंट बिना पूरा किए समाप्त हुआ ({n}/{max})",
   "alert.await": "{id} अपनी प्रक्रिया ({what}) की प्रतीक्षा में; उसके खत्म होने पर सबएजेंट लौटेगा",
   "alert.await_ended": "{id}: उसकी प्रक्रिया समाप्त; सबएजेंट के लौटने की प्रतीक्षा",
+  "alert.await_ended_inline": "{id}: आपकी प्रक्रिया समाप्त; कार्य स्वयं जारी रखें",
   "alert.by_other": "{id}: {actor} द्वारा {action}",
   "alert.failed": "{id} विफल: {error}",
   "alert.lost": "{id} ने अपने लॉक खो दिए और कतार में लौटा",
@@ -5859,6 +5880,7 @@ var hi_default = {
   "wait.dead": "{list} में कोई जीवित प्रक्रिया नहीं: प्रतीक्षा के लिए कुछ नहीं",
   "wait.declared": "{id} {list} की प्रतीक्षा करता है: इस बीच सबएजेंट का लूप समाप्त हो तो कार्य अपने लॉक के साथ प्रगति में रहता है",
   "wait.gone": "समाप्त",
+  "wait.inline": "{id} आपकी अपनी प्रक्रिया {list} की प्रतीक्षा करता है: उसके चलते कार्य काम में माना जाता है, और समाप्त होने पर होस्ट बताता है; फिर {id} स्वयं जारी रखें",
   "wait.list": "{id} की प्रक्रियाएँ: {list}",
   "wait.none": "{id} की कोई दर्ज प्रक्रिया नहीं (jtasks exec, या jtasks wait {id} --pid <pid>)",
   "wait.not_alive": "जीवित नहीं, छोड़ी गईं: {list}",
@@ -6347,6 +6369,19 @@ function ticketNumber(id, index) {
   const n = m ? Number(m[1]) : index + 1;
   return String(n).padStart(2, "0");
 }
+var ID_WORD = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+var OPTION = { run: /--run(?:=|\s+)(\S+)/g, task: /--task(?:=|\s+)(\S+)/g };
+function optionId(prompt, name) {
+  for (const m of prompt.matchAll(OPTION[name])) {
+    const word = m[1].replace(/^[`'"(\[]+/, "").replace(/[`'"),.;:!?\]]+$/, "");
+    if (ID_WORD.test(word))
+      return word;
+  }
+  return;
+}
+function taskOfPrompt(prompt) {
+  return { run: optionId(prompt, "run"), task: optionId(prompt, "task") };
+}
 
 // src/tickets.ts
 function ticketFileName(task, index) {
@@ -6829,7 +6864,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.3.3";
+var VERSION = "0.3.4";
 
 class ToolError extends Error {
   code;
@@ -8353,7 +8388,7 @@ function nudgeText(run, tasks, ready, orphans, agents = {}, tool) {
   const lines = [head.join(" · ") + "."];
   for (const id of orphans) {
     const agent = agents[id];
-    lines.push(agent ? `${id} is in progress with no agent running: its subagent ${agent} ended its loop without finishing it. Resume that same subagent (${resumeHow(tool, agent)}) if its work is not over; ` + `otherwise continue it yourself, or call jtasks release ${id} and open a subagent for it. Do not call jtasks wait on it.` : `${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it.`);
+    lines.push(agent ? `${id} is in progress with no agent running: its subagent ${agent} ended its loop without finishing it. Resume that same subagent (${resumeHow(tool, agent)}) if its work is not over; ` + `otherwise continue it yourself, or call jtasks release ${id} and open a subagent for it. Do not call jtasks wait on it.` : `${id} is in progress and no subagent is running: continue it yourself, or call jtasks release ${id} and open a subagent for it. ` + `If you run it yourself and it waits on a long process you started (a background shell), declare that process with jtasks wait ${id} --pid <pid>: ` + `the task then counts as working and you are told when the process ends.`);
   }
   lines.push("This is a fact read from tasks.json now, not from the conversation's summary. Continue the protocol now: call jtasks next and open the subagents. " + "If something depends on the person, call jtasks pause and ask them.");
   return lines.join(`
@@ -8961,7 +8996,7 @@ function endsWait(task, agent) {
     return false;
   return a.agent ? a.agent === agent : true;
 }
-async function registerProcs(host, dir, taskId, procs, actor, agent) {
+async function registerProcs(host, dir, taskId, procs, actor, agent, opts = {}) {
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir);
     if (!tasks)
@@ -8973,9 +9008,14 @@ async function registerProcs(host, dir, taskId, procs, actor, agent) {
     const pids = new Set(procs.map((p) => p.pid));
     task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs];
     const back = endsWait(task, agent);
+    const inline = !back && !!opts.inline && !agent && task.owner === actor && (!task.awaiting || !!task.awaiting.inline);
     if (back)
       delete task.awaiting;
-    else if (task.awaiting) {
+    else if (inline) {
+      const before = task.awaiting?.pids ?? [];
+      const added = procs.map((p) => p.pid).filter((pid) => !before.includes(pid));
+      task.awaiting = { since: task.awaiting?.since ?? host.now().toISOString(), pids: [...before, ...added], inline: true };
+    } else if (task.awaiting) {
       const added = procs.map((p) => p.pid).filter((pid) => !task.awaiting.pids.includes(pid));
       if (added.length) {
         task.awaiting.pids = [...task.awaiting.pids, ...added];
@@ -8986,7 +9026,7 @@ async function registerProcs(host, dir, taskId, procs, actor, agent) {
     const at = host.now().toISOString();
     if (back)
       await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {});
-    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec" }).catch(() => {});
+    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec", ...inline ? { inline: true } : {} }).catch(() => {});
     return task;
   });
 }
@@ -9906,7 +9946,8 @@ defineAction("done", async (ctx, args) => {
     if (missing.length)
       throw new ToolError(tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }), 1, { missing });
     if (split.inside.length) {
-      await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside]);
+      for (let offset = 0;offset < split.inside.length; offset += 16)
+        await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside.slice(offset, offset + 16)]);
       await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`]);
       commit = await shortHead(ctx.host, state.root);
       await recordEffect(ctx.host, state.dir, {
@@ -10303,6 +10344,23 @@ async function sweepAwaiting(ctx, run, host, agentAlive) {
       }
       if (alive)
         continue;
+      if (a.inline) {
+        const over = await withLock(ctx.host, first.dir, async () => {
+          const state = await reload(ctx, first);
+          const copy = clone(state.tasks);
+          const t = copy.tasks.find((x) => x.id === task.id);
+          if (!t?.awaiting?.inline || t.status !== "in_progress")
+            return false;
+          const pids = t.awaiting.pids;
+          delete t.awaiting;
+          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
+          await log(ctx, state, { action: "await-ended", task: t.id, pids, inline: true });
+          return true;
+        });
+        if (over)
+          out.push({ task: task.id, what: "ended" });
+        continue;
+      }
       const now = ctx.host.now();
       let endedAt = a.endedAt;
       if (!endedAt) {
@@ -10337,10 +10395,10 @@ defineAction("wait", async (ctx, args) => {
     throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
   const raw = typeof args.options.pid === "string" ? args.options.pid : undefined;
   if (!raw) {
-    const list = [];
+    const list2 = [];
     for (const p of task.procs ?? [])
-      list.push(`${p.pid} ${shortCommand(p.command, 60)} (${tr(await procAlive(ctx.host, p) ? "wait.alive" : "wait.gone")})`);
-    return ok(list.length ? tr("wait.list", { id: task.id, list: list.join(" · ") }) : tr("wait.none", { id: task.id }), { task: task.id, procs: task.procs ?? [] });
+      list2.push(`${p.pid} ${shortCommand(p.command, 60)} (${tr(await procAlive(ctx.host, p) ? "wait.alive" : "wait.gone")})`);
+    return ok(list2.length ? tr("wait.list", { id: task.id, list: list2.join(" · ") }) : tr("wait.none", { id: task.id }), { task: task.id, procs: task.procs ?? [] });
   }
   const parts = raw.split(",").map((x) => x.trim()).filter(Boolean);
   const bad = parts.find((p) => !/^\d+$/.test(p));
@@ -10363,10 +10421,12 @@ defineAction("wait", async (ctx, args) => {
   }
   if (!procs.length)
     throw new ToolError(tr("wait.dead", { list: dead.join(", ") }));
-  const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx), ctx.agent);
+  const inline = !ctx.agent && !!ctx.session;
+  const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx), ctx.agent, { inline });
   if (!t)
     throw new ToolError(tr("task.not_running", { id: task.id, status: "?" }));
-  const lines = t.awaiting ? [tr("wait.still_awaiting", { id: task.id, what: awaitingWhat(t) })] : [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })];
+  const list = procs.map((p) => `${p.pid} (${p.command})`).join(", ");
+  const lines = t.awaiting?.inline ? [tr("wait.inline", { id: task.id, list })] : t.awaiting ? [tr("wait.still_awaiting", { id: task.id, what: awaitingWhat(t) })] : [tr("wait.declared", { id: task.id, list })];
   if (dead.length)
     lines.push(tr("wait.not_alive", { list: dead.join(", ") }));
   return ok(lines.join(`
@@ -11167,6 +11227,8 @@ function alertLine(e, tasks, tool, grace) {
       return `${id}: its subagent's loop ended while a process it started still runs (${what || "its background work"}). ${id} stays in progress with its ` + `locks and no attempt spent, waiting for that process: do not release it, do not call jtasks wait on it and do not open another subagent for it; the subagent comes back when the process ends.`;
     }
     case "await-ended": {
+      if (e.inline)
+        return `${id}: the process you waited for (${list(e.pids) ? `pid ${list(e.pids)}` : "your own"}) ended. You run ${id} yourself, so no subagent comes back for it: ` + `continue ${id} yourself now (read that process's result and finish it), or call jtasks release ${id} and open a subagent for it.`;
       const how = agent ? resumeHow(tool, agent) : "the same subagent";
       const by = tool === "claude" ? `Claude Code normally reopens that subagent by itself; if it does not, resume it now (${how})` : `Resume that same subagent now (${how})`;
       return `${id}: the process its subagent waited for ended. ${by}, so it reads the result and finishes. If it does not come back within ${grace}, ${id} goes back to the queue.`;
@@ -11232,7 +11294,7 @@ function alertNotice(run, tasks, entries) {
       case "await":
         return tr("alert.await", { id, what: task?.awaiting ? awaitingWhat(task) : list(e.pids) || String(e.host ?? "") });
       case "await-ended":
-        return tr("alert.await_ended", { id });
+        return tr(e.inline ? "alert.await_ended_inline" : "alert.await_ended", { id });
       case "agent-ended":
         return tr("alert.agent_ended", { id, n: Number(e.agentEnded ?? 0), max: Number(e.max ?? 0) });
       case "lost":
@@ -12327,6 +12389,7 @@ export {
   ticketPath,
   ticketNumber,
   ticketFileName,
+  taskOfPrompt,
   taskKeys,
   taskIdArg,
   takeKeys,

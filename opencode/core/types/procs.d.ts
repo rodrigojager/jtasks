@@ -34,10 +34,14 @@ export declare function endsWait(task: Task, agent: string | undefined): boolean
 /**
  * Adds processes to an in-progress task (one with the same pid is replaced). The subagent the task waits for
  * registering a process is at work again: the wait for its earlier process is over (`awaiting` cleared). Anyone else
- * (the orchestrator, another agent) leaves the wait as it is, with the new pids added to it. Answers the task as
+ * (the orchestrator, another agent) leaves the wait as it is, with the new pids added to it. With `inline` (the
+ * orchestrator's `jtasks wait --pid`), a task the caller owns itself and that waits for no subagent waits for these
+ * processes of its own (`awaiting.inline`). Answers the task as
  * written (`awaiting` still there when the wait goes on), or undefined when it is not in progress any more.
  */
-export declare function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string, agent?: string): Promise<Task | undefined>;
+export declare function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string, agent?: string, opts?: {
+    inline?: boolean;
+}): Promise<Task | undefined>;
 /** Takes processes off a task's list (its `exec` ended); a task no longer in progress has no list. */
 export declare function unregisterProcs(host: Host, dir: string, taskId: string, pids: number[]): Promise<void>;
 /** The run's grace after a waited process ended, in milliseconds. */

@@ -91,6 +91,25 @@ describe("keepaliveDecision", () => {
     expect(decide(theirs)).toEqual({ action: "none", reason: "nothing-ready" })
   })
 
+  test("a task the orchestrator runs itself with a live process of its own declared (inline wait) is no orphan", () => {
+    const s = state([{ id: "T05", title: "a", status: "in_progress", owner: ACTOR }, { id: "T06", title: "b", dependsOn: ["T05"] }])
+    // Without a declared process: still told to continue it, and how to declare the process it waits on.
+    const before = decide(s)
+    if (before.action !== "nudge") throw new Error(before.action)
+    expect(before.orphans).toEqual(["T05"])
+    expect(before.text).toContain("declare that process with jtasks wait T05 --pid <pid>")
+    // Declared: the task works, nothing else is ready: no message at all.
+    s.tasks.tasks[0]!.awaiting = { since: "2026-11-05T10:00:00.000Z", pids: [4242], inline: true }
+    expect(decide(s)).toEqual({ action: "none", reason: "nothing-ready" })
+    // A ready task is still news (open its subagent), but the inline task is not called an orphan.
+    s.tasks.tasks.push(toTask({ id: "T07", title: "c", files: ["src/c.ts"] }, DEFAULT_PROFILES))
+    const ready = decide(s)
+    if (ready.action !== "nudge") throw new Error(ready.action)
+    expect(ready.ready).toEqual(["T07"])
+    expect(ready.orphans).toEqual([])
+    expect(ready.text).not.toContain("T05 is in progress")
+  })
+
   test("the give-up for a task in progress with no agent says so, never \"to do\", and names the agent to resume (T17, fase3)", () => {
     const s = state([
       { id: "T16", title: "a", status: "done" },

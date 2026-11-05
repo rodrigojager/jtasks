@@ -2,17 +2,14 @@
 // The `subagent` call of a task (`--task <id>` in its prompt) gets the agent of the task's profile; a profile the
 // run does not have refuses the call. Agents named by the profiles get the profile's model through agent.transform.
 
-import { readTasks, runDir, tr } from "../core/core.js"
+import { readTasks, runDir, tr, taskOfPrompt } from "../core/core.js"
 import type { Host, Profile } from "../core/core.js"
 import type { RunBinding } from "./binding.ts"
 
 export const SUBAGENT_TOOLS = new Set(["subagent", "task"])
 
-export function taskOfPrompt(prompt: string): { run?: string; task?: string } {
-  const task = /--task[=\s]+([^\s]+)/.exec(prompt)?.[1]
-  const run = /--run[=\s]+([^\s]+)/.exec(prompt)?.[1]
-  return { run, task }
-}
+// `--run <id>` and `--task <id>` in a prompt: the core reads them (a placeholder such as `<id>` names no task).
+export { taskOfPrompt }
 
 export interface SpawnDecision {
   agent?: string

@@ -92,10 +92,20 @@ export function endsWait(task: Task, agent: string | undefined): boolean {
 /**
  * Adds processes to an in-progress task (one with the same pid is replaced). The subagent the task waits for
  * registering a process is at work again: the wait for its earlier process is over (`awaiting` cleared). Anyone else
- * (the orchestrator, another agent) leaves the wait as it is, with the new pids added to it. Answers the task as
+ * (the orchestrator, another agent) leaves the wait as it is, with the new pids added to it. With `inline` (the
+ * orchestrator's `jtasks wait --pid`), a task the caller owns itself and that waits for no subagent waits for these
+ * processes of its own (`awaiting.inline`). Answers the task as
  * written (`awaiting` still there when the wait goes on), or undefined when it is not in progress any more.
  */
-export async function registerProcs(host: Host, dir: string, taskId: string, procs: TaskProcess[], actor: string, agent?: string): Promise<Task | undefined> {
+export async function registerProcs(
+  host: Host,
+  dir: string,
+  taskId: string,
+  procs: TaskProcess[],
+  actor: string,
+  agent?: string,
+  opts: { inline?: boolean } = {},
+): Promise<Task | undefined> {
   return withLock(host, dir, async () => {
     const tasks = await readTasks(host, dir)
     if (!tasks) return undefined
@@ -105,8 +115,15 @@ export async function registerProcs(host: Host, dir: string, taskId: string, pro
     const pids = new Set(procs.map((p) => p.pid))
     task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs]
     const back = endsWait(task, agent)
+    // `inline`: the orchestrator waits for a process of its own on a task it runs itself (owner = caller, no
+    // subagent). The task waits for it, watched like a subagent's wait. A wait a subagent left is never turned into it.
+    const inline = !back && !!opts.inline && !agent && task.owner === actor && (!task.awaiting || !!task.awaiting.inline)
     if (back) delete task.awaiting
-    else if (task.awaiting) {
+    else if (inline) {
+      const before = task.awaiting?.pids ?? []
+      const added = procs.map((p) => p.pid).filter((pid) => !before.includes(pid))
+      task.awaiting = { since: task.awaiting?.since ?? host.now().toISOString(), pids: [...before, ...added], inline: true }
+    } else if (task.awaiting) {
       // Still waiting: for these too (a process the orchestrator saw is one more to wait for, never one less).
       const added = procs.map((p) => p.pid).filter((pid) => !task.awaiting!.pids.includes(pid))
       if (added.length) {
@@ -117,7 +134,7 @@ export async function registerProcs(host: Host, dir: string, taskId: string, pro
     await writeTasks(host, dir, copy, tasks.revision)
     const at = host.now().toISOString()
     if (back) await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {})
-    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec" }).catch(() => {})
+    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec", ...(inline ? { inline: true } : {}) }).catch(() => {})
     return task
   })
 }

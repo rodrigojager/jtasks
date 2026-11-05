@@ -92,6 +92,17 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(none.deny).toBe(`jtasks: a execução ${run} não tem a tarefa T09`)
   })
 
+  test(`a prompt that only documents the commands (--task <id>, --run <run>) names no task: the spawn goes as it is · ${os}`, async ($, on) => {
+    const { run } = await scene($, on)
+    const doc =
+      'Fix the keepalive. Constraint: the orchestrator calling "jtasks wait <id> --pid" must not strand a task; see `jtasks exec --task <id> -- <command>`), with --run <run> and --task {id}.'
+    const r = await $.agent.spawn({ prompt: doc, description: 'fix', subagentType: 'general-purpose' } as never)
+    expect(r.deny).toBeUndefined()
+    // A real id after the documentation still counts (a missing one is still refused), without the sentence's punctuation.
+    const real = await $.agent.spawn({ prompt: `${doc} Yours: --run ${run} --task \`T09\`.`, description: 'T09', subagentType: 'general-purpose' } as never)
+    expect(real.deny).toBe(`jtasks: a execução ${run} não tem a tarefa T09`)
+  })
+
   test(`a subagent's serialized command goes through jlock run; others and the main agent's run as they are · ${os}`, async ($, on) => {
     const { run, bash } = await scene($, on)
     await $.agent.spawn({ prompt: `--run ${run} --task T01 x`, description: 'T01', subagentType: 'general-purpose' } as never)

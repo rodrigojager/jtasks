@@ -51,6 +51,10 @@ sem o código. O `done` reaplica antes do commit os `patches` e os `restore` ati
 (`orphanKept`/`recoverKept` em `src/keep.ts`), ou recusa dizendo como resolver; o `start` também os recupera. Tarefa
 liberada recebe no `done` a instrução de `start`. `jtasks adopt <id> --from <tarefa>` leva as edições guardadas de
 uma tarefa já feita para uma em andamento, sem revert (na 0.3.x: `claim` + `undo <e-id> --force` em cada `restore`).
+Ticket 59: o `wait --pid` do orquestrador numa tarefa que é dele cria `awaiting.inline`: o keepalive não a conta como
+órfã enquanto o processo vive, e o fim do processo manda o orquestrador continuar a tarefa ele mesmo (`await-ended`
+com `inline`); tarefa de subagente segue o ticket 57. `taskOfPrompt` (`src/ids.ts`) ignora placeholders como `<id>`
+no prompt do spawn. O `done` faz `git add` em lotes de 16 caminhos; versão 0.3.4.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node), `cli/jtasks.ts`, `dist/` e as cópias em
 `opencode/core/` e `claude/core/` (geradas por `bun scripts/build.ts`; `test/build.test.ts` falha se estiverem

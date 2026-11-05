@@ -1084,7 +1084,9 @@ defineAction(
           { missing },
         )
       if (split.inside.length) {
-        await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside])
+        // Keep each argv below Windows' command-line limit without broadening ownership.
+        for (let offset = 0; offset < split.inside.length; offset += 16)
+          await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside.slice(offset, offset + 16)])
         await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`])
         commit = await shortHead(ctx.host, state.root)
         await recordEffect(ctx.host, state.dir, {
@@ -1532,6 +1534,23 @@ export async function sweepAwaiting(
         alive = (await liveProcs(ctx.host, procs)).length > 0
       }
       if (alive) continue
+      if (a.inline) {
+        // The orchestrator's own process ended: no subagent to wait for, the wait is simply over. The task goes
+        // back to being the orchestrator's to continue (told at once by the `await-ended` alert).
+        const over = await withLock(ctx.host, first.dir, async () => {
+          const state = await reload(ctx, first)
+          const copy = clone(state.tasks)
+          const t = copy.tasks.find((x) => x.id === task.id)
+          if (!t?.awaiting?.inline || t.status !== "in_progress") return false
+          const pids = t.awaiting.pids
+          delete t.awaiting
+          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
+          await log(ctx, state, { action: "await-ended", task: t.id, pids, inline: true })
+          return true
+        })
+        if (over) out.push({ task: task.id, what: "ended" })
+        continue
+      }
       const now = ctx.host.now()
       let endedAt = a.endedAt
       if (!endedAt) {
@@ -1590,13 +1609,19 @@ defineAction(
       procs.push(proc)
     }
     if (!procs.length) throw new ToolError(tr("wait.dead", { list: dead.join(", ") }))
-    const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx), ctx.agent)
+    // The orchestrator (a host session, no subagent) waiting for a process of its own on a task it runs itself: the
+    // task waits for it (not idle for the keepalive), and the orchestrator is told when it ends.
+    const inline = !ctx.agent && !!ctx.session
+    const t = await registerProcs(ctx.host, first.dir, task.id, procs, actorOf(ctx), ctx.agent, { inline })
     if (!t) throw new ToolError(tr("task.not_running", { id: task.id, status: "?" }))
     // The task waits for its subagent's process and the caller is not that subagent (the orchestrator, most often):
     // the wait goes on, and the caller is told to leave the task alone.
-    const lines = t.awaiting
-      ? [tr("wait.still_awaiting", { id: task.id, what: awaitingWhat(t) })]
-      : [tr("wait.declared", { id: task.id, list: procs.map((p) => `${p.pid} (${p.command})`).join(", ") })]
+    const list = procs.map((p) => `${p.pid} (${p.command})`).join(", ")
+    const lines = t.awaiting?.inline
+      ? [tr("wait.inline", { id: task.id, list })]
+      : t.awaiting
+        ? [tr("wait.still_awaiting", { id: task.id, what: awaitingWhat(t) })]
+        : [tr("wait.declared", { id: task.id, list })]
     if (dead.length) lines.push(tr("wait.not_alive", { list: dead.join(", ") }))
     return ok(lines.join("\n"), { run: first.run.id, task: task.id, pids: procs.map((p) => p.pid), dead, ...(t.awaiting ? { awaiting: t.awaiting } : {}) })
   },

@@ -69,7 +69,17 @@ person, with the reason in `jtasks status`: tell the user, and after they decide
 
 As the orchestrator: leave a task waiting for a process alone (no `release`, no second subagent, not doing it
 yourself, and never `jtasks wait` or `jtasks exec` on it: declaring its processes is its subagent's job, even with the
-same pids) and go on with the others. Whatever the run does without your asking (a subagent ended, a task went back
+same pids) and go on with the others.
+
+When you run a task yourself (you started it, no subagent on it) and leave a long process of yours running in the
+background (a test suite in a background shell), declare it on that task: `jtasks wait <id> --pid <pid>`, with the
+operating system's pid (in Git Bash, run it in the background shell as `<command> & cat /proc/$!/winpid; wait`; in
+PowerShell, `Start-Process -PassThru` gives `.Id`). Without that, the end of your turn looks idle and the host tells
+you to continue a task that is in fact running, and later that the run stalled. With it, the task counts as working
+while the process lives, and when it ends a message tells you so (`the process you waited for … ended`): read its
+result and continue the task yourself. This is only for a task you own; a subagent's task follows the rule above.
+
+Whatever the run does without your asking (a subagent ended, a task went back
 to the queue, failed or waits for a process, a lock was lost, the run paused for a person) reaches you at once as a
 message that starts with `jtasks: run <id> changed without your asking`, with the status line: act on it, it is read
 from the run's log, not from the conversation. Every notification of a subagent's end carries the same status line.
