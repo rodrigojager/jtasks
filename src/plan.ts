@@ -19,7 +19,8 @@ import {
   type Task,
   type TasksFile,
 } from "./schema.ts"
-import { appendLog, atomicWrite, listRuns, readJson, runDir, runsDir, stringify, withLock } from "./store.ts"
+import { appendLog, atomicWrite, createSnapshots, listRuns, readJson, runDir, runsDir, stringify } from "./store.ts"
+import { draftKey, withKey } from "./serial.ts"
 import { readTicketsDir, ticketReadLine, writeTickets } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
@@ -131,8 +132,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
       await addExcludeLine(host, root, line)
       undo.push(() => removeExcludeLine(host, root, line))
     }
-    await atomicWrite(host, join(dir, "run.json"), stringify(run))
-    await atomicWrite(host, join(dir, "tasks.json"), stringify(tasks))
+    await createSnapshots(host, dir, run, tasks)
     const tickets = await writeTickets(host, dir, tasks)
     if (useRunBranch) {
       await gitOk(host, root, ["switch", "-q", "-c", branch])
@@ -333,7 +333,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
 async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const { dir, draft } = await resolveDraft(ctx, args)
   const raw = await readJsonArg(ctx, args.positionals[0], "json.batch")
-  return withLock(ctx.host, dir, async () => {
+  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     const read = readPlan(raw)
     const profiles = read.plan.profiles ?? current.profiles ?? DEFAULT_PROFILES
@@ -373,7 +373,7 @@ async function draftFix(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     raw = raw[0]
   }
   if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as { id?: unknown }).id === undefined) raw = { ...raw, id: fixId }
-  return withLock(ctx.host, dir, async () => {
+  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     const index = current.tasks.findIndex((t) => t.id === fixId)
     if (index < 0) throw new ToolError(tr("draft.no_task", { id: fixId }))
@@ -405,7 +405,7 @@ async function draftShow(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
 
 async function draftCommit(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const { dir, draft } = await resolveDraft(ctx, args)
-  return withLock(ctx.host, dir, async () => {
+  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     if (current.tasks.length === 0) throw new ToolError(tr("draft.empty"))
     const { plan, errors, warnings } = validatePlan(draftPlan(current), { platform: ctx.host.platform })

@@ -38,6 +38,8 @@ export interface ToolContext {
     holdMode?: HoldMode;
     /** Called when a hold of this host ends by itself (14: the lock was taken away). Set by long-lived hosts. */
     onHoldExit?: (run: string, task: string, code: number) => void;
+    /** The serializing jlock keys this call already holds (serial.ts): a nested transition does not take them again. */
+    serialKeys?: Set<string>;
 }
 export interface ToolResult {
     ok: boolean;

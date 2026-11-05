@@ -189,7 +189,8 @@ describe("OpenCode plugin", () => {
       ...base,
       spawn: async (argv, options) => {
         const r = await base.spawn(argv, options)
-        seen.push(r)
+        // The task's holds; the run's tree key (ticket 60), held around the start, is not one of them.
+        if (!argv.some((x) => x.startsWith("name:jtasks:"))) seen.push(r)
         return r
       },
     }

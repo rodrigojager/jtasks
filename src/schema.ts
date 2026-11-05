@@ -149,9 +149,18 @@ export interface Profile {
   opencode?: OpenCodeProfile
 }
 
-export interface TasksFile {
+/** What run.json and tasks.json carry as snapshots of the events (ticket 60; events.ts). */
+export interface SnapshotStamp {
+  /** Bytes of events.jsonl folded into this file. */
+  eventOffset?: number
+  /** The generations there: the run's and each task's. */
+  gens?: { run: number; tasks: Record<string, number> }
+}
+
+export interface TasksFile extends SnapshotStamp {
   version: 1
   run: string
+  /** Accepted events that changed a task (only informative: the generations decide). */
   revision: number
   profiles: Record<string, Profile>
   tasks: Task[]
@@ -163,8 +172,10 @@ export interface Session {
   boundAt: string
 }
 
-export interface RunFile {
+export interface RunFile extends SnapshotStamp {
   version: 1
+  /** 2 once the run's state comes from events.jsonl (0.4.0); a 0.3.x jtasks must not write it. */
+  format?: 2
   id: string
   feature: string
   objective: string

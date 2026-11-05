@@ -569,9 +569,9 @@ var en_default = {
   "status.ready": "ready: {list}",
   "status.running": "in progress: {list}",
   "store.invalid_json": "{file} is not valid JSON: {message}",
-  "store.locked": "the run has been locked for writing for more than {seconds} s: {lock}",
+  "store.contended": "the run changed {n} times while this action decided (other changes to the same tasks); try again",
   "store.no_tasks": "run without tasks.json: {dir}",
-  "store.stale": "tasks.json changed while this action ran (revision {expected} → {found}); read it again and retry",
+  "store.tree_busy": "the run's working tree is busy ({key} held by {holder}) for more than {seconds} s; try again",
   "task.no_id": "missing the task's id",
   "task.not_found": "run {run} has no task {id}",
   "task.not_running": "{id} is not in progress (it is {status})",
@@ -1112,9 +1112,9 @@ var pt_BR_default = {
   "status.ready": "prontas: {list}",
   "status.running": "em andamento: {list}",
   "store.invalid_json": "{file} não é JSON válido: {message}",
-  "store.locked": "a execução está travada para escrita há mais de {seconds} s: {lock}",
+  "store.contended": "a execução mudou {n} vezes enquanto esta ação decidia (outras mudanças nas mesmas tarefas); tente de novo",
   "store.no_tasks": "execução sem tasks.json: {dir}",
-  "store.stale": "tasks.json mudou enquanto esta ação rodava (revisão {expected} → {found}); leia de novo e repita",
+  "store.tree_busy": "a árvore de trabalho da execução está ocupada ({key} com {holder}) há mais de {seconds} s; tente de novo",
   "task.no_id": "falta o id da tarefa",
   "task.not_found": "a execução {run} não tem a tarefa {id}",
   "task.not_running": "{id} não está em andamento (está {status})",
@@ -1655,9 +1655,9 @@ var es_default = {
   "status.ready": "listas: {list}",
   "status.running": "en curso: {list}",
   "store.invalid_json": "{file} no es JSON válido: {message}",
-  "store.locked": "la ejecución lleva más de {seconds} s bloqueada para escritura: {lock}",
+  "store.contended": "la ejecución cambió {n} veces mientras esta acción decidía (otros cambios en las mismas tareas); inténtalo de nuevo",
   "store.no_tasks": "ejecución sin tasks.json: {dir}",
-  "store.stale": "tasks.json cambió mientras corría esta acción (revisión {expected} → {found}); vuelve a leerlo y reintenta",
+  "store.tree_busy": "el árbol de trabajo de la ejecución está ocupado ({key} lo tiene {holder}) desde hace más de {seconds} s; inténtalo de nuevo",
   "task.no_id": "falta el id de la tarea",
   "task.not_found": "la ejecución {run} no tiene la tarea {id}",
   "task.not_running": "{id} no está en curso (está {status})",
@@ -2198,9 +2198,9 @@ var fr_default = {
   "status.ready": "prêtes: {list}",
   "status.running": "en cours: {list}",
   "store.invalid_json": "{file} n'est pas du JSON valide: {message}",
-  "store.locked": "l'exécution est verrouillée en écriture depuis plus de {seconds} s: {lock}",
+  "store.contended": "l'exécution a changé {n} fois pendant que cette action décidait (d'autres changements sur les mêmes tâches) ; réessayez",
   "store.no_tasks": "exécution sans tasks.json: {dir}",
-  "store.stale": "tasks.json a changé pendant cette action (révision {expected} → {found}); relisez-le et réessayez",
+  "store.tree_busy": "l'arbre de travail de l'exécution est occupé ({key} tenu par {holder}) depuis plus de {seconds} s ; réessayez",
   "task.no_id": "id de la tâche manquant",
   "task.not_found": "l'exécution {run} n'a pas de tâche {id}",
   "task.not_running": "{id} n'est pas en cours (elle est {status})",
@@ -2741,9 +2741,9 @@ var de_default = {
   "status.ready": "bereit: {list}",
   "status.running": "in Arbeit: {list}",
   "store.invalid_json": "{file} ist kein gültiges JSON: {message}",
-  "store.locked": "der Lauf ist seit mehr als {seconds} s zum Schreiben gesperrt: {lock}",
+  "store.contended": "der Lauf hat sich {n}-mal geändert, während diese Aktion entschied (andere Änderungen an denselben Aufgaben); versuche es erneut",
   "store.no_tasks": "Lauf ohne tasks.json: {dir}",
-  "store.stale": "tasks.json hat sich während dieser Aktion geändert (Revision {expected} → {found}); lies sie neu und versuch es erneut",
+  "store.tree_busy": "der Arbeitsbaum des Laufs ist seit mehr als {seconds} s belegt ({key} gehalten von {holder}); versuche es erneut",
   "task.no_id": "die id der Aufgabe fehlt",
   "task.not_found": "Lauf {run} hat keine Aufgabe {id}",
   "task.not_running": "{id} ist nicht in Arbeit (Status {status})",
@@ -3284,9 +3284,9 @@ var it_default = {
   "status.ready": "pronte: {list}",
   "status.running": "in corso: {list}",
   "store.invalid_json": "{file} non è JSON valido: {message}",
-  "store.locked": "l'esecuzione è bloccata in scrittura da più di {seconds} s: {lock}",
+  "store.contended": "l'esecuzione è cambiata {n} volte mentre questa azione decideva (altre modifiche alle stesse attività); riprova",
   "store.no_tasks": "esecuzione senza tasks.json: {dir}",
-  "store.stale": "tasks.json è cambiato mentre questa azione era in corso (revisione {expected} → {found}); rileggilo e riprova",
+  "store.tree_busy": "l'albero di lavoro dell'esecuzione è occupato ({key} tenuto da {holder}) da più di {seconds} s; riprova",
   "task.no_id": "manca l'id dell'attività",
   "task.not_found": "l'esecuzione {run} non ha l'attività {id}",
   "task.not_running": "{id} non è in corso (stato: {status})",
@@ -3827,9 +3827,9 @@ var zh_CN_default = {
   "status.ready": "就绪：{list}",
   "status.running": "进行中：{list}",
   "store.invalid_json": "{file} 不是有效的 JSON：{message}",
-  "store.locked": "运行已被写锁定超过 {seconds} 秒：{lock}",
+  "store.contended": "此操作决定期间运行已变化 {n} 次（同一任务的其他更改）；请重试",
   "store.no_tasks": "没有 tasks.json 的运行：{dir}",
-  "store.stale": "此操作执行期间 tasks.json 已改变（修订 {expected} → {found}）；请重新读取后重试",
+  "store.tree_busy": "运行的工作区已被占用超过 {seconds} 秒（{key} 由 {holder} 持有）；请重试",
   "task.no_id": "缺少任务的 id",
   "task.not_found": "运行 {run} 中没有任务 {id}",
   "task.not_running": "{id} 不在进行中（当前为 {status}）",
@@ -4370,9 +4370,9 @@ var ja_default = {
   "status.ready": "準備完了: {list}",
   "status.running": "進行中: {list}",
   "store.invalid_json": "{file} は正しい JSON ではない: {message}",
-  "store.locked": "実行が {seconds} 秒以上書き込みロックされている: {lock}",
+  "store.contended": "この操作の判断中に実行が {n} 回変わりました（同じタスクへの別の変更）。もう一度試してください",
   "store.no_tasks": "tasks.json のない実行: {dir}",
-  "store.stale": "このアクションの実行中に tasks.json が変わった（リビジョン {expected} → {found}）。読み直して再試行する",
+  "store.tree_busy": "実行の作業ツリーが {seconds} 秒以上使用中です（{key} を {holder} が保持）。もう一度試してください",
   "task.no_id": "タスクの id がない",
   "task.not_found": "実行 {run} にタスク {id} はない",
   "task.not_running": "{id} は進行中でない（現在 {status}）",
@@ -4913,9 +4913,9 @@ var ru_default = {
   "status.ready": "готовы: {list}",
   "status.running": "в работе: {list}",
   "store.invalid_json": "{file} — некорректный JSON: {message}",
-  "store.locked": "прогон заблокирован на запись дольше {seconds} с: {lock}",
+  "store.contended": "запуск изменился {n} раз, пока это действие принимало решение (другие изменения тех же задач); попробуйте снова",
   "store.no_tasks": "прогон без tasks.json: {dir}",
-  "store.stale": "tasks.json изменился во время этого действия (ревизия {expected} → {found}); перечитайте его и повторите",
+  "store.tree_busy": "рабочее дерево запуска занято дольше {seconds} с ({key} держит {holder}); попробуйте снова",
   "task.no_id": "не указан id задачи",
   "task.not_found": "в прогоне {run} нет задачи {id}",
   "task.not_running": "{id} не в работе (статус: {status})",
@@ -5456,9 +5456,9 @@ var ar_default = {
   "status.ready": "الجاهزة: {list}",
   "status.running": "قيد التنفيذ: {list}",
   "store.invalid_json": "{file} ليس JSON صالحًا: {message}",
-  "store.locked": "التشغيل مقفل للكتابة منذ أكثر من {seconds} ث: {lock}",
+  "store.contended": "تغيّر التشغيل {n} مرات أثناء اتخاذ هذا الإجراء قراره (تغييرات أخرى على المهام نفسها)؛ حاول مرة أخرى",
   "store.no_tasks": "تشغيل بلا tasks.json: {dir}",
-  "store.stale": "تغيّر tasks.json أثناء تنفيذ هذا الإجراء (المراجعة {expected} → {found})؛ اقرأه مجددًا وأعد المحاولة",
+  "store.tree_busy": "شجرة العمل للتشغيل مشغولة ({key} يمسكه {holder}) منذ أكثر من {seconds} ث؛ حاول مرة أخرى",
   "task.no_id": "معرّف المهمة ناقص",
   "task.not_found": "التشغيل {run} ليس فيه المهمة {id}",
   "task.not_running": "{id} ليست قيد التنفيذ (الحالة: {status})",
@@ -5999,9 +5999,9 @@ var hi_default = {
   "status.ready": "तैयार: {list}",
   "status.running": "प्रगति पर: {list}",
   "store.invalid_json": "{file} मान्य JSON नहीं है: {message}",
-  "store.locked": "रन {seconds} s से ज़्यादा समय से लिखने के लिए लॉक है: {lock}",
+  "store.contended": "इस क्रिया के निर्णय के दौरान रन {n} बार बदला (उन्हीं कार्यों में अन्य बदलाव); फिर से कोशिश करें",
   "store.no_tasks": "tasks.json के बिना रन: {dir}",
-  "store.stale": "इस क्रिया के चलते tasks.json बदल गई (संशोधन {expected} → {found}); फिर से पढ़ें और दोबारा कोशिश करें",
+  "store.tree_busy": "रन का कार्य-ट्री {seconds} s से अधिक समय से व्यस्त है ({key} {holder} के पास); फिर से कोशिश करें",
   "task.no_id": "कार्य का id नहीं दिया",
   "task.not_found": "रन {run} में कार्य {id} नहीं है",
   "task.not_running": "{id} प्रगति पर नहीं है (यह {status} है)",
@@ -6752,6 +6752,189 @@ function ticketReadLine(t) {
   return `${tr("import.line", { file: t.file, id: k.id, title: k.title, deps, own, n: crit })}${tail}`;
 }
 
+// src/events.ts
+var EVENT_VERSION = 1;
+var RUN_FORMAT = 2;
+var RUN_SNAPSHOT_KEYS = new Set(["format", "eventOffset", "gens"]);
+function emptyGens() {
+  return { run: 0, tasks: {} };
+}
+function copyGens(g) {
+  return { run: g?.run ?? 0, tasks: { ...g?.tasks ?? {} } };
+}
+function taskGen(g, id) {
+  return g.tasks[id] ?? 0;
+}
+function hasChange(p) {
+  return !!(p.set && Object.keys(p.set).length) || !!p.unset?.length;
+}
+function copy(value) {
+  return value === undefined ? value : JSON.parse(JSON.stringify(value));
+}
+function applyPatch(target, p) {
+  for (const [k, v] of Object.entries(p.set ?? {}))
+    target[k] = copy(v);
+  for (const k of p.unset ?? [])
+    delete target[k];
+}
+function accepts(gens, event) {
+  if (!Array.isArray(event.ops))
+    return false;
+  for (const op of event.ops)
+    if (typeof op?.task !== "string" || taskGen(gens, op.task) !== op.gen)
+      return false;
+  if (event.run && gens.run !== event.run.gen)
+    return false;
+  return event.ops.length > 0 || !!event.run;
+}
+function applyEvent(state, event) {
+  if (!accepts(state.gens, event))
+    return false;
+  let tasksChanged = false;
+  for (const op of event.ops) {
+    if (!hasChange(op))
+      continue;
+    state.gens.tasks[op.task] = op.gen + 1;
+    tasksChanged = true;
+    const task = state.tasks?.tasks.find((t) => t.id === op.task);
+    if (task)
+      applyPatch(task, op);
+  }
+  if (event.run && hasChange(event.run)) {
+    state.gens.run = event.run.gen + 1;
+    if (state.run)
+      applyPatch(state.run, event.run);
+  }
+  if (tasksChanged && state.tasks)
+    state.tasks.revision = (state.tasks.revision ?? 0) + 1;
+  return true;
+}
+function utf8Length(text) {
+  let n = 0;
+  for (let i = 0;i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c < 128)
+      n += 1;
+    else if (c < 2048)
+      n += 2;
+    else if (c >= 55296 && c <= 56319 && i + 1 < text.length) {
+      n += 4;
+      i++;
+    } else
+      n += 3;
+  }
+  return n;
+}
+function charIndexAt(text, offset) {
+  let n = 0;
+  for (let i = 0;i < text.length; i++) {
+    if (n >= offset)
+      return i;
+    const c = text.charCodeAt(i);
+    if (c < 128)
+      n += 1;
+    else if (c < 2048)
+      n += 2;
+    else if (c >= 55296 && c <= 56319 && i + 1 < text.length) {
+      n += 4;
+      i++;
+    } else
+      n += 3;
+  }
+  return text.length;
+}
+function parseLines(text, offset) {
+  const lines = [];
+  let at = charIndexAt(text, offset);
+  let end = offset;
+  for (;; ) {
+    const nl = text.indexOf(`
+`, at);
+    if (nl < 0)
+      break;
+    const raw = text.slice(at, nl);
+    end += utf8Length(raw) + 1;
+    at = nl + 1;
+    const line = raw.trim();
+    if (!line)
+      continue;
+    let event;
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && typeof parsed === "object" && parsed.v === EVENT_VERSION && typeof parsed.id === "string")
+        event = parsed;
+    } catch {}
+    lines.push(event ? { event, end } : { end });
+  }
+  return { lines, end };
+}
+function foldLines(state, lines) {
+  const accepted = [];
+  const refused = [];
+  for (const l of lines) {
+    if (!l.event)
+      continue;
+    if (applyEvent(state, l.event))
+      accepted.push(l.event.id);
+    else
+      refused.push(l.event.id);
+  }
+  return { accepted, refused };
+}
+function sameJson(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function diffFields(before, after, skip) {
+  const set = {};
+  const unset = [];
+  for (const [k, v] of Object.entries(after)) {
+    if (skip?.has(k) || v === undefined)
+      continue;
+    if (!(k in before) || before[k] === undefined || !sameJson(before[k], v))
+      set[k] = copy(v);
+  }
+  for (const k of Object.keys(before)) {
+    if (skip?.has(k) || before[k] === undefined)
+      continue;
+    if (!(k in after) || after[k] === undefined)
+      unset.push(k);
+  }
+  if (!Object.keys(set).length && !unset.length)
+    return;
+  const p = {};
+  if (Object.keys(set).length)
+    p.set = set;
+  if (unset.length)
+    p.unset = unset;
+  return p;
+}
+function diffState(before, after, gens, guards = { tasks: new Set, run: false }) {
+  const ids = (t) => t.tasks.map((x) => x.id).join(`
+`);
+  if (ids(before.tasks) !== ids(after.tasks))
+    throw new Error("jtasks: an event cannot add, remove or reorder tasks");
+  const meta = (t) => {
+    const { tasks: _t, revision: _r, eventOffset: _o, gens: _g, ...rest } = t;
+    return rest;
+  };
+  if (!sameJson(meta(before.tasks), meta(after.tasks)))
+    throw new Error("jtasks: an event changes only tasks and run.json");
+  const ops = [];
+  before.tasks.tasks.forEach((b, i) => {
+    const a = after.tasks.tasks[i];
+    const p = diffFields(b, a);
+    if (p)
+      ops.push({ task: b.id, gen: taskGen(gens, b.id), ...p });
+    else if (guards.tasks.has(b.id))
+      ops.push({ task: b.id, gen: taskGen(gens, b.id) });
+  });
+  const rp = diffFields(before.run, after.run, RUN_SNAPSHOT_KEYS);
+  const run = rp ? { gen: gens.run, ...rp } : guards.run ? { gen: gens.run } : undefined;
+  if (!rp && !ops.some(hasChange))
+    return;
+  return run ? { ops, run } : { ops };
+}
+
 // src/store.ts
 function runsDir(data) {
   return join(data, "runs");
@@ -6765,16 +6948,6 @@ function jtasksHome(host) {
     return own.replace(/\\/g, "/");
   const home = host.env("USERPROFILE") ?? host.env("HOME") ?? ".";
   return join(home, ".jtasks");
-}
-
-class StaleRevisionError extends Error {
-  expected;
-  found;
-  constructor(expected, found) {
-    super(tr("store.stale", { expected, found }));
-    this.expected = expected;
-    this.found = found;
-  }
 }
 async function atomicWrite(host, file, text) {
   const tmp = `${file}.${Math.floor(host.random() * 1e9).toString(36)}.tmp`;
@@ -6803,88 +6976,124 @@ function stringify(value) {
   return `${JSON.stringify(value, null, 2)}
 `;
 }
+var EVENTS_FILE = "events.jsonl";
+var REWRITE_AFTER = 64;
+function snapshotOf(value) {
+  return { offset: typeof value?.eventOffset === "number" ? value.eventOffset : 0, gens: copyGens(value?.gens) };
+}
+async function readState(host, dir, opts = {}) {
+  const run = await readJson(host, join(dir, "run.json"));
+  const tasks = await readJson(host, join(dir, "tasks.json"));
+  if (!run && !tasks)
+    return;
+  const text = await host.readText(join(dir, EVENTS_FILE)) ?? "";
+  const r = snapshotOf(run);
+  const t = snapshotOf(tasks);
+  const runSide = run ? { run, gens: r.gens } : { gens: r.gens };
+  const taskSide = tasks ? { tasks, gens: t.gens } : { gens: t.gens };
+  let end = Math.max(r.offset, t.offset);
+  let folded = 0;
+  const sides = [];
+  if (run)
+    sides.push([runSide, r.offset]);
+  if (tasks)
+    sides.push([taskSide, t.offset]);
+  for (const [side, from] of sides) {
+    const read = parseLines(text, from);
+    foldLines(side, read.lines);
+    end = Math.max(from, read.end);
+    folded = Math.max(folded, read.lines.length);
+  }
+  const state = { gens: tasks ? taskSide.gens : runSide.gens, offset: end };
+  if (run)
+    state.run = run;
+  if (tasks)
+    state.tasks = tasks;
+  if ((opts.rewrite ?? true) && run && tasks && folded >= REWRITE_AFTER)
+    await writeSnapshots(host, dir, state).catch(() => {});
+  return state;
+}
+async function writeSnapshots(host, dir, state) {
+  const stamp = { eventOffset: state.offset, gens: state.gens };
+  if (state.tasks)
+    await atomicWrite(host, join(dir, "tasks.json"), stringify({ ...strip(state.tasks), ...stamp }));
+  if (state.run)
+    await atomicWrite(host, join(dir, "run.json"), stringify({ ...strip(state.run), format: RUN_FORMAT, ...stamp }));
+}
+function strip(value) {
+  const { eventOffset: _o, gens: _g, format: _f, ...rest } = value;
+  return rest;
+}
 async function readRun(host, dir) {
-  return readJson(host, join(dir, "run.json"));
+  const s = await readState(host, dir);
+  return s?.run && strip(s.run);
 }
 async function readTasks(host, dir) {
-  return readJson(host, join(dir, "tasks.json"));
+  const s = await readState(host, dir);
+  return s?.tasks && strip(s.tasks);
 }
-async function writeRun(host, dir, run) {
-  await atomicWrite(host, join(dir, "run.json"), stringify(run));
-}
-async function writeTasks(host, dir, tasks, expected) {
-  const current2 = await readTasks(host, dir);
-  const found = current2?.revision ?? 0;
-  if (found !== expected)
-    throw new StaleRevisionError(expected, found);
-  const next = { ...tasks, revision: expected + 1 };
-  await atomicWrite(host, join(dir, "tasks.json"), stringify(next));
-  return next;
-}
-var LOCK_STALE_MS = 1e4;
-var LOCK_WAIT_MS = 60000;
-var LOCK_BEAT_MS = 2000;
-var LOCK_STEP_MS = 200;
-async function lockSeen(host, lock) {
-  const stat = await host.stat(lock);
-  if (!stat)
-    return;
-  const beat = await host.stat(join(lock, "beat"));
-  return Math.max(stat.mtimeMs, beat?.mtimeMs ?? 0);
-}
-async function withLock(host, dir, fn) {
-  const lock = join(dir, ".write.lock");
-  const token = `${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e9).toString(36)}`;
-  const deadline = host.now().getTime() + LOCK_WAIT_MS;
-  for (;; ) {
-    if (await host.mkdirExclusive(lock))
-      break;
-    const seen = await lockSeen(host, lock);
-    if (seen !== undefined && host.now().getTime() - seen > LOCK_STALE_MS) {
-      await host.remove(lock, { recursive: true }).catch(() => {});
-      continue;
-    }
-    if (host.now().getTime() > deadline)
-      throw new Error(tr("store.locked", { seconds: LOCK_WAIT_MS / 1000, lock }));
-    await host.sleep(15 + Math.floor(host.random() * 35));
+var COMMIT_ATTEMPTS = 20;
+
+class CommitConflictError extends Error {
+  attempts;
+  constructor(attempts) {
+    super(tr("store.contended", { n: attempts }));
+    this.attempts = attempts;
   }
-  await host.writeText(join(lock, "token"), token).catch(() => {});
-  let finished = false;
-  let writing = Promise.resolve();
-  (async () => {
-    let last = host.now().getTime();
-    for (;; ) {
-      await host.sleep(LOCK_STEP_MS);
-      if (finished)
-        return;
-      if (host.now().getTime() - last < LOCK_BEAT_MS)
-        continue;
-      last = host.now().getTime();
-      writing = host.writeText(join(lock, "beat"), String(last)).catch(() => {});
-      await writing;
+}
+var sequence = 0;
+function eventId(host) {
+  sequence = (sequence + 1) % 46656;
+  return `${host.now().getTime().toString(36)}-${Math.floor(host.random() * 2 ** 31).toString(36)}-${sequence.toString(36)}`;
+}
+async function commit(host, dir, decide, opts = {}) {
+  for (let attempt = 1;; attempt++) {
+    const base = await readState(host, dir);
+    if (!base?.run || !base.tasks)
+      throw new Error(tr("store.no_tasks", { dir }));
+    const before = { run: strip(base.run), tasks: strip(base.tasks) };
+    const guards = { tasks: new Set, run: false };
+    const draft = {
+      run: clone(before.run),
+      tasks: clone(before.tasks),
+      read: before,
+      guard: (...ids) => ids.forEach((id) => guards.tasks.add(id)),
+      guardRun: () => void (guards.run = true),
+      gen: (id) => base.gens.tasks[id] ?? 0
+    };
+    const result = await decide(draft, attempt);
+    const diff = diffState(before, { run: draft.run, tasks: draft.tasks }, base.gens, guards);
+    if (!diff)
+      return { run: before.run, tasks: before.tasks, result, changed: false, attempts: attempt, gens: base.gens };
+    const event = { v: 1, id: eventId(host), at: host.now().toISOString(), actor: opts.actor ?? "jtasks", ...diff };
+    if (opts.action)
+      event.log = opts.action;
+    await host.appendText(join(dir, EVENTS_FILE), `
+${JSON.stringify(event)}
+`);
+    const after = await foldFrom(host, dir, base, event.id);
+    if (after.accepted) {
+      await writeSnapshots(host, dir, after.state).catch(() => {});
+      return { run: strip(after.state.run), tasks: strip(after.state.tasks), result, changed: true, attempts: attempt, gens: after.state.gens };
     }
-  })();
-  try {
-    return await fn();
-  } finally {
-    finished = true;
-    await writing;
-    const owner = await host.readText(join(lock, "token")).catch(() => {
-      return;
-    });
-    if (owner === undefined || owner === token)
-      await host.remove(lock, { recursive: true }).catch(() => {});
+    if (attempt >= COMMIT_ATTEMPTS)
+      throw new CommitConflictError(attempt);
+    await host.sleep(5 + Math.floor(host.random() * 20 * Math.min(attempt, 8)));
   }
+}
+async function foldFrom(host, dir, base, id) {
+  const text = await host.readText(join(dir, EVENTS_FILE)) ?? "";
+  const side = { run: clone(base.run), tasks: clone(base.tasks), gens: copyGens(base.gens) };
+  const read = parseLines(text, base.offset);
+  const folded = foldLines(side, read.lines);
+  return { accepted: folded.accepted.includes(id), state: { run: side.run, tasks: side.tasks, gens: side.gens, offset: Math.max(base.offset, read.end) } };
 }
 async function mutateTasks(host, dir, change) {
-  return withLock(host, dir, async () => {
-    const tasks = await readTasks(host, dir);
-    if (!tasks)
-      throw new Error(tr("store.no_tasks", { dir }));
-    const copy = clone(tasks);
-    const result = await change(copy);
-    return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
-  });
+  const c = await commit(host, dir, (d) => change(d.tasks));
+  return { tasks: c.tasks, result: c.result };
+}
+async function createSnapshots(host, dir, run, tasks) {
+  await writeSnapshots(host, dir, { run, tasks, gens: { run: 0, tasks: {} }, offset: 0 });
 }
 async function listRuns(host, data, repo) {
   const out = [];
@@ -6893,16 +7102,15 @@ async function listRuns(host, data, repo) {
     if (entry.kind !== "dir")
       continue;
     const dir = join(runsDir(data), entry.name);
-    const run = await readRun(host, dir).catch(() => {
+    const state = await readState(host, dir).catch(() => {
       return;
     });
-    if (!run)
+    if (!state?.run)
       continue;
+    const run = strip(state.run);
     if (repo && run.repo?.root && norm(run.repo.root) !== norm(repo.root))
       continue;
-    out.push({ dir, run, tasks: await readTasks(host, dir).catch(() => {
-      return;
-    }) });
+    out.push(state.tasks ? { dir, run, tasks: strip(state.tasks) } : { dir, run });
   }
   return out.sort((a, b) => a.run.created.localeCompare(b.run.created) || a.run.id.localeCompare(b.run.id));
 }
@@ -7284,6 +7492,244 @@ async function dispatch(ctx, argv) {
     result.text = `${notice}
 ${result.text}`;
   return result;
+}
+// src/jlock.ts
+var JLOCK = {
+  OK: 0,
+  BUSY: 10,
+  TIMEOUT: 11,
+  DEADLOCK: 12,
+  NOT_OWNER: 13,
+  LOST: 14,
+  USAGE: 2,
+  DISK: 20
+};
+function jlockBin(host) {
+  return host.env("JLOCK_BIN") || installedJlock() || "jlock";
+}
+function jlockEnv() {
+  return { JLOCK_LANG: lang() };
+}
+function parseAnswer(text) {
+  const line = text.split(`
+`).find((l) => l.trim().startsWith("{"));
+  if (!line)
+    return;
+  try {
+    return JSON.parse(line);
+  } catch {
+    return;
+  }
+}
+function failure(code, stdout, stderr, what) {
+  const answer = parseAnswer(stdout);
+  const message = answer?.message ?? answer?.error ?? (stderr.trim() || stdout.trim());
+  if (code === JLOCK.DISK)
+    return new ToolError(tr("jlock.disk", { what, message }));
+  if (code === JLOCK.USAGE)
+    return new ToolError(tr("jlock.usage", { what, message }));
+  if (code === 127)
+    return new ToolError(tr("jlock.missing", { message }));
+  return new ToolError(tr("jlock.exit", { what, code, message }));
+}
+async function jlockList(host, filter = {}) {
+  const argv = [jlockBin(host), "list", "--json"];
+  if (filter.group)
+    argv.push("--group", filter.group);
+  if (filter.under)
+    argv.push("--under", filter.under);
+  if (filter.owner)
+    argv.push("--owner", filter.owner);
+  const r = await host.run(argv, { env: jlockEnv() });
+  if (r.code !== 0)
+    throw failure(r.code, r.stdout, r.stderr, "list");
+  try {
+    const parsed = JSON.parse(r.stdout);
+    return parsed.locks ?? [];
+  } catch {
+    throw new ToolError(tr("jlock.list_not_json", { text: r.stdout.slice(0, 200) }));
+  }
+}
+async function jlockRelease(host, group, owner) {
+  const r = await host.run([jlockBin(host), "release", "--group", group, "--owner", owner, "--json"], { env: jlockEnv() });
+  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER)
+    throw failure(r.code, r.stdout, r.stderr, "release");
+  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
+}
+async function jlockReleaseKeys(host, keys, owner) {
+  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"], { env: jlockEnv() });
+  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER)
+    throw failure(r.code, r.stdout, r.stderr, "release");
+  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
+}
+async function jlockRenew(host, group, owner, ttl) {
+  const r = await host.run([jlockBin(host), "renew", "--group", group, "--owner", owner, "--ttl", ttl, "--json"], { env: jlockEnv() });
+  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER && r.code !== JLOCK.LOST)
+    throw failure(r.code, r.stdout, r.stderr, "renew");
+  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
+}
+var MIN_JLOCK = "0.1.0";
+var EOF_JLOCK = "0.1.1";
+var RENEW_JLOCK = "0.2.0";
+var versions = new Map;
+function jlockVersion(host) {
+  const bin = jlockBin(host);
+  let pending = versions.get(bin);
+  if (!pending) {
+    pending = host.run([bin, "--version"], { env: jlockEnv() }).then((r) => {
+      const m = /(\d+)\.(\d+)\.(\d+)/.exec(`${r.stdout}
+${r.stderr}`);
+      if (r.code === 127 || !m) {
+        versions.delete(bin);
+        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || tr("jlock.no_version"), "--version");
+      }
+      return `${m[1]}.${m[2]}.${m[3]}`;
+    });
+    versions.set(bin, pending);
+  }
+  return pending;
+}
+function versionAtLeast(version, minimum) {
+  const a = version.split(".").map(Number);
+  const b = minimum.split(".").map(Number);
+  for (let i = 0;i < 3; i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0))
+      return (a[i] ?? 0) > (b[i] ?? 0);
+  }
+  return true;
+}
+async function canRenew(host) {
+  return versionAtLeast(await jlockVersion(host), RENEW_JLOCK);
+}
+async function holdModeFor(host) {
+  return versionAtLeast(await jlockVersion(host), EOF_JLOCK) ? "eof" : "detach";
+}
+function holdArgv(host, keys, id, wait, hold) {
+  const argv = [jlockBin(host), "hold", ...keys, "--owner", id.owner, "--group", id.group, "--intent", id.intent];
+  for (const [k, v] of Object.entries(id.meta))
+    argv.push("--meta", `${k}=${v}`);
+  if ("noWait" in wait)
+    argv.push("--no-wait");
+  else
+    argv.push("--timeout", `${wait.timeoutSec}s`);
+  argv.push("--ttl", hold.ttl, hold.mode === "detach" ? "--detach" : "--release-on-eof", "--json");
+  return argv;
+}
+async function detachedHold(host, argv, cwd, timeoutMs) {
+  const r = await host.run(argv, { cwd, timeoutMs, env: jlockEnv() });
+  const answer = parseAnswer(r.stdout);
+  if (!answer) {
+    if (r.code === 127)
+      throw failure(127, r.stdout, r.stderr, "hold");
+    throw new ToolError(tr("jlock.hold_not_json_code", { code: r.code, text: (r.stdout || r.stderr).slice(0, 200) }));
+  }
+  if (answer.result === "error")
+    throw failure(r.code, r.stdout, r.stderr, "hold");
+  return { answer, code: r.code };
+}
+async function startHold(host, resident, firstLineTimeoutMs) {
+  const line = await resident.firstLine(firstLineTimeoutMs);
+  if (line === undefined) {
+    const code2 = await Promise.race([resident.exited, host.sleep(2000).then(() => {
+      return;
+    })]);
+    if (code2 === undefined) {
+      await resident.stop();
+      throw new ToolError(tr("jlock.hold_silent", { seconds: Math.round(firstLineTimeoutMs / 1000) }));
+    }
+    throw failure(code2, resident.lines().join(`
+`), "", "hold");
+  }
+  const answer = parseAnswer(line);
+  if (!answer) {
+    await resident.stop();
+    throw new ToolError(tr("jlock.hold_not_json", { text: line.slice(0, 200) }));
+  }
+  if (answer.result === "granted")
+    return { answer, resident };
+  const code = await Promise.race([resident.exited, host.sleep(5000).then(() => {
+    return;
+  })]);
+  if (answer.result === "error")
+    throw failure(code ?? 1, line, "", "hold");
+  return { answer, code, resident };
+}
+function describeOwner(owner, run) {
+  if (!owner.startsWith("gt:"))
+    return tr("jlock.other_program", { owner });
+  const rest = owner.slice(3);
+  const slash2 = rest.lastIndexOf("/");
+  if (slash2 < 0)
+    return rest;
+  const ownerRun = rest.slice(0, slash2);
+  const task = rest.slice(slash2 + 1);
+  return ownerRun === run ? task : `${ownerRun}/${task}`;
+}
+function describeKey(key, root, platform) {
+  if (key === "*" || key.startsWith("name:"))
+    return key;
+  const rel = relativeInside(root, key, caseInsensitive(platform));
+  if (rel === undefined)
+    return key;
+  return rel === "" ? "." : rel;
+}
+
+// src/serial.ts
+function treeKey(run) {
+  return `name:jtasks:${run}:git`;
+}
+function draftKey(id) {
+  return `name:jtasks:${id}:draft`;
+}
+var SERIAL_WAIT_SEC = 300;
+var SERIAL_DETACH_TTL = "10m";
+function ownerOf(key, host) {
+  const rest = key.replace(/^name:jtasks:/, "").replace(/:(git|draft)$/, "");
+  return `gt:${rest}/~${key.endsWith(":draft") ? "draft" : "tree"}-${host.now().getTime().toString(36)}${Math.floor(host.random() * 1e6).toString(36)}`;
+}
+async function withKey(ctx, key, intent, fn, opts = {}) {
+  if (ctx.serialKeys?.has(key))
+    return fn(ctx);
+  const { host } = ctx;
+  let owner = opts.as ?? ownerOf(key, host);
+  const eof = host.holdsInput === true;
+  const hold = async (wait) => {
+    const base = [jlockBin(host), "hold", key, "--owner", owner, "--intent", intent, ...wait];
+    if (!eof)
+      return detachedHold(host, [...base, "--ttl", SERIAL_DETACH_TTL, "--detach", "--json"], host.cwd(), (SERIAL_WAIT_SEC + 15) * 1000);
+    const resident = await host.spawn([...base, "--release-on-eof", "--json"], { env: jlockEnv() });
+    return startHold(host, resident, (SERIAL_WAIT_SEC + 15) * 1000);
+  };
+  let outcome = await hold(["--no-wait"]);
+  if (outcome.answer.result !== "granted") {
+    const a = outcome.answer;
+    const holder = typeof a.holder === "object" && a.holder ? a.holder.owner : undefined;
+    if (!opts.as && opts.run && holder?.startsWith(`gt:${opts.run}/`) && (a.via === "*" || a.failed === "*" || a.key === "*"))
+      owner = holder;
+    outcome = await hold(["--timeout", `${SERIAL_WAIT_SEC}s`]);
+  }
+  if (outcome.answer.result !== "granted") {
+    const holder = typeof outcome.answer.holder === "object" && outcome.answer.holder ? outcome.answer.holder.owner : String(outcome.answer.holder ?? "?");
+    throw new ToolError(tr("store.tree_busy", { key, holder, seconds: SERIAL_WAIT_SEC }), 1, { result: outcome.answer.result, key });
+  }
+  const inner = { ...ctx, serialKeys: new Set([...ctx.serialKeys ?? [], key]) };
+  try {
+    return await fn(inner);
+  } finally {
+    const resident = outcome.resident;
+    if (resident) {
+      if (!await resident.send(`release
+`))
+        await jlockReleaseKeys(host, [key], owner).catch(() => {});
+      await resident.closeInput().catch(() => {});
+      await Promise.race([resident.exited, host.sleep(5000)]);
+      await resident.stop().catch(() => {});
+    } else
+      await jlockReleaseKeys(host, [key], owner).catch(() => {});
+  }
+}
+function withTree(ctx, run, fn, as) {
+  return withKey(ctx, treeKey(run), `jtasks ${run}: working tree`, fn, as ? { as, run } : { run });
 }
 // src/format.ts
 function counts(tasks) {
@@ -7711,8 +8157,7 @@ async function createRun(ctx, plan, options = {}) {
       await addExcludeLine(host, root, line);
       undo.push(() => removeExcludeLine(host, root, line));
     }
-    await atomicWrite(host, join(dir, "run.json"), stringify(run));
-    await atomicWrite(host, join(dir, "tasks.json"), stringify(tasks));
+    await createSnapshots(host, dir, run, tasks);
     const tickets = await writeTickets(host, dir, tasks);
     if (useRunBranch) {
       await gitOk(host, root, ["switch", "-q", "-c", branch]);
@@ -7903,12 +8348,12 @@ async function draftOpen(ctx, args) {
 async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   const raw = await readJsonArg(ctx, args.positionals[0], "json.batch");
-  return withLock(ctx.host, dir, async () => {
-    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx2) => {
+    const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     const read = readPlan(raw);
     const profiles = read.plan.profiles ?? current2.profiles ?? DEFAULT_PROFILES;
     const batch = validateBatch(read.plan.tasks, {
-      platform: ctx.host.platform,
+      platform: ctx2.host.platform,
       profiles,
       existingIds: current2.tasks.map((t) => t.id)
     });
@@ -7920,7 +8365,7 @@ async function draftAdd(ctx, args) {
     for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
-    await saveDraft(ctx, dir, next);
+    await saveDraft(ctx2, dir, next);
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks");
     return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
       draft: next.id,
@@ -7942,8 +8387,8 @@ async function draftFix(ctx, args) {
   }
   if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.id === undefined)
     raw = { ...raw, id: fixId };
-  return withLock(ctx.host, dir, async () => {
-    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx2) => {
+    const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     const index = current2.tasks.findIndex((t) => t.id === fixId);
     if (index < 0)
       throw new ToolError(tr("draft.no_task", { id: fixId }));
@@ -7953,7 +8398,7 @@ async function draftFix(ctx, args) {
     if (task && task.id !== fixId)
       errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }));
     const batch = validateBatch(read.plan.tasks, {
-      platform: ctx.host.platform,
+      platform: ctx2.host.platform,
       profiles: current2.profiles ?? DEFAULT_PROFILES,
       existingIds: current2.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
     });
@@ -7962,7 +8407,7 @@ async function draftFix(ctx, args) {
       return refused(tr("draft.fix_refused", { id: fixId }), errors);
     const tasks = [...current2.tasks];
     tasks[index] = batch.tasks[0];
-    await saveDraft(ctx, dir, { ...current2, tasks });
+    await saveDraft(ctx2, dir, { ...current2, tasks });
     return ok(tr("draft.fixed", { id: fixId, n: tasks.length }), { draft: current2.id, fixed: fixId });
   });
 }
@@ -7975,15 +8420,15 @@ async function draftShow(ctx, args) {
 }
 async function draftCommit(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
-  return withLock(ctx.host, dir, async () => {
-    const current2 = await readJson(ctx.host, draftFile(dir)) ?? draft;
+  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx2) => {
+    const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     if (current2.tasks.length === 0)
       throw new ToolError(tr("draft.empty"));
-    const { plan, errors, warnings } = validatePlan(draftPlan(current2), { platform: ctx.host.platform });
+    const { plan, errors, warnings } = validatePlan(draftPlan(current2), { platform: ctx2.host.platform });
     if (errors.length > 0)
       return refused(tr("draft.commit_refused"), errors);
-    const created = await createRun(ctx, plan, { id: current2.id });
-    await ctx.host.remove(draftFile(dir));
+    const created = await createRun(ctx2, plan, { id: current2.id });
+    await ctx2.host.remove(draftFile(dir));
     return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created));
   });
 }
@@ -8044,188 +8489,8 @@ ${errors.map((e) => `- ${e}`).join(`
 `)}
 ${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, bindOf(created));
 }, "help.import");
-// src/jlock.ts
-var JLOCK = {
-  OK: 0,
-  BUSY: 10,
-  TIMEOUT: 11,
-  DEADLOCK: 12,
-  NOT_OWNER: 13,
-  LOST: 14,
-  USAGE: 2,
-  DISK: 20
-};
-function jlockBin(host) {
-  return host.env("JLOCK_BIN") || installedJlock() || "jlock";
-}
-function jlockEnv() {
-  return { JLOCK_LANG: lang() };
-}
-function parseAnswer(text) {
-  const line = text.split(`
-`).find((l) => l.trim().startsWith("{"));
-  if (!line)
-    return;
-  try {
-    return JSON.parse(line);
-  } catch {
-    return;
-  }
-}
-function failure(code, stdout, stderr, what) {
-  const answer = parseAnswer(stdout);
-  const message = answer?.message ?? answer?.error ?? (stderr.trim() || stdout.trim());
-  if (code === JLOCK.DISK)
-    return new ToolError(tr("jlock.disk", { what, message }));
-  if (code === JLOCK.USAGE)
-    return new ToolError(tr("jlock.usage", { what, message }));
-  if (code === 127)
-    return new ToolError(tr("jlock.missing", { message }));
-  return new ToolError(tr("jlock.exit", { what, code, message }));
-}
-async function jlockList(host, filter = {}) {
-  const argv = [jlockBin(host), "list", "--json"];
-  if (filter.group)
-    argv.push("--group", filter.group);
-  if (filter.under)
-    argv.push("--under", filter.under);
-  if (filter.owner)
-    argv.push("--owner", filter.owner);
-  const r = await host.run(argv, { env: jlockEnv() });
-  if (r.code !== 0)
-    throw failure(r.code, r.stdout, r.stderr, "list");
-  try {
-    const parsed = JSON.parse(r.stdout);
-    return parsed.locks ?? [];
-  } catch {
-    throw new ToolError(tr("jlock.list_not_json", { text: r.stdout.slice(0, 200) }));
-  }
-}
-async function jlockRelease(host, group, owner) {
-  const r = await host.run([jlockBin(host), "release", "--group", group, "--owner", owner, "--json"], { env: jlockEnv() });
-  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER)
-    throw failure(r.code, r.stdout, r.stderr, "release");
-  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
-}
-async function jlockReleaseKeys(host, keys, owner) {
-  const r = await host.run([jlockBin(host), "release", ...keys, "--owner", owner, "--json"], { env: jlockEnv() });
-  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER)
-    throw failure(r.code, r.stdout, r.stderr, "release");
-  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
-}
-async function jlockRenew(host, group, owner, ttl) {
-  const r = await host.run([jlockBin(host), "renew", "--group", group, "--owner", owner, "--ttl", ttl, "--json"], { env: jlockEnv() });
-  if (r.code !== JLOCK.OK && r.code !== JLOCK.NOT_OWNER && r.code !== JLOCK.LOST)
-    throw failure(r.code, r.stdout, r.stderr, "renew");
-  return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
-}
-var MIN_JLOCK = "0.1.0";
-var EOF_JLOCK = "0.1.1";
-var RENEW_JLOCK = "0.2.0";
-var versions = new Map;
-function jlockVersion(host) {
-  const bin = jlockBin(host);
-  let pending = versions.get(bin);
-  if (!pending) {
-    pending = host.run([bin, "--version"], { env: jlockEnv() }).then((r) => {
-      const m = /(\d+)\.(\d+)\.(\d+)/.exec(`${r.stdout}
-${r.stderr}`);
-      if (r.code === 127 || !m) {
-        versions.delete(bin);
-        throw failure(r.code === 0 ? 1 : r.code, r.stdout, r.stderr || tr("jlock.no_version"), "--version");
-      }
-      return `${m[1]}.${m[2]}.${m[3]}`;
-    });
-    versions.set(bin, pending);
-  }
-  return pending;
-}
-function versionAtLeast(version, minimum) {
-  const a = version.split(".").map(Number);
-  const b = minimum.split(".").map(Number);
-  for (let i = 0;i < 3; i++) {
-    if ((a[i] ?? 0) !== (b[i] ?? 0))
-      return (a[i] ?? 0) > (b[i] ?? 0);
-  }
-  return true;
-}
-async function canRenew(host) {
-  return versionAtLeast(await jlockVersion(host), RENEW_JLOCK);
-}
-async function holdModeFor(host) {
-  return versionAtLeast(await jlockVersion(host), EOF_JLOCK) ? "eof" : "detach";
-}
-function holdArgv(host, keys, id, wait, hold) {
-  const argv = [jlockBin(host), "hold", ...keys, "--owner", id.owner, "--group", id.group, "--intent", id.intent];
-  for (const [k, v] of Object.entries(id.meta))
-    argv.push("--meta", `${k}=${v}`);
-  if ("noWait" in wait)
-    argv.push("--no-wait");
-  else
-    argv.push("--timeout", `${wait.timeoutSec}s`);
-  argv.push("--ttl", hold.ttl, hold.mode === "detach" ? "--detach" : "--release-on-eof", "--json");
-  return argv;
-}
-async function detachedHold(host, argv, cwd, timeoutMs) {
-  const r = await host.run(argv, { cwd, timeoutMs, env: jlockEnv() });
-  const answer = parseAnswer(r.stdout);
-  if (!answer) {
-    if (r.code === 127)
-      throw failure(127, r.stdout, r.stderr, "hold");
-    throw new ToolError(tr("jlock.hold_not_json_code", { code: r.code, text: (r.stdout || r.stderr).slice(0, 200) }));
-  }
-  if (answer.result === "error")
-    throw failure(r.code, r.stdout, r.stderr, "hold");
-  return { answer, code: r.code };
-}
-async function startHold(host, resident, firstLineTimeoutMs) {
-  const line = await resident.firstLine(firstLineTimeoutMs);
-  if (line === undefined) {
-    const code2 = await Promise.race([resident.exited, host.sleep(2000).then(() => {
-      return;
-    })]);
-    if (code2 === undefined) {
-      await resident.stop();
-      throw new ToolError(tr("jlock.hold_silent", { seconds: Math.round(firstLineTimeoutMs / 1000) }));
-    }
-    throw failure(code2, resident.lines().join(`
-`), "", "hold");
-  }
-  const answer = parseAnswer(line);
-  if (!answer) {
-    await resident.stop();
-    throw new ToolError(tr("jlock.hold_not_json", { text: line.slice(0, 200) }));
-  }
-  if (answer.result === "granted")
-    return { answer, resident };
-  const code = await Promise.race([resident.exited, host.sleep(5000).then(() => {
-    return;
-  })]);
-  if (answer.result === "error")
-    throw failure(code ?? 1, line, "", "hold");
-  return { answer, code, resident };
-}
-function describeOwner(owner, run) {
-  if (!owner.startsWith("gt:"))
-    return tr("jlock.other_program", { owner });
-  const rest = owner.slice(3);
-  const slash2 = rest.lastIndexOf("/");
-  if (slash2 < 0)
-    return rest;
-  const ownerRun = rest.slice(0, slash2);
-  const task = rest.slice(slash2 + 1);
-  return ownerRun === run ? task : `${ownerRun}/${task}`;
-}
-function describeKey(key, root, platform) {
-  if (key === "*" || key.startsWith("name:"))
-    return key;
-  const rel = relativeInside(root, key, caseInsensitive(platform));
-  if (rel === undefined)
-    return key;
-  return rel === "" ? "." : rel;
-}
 // src/frontier.ts
-function ownerOf(run, task) {
+function ownerOf2(run, task) {
   return `gt:${run}/${task}`;
 }
 function taskKeys(root, task, platform) {
@@ -8255,7 +8520,7 @@ function assess(state, locks, platform) {
     const mutex = sharedBlocker(state, task, platform);
     if (mutex)
       blockers.push(mutex);
-    const own = ownerOf(state.run.id, task.id);
+    const own = ownerOf2(state.run.id, task.id);
     for (const key of taskKeys(state.root, task, platform)) {
       const lock = held.find((l) => l.holder.owner !== own && conflicts(key, l.key));
       if (lock) {
@@ -8264,7 +8529,7 @@ function assess(state, locks, platform) {
       }
       const reserved = yieldedKeys(state).find((y) => conflicts(key, y.key));
       if (reserved) {
-        blockers.push({ kind: "ownership", key, via: reserved.key, owner: ownerOf(state.run.id, reserved.task) });
+        blockers.push({ kind: "ownership", key, via: reserved.key, owner: ownerOf2(state.run.id, reserved.task) });
         break;
       }
     }
@@ -8323,7 +8588,7 @@ function waitingOf(state, locks) {
   for (const task of state.tasks.tasks) {
     if (task.status !== "in_progress")
       continue;
-    const owner = ownerOf(state.run.id, task.id);
+    const owner = ownerOf2(state.run.id, task.id);
     for (const lock of locks) {
       const entry = lock.queue.find((q) => q.owner === owner);
       if (!entry)
@@ -9070,7 +9335,7 @@ async function restoreFile(host, root, file) {
   await git(host, root, ["rm", "-q", "--cached", "--ignore-unmatch", "--", file]);
   await host.remove(join(root, file)).catch(() => {});
 }
-async function applyPatch(host, root, patch, files) {
+async function applyPatch2(host, root, patch, files) {
   if ((await git(host, root, ["apply", "-R", "--check", patch])).code === 0)
     return { result: "already", message: "" };
   const r = await git(host, root, ["apply", "--3way", "--whitespace=nowarn", patch]);
@@ -9132,7 +9397,7 @@ async function changedUnder(host, state, keys) {
 }
 async function ownFiles(host, state, task, files) {
   const keys = ownKeys(state, task, host.platform);
-  const owner = ownerOf(state.run.id, task.id);
+  const owner = ownerOf2(state.run.id, task.id);
   const locks = files.length ? await jlockList(host, task.exclusive ? {} : { under: state.root }) : [];
   const live = locks.filter((l) => l.holder && l.holder.stale !== true);
   const held = (key, l) => l.key === key || l.key === ALL && task.exclusive;
@@ -9192,7 +9457,7 @@ async function reapplyPatches(host, state, task, which) {
     const abs = join(state.dir, p.patch);
     if (!await host.stat(abs))
       continue;
-    const { result, message } = await applyPatch(host, state.root, abs, [p.file]);
+    const { result, message } = await applyPatch2(host, state.root, abs, [p.file]);
     if (result === "failed") {
       report.failed.push({ file: p.file, patch: abs, message });
       left.push(p);
@@ -9389,18 +9654,16 @@ function endsWait(task, agent) {
   return a.agent ? a.agent === agent : true;
 }
 async function registerProcs(host, dir, taskId, procs, actor, agent, opts = {}) {
-  return withLock(host, dir, async () => {
-    const tasks = await readTasks(host, dir);
-    if (!tasks)
-      return;
-    const copy = clone(tasks);
-    const task = copy.tasks.find((t) => t.id === taskId);
+  let back = false;
+  let inline = false;
+  const c = await commit(host, dir, (draft) => {
+    const task = draft.tasks.tasks.find((t) => t.id === taskId);
     if (!task || task.status !== "in_progress")
       return;
     const pids = new Set(procs.map((p) => p.pid));
     task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs];
-    const back = endsWait(task, agent);
-    const inline = !back && !!opts.inline && !agent && task.owner === actor && (!task.awaiting || !!task.awaiting.inline);
+    back = endsWait(task, agent);
+    inline = !back && !!opts.inline && !agent && task.owner === actor && (!task.awaiting || !!task.awaiting.inline);
     if (back)
       delete task.awaiting;
     else if (inline) {
@@ -9414,27 +9677,25 @@ async function registerProcs(host, dir, taskId, procs, actor, agent, opts = {}) 
         delete task.awaiting.endedAt;
       }
     }
-    await writeTasks(host, dir, copy, tasks.revision);
-    const at = host.now().toISOString();
-    if (back)
-      await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {});
-    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec", ...inline ? { inline: true } : {} }).catch(() => {});
-    return task;
-  });
+    return task.id;
+  }, { actor, action: "procs" });
+  if (!c.result)
+    return;
+  const at = host.now().toISOString();
+  if (back)
+    await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {});
+  await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec", ...inline ? { inline: true } : {} }).catch(() => {});
+  return c.tasks.tasks.find((t) => t.id === taskId);
 }
 async function unregisterProcs(host, dir, taskId, pids) {
-  await withLock(host, dir, async () => {
-    const tasks = await readTasks(host, dir);
-    const task = tasks?.tasks.find((t2) => t2.id === taskId);
-    if (!tasks || !task?.procs?.some((p) => pids.includes(p.pid)))
+  await commit(host, dir, (draft) => {
+    const t = draft.tasks.tasks.find((x) => x.id === taskId);
+    if (!t?.procs?.some((p) => pids.includes(p.pid)))
       return;
-    const copy = clone(tasks);
-    const t = copy.tasks.find((x) => x.id === taskId);
     t.procs = t.procs.filter((p) => !pids.includes(p.pid));
     if (!t.procs.length)
       delete t.procs;
-    await writeTasks(host, dir, copy, tasks.revision);
-  });
+  }, { action: "unprocs" });
 }
 function awaitGraceMs(run, fallback) {
   const m = /^(\d+)(ms|s|m|h|d)$/.exec((run.awaitGrace ?? fallback).trim());
@@ -9486,11 +9747,14 @@ async function sweptRun(ctx, args) {
   return (await sweepAwaiting(ctx, state.run.id)).length ? reload(ctx, state) : state;
 }
 async function reload(ctx, state) {
-  const run = await readRun(ctx.host, state.dir);
-  const tasks = await readTasks(ctx.host, state.dir);
-  if (!run || !tasks)
+  const s = await readState(ctx.host, state.dir);
+  if (!s?.run || !s.tasks)
     throw new ToolError(tr("run.gone", { run: state.run.id, dir: state.dir }));
-  return { ...state, run, tasks };
+  return { ...state, run: strip(s.run), tasks: strip(s.tasks), gens: s.gens };
+}
+async function decide(ctx, first, action, fn) {
+  const c = await commit(ctx.host, first.dir, (d, attempt) => fn({ ...first, run: d.read.run, tasks: d.read.tasks }, d, attempt), { actor: actorOf(ctx), action });
+  return { state: { ...first, run: c.run, tasks: c.tasks, gens: c.gens }, result: c.result, changed: c.changed };
 }
 function findTask(state, id) {
   if (!id)
@@ -9525,24 +9789,26 @@ function remember(ctx, state, task, resident) {
       return;
     ctx.residents.set(key, list.filter((r) => r !== resident));
     if (code === JLOCK.LOST)
-      await markLost(ctx, state, task).catch(() => {});
+      await markLost({ ...ctx, serialKeys: undefined }, state, task).catch(() => {});
     ctx.onHoldExit?.(run, task, code);
   });
 }
 async function markLost(ctx, first, id) {
-  const changed = await withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const copy = clone(state.tasks);
-    const task = copy.tasks.find((t) => t.id === id);
-    if (!task || task.status !== "in_progress")
+  const changed = await withTree(ctx, first.run.id, async (ctx2) => {
+    const d = await decide(ctx2, first, "lost", async (state, draft) => {
+      const task = draft.tasks.tasks.find((t) => t.id === id);
+      if (!task || task.status !== "in_progress")
+        return;
+      const now = ctx2.host.now().toISOString();
+      const kept = await keepTask(ctx2, state, task);
+      const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now);
+      task.lost = now;
+      return { kept, to };
+    });
+    if (!d.result)
       return false;
-    const now = ctx.host.now().toISOString();
-    const kept = await keepTask(ctx, state, task);
-    const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now);
-    task.lost = now;
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-    await writeTicket(ctx.host, state.dir, tasks, id);
-    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to, ...keptLog(kept) });
+    await writeTicket(ctx2.host, first.dir, d.state.tasks, id);
+    await log(ctx2, d.state, { action: "lost", task: id, from: "in_progress", to: d.result.to, ...keptLog(d.result.kept) });
     return true;
   });
   if (changed)
@@ -9553,7 +9819,7 @@ function identity(ctx, state, task) {
   const meta = { task: task.id, run: state.run.id, tool: ctx.tool };
   if (ctx.session)
     meta.session = ctx.session;
-  return { owner: ownerOf(state.run.id, task.id), group: state.run.id, intent: task.title, meta };
+  return { owner: ownerOf2(state.run.id, task.id), group: state.run.id, intent: task.title, meta };
 }
 function holdModeOf(ctx) {
   return ctx.holdMode ?? (ctx.residents ? "eof" : "detach");
@@ -9577,7 +9843,7 @@ async function releaseHolds(ctx, run, task) {
     if (await r.send(`release
 `))
       await Promise.race([r.exited, ctx.host.sleep(5000)]);
-  const released = await jlockRelease(ctx.host, run, ownerOf(run, task));
+  const released = await jlockRelease(ctx.host, run, ownerOf2(run, task));
   for (const r of mine)
     await r.stop();
   return released.keys;
@@ -9641,95 +9907,116 @@ defineAction("next", async (ctx, args) => {
 defineAction("start", async (ctx, args) => {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const task = findTask(state, id);
-    if (state.run.status === "paused")
-      throw new ToolError(tr("start.paused", { run: state.run.id }));
-    if (task.status !== "pending") {
-      const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : "";
-      throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`);
-    }
-    const byId = new Map(state.tasks.tasks.map((t2) => [t2.id, t2]));
-    const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""));
-    if (open.length)
-      throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }));
-    const mutex = sharedBlocker(state, task, ctx.host.platform);
-    if (mutex?.kind === "shared")
-      throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }));
-    const keys = taskKeys(state.root, task, ctx.host.platform);
-    const now = ctx.host.now().toISOString();
+  const exclusive = first.tasks.tasks.find((t) => t.id === id)?.exclusive;
+  return withTree(ctx, first.run.id, async (ctx2) => {
+    let keys = [];
     let hold;
     let resident;
-    if (keys.length) {
-      const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15000);
-      if (outcome.answer.result !== "granted") {
-        const a = outcome.answer;
-        const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : tr("start.other_owner");
-        const key = a.failed ?? a.key ?? keys[0];
-        const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : "";
-        throw new ToolError(tr("start.busy", { id: task.id, key: describeKey(key, state.root, ctx.host.platform), holder, via }), 1, { result: a.result, key, holder: a.holder, position: a.position, via: a.via });
-      }
-      resident = outcome.resident;
-      hold = { keys, startedAt: now, kind: "start" };
-      if (resident?.pid !== undefined)
-        hold.pid = resident.pid;
-    }
-    const changed = clone(state.tasks);
-    const t = changed.tasks.find((x) => x.id === task.id);
-    await recoverKept(ctx.host, state, t);
-    t.status = "in_progress";
-    t.attempts += 1;
-    t.owner = actorOf(ctx);
-    t.startedAt = now;
-    t.holds = hold ? [hold] : [];
-    delete t.finishedAt;
-    delete t.lost;
-    let written;
+    let reapply;
+    let fresh;
+    let d;
     try {
-      written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision);
-      await writeTicket(ctx.host, state.dir, written, task.id);
+      d = await decide(ctx2, first, "start", async (state2, draft, attempt) => {
+        const task = findTask(state2, id);
+        draft.guardRun();
+        if (state2.run.status === "paused")
+          throw new ToolError(tr("start.paused", { run: state2.run.id }));
+        if (task.status !== "pending") {
+          const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : "";
+          throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`);
+        }
+        const byId = new Map(state2.tasks.tasks.map((t2) => [t2.id, t2]));
+        const open = task.dependsOn.filter((x) => !["done", "skipped"].includes(byId.get(x)?.status ?? ""));
+        if (open.length)
+          throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }));
+        const mutex = sharedBlocker(state2, task, ctx2.host.platform);
+        if (mutex?.kind === "shared")
+          throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }));
+        const now = ctx2.host.now().toISOString();
+        if (attempt === 1) {
+          keys = taskKeys(state2.root, task, ctx2.host.platform);
+          if (keys.length) {
+            const outcome = await acquireHold(ctx2, state2, task, keys, { noWait: true }, 15000);
+            if (outcome.answer.result !== "granted") {
+              const a = outcome.answer;
+              const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state2.run.id) : tr("start.other_owner");
+              const key = a.failed ?? a.key ?? keys[0];
+              const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state2.root, ctx2.host.platform)})` : "";
+              keys = [];
+              throw new ToolError(tr("start.busy", { id: task.id, key: describeKey(key, state2.root, ctx2.host.platform), holder, via }), 1, { result: a.result, key, holder: a.holder, position: a.position, via: a.via });
+            }
+            resident = outcome.resident;
+            hold = { keys, startedAt: now, kind: "start" };
+            if (resident?.pid !== undefined)
+              hold.pid = resident.pid;
+          }
+        }
+        const t = draft.tasks.tasks.find((x) => x.id === task.id);
+        await recoverKept(ctx2.host, state2, t);
+        t.status = "in_progress";
+        t.attempts += 1;
+        t.owner = actorOf(ctx2);
+        t.startedAt = now;
+        t.holds = hold ? [hold] : [];
+        delete t.finishedAt;
+        delete t.lost;
+        const saved = t.patches ?? [];
+        if (saved.length && args.options.fresh) {
+          fresh = saved.map((p) => p.patch);
+          delete t.patches;
+        } else if (saved.length)
+          reapply = mergeReapply(reapply, await reapplyPatches(ctx2.host, state2, t, () => true));
+        return { attempts: t.attempts, owner: t.owner };
+      });
     } catch (error) {
       if (keys.length)
-        await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys);
+        await releaseHoldsOf(ctx2, first.run.id, id ?? "", resident, keys);
       throw error;
     }
+    const state = d.state;
+    await writeTicket(ctx2.host, state.dir, state.tasks, id);
     if (resident)
-      remember(ctx, state, task.id, resident);
-    await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys });
-    const saved = t.patches ?? [];
-    let reapply;
+      remember(ctx2, state, id, resident);
+    await log(ctx2, state, { action: "start", task: id, from: "pending", to: "in_progress", keys });
     const extra = [];
-    if (saved.length) {
-      const again = clone(written);
-      const u = again.tasks.find((x) => x.id === task.id);
-      if (args.options.fresh) {
-        delete u.patches;
-        extra.push(tr("start.fresh", { n: saved.length, dir: join(state.dir, "patches", task.id) }));
-        await log(ctx, state, { action: "fresh", task: task.id, dropped: saved.map((p) => p.patch) });
-      } else {
-        reapply = await reapplyPatches(ctx.host, { ...state, tasks: written }, u, () => true);
-        extra.push(...reapplyLines(reapply));
-        await log(ctx, state, { action: "reapply", task: task.id, ...reapplyData(reapply) });
-      }
-      written = await writeTasks(ctx.host, state.dir, again, written.revision);
-      await writeTicket(ctx.host, state.dir, written, task.id);
+    if (fresh) {
+      extra.push(tr("start.fresh", { n: fresh.length, dir: join(state.dir, "patches", id) }));
+      await log(ctx2, state, { action: "fresh", task: id, dropped: fresh });
+    } else if (reapply) {
+      extra.push(...reapplyLines(reapply));
+      await log(ctx2, state, { action: "reapply", task: id, ...reapplyData(reapply) });
     }
-    const ticket = ticketPath(state.dir, changed.tasks, task.id);
-    const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, task.id) }) : tr("start.no_files");
-    return ok([
-      tr("start.started", { id: task.id, attempt: t.attempts, own }),
-      ...extra,
-      `ticket: ${ticket}`,
-      tr("start.hint", { id: task.id })
-    ].join(`
-`), { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket, ...reapply ? reapplyData(reapply) : {} });
-  });
+    const ticket = ticketPath(state.dir, state.tasks.tasks, id);
+    const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf2(state.run.id, id) }) : tr("start.no_files");
+    return ok([tr("start.started", { id, attempt: d.result.attempts, own }), ...extra, `ticket: ${ticket}`, tr("start.hint", { id })].join(`
+`), { run: state.run.id, task: id, keys, owner: d.result.owner, attempts: d.result.attempts, ticket, ...reapply ? reapplyData(reapply) : {} });
+  }, exclusive && id ? ownerOf2(first.run.id, id) : undefined);
 }, "help.start");
+function doneTrailer(run, task) {
+  return `Jtasks-Task: ${run}/${task}`;
+}
+async function headWithTrailer(host, root, trailer) {
+  const r = await git(host, root, ["log", "-1", "--format=%h%n%B"]);
+  if (r.code !== 0)
+    return null;
+  const [hash, ...body] = r.stdout.split(/\r?\n/);
+  return hash && body.some((l) => l.trim() === trailer || l.trim().startsWith(`${trailer} `)) ? hash.trim() : null;
+}
+async function hasCommitEffect(host, dir, task, ref) {
+  return (await readEffects(host, join(dir, "ledger.jsonl"))).some((e) => e.type === "commit" && e.task === task && e.ref === ref);
+}
+function mergeReapply(a, b) {
+  if (!a)
+    return b;
+  const files = (x) => new Set(x.map((y) => y.file));
+  const applied = [...new Set([...a.applied, ...b.applied])];
+  const conflicts3 = [...a.conflicts.filter((c) => !files(b.conflicts).has(c.file)), ...b.conflicts];
+  return { applied, conflicts: conflicts3, failed: b.failed.filter((f) => !applied.includes(f.file)) };
+}
 async function releaseHoldsOf(ctx, run, task, resident, keys) {
   if (!resident || !await resident.send(`release
 `))
-    await jlockReleaseKeys(ctx.host, keys, ownerOf(run, task)).catch(() => {});
+    await jlockReleaseKeys(ctx.host, keys, ownerOf2(run, task)).catch(() => {});
   if (!resident)
     return;
   await Promise.race([resident.exited, ctx.host.sleep(3000)]);
@@ -9772,7 +10059,7 @@ async function statusOf(ctx, state) {
     lines.push(tr("status.failed", { list: failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ") }));
   const lost = state.tasks.tasks.filter((t) => t.status === "pending" && t.lost).map((t) => t.id);
   for (const t of running) {
-    const owner = ownerOf(state.run.id, t.id);
+    const owner = ownerOf2(state.run.id, t.id);
     const keys = taskKeys(state.root, t, platform);
     const held = groupLocks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key);
     if (keys.length && keys.some((k) => !held.includes(k)))
@@ -9863,7 +10150,7 @@ async function splitChanges(ctx, state, task, withOthers = true) {
     for (const t of state.tasks.tasks)
       if (t.id !== task.id && t.status === "in_progress")
         otherOwn.push(...possession(t));
-    const owner = ownerOf(state.run.id, task.id);
+    const owner = ownerOf2(state.run.id, task.id);
     for (const l of await jlockList(ctx.host, { under: state.root }))
       if (l.holder && l.holder.owner !== owner && l.holder.stale !== true)
         otherKeys.push(l.key);
@@ -9899,7 +10186,7 @@ async function missingKeys(ctx, state, task) {
   const keys = taskKeys(state.root, task, ctx.host.platform);
   if (!keys.length)
     return [];
-  const owner = ownerOf(state.run.id, task.id);
+  const owner = ownerOf2(state.run.id, task.id);
   const locks = await jlockList(ctx.host, { group: state.run.id });
   const held = new Set(locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key));
   return keys.filter((k) => !held.has(k));
@@ -9940,31 +10227,33 @@ function textArg(args, name) {
   const v = args.options[name];
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
-async function syncRunStatus(ctx, state, tasks) {
-  const run = await readRun(ctx.host, state.dir);
-  if (!run || run.status === "paused")
+function syncRunStatus(run, tasks) {
+  if (run.status === "paused")
     return;
-  const remaining = counts(tasks).remaining;
-  const status2 = remaining === 0 ? "done" : "active";
+  const status2 = counts(tasks).remaining === 0 ? "done" : "active";
   if (run.status !== status2)
-    await writeRun(ctx.host, state.dir, { ...run, status: status2 });
+    run.status = status2;
 }
-async function transition(ctx, args, action, change) {
+async function transition(ctx, args, action, change, opts = {}) {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const original = findTask(state, id);
-    const copy = clone(state.tasks);
-    const task = copy.tasks.find((t) => t.id === original.id);
-    const from = task.status;
-    const extra = await change(task, state) ?? {};
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-    await writeTicket(ctx.host, state.dir, tasks, task.id);
-    await log(ctx, state, { action, task: task.id, from, to: task.status, ...extra });
-    await syncRunStatus(ctx, state, tasks.tasks);
-    return { task, tasks, state: { ...state, tasks } };
-  });
+  const name = () => typeof action === "string" ? action : action();
+  const run = async (ctx2) => {
+    const d = await decide(ctx2, first, typeof action === "string" ? action : "transition", async (state, draft) => {
+      const original = findTask(state, id);
+      const task2 = draft.tasks.tasks.find((t) => t.id === original.id);
+      const from2 = task2.status;
+      const extra2 = await change(task2, state, draft, ctx2) ?? {};
+      syncRunStatus(draft.run, draft.tasks.tasks);
+      return { id: task2.id, from: from2, extra: extra2 };
+    });
+    const { id: taskId, from, extra } = d.result;
+    const task = d.state.tasks.tasks.find((t) => t.id === taskId);
+    await writeTicket(ctx2.host, d.state.dir, d.state.tasks, taskId);
+    await log(ctx2, d.state, { action: name(), task: taskId, from, to: task.status, ...extra });
+    return { task, tasks: d.state.tasks, state: d.state };
+  };
+  return opts.tree ? withTree(ctx, first.run.id, run) : run(ctx);
 }
 function closeTask(task, status2, now) {
   task.status = status2;
@@ -9981,8 +10270,10 @@ async function keepTask(ctx, state, task) {
   const changed = await changedUnder(ctx.host, state, ownKeys(state, task, ctx.host.platform));
   const { mine, untouched } = await ownFiles(ctx.host, state, task, changed);
   const report = await keepEdits(ctx.host, state, task, mine, "release");
+  const recovered = await recoverKept(ctx.host, state, task);
   takeBackEntries(task, (task.yielded ?? []).map((y) => y.key), state.root, ctx.host.platform);
-  return { saved: report.saved.map((p) => p.file), left: report.kept, untouched };
+  const saved = [...report.saved.map((p) => p.file), ...recovered.map((p) => p.file).filter((f) => !report.saved.some((p) => p.file === f))];
+  return { saved, left: report.kept, untouched };
 }
 function keptNote(k) {
   const parts = [];
@@ -10003,7 +10294,7 @@ async function giveBack(ctx, run, task) {
     await releaseHolds(ctx, run, task);
     return tr("release.given_back");
   } catch (error) {
-    return tr("release.failed", { message: error.message, run, owner: ownerOf(run, task) });
+    return tr("release.failed", { message: error.message, run, owner: ownerOf2(run, task) });
   }
 }
 function parseDuration(raw) {
@@ -10107,27 +10398,30 @@ defineAction("claim", async (ctx, args) => {
     throw new ToolError(tr("claim.odd", { result: a.result, id: task.id }));
   const resident = outcome.resident;
   try {
-    const done = await withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first);
-      const copy = clone(state.tasks);
-      const t = copy.tasks.find((x) => x.id === task.id);
-      if (t.status !== "in_progress")
-        throw new ToolError(tr("claim.left", { id: task.id, status: t.status }));
-      delete t.awaiting;
-      const back = takeBackEntries(t, keys, state.root, platform);
-      const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f));
-      if (more.length)
-        t.claimed = [...t.claimed ?? [], ...more];
-      const hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" };
-      if (resident?.pid !== undefined)
-        hold.pid = resident.pid;
-      t.holds = [...t.holds ?? [], hold];
-      const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, keys));
-      const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-      await writeTicket(ctx.host, state.dir, tasks, task.id);
-      await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) });
-      return { t, reapply };
-    });
+    const reapplies = (task.patches ?? []).some(patchesUnder(first, platform, keys));
+    const record = async (ctx2) => {
+      let reapply;
+      const d = await decide(ctx2, first, "claim", async (state, draft) => {
+        const t = draft.tasks.tasks.find((x) => x.id === task.id);
+        if (t.status !== "in_progress")
+          throw new ToolError(tr("claim.left", { id: task.id, status: t.status }));
+        delete t.awaiting;
+        const back = takeBackEntries(t, keys, state.root, platform);
+        const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f));
+        if (more.length)
+          t.claimed = [...t.claimed ?? [], ...more];
+        const hold = { keys, startedAt: ctx2.host.now().toISOString(), kind: "claim" };
+        if (resident?.pid !== undefined)
+          hold.pid = resident.pid;
+        t.holds = [...t.holds ?? [], hold];
+        reapply = mergeReapply(reapply, await reapplyPatches(ctx2.host, state, t, patchesUnder(state, platform, keys)));
+        return t;
+      });
+      await writeTicket(ctx2.host, d.state.dir, d.state.tasks, task.id);
+      await log(ctx2, d.state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) });
+      return { t: d.result, reapply };
+    };
+    const done = reapplies ? await withTree(ctx, first.run.id, record) : await record(ctx);
     if (resident)
       remember(ctx, first, task.id, resident);
     const text = [tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done.t).join(", ") }), ...reapplyLines(done.reapply)];
@@ -10194,24 +10488,28 @@ async function retakeYielded(ctx, first, only) {
       const granted = keys.filter((k) => !refused2.includes(k));
       if (!granted.length)
         continue;
-      const back = await withLock(ctx.host, first.dir, async () => {
-        const state = await reload(ctx, first);
-        const copy = clone(state.tasks);
-        const t = copy.tasks.find((x) => x.id === task.id);
-        if (!t || t.status !== "in_progress")
+      const back = await withTree(ctx, first.run.id, async (ctx2) => {
+        let reapply;
+        let files = [];
+        const d = await decide(ctx2, first, "reclaim", async (state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id);
+          if (!t || t.status !== "in_progress")
+            return false;
+          files = takeBackEntries(t, granted, state.root, platform);
+          t.holds = [...t.holds ?? [], { keys: granted, startedAt: ctx2.host.now().toISOString(), kind: "claim" }];
+          reapply = mergeReapply(reapply, await reapplyPatches(ctx2.host, state, t, patchesUnder(state, platform, granted)));
+          return true;
+        });
+        if (!d.result)
           return;
-        const files = takeBackEntries(t, granted, state.root, platform);
-        t.holds = [...t.holds ?? [], { keys: granted, startedAt: ctx.host.now().toISOString(), kind: "claim" }];
-        const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, granted));
-        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-        await writeTicket(ctx.host, state.dir, tasks, t.id);
-        await log(ctx, state, { action: "reclaim", task: t.id, keys: granted, files, ...reapplyData(reapply) });
-        return { task: t.id, files, reapply };
+        await writeTicket(ctx2.host, d.state.dir, d.state.tasks, task.id);
+        await log(ctx2, d.state, { action: "reclaim", task: task.id, keys: granted, files, ...reapplyData(reapply) });
+        return { task: task.id, files, reapply };
       });
       if (back)
         out.push(back);
       else
-        await jlockReleaseKeys(ctx.host, granted, ownerOf(state0.run.id, task.id)).catch(() => {});
+        await jlockReleaseKeys(ctx.host, granted, ownerOf2(state0.run.id, task.id)).catch(() => {});
     } catch {}
   }
   return out;
@@ -10227,7 +10525,7 @@ defineAction("yield", async (ctx, args) => {
   if (task.exclusive)
     throw new ToolError(tr("yield.exclusive", { id: task.id }));
   const platform = ctx.host.platform;
-  const owner = ownerOf(first.run.id, task.id);
+  const owner = ownerOf2(first.run.id, task.id);
   const current2 = taskKeys(first.root, task, platform);
   const keys = [];
   const raw = args.positionals.slice(1);
@@ -10251,43 +10549,47 @@ defineAction("yield", async (ctx, args) => {
       throw new ToolError(tr("yield.nothing", { id: task.id }), 2);
   }
   const wanted = canonical(keys);
-  const done = await withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const copy = clone(state.tasks);
-    const t = copy.tasks.find((x) => x.id === task.id);
-    if (t.status !== "in_progress")
-      throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }));
-    delete t.awaiting;
-    const changed = await changedUnder(ctx.host, state, wanted);
-    const { mine, untouched } = await ownFiles(ctx.host, state, t, changed);
-    const report = await keepEdits(ctx.host, state, t, mine, "yield");
-    const given = wanted.filter((k) => !report.kept.some((f) => covers(k, normalizeKey(f, state.root, platform))));
-    const at = ctx.host.now().toISOString();
-    const yielded = [];
-    for (const from of ["files", "claimed"]) {
-      const stay = [];
-      for (const e of from === "files" ? t.files : t.claimed ?? []) {
-        const key = given.find((g) => covers(g, normalizeKey(e, state.root, platform)));
-        if (key)
-          yielded.push({ path: e, from, key, at });
+  const done = await withTree(ctx, first.run.id, async (ctx2) => {
+    const d = await decide(ctx2, first, "yield", async (state, draft) => {
+      const t = draft.tasks.tasks.find((x) => x.id === task.id);
+      if (t.status !== "in_progress")
+        throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }));
+      delete t.awaiting;
+      const changed = await changedUnder(ctx2.host, state, wanted);
+      const { mine, untouched } = await ownFiles(ctx2.host, state, t, changed);
+      const report = await keepEdits(ctx2.host, state, t, mine, "yield");
+      for (const p of await recoverKept(ctx2.host, state, t))
+        if (!report.saved.some((s) => s.file === p.file))
+          report.saved.push(p);
+      const given = wanted.filter((k) => !report.kept.some((f) => covers(k, normalizeKey(f, state.root, platform))));
+      const at = ctx2.host.now().toISOString();
+      const yielded = [];
+      for (const from of ["files", "claimed"]) {
+        const stay = [];
+        for (const e of from === "files" ? t.files : t.claimed ?? []) {
+          const key = given.find((g) => covers(g, normalizeKey(e, state.root, platform)));
+          if (key)
+            yielded.push({ path: e, from, key, at });
+          else
+            stay.push(e);
+        }
+        if (from === "files")
+          t.files = stay;
+        else if (stay.length)
+          t.claimed = stay;
         else
-          stay.push(e);
+          delete t.claimed;
       }
-      if (from === "files")
-        t.files = stay;
-      else if (stay.length)
-        t.claimed = stay;
-      else
-        delete t.claimed;
-    }
-    if (yielded.length)
-      t.yielded = [...t.yielded ?? [], ...yielded];
-    if (t.holds)
-      t.holds = t.holds.map((h) => ({ ...h, keys: h.keys.filter((k) => !given.includes(k)) })).filter((h) => h.keys.length);
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-    await writeTicket(ctx.host, state.dir, tasks, t.id);
-    await log(ctx, state, { action: "yield", task: t.id, keys: given, files: yielded.map((y) => y.path), saved: report.saved.map((p) => p.file), untouched, kept: report.kept });
-    return { given, yielded, report, untouched };
+      if (yielded.length)
+        t.yielded = [...t.yielded ?? [], ...yielded];
+      if (t.holds)
+        t.holds = t.holds.map((h) => ({ ...h, keys: h.keys.filter((k) => !given.includes(k)) })).filter((h) => h.keys.length);
+      return { given, yielded, report, untouched };
+    });
+    const r = d.result;
+    await writeTicket(ctx2.host, d.state.dir, d.state.tasks, task.id);
+    await log(ctx2, d.state, { action: "yield", task: task.id, keys: r.given, files: r.yielded.map((y) => y.path), saved: r.report.saved.map((p) => p.file), untouched: r.untouched, kept: r.report.kept });
+    return r;
   });
   if (done.given.length)
     await jlockReleaseKeys(ctx.host, done.given, owner);
@@ -10319,53 +10621,61 @@ defineAction("yield", async (ctx, args) => {
 }, "help.yield");
 defineAction("done", async (ctx, args) => {
   const evidence = textArg(args, "evidence");
-  let commit = null;
+  let commit2 = null;
   let claimed = [];
   let leftByOthers = [];
-  const broughtBack = evidence ? await bringBackKept(ctx, args) : undefined;
-  const t = await transition(ctx, args, "done", async (task, state) => {
-    if (task.status !== "in_progress")
-      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
-    if (!evidence)
-      throw new ToolError(tr("done.no_evidence", { id: task.id }), 2);
-    const kept = await keptOf(ctx.host, state, task);
-    if (kept.length)
-      throw new ToolError(tr("done.kept", { id: task.id, files: kept.map((p) => p.file).join(", ") }), 1, { kept: kept.map((p) => p.file) });
-    const branch = await currentBranch(ctx.host, state.root);
-    if (branch !== state.run.repo.branch)
-      throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }));
-    const split = await splitChanges(ctx, state, task);
-    leftByOthers = split.released;
-    if (split.outside.length)
-      throw new ToolError(tr("done.outside", { id: task.id, files: split.outside.join(", ") }), 1, { outside: split.outside });
-    const missing = await retakeMissing(ctx, state, task);
-    if (missing.length)
-      throw new ToolError(tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }), 1, { missing });
-    if (split.inside.length) {
-      for (let offset = 0;offset < split.inside.length; offset += 16)
-        await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside.slice(offset, offset + 16)]);
-      await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`]);
-      commit = await shortHead(ctx.host, state.root);
-      await recordEffect(ctx.host, state.dir, {
-        run: state.run.id,
-        task: task.id,
-        type: "commit",
-        repo: state.root,
-        ref: commit,
-        branch: state.run.repo.branch,
-        undo: { kind: "git-revert", ref: commit }
-      });
-    }
-    claimed = task.claimed ?? [];
-    closeTask(task, "done", ctx.host.now().toISOString());
-    task.commit = commit;
-    task.evidence = evidence;
-    for (const a of task.acceptance)
-      a.done = true;
-    return { evidence, commit };
+  const first = await resolveRun(ctx, args);
+  let broughtBack;
+  const t = await withTree(ctx, first.run.id, async (ctx2) => {
+    broughtBack = evidence ? await bringBackKept(ctx2, args) : undefined;
+    return transition(ctx2, args, "done", async (task, state, draft) => {
+      commit2 = null;
+      if (task.status !== "in_progress")
+        throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
+      if (!evidence)
+        throw new ToolError(tr("done.no_evidence", { id: task.id }), 2);
+      const kept = await keptOf(ctx2.host, state, task);
+      if (kept.length)
+        throw new ToolError(tr("done.kept", { id: task.id, files: kept.map((p) => p.file).join(", ") }), 1, { kept: kept.map((p) => p.file) });
+      const branch = await currentBranch(ctx2.host, state.root);
+      if (branch !== state.run.repo.branch)
+        throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }));
+      const split = await splitChanges(ctx2, state, task);
+      leftByOthers = split.released;
+      if (split.outside.length)
+        throw new ToolError(tr("done.outside", { id: task.id, files: split.outside.join(", ") }), 1, { outside: split.outside });
+      const missing = await retakeMissing(ctx2, state, task);
+      if (missing.length)
+        throw new ToolError(tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx2.host.platform)).join(", "), id: task.id }), 1, { missing });
+      const trailer = doneTrailer(state.run.id, task.id);
+      if (split.inside.length) {
+        for (let offset = 0;offset < split.inside.length; offset += 16)
+          await gitOk(ctx2.host, state.root, ["add", "-A", "--", ...split.inside.slice(offset, offset + 16)]);
+        await gitOk(ctx2.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`, "-m", `${trailer} gen ${draft.gen(task.id)}`]);
+        commit2 = await shortHead(ctx2.host, state.root);
+      } else
+        commit2 = await headWithTrailer(ctx2.host, state.root, trailer);
+      if (commit2 && !await hasCommitEffect(ctx2.host, state.dir, task.id, commit2))
+        await recordEffect(ctx2.host, state.dir, {
+          run: state.run.id,
+          task: task.id,
+          type: "commit",
+          repo: state.root,
+          ref: commit2,
+          branch: state.run.repo.branch,
+          undo: { kind: "git-revert", ref: commit2 }
+        });
+      claimed = task.claimed ?? [];
+      closeTask(task, "done", ctx2.host.now().toISOString());
+      task.commit = commit2;
+      task.evidence = evidence;
+      for (const a of task.acceptance)
+        a.done = true;
+      return { evidence, commit: commit2 };
+    }, { tree: true });
   });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
-  const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit");
+  const what = commit2 ? `commit ${commit2} (${t.task.id}: ${t.task.title})` : tr("done.no_commit");
   const lines = [tr("done.done", { id: t.task.id, what, released }), progressLine(t.tasks.tasks)];
   if (broughtBack?.applied.length)
     lines.push(tr("done.kept_back", { files: broughtBack.applied.join(", ") }));
@@ -10378,7 +10688,7 @@ defineAction("done", async (ctx, args) => {
 `), {
     run: t.state.run.id,
     task: t.task.id,
-    commit,
+    commit: commit2,
     counts: counts(t.tasks.tasks),
     claimed,
     releasedEdits: leftByOthers,
@@ -10392,59 +10702,62 @@ defineAction("adopt", async (ctx, args) => {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
   const insensitive = caseInsensitive(ctx.host.platform);
-  const r = await withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const task = findTask(state, id);
-    const source = findTask(state, from);
-    if (task.status !== "in_progress")
-      throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
-    if (source.id === task.id || source.status === "in_progress")
-      throw new ToolError(tr("adopt.source_running", { id: source.id }));
-    const copy = clone(state.tasks);
-    const src = copy.tasks.find((t) => t.id === source.id);
-    await recoverKept(ctx.host, state, src);
-    const kept = src.patches ?? [];
-    if (!kept.length)
-      throw new ToolError(tr("adopt.none", { from: source.id }));
-    const away = kept.filter((p) => !inPossession(p.file, possession(task), insensitive)).map((p) => p.file);
-    if (away.length)
-      throw new ToolError(tr("adopt.claim_first", { id: task.id, from: source.id, files: away.join(" ") }), 1, { claim: away });
-    const effects = await readEffects(ctx.host, join(state.dir, "ledger.jsonl"));
-    const norm = (p) => insensitive ? p.replace(/\\/g, "/").toLowerCase() : p.replace(/\\/g, "/");
-    const report = emptyReapply();
-    const left = [];
-    for (const p of kept) {
-      const abs = join(state.dir, p.patch);
-      if (!await ctx.host.stat(abs))
-        continue;
-      const { result, message } = await applyPatch(ctx.host, state.root, abs, [p.file]);
-      if (result === "failed") {
-        report.failed.push({ file: p.file, patch: abs, message });
-        left.push(p);
-        continue;
+  const r = await withTree(ctx, first.run.id, async (ctx2) => {
+    let acc;
+    const d = await decide(ctx2, first, "adopt", async (state, draft) => {
+      const task = findTask(state, id);
+      const source = findTask(state, from);
+      if (task.status !== "in_progress")
+        throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
+      if (source.id === task.id || source.status === "in_progress")
+        throw new ToolError(tr("adopt.source_running", { id: source.id }));
+      draft.guard(task.id);
+      const src = draft.tasks.tasks.find((t) => t.id === source.id);
+      await recoverKept(ctx2.host, state, src);
+      const kept = src.patches ?? [];
+      if (!kept.length)
+        throw new ToolError(tr("adopt.none", { from: source.id }));
+      const away = kept.filter((p) => !inPossession(p.file, possession(task), insensitive)).map((p) => p.file);
+      if (away.length)
+        throw new ToolError(tr("adopt.claim_first", { id: task.id, from: source.id, files: away.join(" ") }), 1, { claim: away });
+      const effects = await readEffects(ctx2.host, join(state.dir, "ledger.jsonl"));
+      const norm = (p) => insensitive ? p.replace(/\\/g, "/").toLowerCase() : p.replace(/\\/g, "/");
+      const report = emptyReapply();
+      const left = [];
+      for (const p of kept) {
+        const abs = join(state.dir, p.patch);
+        if (!await ctx2.host.stat(abs))
+          continue;
+        const { result, message } = await applyPatch2(ctx2.host, state.root, abs, [p.file]);
+        if (result === "failed") {
+          report.failed.push({ file: p.file, patch: abs, message });
+          left.push(p);
+          continue;
+        }
+        let at = abs;
+        if (result !== "conflict") {
+          at = appliedPath(abs);
+          await ctx2.host.mkdir(dirname(at));
+          await ctx2.host.rename(abs, at);
+          report.applied.push(p.file);
+        } else
+          report.conflicts.push({ file: p.file, patch: abs });
+        if (result !== "already")
+          await recordEffect(ctx2.host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } });
+        for (const e of effects)
+          if (e.type === "restore" && e.state === "active" && e.task === source.id && e.patch && norm(e.patch) === norm(abs))
+            await setEffectState(ctx2.host, state.dir, state.run.id, e.id, "undone");
       }
-      let at = abs;
-      if (result !== "conflict") {
-        at = appliedPath(abs);
-        await ctx.host.mkdir(dirname(at));
-        await ctx.host.rename(abs, at);
-        report.applied.push(p.file);
-      } else
-        report.conflicts.push({ file: p.file, patch: abs });
-      if (result !== "already")
-        await recordEffect(ctx.host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } });
-      for (const e of effects)
-        if (e.type === "restore" && e.state === "active" && e.task === source.id && e.patch && norm(e.patch) === norm(abs))
-          await setEffectState(ctx.host, state.dir, state.run.id, e.id, "undone");
-    }
-    if (left.length)
-      src.patches = left;
-    else
-      delete src.patches;
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-    await writeTicket(ctx.host, state.dir, tasks, src.id);
-    await log(ctx, state, { action: "adopt", task: task.id, from: source.id, ...reapplyData(report) });
-    return { task: task.id, from: source.id, report };
+      if (left.length)
+        src.patches = left;
+      else
+        delete src.patches;
+      acc = mergeReapply(acc, report);
+      return { task: task.id, from: source.id, report: acc };
+    });
+    await writeTicket(ctx2.host, d.state.dir, d.state.tasks, d.result.from);
+    await log(ctx2, d.state, { action: "adopt", task: d.result.task, from: d.result.from, ...reapplyData(d.result.report) });
+    return d.result;
   });
   const lines = [tr("adopt.done", { id: r.task, from: r.from, n: r.report.applied.length + r.report.conflicts.length }), ...reapplyLines(r.report)];
   if (r.report.conflicts.length)
@@ -10457,34 +10770,43 @@ async function bringBackKept(ctx, args) {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
   const insensitive = caseInsensitive(ctx.host.platform);
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const original = findTask(state, id);
-    if (original.status !== "in_progress") {
-      if (!["pending", "failed"].includes(original.status))
+  return withTree(ctx, first.run.id, async (ctx2) => {
+    let reapply;
+    const d = await decide(ctx2, first, "reapply", async (state2, draft) => {
+      const original = findTask(state2, id);
+      if (original.status !== "in_progress") {
+        if (!["pending", "failed"].includes(original.status))
+          return;
+        const kept2 = await keptOf(ctx2.host, state2, original);
+        if (!kept2.length)
+          return;
+        const files = kept2.map((p) => p.file).join(", ");
+        throw new ToolError(tr(original.status === "failed" ? "done.released_failed" : "done.released", { id: original.id, status: original.status, files }), 1, {
+          status: original.status,
+          kept: kept2.map((p) => p.file)
+        });
+      }
+      const task2 = draft.tasks.tasks.find((t) => t.id === original.id);
+      const recovered2 = await recoverKept(ctx2.host, state2, task2);
+      const kept = task2.patches ?? [];
+      if (!kept.length)
         return;
-      const kept2 = await keptOf(ctx.host, state, original);
-      if (!kept2.length)
-        return;
-      const files = kept2.map((p) => p.file).join(", ");
-      throw new ToolError(tr(original.status === "failed" ? "done.released_failed" : "done.released", { id: original.id, status: original.status, files }), 1, {
-        status: original.status,
-        kept: kept2.map((p) => p.file)
-      });
-    }
-    const copy = clone(state.tasks);
-    const task = copy.tasks.find((t) => t.id === original.id);
-    const recovered = await recoverKept(ctx.host, state, task);
-    const kept = task.patches ?? [];
-    if (!kept.length)
+      const own = possession(task2);
+      const busy = state2.tasks.tasks.filter((t) => t.id !== task2.id && t.status === "in_progress");
+      draft.guard(...busy.map((t) => t.id));
+      const others = busy.flatMap(possession);
+      const away2 = kept.filter((p) => !inPossession(p.file, own, insensitive) || inPossession(p.file, others, insensitive)).map((p) => p.file);
+      if (!away2.length)
+        reapply = mergeReapply(reapply, await reapplyPatches(ctx2.host, state2, task2, () => true));
+      return { task: task2.id, recovered: recovered2, away: away2 };
+    });
+    if (!d.result)
       return;
-    const own = possession(task);
-    const others = state.tasks.tasks.filter((t) => t.id !== task.id && t.status === "in_progress").flatMap(possession);
-    const away = kept.filter((p) => !inPossession(p.file, own, insensitive) || inPossession(p.file, others, insensitive)).map((p) => p.file);
-    const reapply = away.length ? undefined : await reapplyPatches(ctx.host, state, task, () => true);
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-    await writeTicket(ctx.host, state.dir, tasks, task.id);
-    await log(ctx, state, {
+    const { task: taskId, recovered, away } = d.result;
+    const state = d.state;
+    const task = { id: taskId };
+    await writeTicket(ctx2.host, state.dir, state.tasks, task.id);
+    await log(ctx2, state, {
       action: "reapply",
       task: task.id,
       before: "done",
@@ -10501,7 +10823,7 @@ async function bringBackKept(ctx, args) {
     if (reapply.failed.length) {
       const list = [];
       for (const f of reapply.failed)
-        list.push(`${f.file} ← ${f.patch} (jtasks undo ${await patchEffectId(ctx.host, state, f.patch) ?? "?"})`);
+        list.push(`${f.file} ← ${f.patch} (jtasks undo ${await patchEffectId(ctx2.host, state, f.patch) ?? "?"})`);
       throw new ToolError(tr("done.kept_failed", { id: task.id, list: list.join("; "), message: reapply.failed[0].message }), 1, {
         failed: reapply.failed.map((f) => ({ file: f.file, patch: f.patch })),
         reapplied: reapply.applied
@@ -10525,7 +10847,7 @@ defineAction("skip", async (ctx, args) => {
     closeTask(task, "skipped", ctx.host.now().toISOString());
     task.reason = reason;
     return { reason, ...keptLog(kept) };
-  });
+  }, { tree: true });
   const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : "";
   const back = wasRunning ? retakenLines(await retakeYielded(ctx, t.state)) : [];
   return ok([`${tr("skip.done", { id: t.task.id, reason })}${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join(`
@@ -10547,7 +10869,7 @@ defineAction("fail", async (ctx, args) => {
     closeTask(task, "failed", ctx.host.now().toISOString());
     task.error = error;
     return { error, ...keptLog(kept) };
-  });
+  }, { tree: true });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
   const back = retakenLines(await retakeYielded(ctx, t.state));
   return ok([`${tr("fail.done", { id: t.task.id, error })}; ${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join(`
@@ -10582,7 +10904,7 @@ defineAction("release", async (ctx, args) => {
     kept = await keepTask(ctx, state, task);
     to = backToPending(task, state.run.maxAttempts, tr("release.released"), ctx.host.now().toISOString());
     return keptLog(kept);
-  });
+  }, { tree: true });
   const released = await giveBack(ctx, t.state.run.id, t.task.id);
   const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts });
   const back = retakenLines(await retakeYielded(ctx, t.state));
@@ -10596,20 +10918,20 @@ defineAction("release", async (ctx, args) => {
 }, "help.release");
 addUsage("help.release.agent_ended");
 async function agentEnded(ctx, args, opts = {}) {
-  const first = await resolveRun(ctx, args);
-  const before = findTask(first, taskIdArg(args));
-  const live = opts.expired ? [] : await liveProcs(ctx.host, before.procs ?? []);
   const waiting = opts.expired ? undefined : opts.waiting;
-  const waits = live.length > 0 || !!waiting;
-  let outcome = waits ? "awaiting" : "pending";
+  let outcome = "pending";
   let kept = NOTHING_KEPT;
   let count = 0;
   let max = DEFAULT_MAX_AGENT_ENDED;
-  const t = await transition(ctx, args, waits ? "await" : "agent-ended", async (task, state) => {
+  const t = await transition(ctx, args, () => outcome === "awaiting" ? "await" : "agent-ended", async (task, state, draft) => {
     if (task.status !== "in_progress")
       throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }));
-    if (opts.expired && !task.awaiting)
+    const w = opts.wait;
+    if (opts.expired && (!task.awaiting || w && (task.awaiting.since !== w.since || task.awaiting.endedAt !== w.endedAt || w.gen !== undefined && draft.gen(task.id) !== w.gen)))
       throw new ToolError(tr("wait.back", { id: task.id }));
+    const live = opts.expired ? [] : await liveProcs(ctx.host, task.procs ?? []);
+    const waits = live.length > 0 || !!waiting;
+    outcome = waits ? "awaiting" : "pending";
     const now = ctx.host.now().toISOString();
     max = state.run.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED;
     count = task.agentEnded ?? 0;
@@ -10631,7 +10953,8 @@ async function agentEnded(ctx, args, opts = {}) {
     if (count >= max) {
       closeTask(task, "failed", now);
       task.error = tr("agent_ended.limit", { why, n: count, max });
-      await writeRun(ctx.host, state.dir, { ...state.run, status: "paused", needsPerson: { reason: "agent-ended", task: task.id, count, max, at: now } });
+      draft.run.status = "paused";
+      draft.run.needsPerson = { reason: "agent-ended", task: task.id, count, max, at: now };
       outcome = "limit";
     } else {
       task.owner = null;
@@ -10641,7 +10964,7 @@ async function agentEnded(ctx, args, opts = {}) {
       delete task.startedAt;
     }
     return { agentEnded: count, max, ...opts.expired ? { expired: true } : {}, ...outcome === "limit" ? { paused: true } : {}, ...keptLog(kept) };
-  });
+  }, { tree: true });
   const released = outcome === "awaiting" ? "" : await giveBack(ctx, t.state.run.id, t.task.id);
   const back = outcome === "awaiting" ? [] : retakenLines(await retakeYielded(ctx, t.state));
   return { outcome, task: t.task, tasks: t.tasks, state: t.state, kept, count, max, released, back };
@@ -10677,23 +11000,23 @@ async function awaitBack(ctx, run, taskId, how) {
   }
   if (!first.tasks.tasks.some((t) => t.id === taskId && t.awaiting))
     return false;
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const copy = clone(state.tasks);
-    const t = copy.tasks.find((x) => x.id === taskId);
+  const d = await decide(ctx, first, "await-back", (_state, draft) => {
+    const t = draft.tasks.tasks.find((x) => x.id === taskId);
     if (!t?.awaiting || t.status !== "in_progress")
       return false;
     delete t.awaiting;
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-    await writeTicket(ctx.host, state.dir, tasks, t.id);
-    await log(ctx, state, { action: "await-back", task: t.id, how });
     return true;
   });
+  if (!d.result)
+    return false;
+  await writeTicket(ctx.host, d.state.dir, d.state.tasks, taskId);
+  await log(ctx, d.state, { action: "await-back", task: taskId, how });
+  return true;
 }
 async function sweepAwaiting(ctx, run, host, agentAlive) {
   let first;
   try {
-    first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } });
+    first = await reload(ctx, await resolveRun(ctx, { action: "wait", positionals: [], options: { run } }));
   } catch {
     return [];
   }
@@ -10709,25 +11032,26 @@ async function sweepAwaiting(ctx, run, host, agentAlive) {
         const live = await liveProcs(ctx.host, task.procs);
         if (!live.length)
           continue;
-        const rewaited = await withLock(ctx.host, first.dir, async () => {
-          const state = await reload(ctx, first);
-          const copy = clone(state.tasks);
-          const t = copy.tasks.find((x) => x.id === task.id);
-          if (!t || t.status !== "in_progress" || t.awaiting)
+        const seen = first.gens?.tasks[task.id];
+        const rewaited = await decide(ctx, first, "await", (_state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id);
+          if (!t || t.status !== "in_progress" || t.awaiting || seen !== undefined && draft.gen(t.id) !== seen)
             return false;
           t.awaiting = { since: ctx.host.now().toISOString(), pids: live.map((p) => p.pid), agent };
-          const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-          await writeTicket(ctx.host, state.dir, tasks, t.id);
-          await log(ctx, state, { action: "await", task: t.id, from: "in_progress", to: "in_progress", pids: t.awaiting.pids, agent, how: "sweep" });
           return true;
         });
-        if (rewaited)
+        if (rewaited.result) {
+          const t = rewaited.state.tasks.tasks.find((x) => x.id === task.id);
+          await writeTicket(ctx.host, rewaited.state.dir, rewaited.state.tasks, task.id);
+          await log(ctx, rewaited.state, { action: "await", task: task.id, from: "in_progress", to: "in_progress", pids: t.awaiting.pids, agent, how: "sweep" });
           first = await reload(ctx, first);
+        }
       } catch {}
     }
   const grace = awaitGraceMs(first.run, DEFAULT_AWAIT_GRACE);
   for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && t.awaiting)) {
     const a = task.awaiting;
+    let gen = first.gens?.tasks[task.id] ?? 0;
     try {
       let alive = a.host && host ? await host(task).catch(() => {
         return;
@@ -10741,20 +11065,18 @@ async function sweepAwaiting(ctx, run, host, agentAlive) {
       if (alive)
         continue;
       if (a.inline) {
-        const over = await withLock(ctx.host, first.dir, async () => {
-          const state = await reload(ctx, first);
-          const copy = clone(state.tasks);
-          const t = copy.tasks.find((x) => x.id === task.id);
-          if (!t?.awaiting?.inline || t.status !== "in_progress")
-            return false;
+        const over = await decide(ctx, first, "await-ended", (_state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id);
+          if (!t?.awaiting?.inline || t.status !== "in_progress" || draft.gen(t.id) !== gen)
+            return;
           const pids = t.awaiting.pids;
           delete t.awaiting;
-          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-          await log(ctx, state, { action: "await-ended", task: t.id, pids, inline: true });
-          return true;
+          return pids;
         });
-        if (over)
+        if (over.result) {
+          await log(ctx, over.state, { action: "await-ended", task: task.id, pids: over.result, inline: true });
           out.push({ task: task.id, what: "ended" });
+        }
         continue;
       }
       const now = ctx.host.now();
@@ -10762,23 +11084,22 @@ async function sweepAwaiting(ctx, run, host, agentAlive) {
       if (!endedAt) {
         const at = now.toISOString();
         endedAt = at;
-        const marked = await withLock(ctx.host, first.dir, async () => {
-          const state = await reload(ctx, first);
-          const copy = clone(state.tasks);
-          const t = copy.tasks.find((x) => x.id === task.id);
-          if (!t?.awaiting || t.status !== "in_progress" || t.awaiting.endedAt)
-            return false;
+        const marked = await decide(ctx, first, "await-ended", (_state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id);
+          if (!t?.awaiting || t.status !== "in_progress" || t.awaiting.endedAt || draft.gen(t.id) !== gen)
+            return;
           t.awaiting.endedAt = at;
-          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-          await log(ctx, state, { action: "await-ended", task: t.id, pids: t.awaiting.pids, ...t.awaiting.agent ? { agent: t.awaiting.agent } : {}, grace: first.run.awaitGrace ?? DEFAULT_AWAIT_GRACE });
-          return true;
+          return t.awaiting;
         });
-        if (marked)
-          out.push({ task: task.id, what: "ended", ...a.agent ? { agent: a.agent } : {} });
+        if (!marked.result)
+          continue;
+        gen = marked.state.gens?.tasks[task.id] ?? gen;
+        await log(ctx, marked.state, { action: "await-ended", task: task.id, pids: marked.result.pids, ...marked.result.agent ? { agent: marked.result.agent } : {}, grace: first.run.awaitGrace ?? DEFAULT_AWAIT_GRACE });
+        out.push({ task: task.id, what: "ended", ...a.agent ? { agent: a.agent } : {} });
       }
       if (now.getTime() - Date.parse(endedAt) < grace)
         continue;
-      await agentEnded({ ...ctx, ...a.agent ? { agent: a.agent } : {} }, { action: "release", positionals: [task.id], options: { run } }, { expired: true });
+      await agentEnded({ ...ctx, ...a.agent ? { agent: a.agent } : {} }, { action: "release", positionals: [task.id], options: { run } }, { expired: true, wait: { since: a.since, endedAt, gen } });
       out.push({ task: task.id, what: "expired", ...a.agent ? { agent: a.agent } : {} });
     } catch {}
   }
@@ -10842,26 +11163,23 @@ function reopen(task) {
 defineAction("retry", async (ctx, args) => {
   if (args.options["all-failed"]) {
     const first = await resolveRun(ctx, args);
-    const reopened = await withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first);
-      const copy = clone(state.tasks);
+    const d = await decide(ctx, first, "retry", (_state, draft) => {
       const ids = [];
-      for (const task of copy.tasks)
+      for (const task of draft.tasks.tasks)
         if (task.status === "failed") {
           reopen(task);
           task.attempts = 0;
           ids.push(task.id);
         }
-      if (!ids.length)
-        return { ids, tasks: state.tasks };
-      const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision);
-      for (const id of ids) {
-        await writeTicket(ctx.host, state.dir, tasks, id);
-        await log(ctx, state, { action: "retry", task: id, from: "failed", to: "pending" });
-      }
-      await syncRunStatus(ctx, state, tasks.tasks);
-      return { ids, tasks };
+      if (ids.length)
+        syncRunStatus(draft.run, draft.tasks.tasks);
+      return ids;
     });
+    for (const id of d.result) {
+      await writeTicket(ctx.host, d.state.dir, d.state.tasks, id);
+      await log(ctx, d.state, { action: "retry", task: id, from: "failed", to: "pending" });
+    }
+    const reopened = { ids: d.result, tasks: d.state.tasks };
     const text = reopened.ids.length ? tr("retry.reopened", { list: reopened.ids.join(", ") }) : tr("retry.none");
     return ok(`${text}
 ${progressLine(reopened.tasks.tasks)}`, { reopened: reopened.ids });
@@ -10875,57 +11193,61 @@ ${progressLine(t.tasks.tasks)}`, { run: t.state.run.id, task: t.task.id });
 }, "help.retry");
 async function setPaused(ctx, args, paused) {
   const first = await resolveRun(ctx, args);
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const from = state.run.status;
-    const status2 = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
-    const run = { ...state.run, status: status2 };
+  const d = await decide(ctx, first, paused ? "pause" : "unpause", (state, draft) => {
+    const from2 = state.run.status;
+    const status3 = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active";
+    const run = { ...draft.run, status: status3 };
     if (!paused)
       delete run.needsPerson;
     if (paused && run.pause?.resumeAt) {
       const { resumeAt: _gone, ...pause } = run.pause;
       run.pause = pause;
     }
-    if (JSON.stringify(run) !== JSON.stringify(state.run))
-      await writeRun(ctx.host, state.dir, run);
-    if (!paused && from === "paused")
-      await clearKeepalive(ctx.host, state.dir);
-    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status2 });
-    return { ...state, run };
+    draft.run = run;
+    return { from: from2, status: status3 };
   });
+  const { from, status: status2 } = d.result;
+  if (!paused && from === "paused")
+    await clearKeepalive(ctx.host, d.state.dir);
+  await log(ctx, d.state, { action: paused ? "pause" : "unpause", from, to: status2 });
+  return d.state;
 }
 async function leavePause(ctx, first, opts = {}) {
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const pause = state.run.pause;
-    if (state.run.status !== "paused" || !pause)
+  const d = await decide(ctx, first, opts.auto ? "auto-resume" : "unpause", (state2, draft) => {
+    const pause2 = state2.run.pause;
+    if (state2.run.status !== "paused" || !pause2)
       return;
-    if (opts.due && (!pause.resumeAt || Date.parse(pause.resumeAt) > opts.due.getTime()))
+    if (opts.due && (!pause2.resumeAt || Date.parse(pause2.resumeAt) > opts.due.getTime()))
       return;
-    if (opts.auto && state.run.needsPerson)
+    if (opts.auto && state2.run.needsPerson)
       return;
-    const run = { ...state.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" };
-    delete run.pause;
-    delete run.needsPerson;
-    const signature = progressSignature(state.tasks);
+    const run2 = { ...draft.run, status: counts(state2.tasks.tasks).remaining === 0 ? "done" : "active" };
+    delete run2.pause;
+    delete run2.needsPerson;
+    const signature = progressSignature(state2.tasks);
     if (opts.auto)
-      run.pauseStreak = { signature, n: state.run.pauseStreak?.signature === signature ? state.run.pauseStreak.n + 1 : 1 };
+      run2.pauseStreak = { signature, n: state2.run.pauseStreak?.signature === signature ? state2.run.pauseStreak.n + 1 : 1 };
     else
-      delete run.pauseStreak;
-    await writeRun(ctx.host, state.dir, run);
-    await clearKeepalive(ctx.host, state.dir);
-    const next = { ...state, run };
-    const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress");
-    const lost = {};
-    for (const t of inProgress) {
-      const refused2 = await retakeMissing(ctx, next, t).catch(() => []);
-      if (refused2.length)
-        lost[t.id] = refused2.map((k) => describeKey(k, state.root, ctx.host.platform));
-    }
-    const how = opts.how ?? (opts.auto ? "due" : "unpause");
-    await log(ctx, state, { action: opts.auto ? "auto-resume" : "unpause", how, kind: pause.kind, kept: inProgress.map((t) => t.id), ...Object.keys(lost).length ? { lost } : {} });
-    return { state: next, text: resumeText(run, pause, inProgress, ctx.tool, lost), kept: inProgress.map((t) => t.id), lost };
+      delete run2.pauseStreak;
+    draft.run = run2;
+    return { pause: pause2, run: run2 };
   });
+  if (!d.result)
+    return;
+  const { pause, run } = d.result;
+  const state = d.state;
+  await clearKeepalive(ctx.host, state.dir);
+  const next = state;
+  const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress");
+  const lost = {};
+  for (const t of inProgress) {
+    const refused2 = await retakeMissing(ctx, next, t).catch(() => []);
+    if (refused2.length)
+      lost[t.id] = refused2.map((k) => describeKey(k, state.root, ctx.host.platform));
+  }
+  const how = opts.how ?? (opts.auto ? "due" : "unpause");
+  await log(ctx, state, { action: opts.auto ? "auto-resume" : "unpause", how, kind: pause.kind, kept: inProgress.map((t) => t.id), ...Object.keys(lost).length ? { lost } : {} });
+  return { state: next, text: resumeText(run, pause, inProgress, ctx.tool, lost), kept: inProgress.map((t) => t.id), lost };
 }
 defineAction("pause", async (ctx, args) => {
   const state = await setPaused(ctx, args, true);
@@ -10960,49 +11282,52 @@ defineAction("resume", async (ctx, args) => {
   const keepOwners = !!args.options["keep-owners"];
   const released = [];
   const kept = [];
-  const state = await withLock(ctx.host, first.dir, async () => {
-    const state2 = await reload(ctx, first);
-    const now = ctx.host.now().toISOString();
-    const run = { ...state2.run };
-    if (run.status === "paused")
-      run.status = counts(state2.tasks.tasks).remaining === 0 ? "done" : "active";
-    const transient = state2.run.status === "paused" && !!state2.run.pause;
-    delete run.pause;
-    delete run.needsPerson;
-    if (ctx.session && !run.sessions.some((s2) => s2.tool === ctx.tool && s2.id === ctx.session))
-      run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }];
-    const copy = clone(state2.tasks);
-    for (const task of copy.tasks) {
-      if (task.status !== "in_progress")
-        continue;
-      const keys = taskKeys(state2.root, task, ctx.host.platform);
-      const missing = keys.length ? await missingKeys(ctx, state2, task) : [];
-      if (keepOwners || !keys.length || missing.length === 0) {
-        kept.push(task.id);
-        continue;
+  const state = await withTree(ctx, first.run.id, async (ctx2) => {
+    const d = await decide(ctx2, first, "resume", async (state3, draft) => {
+      released.length = 0;
+      kept.length = 0;
+      const now = ctx2.host.now().toISOString();
+      const run = { ...draft.run };
+      if (run.status === "paused")
+        run.status = counts(state3.tasks.tasks).remaining === 0 ? "done" : "active";
+      const transient = state3.run.status === "paused" && !!state3.run.pause;
+      delete run.pause;
+      delete run.needsPerson;
+      if (ctx2.session && !run.sessions.some((s2) => s2.tool === ctx2.tool && s2.id === ctx2.session))
+        run.sessions = [...run.sessions, { tool: ctx2.tool, id: ctx2.session, boundAt: now }];
+      for (const task of draft.tasks.tasks) {
+        if (task.status !== "in_progress")
+          continue;
+        const keys = taskKeys(state3.root, task, ctx2.host.platform);
+        const missing = keys.length ? await missingKeys(ctx2, state3, task) : [];
+        if (keepOwners || !keys.length || missing.length === 0) {
+          kept.push(task.id);
+          continue;
+        }
+        if (transient && (await retakeMissing(ctx2, state3, task).catch(() => missing)).length === 0) {
+          kept.push(task.id);
+          continue;
+        }
+        const edits = await keepTask(ctx2, state3, task);
+        const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now);
+        released.push({ id: task.id, to, uncommitted: edits.left, kept: edits });
       }
-      if (transient && (await retakeMissing(ctx, state2, task).catch(() => missing)).length === 0) {
-        kept.push(task.id);
-        continue;
-      }
-      const edits = await keepTask(ctx, state2, task);
-      const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now);
-      released.push({ id: task.id, to, uncommitted: edits.left, kept: edits });
-    }
-    const tasks = released.length ? await writeTasks(ctx.host, state2.dir, copy, state2.tasks.revision) : state2.tasks;
-    if (JSON.stringify(run) !== JSON.stringify(state2.run))
-      await writeRun(ctx.host, state2.dir, run);
+      draft.run = run;
+      return state3.run.status;
+    });
+    const state2 = d.state;
+    const tasks = state2.tasks;
     for (const r of released) {
-      await writeTicket(ctx.host, state2.dir, tasks, r.id);
-      await log(ctx, state2, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) });
+      await writeTicket(ctx2.host, state2.dir, tasks, r.id);
+      await log(ctx2, state2, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) });
     }
-    await log(ctx, state2, { action: "resume", released: released.map((r) => r.id), kept });
-    if (state2.run.status === "paused")
-      await clearKeepalive(ctx.host, state2.dir);
-    return { ...state2, run, tasks };
+    await log(ctx2, state2, { action: "resume", released: released.map((r) => r.id), kept });
+    if (d.result === "paused")
+      await clearKeepalive(ctx2.host, state2.dir);
+    return state2;
   });
   for (const r of released)
-    await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
+    await jlockRelease(ctx.host, state.run.id, ownerOf2(state.run.id, r.id)).catch(() => {});
   const lines = [...back ? [back] : [], tr("resume.bound", { run: state.run.id })];
   for (const r of released)
     lines.push(`${tr("resume.released", { id: r.id, to: r.to })}${keptNote(r.kept)}`);
@@ -11020,19 +11345,18 @@ defineAction("keepalive", async (ctx, args) => {
     throw new ToolError(tr("keepalive.usage"), 2);
   const on = wanted === "on";
   const first = await resolveRun(ctx, args);
-  const state = await withLock(ctx.host, first.dir, async () => {
-    const state2 = await reload(ctx, first);
-    const from = state2.run.keepalive !== false;
-    const run = { ...state2.run, keepalive: on };
-    if (from !== on || state2.run.keepalive === undefined)
-      await writeRun(ctx.host, state2.dir, run);
-    if (on && !from)
-      await clearKeepalive(ctx.host, state2.dir);
-    else if (on)
-      await rearmKeepalive(ctx.host, state2.dir);
-    await log(ctx, state2, { action: "keepalive", from: from ? "on" : "off", to: wanted });
-    return { ...state2, run };
+  const d = await decide(ctx, first, "keepalive", (state2, draft) => {
+    const from2 = state2.run.keepalive !== false;
+    draft.run.keepalive = on;
+    return from2;
   });
+  const from = d.result;
+  const state = d.state;
+  if (on && !from)
+    await clearKeepalive(ctx.host, state.dir);
+  else if (on)
+    await rearmKeepalive(ctx.host, state.dir);
+  await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted });
   return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on });
 }, "help.keepalive");
 function serializeEntry(serialize2, command) {
@@ -11214,7 +11538,7 @@ async function undoEffect(ctx, paths, e, force) {
         throw new ToolError(tr("undo.patch_owned", { id: e.id, file, task: other.id }));
       if ((await status(host, root)).some((x) => x.path === file))
         throw new ToolError(tr("undo.patch_dirty", { id: e.id, file }));
-      const r = await applyPatch(host, root, patch, [file]);
+      const r = await applyPatch2(host, root, patch, [file]);
       if (r.result === "failed")
         throw new ToolError(tr("undo.patch_failed", { id: e.id, file, message: r.message }));
       return tr(r.result === "conflict" ? "undo.patch_conflict" : "undo.patch_applied", { id: e.id, file, patch });
@@ -11276,49 +11600,51 @@ defineAction("undo", async (ctx, args) => {
     const runId2 = typeof args.options.run === "string" ? args.options.run : undefined;
     if (!runId2)
       throw new ToolError(tr("undo.which"), 2);
-    const paths2 = await requirePaths(ctx.host, ctx.cwd);
-    const effects2 = (await effectsOf(ctx.host, { repo: paths2.repoRoot, run: runId2 }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
-    if (!effects2.length)
+    const paths = await requirePaths(ctx.host, ctx.cwd);
+    const effects = (await effectsOf(ctx.host, { repo: paths.repoRoot, run: runId2 }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
+    if (!effects.length)
       return ok(tr("undo.run_clean", { run: runId2 }), { undone: [] });
-    const done2 = await undoMany(ctx, paths2, effects2, force);
+    const done = await withTree(ctx, runId2, (ctx2) => undoMany(ctx2, paths, effects, force));
     return ok(`${tr("undo.run_done", { run: runId2 })}
-${done2.join(`
-`)}`, { undone: done2 });
+${done.join(`
+`)}`, { undone: done });
   }
   const state = await resolveRun(ctx, args);
-  const paths = await requirePaths(ctx.host, ctx.cwd);
-  const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active");
-  if (id) {
-    const e = all.find((x) => x.id === id);
-    if (!e)
-      throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }));
-    const done2 = await undoMany(ctx, paths, [e], force);
-    return ok(done2.join(`
+  return withTree(ctx, state.run.id, async (ctx2) => {
+    const paths = await requirePaths(ctx2.host, ctx2.cwd);
+    const all = (await effectsOf(ctx2.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active");
+    if (id) {
+      const e = all.find((x) => x.id === id);
+      if (!e)
+        throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }));
+      const done2 = await undoMany(ctx2, paths, [e], force);
+      return ok(done2.join(`
 `), { undone: done2 });
-  }
-  const task = findTask(state, taskId);
-  if (task.status === "in_progress")
-    throw new ToolError(tr("undo.task_running", { id: task.id }));
-  const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type));
-  if (!effects.length)
-    throw new ToolError(tr("undo.task_clean", { id: task.id }));
-  const done = await undoMany(ctx, paths, effects, force);
-  const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
-    if (x.status === "done") {
-      x.status = "pending";
-      x.commit = null;
-      delete x.evidence;
-      delete x.finishedAt;
-      delete x.startedAt;
-      for (const a of x.acceptance)
-        a.done = false;
     }
-    return { undone: done };
-  });
-  return ok(`${done.join(`
+    const task = findTask(state, taskId);
+    if (task.status === "in_progress")
+      throw new ToolError(tr("undo.task_running", { id: task.id }));
+    const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type));
+    if (!effects.length)
+      throw new ToolError(tr("undo.task_clean", { id: task.id }));
+    const done = await undoMany(ctx2, paths, effects, force);
+    const t = await transition(ctx2, { ...args, positionals: [task.id] }, "undo", (x) => {
+      if (x.status === "done") {
+        x.status = "pending";
+        x.commit = null;
+        delete x.evidence;
+        delete x.finishedAt;
+        delete x.startedAt;
+        for (const a of x.acceptance)
+          a.done = false;
+      }
+      return { undone: done };
+    });
+    return ok(`${done.join(`
 `)}
 ${task.id} → ${t.task.status}
 ${progressLine(t.tasks.tasks)}`, { undone: done, task: task.id, status: t.task.status });
+  });
 }, "help.undo");
 defineAction("effects", async (ctx, args) => {
   if (!args.options.check)
@@ -11370,52 +11696,56 @@ async function pauseForFailure(ctx, req) {
   } catch {
     return;
   }
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first);
-    const run = { ...state.run };
+  const d = await decide(ctx, first, "auto-pause", (state2, draft) => {
+    const run = { ...draft.run };
     if (run.status === "done")
       return;
     const now = ctx.host.now();
-    const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress");
+    const inProgress = state2.tasks.tasks.filter((t) => t.status === "in_progress");
     const named = req.task ? { task: req.task, ...req.agent ? { agent: req.agent } : {} } : undefined;
     const before = run.status === "paused" ? run.pause : undefined;
     const byHand = run.status === "paused" && !before;
-    const signature = progressSignature(state.tasks);
-    const streak = run.pauseStreak?.signature === signature ? run.pauseStreak.n : 0;
+    const signature = progressSignature(state2.tasks);
+    const streak2 = run.pauseStreak?.signature === signature ? run.pauseStreak.n : 0;
     const resets = [before?.resetAt, req.failure.resetAt].filter((x) => !!x).sort();
-    const resetAt = resets.at(-1);
-    const tasks = pausedTasks(inProgress, named).map((t) => {
+    const resetAt2 = resets.at(-1);
+    const tasks2 = pausedTasks(inProgress, named).map((t) => {
       const earlier = before?.tasks.find((b) => b.id === t.id);
       return !t.agent && earlier?.agent ? { ...t, agent: earlier.agent } : t;
     });
-    const pause = {
+    const pause2 = {
       kind: req.failure.kind,
       detail: req.failure.detail,
       at: before?.at ?? now.toISOString(),
-      streak,
-      tasks,
+      streak: streak2,
+      tasks: tasks2,
       by: actorOf({ ...ctx, agent: undefined })
     };
-    if (resetAt)
-      pause.resetAt = resetAt;
-    const resumeAt = byHand || before && !before.resumeAt ? undefined : resumeAtOf(resetAt, streak, now);
-    if (resumeAt)
-      pause.resumeAt = resumeAt;
+    if (resetAt2)
+      pause2.resetAt = resetAt2;
+    const resumeAt2 = byHand || before && !before.resumeAt ? undefined : resumeAtOf(resetAt2, streak2, now);
+    if (resumeAt2)
+      pause2.resumeAt = resumeAt2;
     run.status = "paused";
-    run.pause = pause;
-    await writeRun(ctx.host, state.dir, run);
-    await log(ctx, state, {
-      action: "auto-pause",
-      kind: pause.kind,
-      detail: pause.detail,
-      kept: tasks.map((t) => t.id),
-      ...req.task ? { task: req.task } : {},
-      ...resetAt ? { resetAt } : {},
-      ...resumeAt ? { resumeAt } : {},
-      streak
-    });
-    return pause;
+    run.pause = pause2;
+    draft.run = run;
+    return { pause: pause2, tasks: tasks2, resetAt: resetAt2, resumeAt: resumeAt2, streak: streak2 };
   });
+  if (!d.result)
+    return;
+  const { pause, tasks, resetAt, resumeAt, streak } = d.result;
+  const state = d.state;
+  await log(ctx, state, {
+    action: "auto-pause",
+    kind: pause.kind,
+    detail: pause.detail,
+    kept: tasks.map((t) => t.id),
+    ...req.task ? { task: req.task } : {},
+    ...resetAt ? { resetAt } : {},
+    ...resumeAt ? { resumeAt } : {},
+    streak
+  });
+  return pause;
 }
 async function stateOf(ctx, run) {
   try {
@@ -11478,7 +11808,7 @@ function renewalNeed(state, task, locks, platform, now, every = RENEW_EVERY_MS) 
   const keys = taskKeys(state.root, task, platform);
   if (!keys.length)
     return "none";
-  const owner = ownerOf(state.run.id, task.id);
+  const owner = ownerOf2(state.run.id, task.id);
   const mine = locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true);
   const held = new Set(mine.map((l) => l.key));
   if (keys.some((k) => !held.has(k)))
@@ -11491,7 +11821,7 @@ async function renewTask(ctx, state, task) {
   const keys = taskKeys(state.root, task, ctx.host.platform);
   if (await canRenew(ctx.host)) {
     const ttl = state.run.holdTtl ?? DEFAULT_HOLD_TTL;
-    await jlockRenew(ctx.host, state.run.id, ownerOf(state.run.id, task.id), ttl);
+    await jlockRenew(ctx.host, state.run.id, ownerOf2(state.run.id, task.id), ttl);
     const refused3 = await retakeMissing(ctx, state, task);
     await log(ctx, state, refused3.length ? { action: "renew-lost", task: task.id, keys, refused: refused3 } : { action: "renew", task: task.id, keys, ttl });
     return refused3.length ? "lost" : "renewed";
@@ -11525,14 +11855,14 @@ async function renewRun(ctx, run, mine, every = RENEW_EVERY_MS) {
     }
     let result = "fresh";
     try {
-      result = await withLock(ctx.host, first.dir, async () => {
-        const state = await reload(ctx, first);
+      result = await withTree(ctx, run, async (ctx2) => {
+        const state = await reload(ctx2, first);
         const task = state.tasks.tasks.find((t) => t.id === candidate.id);
         if (!task || task.status !== "in_progress" || task.owner !== candidate.owner)
           return "fresh";
         if (need === "renew")
-          return renewTask(ctx, state, task);
-        return (await retakeMissing(ctx, state, task)).length ? "lost" : "retaken";
+          return renewTask(ctx2, state, task);
+        return (await retakeMissing(ctx2, state, task)).length ? "lost" : "retaken";
       });
       if (result === "renewed" || result === "retaken" || result === "lost") {
         const after = (await readTasks(ctx.host, first.dir).catch(() => {
@@ -12859,11 +13189,11 @@ export {
   yieldedKeys,
   writeTickets,
   writeTicket,
-  writeTasks,
-  writeRun,
+  writeSnapshots,
   writeKeepalive,
   writeConfig,
-  withLock,
+  withTree,
+  withKey,
   width,
   warningLines,
   waitingText,
@@ -12873,10 +13203,12 @@ export {
   validatePlan,
   validateGraph,
   validateBatch,
+  utf8Length,
   userHome,
   unregisterProcs,
   unarchive,
   ttlMs,
+  treeKey,
   tr,
   toTask,
   ticketReadLine,
@@ -12886,12 +13218,14 @@ export {
   taskOfPrompt,
   taskKeys,
   taskIdArg,
+  taskGen,
   takeKeys,
   tags,
   systemLocale,
   sweepAwaiting,
   summaryText,
   summaryTail,
+  strip,
   stringify,
   statusOf,
   status,
@@ -12958,6 +13292,7 @@ export {
   reapplyLines,
   readTicketsDir,
   readTasks,
+  readState,
   readRun,
   readPlan,
   readKeepalive,
@@ -12982,10 +13317,11 @@ export {
   pauseForFailure,
   parseTicket,
   parseTasklist,
+  parseLines,
   parseFrontMatter,
   parseDuration,
   parseArgs,
-  ownerOf,
+  ownerOf2 as ownerOf,
   ok,
   nudgeText,
   normalizeKey,
@@ -13045,6 +13381,7 @@ export {
   git,
   formatWhen,
   formatRunsList,
+  foldLines,
   firstConflict,
   findingLine,
   findTask,
@@ -13053,12 +13390,17 @@ export {
   excludeFile,
   ensureJlock,
   endsWait,
+  emptyGens,
   effectsOf,
   effectLine,
   earliestExpiry,
   durationMs,
   draftSummary,
+  draftKey,
+  doneTrailer,
   dirname,
+  diffState,
+  diffFields,
   detailOf,
   detachedHold,
   describeOwner,
@@ -13066,16 +13408,20 @@ export {
   deliveryLabel,
   deliveryKind,
   defineAction,
+  decide,
   dataInRepo,
   currentBranch,
   createdText,
+  createSnapshots,
   createRun,
   covers,
   counts,
+  copyGens,
   conflicts,
   configFile,
   commitReachable,
   commitExists,
+  commit,
   clone,
   clearKeepalive,
   classifyFailure,
@@ -13086,6 +13432,7 @@ export {
   checkKeepalive,
   checkJlock,
   checkEdit,
+  charIndexAt,
   chainText,
   caseInsensitive,
   canonical,
@@ -13108,6 +13455,7 @@ export {
   atomicWrite,
   assess,
   archiveDir,
+  applyEvent,
   appendLog,
   ancestors,
   alertText,
@@ -13119,12 +13467,16 @@ export {
   addExcludeLine,
   actorOf,
   acquireHold,
+  accepts,
   VERSION,
   ToolError,
   TRANSIENT,
-  StaleRevisionError,
   SKILL_FILES,
   SKILLS,
+  SERIAL_WAIT_SEC,
+  SERIAL_DETACH_TTL,
+  RUN_SNAPSHOT_KEYS,
+  RUN_FORMAT,
   RESET_MARGIN_MS,
   RENEW_MARGIN_MS,
   RENEW_JLOCK,
@@ -13138,6 +13490,8 @@ export {
   KIND_TABLE,
   KEEPALIVE_FILE,
   JLOCK,
+  EVENT_VERSION,
+  EVENTS_FILE,
   EOF_JLOCK,
   DURATION,
   DEFAULT_PROFILES,
@@ -13148,6 +13502,8 @@ export {
   DEFAULT_HOLD_TTL,
   DEFAULT_CONTAINER_DATA,
   DEFAULT_AWAIT_GRACE,
+  CommitConflictError,
+  COMMIT_ATTEMPTS,
   CATALOGS,
   BAR_CELLS,
   BACKOFF_MS,

@@ -36,10 +36,14 @@ export interface Machine {
   branch: () => string
   locks: { key: string; owner: string; group: string }[]
   releases: string[]
+  /** Releases of the run's serializing keys (the tree key held around a transition). */
+  serialReleases: string[]
   /** Files changed in the working tree (relative to the root): what `git status` lists, `git diff` saves, `git checkout HEAD` puts back. */
   dirty: Map<string, string>
   /** The pids `tasklist` / `ps` see alive (rev. 5.8: the processes a task waits for). */
   alive: Set<number>
+  /** What `$.process.run` answers, for a test that builds the mod's host itself. */
+  run(argv: readonly string[], init?: { cwd?: string; stdin?: string }): { exitCode: number; stdout: string; stderr: string }
 }
 
 export function installMachine(on: On, root: string): Machine {
@@ -91,6 +95,7 @@ export function installMachine(on: On, root: string): Machine {
   let current = 'main'
   const locks: Machine['locks'] = []
   const releases: string[] = []
+  const serialReleases: string[] = []
   const commands: string[] = []
   const ok = (stdout = '') => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
   const fail = (stderr = '') => ({ value: { exitCode: 1, stdout: '', stderr, isStdoutTruncated: false, isStderrTruncated: false } })
@@ -146,7 +151,9 @@ export function installMachine(on: On, root: string): Machine {
     }
     if (args[0] === 'release') {
       const owner = args[args.indexOf('--owner') + 1]!
-      releases.push(owner)
+      // The run's tree key (ticket 60: serial.ts, owners `gt:<run>/~tree-…`) is not a task's ownership.
+      if (owner.includes('/~')) serialReleases.push(owner)
+      else releases.push(owner)
       const mine = locks.filter((l) => l.owner === owner)
       for (const l of mine) locks.splice(locks.indexOf(l), 1)
       return ok(JSON.stringify({ keys: mine.map((l) => l.key), owner, result: 'released' }))
@@ -180,7 +187,7 @@ export function installMachine(on: On, root: string): Machine {
   }
 
   const alive = new Set<number>()
-  on('process.run', (_$, e) => {
+  const runCommand = (e: { argv: readonly string[]; init?: { cwd?: string; stdin?: string } }) => {
     commands.push(e.argv.join(' '))
     const [exe, ...args] = e.argv
     if (exe === 'git') return git(args, e.init?.cwd)
@@ -193,8 +200,16 @@ export function installMachine(on: On, root: string): Machine {
     if (exe === 'jlock') return jlock(args)
     if (exe === 'cmd') return cmd(args)
     if (exe === 'mkdir' || exe === 'mv' || exe === 'rm') return posixFs(exe, args)
+    // The mod's append (ticket 60): `bun -e <script> <file>` with the text on standard input, one write.
+    if ((exe === 'bun' || exe === 'node') && args[0] === '-e') {
+      const file = args[args.length - 1]!
+      const n = files.get(norm(file))
+      write(file, (n?.kind === 'file' ? n.text : '') + (e.init?.stdin ?? ''))
+      return ok()
+    }
     return fail(`fake machine: no ${exe}`)
-  })
+  }
+  on('process.run', (_$, e) => runCommand(e))
   on('fs.read', (_$, e) => {
     const n = files.get(norm(e.path))
     return n?.kind === 'file' ? { value: n.text } : { deny: `ENOENT: ${e.path}` }
@@ -233,8 +248,10 @@ export function installMachine(on: On, root: string): Machine {
     branch: () => current,
     locks,
     releases,
+    serialReleases,
     dirty,
     alive,
+    run: (argv, init) => runCommand({ argv, ...(init ? { init } : {}) }).value,
   }
 }
 

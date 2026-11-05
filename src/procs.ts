@@ -8,7 +8,7 @@
 
 import type { Host } from "./host.ts"
 import type { RunFile, Task, TaskProcess, TasksFile } from "./schema.ts"
-import { appendLog, clone, readTasks, withLock, writeTasks } from "./store.ts"
+import { appendLog, commit } from "./store.ts"
 
 /** What the system says about a pid: alive or not (undefined: it could not tell), and its executable when it says. */
 export interface Probe {
@@ -106,51 +106,57 @@ export async function registerProcs(
   agent?: string,
   opts: { inline?: boolean } = {},
 ): Promise<Task | undefined> {
-  return withLock(host, dir, async () => {
-    const tasks = await readTasks(host, dir)
-    if (!tasks) return undefined
-    const copy: TasksFile = clone(tasks)
-    const task = copy.tasks.find((t) => t.id === taskId)
-    if (!task || task.status !== "in_progress") return undefined
-    const pids = new Set(procs.map((p) => p.pid))
-    task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs]
-    const back = endsWait(task, agent)
-    // `inline`: the orchestrator waits for a process of its own on a task it runs itself (owner = caller, no
-    // subagent). The task waits for it, watched like a subagent's wait. A wait a subagent left is never turned into it.
-    const inline = !back && !!opts.inline && !agent && task.owner === actor && (!task.awaiting || !!task.awaiting.inline)
-    if (back) delete task.awaiting
-    else if (inline) {
-      const before = task.awaiting?.pids ?? []
-      const added = procs.map((p) => p.pid).filter((pid) => !before.includes(pid))
-      task.awaiting = { since: task.awaiting?.since ?? host.now().toISOString(), pids: [...before, ...added], inline: true }
-    } else if (task.awaiting) {
-      // Still waiting: for these too (a process the orchestrator saw is one more to wait for, never one less).
-      const added = procs.map((p) => p.pid).filter((pid) => !task.awaiting!.pids.includes(pid))
-      if (added.length) {
-        task.awaiting.pids = [...task.awaiting.pids, ...added]
-        delete task.awaiting.endedAt
+  let back = false
+  let inline = false
+  const c = await commit(
+    host,
+    dir,
+    (draft) => {
+      const task = draft.tasks.tasks.find((t) => t.id === taskId)
+      if (!task || task.status !== "in_progress") return undefined
+      const pids = new Set(procs.map((p) => p.pid))
+      task.procs = [...(task.procs ?? []).filter((p) => !pids.has(p.pid)), ...procs]
+      back = endsWait(task, agent)
+      // `inline`: the orchestrator waits for a process of its own on a task it runs itself (owner = caller, no
+      // subagent). The task waits for it, watched like a subagent's wait. A wait a subagent left is never turned into it.
+      inline = !back && !!opts.inline && !agent && task.owner === actor && (!task.awaiting || !!task.awaiting.inline)
+      if (back) delete task.awaiting
+      else if (inline) {
+        const before = task.awaiting?.pids ?? []
+        const added = procs.map((p) => p.pid).filter((pid) => !before.includes(pid))
+        task.awaiting = { since: task.awaiting?.since ?? host.now().toISOString(), pids: [...before, ...added], inline: true }
+      } else if (task.awaiting) {
+        // Still waiting: for these too (a process the orchestrator saw is one more to wait for, never one less).
+        const added = procs.map((p) => p.pid).filter((pid) => !task.awaiting!.pids.includes(pid))
+        if (added.length) {
+          task.awaiting.pids = [...task.awaiting.pids, ...added]
+          delete task.awaiting.endedAt
+        }
       }
-    }
-    await writeTasks(host, dir, copy, tasks.revision)
-    const at = host.now().toISOString()
-    if (back) await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {})
-    await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec", ...(inline ? { inline: true } : {}) }).catch(() => {})
-    return task
-  })
+      return task.id
+    },
+    { actor, action: "procs" },
+  )
+  if (!c.result) return undefined
+  const at = host.now().toISOString()
+  if (back) await appendLog(host, dir, { at, actor, action: "await-back", task: taskId, how: "procs" }).catch(() => {})
+  await appendLog(host, dir, { at, actor, action: "procs", task: taskId, pids: procs.map((p) => p.pid), by: procs[0]?.by ?? "exec", ...(inline ? { inline: true } : {}) }).catch(() => {})
+  return c.tasks.tasks.find((t) => t.id === taskId)
 }
 
 /** Takes processes off a task's list (its `exec` ended); a task no longer in progress has no list. */
 export async function unregisterProcs(host: Host, dir: string, taskId: string, pids: number[]): Promise<void> {
-  await withLock(host, dir, async () => {
-    const tasks = await readTasks(host, dir)
-    const task = tasks?.tasks.find((t) => t.id === taskId)
-    if (!tasks || !task?.procs?.some((p) => pids.includes(p.pid))) return
-    const copy: TasksFile = clone(tasks)
-    const t = copy.tasks.find((x) => x.id === taskId)!
-    t.procs = t.procs!.filter((p) => !pids.includes(p.pid))
-    if (!t.procs.length) delete t.procs
-    await writeTasks(host, dir, copy, tasks.revision)
-  })
+  await commit(
+    host,
+    dir,
+    (draft) => {
+      const t = draft.tasks.tasks.find((x) => x.id === taskId)
+      if (!t?.procs?.some((p) => pids.includes(p.pid))) return
+      t.procs = t.procs.filter((p) => !pids.includes(p.pid))
+      if (!t.procs.length) delete t.procs
+    },
+    { action: "unprocs" },
+  )
 }
 
 /** The run's grace after a waited process ended, in milliseconds. */

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { readEffects } from "../src/ledger.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
-import { StaleRevisionError, mutateTasks, readTasks, writeTasks } from "../src/store.ts"
+import { commit, mutateTasks, readTasks } from "../src/store.ts"
 import { CLI, cleanupTemp, host, makeRepo, sh, tasks, tasksOk, tempDir, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
@@ -135,18 +135,23 @@ describe("jtasks plan", () => {
   })
 })
 
-describe("atomic writes and revision", () => {
-  test("a write based on a stale revision is refused; concurrent read-change-writes both land under the write lock", async () => {
+describe("atomic writes and the optimistic commit (ticket 60)", () => {
+  test("a decision made on an old read is refused by the fold and made again; concurrent changes both land", async () => {
     const repo = makeRepo()
     const r = await tasksOk(repo, ["plan"], { json: { ...plan, branch: "current" } })
     const dir = (await runPath(repo, (r.data as { run: string }).run)).replace(/\\/g, "/")
-    const first = (await readTasks(host, dir))!
-    const second = structuredClone(first)
-    second.tasks[0]!.title = "mudado"
-    await writeTasks(host, dir, second, 1)
-    first.tasks[1]!.title = "perdido"
-    await expect(writeTasks(host, dir, first, 1)).rejects.toBeInstanceOf(StaleRevisionError)
-    expect((await readTasks(host, dir))!.revision).toBe(2)
+    // While the first decision is made, another one lands on the same task: the first is made again on top of it.
+    let tries = 0
+    await commit(host, dir, async (d) => {
+      tries++
+      if (tries === 1) await mutateTasks(host, dir, (t) => void (t.tasks[0]!.title = "mudado"))
+      d.tasks.tasks[0]!.what = `seen ${d.tasks.tasks[0]!.title}`
+    })
+    expect(tries).toBe(2)
+    const now = (await readTasks(host, dir))!
+    expect(now.tasks[0]!.title).toBe("mudado")
+    expect(now.tasks[0]!.what).toBe("seen mudado")
+    expect(now.revision).toBe(3)
 
     // Two concurrent read-modify-writes: both changes land, the revision counts both.
     await Promise.all([
@@ -154,7 +159,7 @@ describe("atomic writes and revision", () => {
       mutateTasks(host, dir, (t) => void (t.tasks[2]!.title = "B")),
     ])
     const final = (await readTasks(host, dir))!
-    expect(final.revision).toBe(4)
+    expect(final.revision).toBe(5)
     expect([final.tasks[0]!.title, final.tasks[1]!.title, final.tasks[2]!.title]).toEqual(["mudado", "A", "B"])
     expect(readdirSync(dir).filter((n) => n.endsWith(".tmp"))).toEqual([])
   })

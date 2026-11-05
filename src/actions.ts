@@ -67,7 +67,8 @@ import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
 import { DEFAULT_AWAIT_GRACE, DEFAULT_HOLD_TTL, DEFAULT_MAX_AGENT_ENDED, type Awaiting, type Hold, type RunFile, type Task, type TaskProcess, type TasksFile, type Yielded } from "./schema.ts"
-import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, withLock, writeRun, writeTasks } from "./store.ts"
+import { appendLog, commit, jtasksHome, listRuns, readState, readTasks, runDir, runsDir, strip, type StateDraft } from "./store.ts"
+import { withTree } from "./serial.ts"
 import { dataInRepo, isDataPath, requirePaths, type RepoPaths } from "./workspace.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
@@ -108,12 +109,32 @@ async function sweptRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState> {
   return (await sweepAwaiting(ctx, state.run.id)).length ? reload(ctx, state) : state
 }
 
-/** Re-reads run.json and tasks.json (inside the write lock, before deciding). */
+/** Reads the run's state again (snapshots and events, store.ts). */
 export async function reload(ctx: ToolContext, state: RunState): Promise<RunState> {
-  const run = await readRun(ctx.host, state.dir)
-  const tasks = await readTasks(ctx.host, state.dir)
-  if (!run || !tasks) throw new ToolError(tr("run.gone", { run: state.run.id, dir: state.dir }))
-  return { ...state, run, tasks }
+  const s = await readState(ctx.host, state.dir)
+  if (!s?.run || !s.tasks) throw new ToolError(tr("run.gone", { run: state.run.id, dir: state.dir }))
+  return { ...state, run: strip(s.run), tasks: strip(s.tasks), gens: s.gens }
+}
+
+export interface Decided<R> {
+  /** The state after the event (or as read, when the decision changed nothing). */
+  state: RunState
+  result: R
+  changed: boolean
+}
+
+/**
+ * A decision on the run's state committed as one event (store.ts `commit`): `fn` gets the state as read and the copy
+ * to edit, and runs again when the fold refuses the event (someone changed the same tasks meanwhile). Throwing refuses.
+ */
+export async function decide<R>(
+  ctx: ToolContext,
+  first: RunState,
+  action: string,
+  fn: (state: RunState, draft: StateDraft, attempt: number) => Promise<R> | R,
+): Promise<Decided<R>> {
+  const c = await commit(ctx.host, first.dir, (d, attempt) => fn({ ...first, run: d.read.run, tasks: d.read.tasks }, d, attempt), { actor: actorOf(ctx), action })
+  return { state: { ...first, run: c.run, tasks: c.tasks, gens: c.gens }, result: c.result, changed: c.changed }
 }
 
 export function findTask(state: RunState, id: string | undefined): Task {
@@ -155,7 +176,8 @@ export function remember(ctx: ToolContext, state: RunState, task: string, reside
       key,
       list.filter((r) => r !== resident),
     )
-    if (code === JLOCK.LOST) await markLost(ctx, state, task).catch(() => {})
+    // Later, on its own: whatever serializing key the call that took the hold had is long given back.
+    if (code === JLOCK.LOST) await markLost({ ...ctx, serialKeys: undefined }, state, task).catch(() => {})
     ctx.onHoldExit?.(run, task, code)
   })
 }
@@ -166,18 +188,19 @@ export function remember(ctx: ToolContext, state: RunState, task: string, reside
  * else holds now is not touched), the log says `lost`.
  */
 export async function markLost(ctx: ToolContext, first: RunState, id: string): Promise<boolean> {
-  const changed = await withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
-    const copy = clone(state.tasks)
-    const task = copy.tasks.find((t) => t.id === id)
-    if (!task || task.status !== "in_progress") return false
-    const now = ctx.host.now().toISOString()
-    const kept = await keepTask(ctx, state, task)
-    const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now)
-    task.lost = now
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-    await writeTicket(ctx.host, state.dir, tasks, id)
-    await log(ctx, state, { action: "lost", task: id, from: "in_progress", to, ...keptLog(kept) })
+  const changed = await withTree(ctx, first.run.id, async (ctx) => {
+    const d = await decide(ctx, first, "lost", async (state, draft) => {
+      const task = draft.tasks.tasks.find((t) => t.id === id)
+      if (!task || task.status !== "in_progress") return undefined
+      const now = ctx.host.now().toISOString()
+      const kept = await keepTask(ctx, state, task)
+      const to = backToPending(task, state.run.maxAttempts, tr("view.lost"), now)
+      task.lost = now
+      return { kept, to }
+    })
+    if (!d.result) return false
+    await writeTicket(ctx.host, first.dir, d.state.tasks, id)
+    await log(ctx, d.state, { action: "lost", task: id, from: "in_progress", to: d.result.to, ...keptLog(d.result.kept) })
     return true
   })
   if (changed) await releaseHolds(ctx, first.run.id, id).catch(() => {})
@@ -298,96 +321,125 @@ defineAction(
   async (ctx, args) => {
     const first = await resolveRun(ctx, args)
     const id = taskIdArg(args)
-    return withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first)
-      const task = findTask(state, id)
-      if (state.run.status === "paused") throw new ToolError(tr("start.paused", { run: state.run.id }))
-      if (task.status !== "pending") {
-        const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : ""
-        throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`)
-      }
-      const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]))
-      const open = task.dependsOn.filter((d) => !["done", "skipped"].includes(byId.get(d)?.status ?? ""))
-      if (open.length) throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }))
-      const mutex = sharedBlocker(state, task, ctx.host.platform)
-      if (mutex?.kind === "shared") throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }))
-
-      const keys = taskKeys(state.root, task, ctx.host.platform)
-      const now = ctx.host.now().toISOString()
+    // Under the tree key: one start of a task at a time (a second one sees it in progress before taking any lock),
+    // and its kept edits come back with no other transition touching the tree. An exclusive task holds it under its
+    // own owner: the `*` it takes next would be refused by a key another owner holds (serial.ts).
+    const exclusive = first.tasks.tasks.find((t) => t.id === id)?.exclusive
+    return withTree(ctx, first.run.id, async (ctx) => {
+      let keys: string[] = []
       let hold: Hold | undefined
       let resident: Resident | undefined
-      if (keys.length) {
-        const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15_000)
-        if (outcome.answer.result !== "granted") {
-          const a = outcome.answer
-          const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : tr("start.other_owner")
-          const key = a.failed ?? a.key ?? keys[0]!
-          const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : ""
-          throw new ToolError(
-            tr("start.busy", { id: task.id, key: describeKey(key, state.root, ctx.host.platform), holder, via }),
-            1,
-            { result: a.result, key, holder: a.holder, position: a.position, via: a.via },
-          )
-        }
-        resident = outcome.resident
-        hold = { keys, startedAt: now, kind: "start" }
-        if (resident?.pid !== undefined) hold.pid = resident.pid
-      }
-      const changed = clone(state.tasks)
-      const t = changed.tasks.find((x) => x.id === task.id)!
-      // Kept edits tasks.json lost (ticket 58) come back with the others.
-      await recoverKept(ctx.host, state, t)
-      t.status = "in_progress"
-      t.attempts += 1
-      t.owner = actorOf(ctx)
-      t.startedAt = now
-      t.holds = hold ? [hold] : []
-      delete t.finishedAt
-      delete t.lost
-      let written: TasksFile
+      let reapply: ReapplyReport | undefined
+      let fresh: string[] | undefined
+      let d: Decided<{ attempts: number; owner: string | null }>
       try {
-        written = await writeTasks(ctx.host, state.dir, changed, state.tasks.revision)
-        await writeTicket(ctx.host, state.dir, written, task.id)
+        d = await decide(ctx, first, "start", async (state, draft, attempt) => {
+          const task = findTask(state, id)
+          draft.guardRun()
+          if (state.run.status === "paused") throw new ToolError(tr("start.paused", { run: state.run.id }))
+          if (task.status !== "pending") {
+            const who = task.owner ? ` ${tr("start.owner", { owner: task.owner })}` : ""
+            throw new ToolError(`${tr("start.not_pending", { id: task.id, status: task.status })}${who}`)
+          }
+          const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]))
+          const open = task.dependsOn.filter((x) => !["done", "skipped"].includes(byId.get(x)?.status ?? ""))
+          if (open.length) throw new ToolError(tr("start.depends", { id: task.id, deps: open.join(", ") }))
+          const mutex = sharedBlocker(state, task, ctx.host.platform)
+          if (mutex?.kind === "shared") throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }))
+          const now = ctx.host.now().toISOString()
+          // The locks are taken once: a decision made again (its event refused) keeps them.
+          if (attempt === 1) {
+            keys = taskKeys(state.root, task, ctx.host.platform)
+            if (keys.length) {
+              const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15_000)
+              if (outcome.answer.result !== "granted") {
+                const a = outcome.answer
+                const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : tr("start.other_owner")
+                const key = a.failed ?? a.key ?? keys[0]!
+                const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : ""
+                keys = []
+                throw new ToolError(
+                  tr("start.busy", { id: task.id, key: describeKey(key, state.root, ctx.host.platform), holder, via }),
+                  1,
+                  { result: a.result, key, holder: a.holder, position: a.position, via: a.via },
+                )
+              }
+              resident = outcome.resident
+              hold = { keys, startedAt: now, kind: "start" }
+              if (resident?.pid !== undefined) hold.pid = resident.pid
+            }
+          }
+          const t = draft.tasks.tasks.find((x) => x.id === task.id)!
+          // Kept edits tasks.json lost (ticket 58) come back with the others.
+          await recoverKept(ctx.host, state, t)
+          t.status = "in_progress"
+          t.attempts += 1
+          t.owner = actorOf(ctx)
+          t.startedAt = now
+          t.holds = hold ? [hold] : []
+          delete t.finishedAt
+          delete t.lost
+          // The edits an earlier attempt left as patches (rev. 5.6) come back now, unless --fresh.
+          const saved = t.patches ?? []
+          if (saved.length && args.options.fresh) {
+            fresh = saved.map((p) => p.patch)
+            delete t.patches
+          } else if (saved.length) reapply = mergeReapply(reapply, await reapplyPatches(ctx.host, state, t, () => true))
+          return { attempts: t.attempts, owner: t.owner }
+        })
       } catch (error) {
-        if (keys.length) await releaseHoldsOf(ctx, state.run.id, task.id, resident, keys)
+        if (keys.length) await releaseHoldsOf(ctx, first.run.id, id ?? "", resident, keys)
         throw error
       }
-      if (resident) remember(ctx, state, task.id, resident)
-      await log(ctx, state, { action: "start", task: task.id, from: "pending", to: "in_progress", keys })
-      // The edits an earlier attempt left as patches (rev. 5.6) come back now, unless --fresh.
-      const saved = t.patches ?? []
-      let reapply: ReapplyReport | undefined
+      const state = d.state
+      await writeTicket(ctx.host, state.dir, state.tasks, id!)
+      if (resident) remember(ctx, state, id!, resident)
+      await log(ctx, state, { action: "start", task: id, from: "pending", to: "in_progress", keys })
       const extra: string[] = []
-      if (saved.length) {
-        const again = clone(written)
-        const u = again.tasks.find((x) => x.id === task.id)!
-        if (args.options.fresh) {
-          delete u.patches
-          extra.push(tr("start.fresh", { n: saved.length, dir: join(state.dir, "patches", task.id) }))
-          await log(ctx, state, { action: "fresh", task: task.id, dropped: saved.map((p) => p.patch) })
-        } else {
-          reapply = await reapplyPatches(ctx.host, { ...state, tasks: written }, u, () => true)
-          extra.push(...reapplyLines(reapply))
-          await log(ctx, state, { action: "reapply", task: task.id, ...reapplyData(reapply) })
-        }
-        written = await writeTasks(ctx.host, state.dir, again, written.revision)
-        await writeTicket(ctx.host, state.dir, written, task.id)
+      if (fresh) {
+        extra.push(tr("start.fresh", { n: fresh.length, dir: join(state.dir, "patches", id!) }))
+        await log(ctx, state, { action: "fresh", task: id, dropped: fresh })
+      } else if (reapply) {
+        extra.push(...reapplyLines(reapply))
+        await log(ctx, state, { action: "reapply", task: id, ...reapplyData(reapply) })
       }
-      const ticket = ticketPath(state.dir, changed.tasks, task.id)
-      const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, task.id) }) : tr("start.no_files")
+      const ticket = ticketPath(state.dir, state.tasks.tasks, id!)
+      const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, id!) }) : tr("start.no_files")
       return ok(
-        [
-          tr("start.started", { id: task.id, attempt: t.attempts, own }),
-          ...extra,
-          `ticket: ${ticket}`,
-          tr("start.hint", { id: task.id }),
-        ].join("\n"),
-        { run: state.run.id, task: task.id, keys, owner: t.owner, attempts: t.attempts, ticket, ...(reapply ? reapplyData(reapply) : {}) },
+        [tr("start.started", { id: id!, attempt: d.result.attempts, own }), ...extra, `ticket: ${ticket}`, tr("start.hint", { id: id! })].join("\n"),
+        { run: state.run.id, task: id, keys, owner: d.result.owner, attempts: d.result.attempts, ticket, ...(reapply ? reapplyData(reapply) : {}) },
       )
-    })
+    }, exclusive && id ? ownerOf(first.run.id, id) : undefined)
   },
   "help.start",
 )
+
+/** The trailer of a done's commit (ticket 60): the run and the task, so a done made again finds its own commit. */
+export function doneTrailer(run: string, task: string): string {
+  return `Jtasks-Task: ${run}/${task}`
+}
+
+/** HEAD's short hash when its message carries `trailer` (an earlier try of the same done made it), else null. */
+async function headWithTrailer(host: ToolContext["host"], root: string, trailer: string): Promise<string | null> {
+  const r = await git(host, root, ["log", "-1", "--format=%h%n%B"])
+  if (r.code !== 0) return null
+  const [hash, ...body] = r.stdout.split(/\r?\n/)
+  return hash && body.some((l) => l.trim() === trailer || l.trim().startsWith(`${trailer} `)) ? hash.trim() : null
+}
+
+/** Whether the ledger already has the commit effect of a done (an earlier try recorded it). */
+async function hasCommitEffect(host: ToolContext["host"], dir: string, task: string, ref: string): Promise<boolean> {
+  return (await readEffects(host, join(dir, "ledger.jsonl"))).some((e) => e.type === "commit" && e.task === task && e.ref === ref)
+}
+
+/** Two reapply reports of one decision made again (its event refused): what the earlier attempt brought back counts. */
+function mergeReapply(a: ReapplyReport | undefined, b: ReapplyReport): ReapplyReport {
+  if (!a) return b
+  const files = (x: { file: string }[]) => new Set(x.map((y) => y.file))
+  const applied = [...new Set([...a.applied, ...b.applied])]
+  const conflicts = [...a.conflicts.filter((c) => !files(b.conflicts).has(c.file)), ...b.conflicts]
+  return { applied, conflicts, failed: b.failed.filter((f) => !applied.includes(f.file)) }
+}
 
 /** Gives back one hold only (its own keys): a start or claim that could not be recorded. */
 async function releaseHoldsOf(ctx: ToolContext, run: string, task: string, resident: Resident | undefined, keys: string[]) {
@@ -624,13 +676,11 @@ function textArg(args: ParsedArgs, name: string): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined
 }
 
-/** Keeps `run.json`'s status in step with the tasks: `done` when nothing remains, `active` again otherwise. */
-async function syncRunStatus(ctx: ToolContext, state: RunState, tasks: Task[]) {
-  const run = await readRun(ctx.host, state.dir)
-  if (!run || run.status === "paused") return
-  const remaining = counts(tasks).remaining
-  const status = remaining === 0 ? "done" : "active"
-  if (run.status !== status) await writeRun(ctx.host, state.dir, { ...run, status })
+/** Keeps run.json's status in step with the tasks, in the same event: `done` when nothing remains, `active` again otherwise. */
+function syncRunStatus(run: RunFile, tasks: Task[]) {
+  if (run.status === "paused") return
+  const status = counts(tasks).remaining === 0 ? "done" : "active"
+  if (run.status !== status) run.status = status
 }
 
 interface Transition {
@@ -640,30 +690,37 @@ interface Transition {
 }
 
 /**
- * One transition under the run's write lock: re-read, `change` decides (throwing to refuse) and edits the copy,
- * then tasks.json, the ticket, the log and run.json's status are written.
+ * One transition of a task, committed as one event: `change` decides on the state as read (throwing to refuse) and
+ * edits the copy of the task (and of run.json through the draft); run.json's status follows in the same event. Then
+ * the ticket and the log. `change` runs again when the event is refused. `tree`: it touches the working tree (its
+ * edits kept as patches, a commit), so it runs under the run's tree key (serial.ts) and its effects are idempotent.
  */
 async function transition(
   ctx: ToolContext,
   args: ParsedArgs,
-  action: string,
-  change: (task: Task, state: RunState) => Promise<Record<string, unknown> | void> | Record<string, unknown> | void,
+  action: string | (() => string),
+  change: (task: Task, state: RunState, draft: StateDraft, ctx: ToolContext) => Promise<Record<string, unknown> | void> | Record<string, unknown> | void,
+  opts: { tree?: boolean } = {},
 ): Promise<Transition> {
   const first = await resolveRun(ctx, args)
   const id = taskIdArg(args)
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
-    const original = findTask(state, id)
-    const copy = clone(state.tasks)
-    const task = copy.tasks.find((t) => t.id === original.id)!
-    const from = task.status
-    const extra = (await change(task, state)) ?? {}
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-    await writeTicket(ctx.host, state.dir, tasks, task.id)
-    await log(ctx, state, { action, task: task.id, from, to: task.status, ...extra })
-    await syncRunStatus(ctx, state, tasks.tasks)
-    return { task, tasks, state: { ...state, tasks } }
-  })
+  const name = () => (typeof action === "string" ? action : action())
+  const run = async (ctx: ToolContext): Promise<Transition> => {
+    const d = await decide(ctx, first, typeof action === "string" ? action : "transition", async (state, draft) => {
+      const original = findTask(state, id)
+      const task = draft.tasks.tasks.find((t) => t.id === original.id)!
+      const from = task.status
+      const extra = (await change(task, state, draft, ctx)) ?? {}
+      syncRunStatus(draft.run, draft.tasks.tasks)
+      return { id: task.id, from, extra }
+    })
+    const { id: taskId, from, extra } = d.result
+    const task = d.state.tasks.tasks.find((t) => t.id === taskId)!
+    await writeTicket(ctx.host, d.state.dir, d.state.tasks, taskId)
+    await log(ctx, d.state, { action: name(), task: taskId, from, to: task.status, ...extra })
+    return { task, tasks: d.state.tasks, state: d.state }
+  }
+  return opts.tree ? withTree(ctx, first.run.id, run) : run(ctx)
 }
 
 function closeTask(task: Task, status: Task["status"], now: string) {
@@ -699,8 +756,12 @@ async function keepTask(ctx: ToolContext, state: RunState, task: Task): Promise<
   const changed = await changedUnder(ctx.host, state, ownKeys(state, task, ctx.host.platform))
   const { mine, untouched } = await ownFiles(ctx.host, state, task, changed)
   const report = await keepEdits(ctx.host, state, task, mine, "release")
+  // Idempotent (the decision runs again when its event is refused): what an earlier try of this same release put back
+  // to HEAD is no longer in the tree, but its patches are in the ledger, and come back into the task from there.
+  const recovered = await recoverKept(ctx.host, state, task)
   takeBackEntries(task, (task.yielded ?? []).map((y) => y.key), state.root, ctx.host.platform)
-  return { saved: report.saved.map((p) => p.file), left: report.kept, untouched }
+  const saved = [...report.saved.map((p) => p.file), ...recovered.map((p) => p.file).filter((f) => !report.saved.some((p) => p.file === f))]
+  return { saved, left: report.kept, untouched }
 }
 
 /** The answer's tail about the edits of a task that left `in_progress`. */
@@ -840,26 +901,30 @@ defineAction(
 
     const resident = outcome.resident
     try {
-      const done = await withLock(ctx.host, first.dir, async () => {
-        const state = await reload(ctx, first)
-        const copy = clone(state.tasks)
-        const t = copy.tasks.find((x) => x.id === task.id)!
-        if (t.status !== "in_progress") throw new ToolError(tr("claim.left", { id: task.id, status: t.status }))
-        // Its subagent is at work: a wait for its process is over (rev. 5.8).
-        delete t.awaiting
-        // What it had yielded goes back where it was; the rest joins `claimed`.
-        const back = takeBackEntries(t, keys, state.root, platform)
-        const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f))
-        if (more.length) t.claimed = [...(t.claimed ?? []), ...more]
-        const hold: Hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" }
-        if (resident?.pid !== undefined) hold.pid = resident.pid
-        t.holds = [...(t.holds ?? []), hold]
-        const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, keys))
-        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-        await writeTicket(ctx.host, state.dir, tasks, task.id)
-        await log(ctx, state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) })
-        return { t, reapply }
-      })
+      // Patches to bring back are an effect on the tree: under the run's tree key. A plain claim needs no key.
+      const reapplies = (task.patches ?? []).some(patchesUnder(first, platform, keys))
+      const record = async (ctx: ToolContext) => {
+        let reapply: ReapplyReport | undefined
+        const d = await decide(ctx, first, "claim", async (state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id)!
+          if (t.status !== "in_progress") throw new ToolError(tr("claim.left", { id: task.id, status: t.status }))
+          // Its subagent is at work: a wait for its process is over (rev. 5.8).
+          delete t.awaiting
+          // What it had yielded goes back where it was; the rest joins `claimed`.
+          const back = takeBackEntries(t, keys, state.root, platform)
+          const more = wanted.filter((f) => !back.includes(f) && !(t.claimed ?? []).includes(f))
+          if (more.length) t.claimed = [...(t.claimed ?? []), ...more]
+          const hold: Hold = { keys, startedAt: ctx.host.now().toISOString(), kind: "claim" }
+          if (resident?.pid !== undefined) hold.pid = resident.pid
+          t.holds = [...(t.holds ?? []), hold]
+          reapply = mergeReapply(reapply, await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, keys)))
+          return t
+        })
+        await writeTicket(ctx.host, d.state.dir, d.state.tasks, task.id)
+        await log(ctx, d.state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply!) })
+        return { t: d.result, reapply: reapply! }
+      }
+      const done = reapplies ? await withTree(ctx, first.run.id, record) : await record(ctx)
       if (resident) remember(ctx, first, task.id, resident)
       const text = [tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done.t).join(", ") }), ...reapplyLines(done.reapply)]
       return ok(text.join("\n"), {
@@ -937,18 +1002,21 @@ export async function retakeYielded(ctx: ToolContext, first: RunState, only?: (t
       const refused = await takeKeys(ctx, state0, task, keys)
       const granted = keys.filter((k) => !refused.includes(k))
       if (!granted.length) continue
-      const back = await withLock(ctx.host, first.dir, async () => {
-        const state = await reload(ctx, first)
-        const copy = clone(state.tasks)
-        const t = copy.tasks.find((x) => x.id === task.id)
-        if (!t || t.status !== "in_progress") return undefined
-        const files = takeBackEntries(t, granted, state.root, platform)
-        t.holds = [...(t.holds ?? []), { keys: granted, startedAt: ctx.host.now().toISOString(), kind: "claim" }]
-        const reapply = await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, granted))
-        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-        await writeTicket(ctx.host, state.dir, tasks, t.id)
-        await log(ctx, state, { action: "reclaim", task: t.id, keys: granted, files, ...reapplyData(reapply) })
-        return { task: t.id, files, reapply }
+      const back = await withTree(ctx, first.run.id, async (ctx) => {
+        let reapply: ReapplyReport | undefined
+        let files: string[] = []
+        const d = await decide(ctx, first, "reclaim", async (state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id)
+          if (!t || t.status !== "in_progress") return false
+          files = takeBackEntries(t, granted, state.root, platform)
+          t.holds = [...(t.holds ?? []), { keys: granted, startedAt: ctx.host.now().toISOString(), kind: "claim" }]
+          reapply = mergeReapply(reapply, await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, granted)))
+          return true
+        })
+        if (!d.result) return undefined
+        await writeTicket(ctx.host, d.state.dir, d.state.tasks, task.id)
+        await log(ctx, d.state, { action: "reclaim", task: task.id, keys: granted, files, ...reapplyData(reapply!) })
+        return { task: task.id, files, reapply: reapply! }
       })
       if (back) out.push(back)
       else await jlockReleaseKeys(ctx.host, granted, ownerOf(state0.run.id, task.id)).catch(() => {})
@@ -993,36 +1061,39 @@ defineAction(
       if (!keys.length) throw new ToolError(tr("yield.nothing", { id: task.id }), 2)
     }
     const wanted = canonical(keys)
-    const done = await withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first)
-      const copy = clone(state.tasks)
-      const t = copy.tasks.find((x) => x.id === task.id)!
-      if (t.status !== "in_progress") throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }))
-      delete t.awaiting
-      const changed = await changedUnder(ctx.host, state, wanted)
-      const { mine, untouched } = await ownFiles(ctx.host, state, t, changed)
-      const report = await keepEdits(ctx.host, state, t, mine, "yield")
-      // A key whose edits could not be kept aside is not given back: the task that takes it would commit them.
-      const given = wanted.filter((k) => !report.kept.some((f) => covers(k, normalizeKey(f, state.root, platform))))
-      const at = ctx.host.now().toISOString()
-      const yielded: Yielded[] = []
-      for (const from of ["files", "claimed"] as const) {
-        const stay: string[] = []
-        for (const e of from === "files" ? t.files : (t.claimed ?? [])) {
-          const key = given.find((g) => covers(g, normalizeKey(e, state.root, platform)))
-          if (key) yielded.push({ path: e, from, key, at })
-          else stay.push(e)
+    const done = await withTree(ctx, first.run.id, async (ctx) => {
+      const d = await decide(ctx, first, "yield", async (state, draft) => {
+        const t = draft.tasks.tasks.find((x) => x.id === task.id)!
+        if (t.status !== "in_progress") throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }))
+        delete t.awaiting
+        const changed = await changedUnder(ctx.host, state, wanted)
+        const { mine, untouched } = await ownFiles(ctx.host, state, t, changed)
+        const report = await keepEdits(ctx.host, state, t, mine, "yield")
+        // A decision made again (its event refused): what the earlier try put aside comes back from the ledger.
+        for (const p of await recoverKept(ctx.host, state, t)) if (!report.saved.some((s) => s.file === p.file)) report.saved.push(p)
+        // A key whose edits could not be kept aside is not given back: the task that takes it would commit them.
+        const given = wanted.filter((k) => !report.kept.some((f) => covers(k, normalizeKey(f, state.root, platform))))
+        const at = ctx.host.now().toISOString()
+        const yielded: Yielded[] = []
+        for (const from of ["files", "claimed"] as const) {
+          const stay: string[] = []
+          for (const e of from === "files" ? t.files : (t.claimed ?? [])) {
+            const key = given.find((g) => covers(g, normalizeKey(e, state.root, platform)))
+            if (key) yielded.push({ path: e, from, key, at })
+            else stay.push(e)
+          }
+          if (from === "files") t.files = stay
+          else if (stay.length) t.claimed = stay
+          else delete t.claimed
         }
-        if (from === "files") t.files = stay
-        else if (stay.length) t.claimed = stay
-        else delete t.claimed
-      }
-      if (yielded.length) t.yielded = [...(t.yielded ?? []), ...yielded]
-      if (t.holds) t.holds = t.holds.map((h) => ({ ...h, keys: h.keys.filter((k) => !given.includes(k)) })).filter((h) => h.keys.length)
-      const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-      await writeTicket(ctx.host, state.dir, tasks, t.id)
-      await log(ctx, state, { action: "yield", task: t.id, keys: given, files: yielded.map((y) => y.path), saved: report.saved.map((p) => p.file), untouched, kept: report.kept })
-      return { given, yielded, report, untouched }
+        if (yielded.length) t.yielded = [...(t.yielded ?? []), ...yielded]
+        if (t.holds) t.holds = t.holds.map((h) => ({ ...h, keys: h.keys.filter((k) => !given.includes(k)) })).filter((h) => h.keys.length)
+        return { given, yielded, report, untouched }
+      })
+      const r = d.result
+      await writeTicket(ctx.host, d.state.dir, d.state.tasks, task.id)
+      await log(ctx, d.state, { action: "yield", task: task.id, keys: r.given, files: r.yielded.map((y) => y.path), saved: r.report.saved.map((p) => p.file), untouched: r.untouched, kept: r.report.kept })
+      return r
     })
     if (done.given.length) await jlockReleaseKeys(ctx.host, done.given, owner)
     const files = done.yielded.map((y) => y.path)
@@ -1062,55 +1133,65 @@ defineAction(
     let commit: string | null = null
     let claimed: string[] = []
     let leftByOthers: TreeSplit["released"] = []
-    // Edits the task keeps aside come back before anything is committed (ticket 58).
-    const broughtBack = evidence ? await bringBackKept(ctx, args) : undefined
-    const t = await transition(ctx, args, "done", async (task, state) => {
-      if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
-      if (!evidence) throw new ToolError(tr("done.no_evidence", { id: task.id }), 2)
-      // Something kept new edits aside between the reapply and here: never done without them.
-      const kept = await keptOf(ctx.host, state, task)
-      if (kept.length) throw new ToolError(tr("done.kept", { id: task.id, files: kept.map((p) => p.file).join(", ") }), 1, { kept: kept.map((p) => p.file) })
-      const branch = await currentBranch(ctx.host, state.root)
-      if (branch !== state.run.repo.branch)
-        throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }))
-      const split = await splitChanges(ctx, state, task)
-      leftByOthers = split.released
-      if (split.outside.length)
-        throw new ToolError(
-          tr("done.outside", { id: task.id, files: split.outside.join(", ") }),
-          1,
-          { outside: split.outside },
-        )
-      // A hold that expired (the run's holdTtl) while nobody else took its keys is taken back, not refused.
-      const missing = await retakeMissing(ctx, state, task)
-      if (missing.length)
-        throw new ToolError(
-          tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }),
-          1,
-          { missing },
-        )
-      if (split.inside.length) {
-        // Keep each argv below Windows' command-line limit without broadening ownership.
-        for (let offset = 0; offset < split.inside.length; offset += 16)
-          await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside.slice(offset, offset + 16)])
-        await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`])
-        commit = await shortHead(ctx.host, state.root)
-        await recordEffect(ctx.host, state.dir, {
-          run: state.run.id,
-          task: task.id,
-          type: "commit",
-          repo: state.root,
-          ref: commit,
-          branch: state.run.repo.branch,
-          undo: { kind: "git-revert", ref: commit },
-        })
-      }
-      claimed = task.claimed ?? []
-      closeTask(task, "done", ctx.host.now().toISOString())
-      task.commit = commit
-      task.evidence = evidence
-      for (const a of task.acceptance) a.done = true
-      return { evidence, commit }
+    const first = await resolveRun(ctx, args)
+    let broughtBack: ReapplyReport | undefined
+    // The whole done under the run's tree key: the kept edits brought back, the commit, the task done.
+    const t = await withTree(ctx, first.run.id, async (ctx) => {
+      // Edits the task keeps aside come back before anything is committed (ticket 58).
+      broughtBack = evidence ? await bringBackKept(ctx, args) : undefined
+      return transition(ctx, args, "done", async (task, state, draft) => {
+        commit = null
+        if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+        if (!evidence) throw new ToolError(tr("done.no_evidence", { id: task.id }), 2)
+        // Something kept new edits aside between the reapply and here: never done without them.
+        const kept = await keptOf(ctx.host, state, task)
+        if (kept.length) throw new ToolError(tr("done.kept", { id: task.id, files: kept.map((p) => p.file).join(", ") }), 1, { kept: kept.map((p) => p.file) })
+        const branch = await currentBranch(ctx.host, state.root)
+        if (branch !== state.run.repo.branch)
+          throw new ToolError(tr("done.wrong_branch", { branch: branch ?? tr("done.detached"), run_branch: state.run.repo.branch }))
+        const split = await splitChanges(ctx, state, task)
+        leftByOthers = split.released
+        if (split.outside.length)
+          throw new ToolError(
+            tr("done.outside", { id: task.id, files: split.outside.join(", ") }),
+            1,
+            { outside: split.outside },
+          )
+        // A hold that expired (the run's holdTtl) while nobody else took its keys is taken back, not refused.
+        const missing = await retakeMissing(ctx, state, task)
+        if (missing.length)
+          throw new ToolError(
+            tr("done.lost", { keys: missing.map((k) => describeKey(k, state.root, ctx.host.platform)).join(", "), id: task.id }),
+            1,
+            { missing },
+          )
+        // Idempotent: the commit carries a trailer naming the task, and a done made again (its event refused) whose
+        // edits are already in HEAD's commit takes that commit instead of making a second one.
+        const trailer = doneTrailer(state.run.id, task.id)
+        if (split.inside.length) {
+          // Keep each argv below Windows' command-line limit without broadening ownership.
+          for (let offset = 0; offset < split.inside.length; offset += 16)
+            await gitOk(ctx.host, state.root, ["add", "-A", "--", ...split.inside.slice(offset, offset + 16)])
+          await gitOk(ctx.host, state.root, ["commit", "-q", "-m", `${task.id}: ${task.title}`, "-m", `${trailer} gen ${draft.gen(task.id)}`])
+          commit = await shortHead(ctx.host, state.root)
+        } else commit = await headWithTrailer(ctx.host, state.root, trailer)
+        if (commit && !(await hasCommitEffect(ctx.host, state.dir, task.id, commit)))
+          await recordEffect(ctx.host, state.dir, {
+            run: state.run.id,
+            task: task.id,
+            type: "commit",
+            repo: state.root,
+            ref: commit,
+            branch: state.run.repo.branch,
+            undo: { kind: "git-revert", ref: commit },
+          })
+        claimed = task.claimed ?? []
+        closeTask(task, "done", ctx.host.now().toISOString())
+        task.commit = commit
+        task.evidence = evidence
+        for (const a of task.acceptance) a.done = true
+        return { evidence, commit }
+      }, { tree: true })
     })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const what = commit ? `commit ${commit} (${t.task.id}: ${t.task.title})` : tr("done.no_commit")
@@ -1144,52 +1225,56 @@ defineAction(
     const first = await resolveRun(ctx, args)
     const id = taskIdArg(args)
     const insensitive = caseInsensitive(ctx.host.platform)
-    const r = await withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first)
-      const task = findTask(state, id)
-      const source = findTask(state, from)
-      if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
-      if (source.id === task.id || source.status === "in_progress") throw new ToolError(tr("adopt.source_running", { id: source.id }))
-      const copy = clone(state.tasks)
-      const src = copy.tasks.find((t) => t.id === source.id)!
-      await recoverKept(ctx.host, state, src)
-      const kept = src.patches ?? []
-      if (!kept.length) throw new ToolError(tr("adopt.none", { from: source.id }))
-      const away = kept.filter((p) => !inPossession(p.file, possession(task), insensitive)).map((p) => p.file)
-      if (away.length) throw new ToolError(tr("adopt.claim_first", { id: task.id, from: source.id, files: away.join(" ") }), 1, { claim: away })
-      const effects = await readEffects(ctx.host, join(state.dir, "ledger.jsonl"))
-      const norm = (p: string) => (insensitive ? p.replace(/\\/g, "/").toLowerCase() : p.replace(/\\/g, "/"))
-      const report = emptyReapply()
-      const left: typeof kept = []
-      for (const p of kept) {
-        const abs = join(state.dir, p.patch)
-        if (!(await ctx.host.stat(abs))) continue
-        const { result, message } = await applyPatch(ctx.host, state.root, abs, [p.file])
-        if (result === "failed") {
-          report.failed.push({ file: p.file, patch: abs, message })
-          left.push(p)
-          continue
+    const r = await withTree(ctx, first.run.id, async (ctx) => {
+      let acc: ReapplyReport | undefined
+      const d = await decide(ctx, first, "adopt", async (state, draft) => {
+        const task = findTask(state, id)
+        const source = findTask(state, from)
+        if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
+        if (source.id === task.id || source.status === "in_progress") throw new ToolError(tr("adopt.source_running", { id: source.id }))
+        // The adopting task's ownership decides which edits it may take: it must not move meanwhile.
+        draft.guard(task.id)
+        const src = draft.tasks.tasks.find((t) => t.id === source.id)!
+        await recoverKept(ctx.host, state, src)
+        const kept = src.patches ?? []
+        if (!kept.length) throw new ToolError(tr("adopt.none", { from: source.id }))
+        const away = kept.filter((p) => !inPossession(p.file, possession(task), insensitive)).map((p) => p.file)
+        if (away.length) throw new ToolError(tr("adopt.claim_first", { id: task.id, from: source.id, files: away.join(" ") }), 1, { claim: away })
+        const effects = await readEffects(ctx.host, join(state.dir, "ledger.jsonl"))
+        const norm = (p: string) => (insensitive ? p.replace(/\\/g, "/").toLowerCase() : p.replace(/\\/g, "/"))
+        const report = emptyReapply()
+        const left: typeof kept = []
+        for (const p of kept) {
+          const abs = join(state.dir, p.patch)
+          if (!(await ctx.host.stat(abs))) continue
+          const { result, message } = await applyPatch(ctx.host, state.root, abs, [p.file])
+          if (result === "failed") {
+            report.failed.push({ file: p.file, patch: abs, message })
+            left.push(p)
+            continue
+          }
+          let at = abs
+          if (result !== "conflict") {
+            at = appliedPath(abs)
+            await ctx.host.mkdir(dirname(at))
+            await ctx.host.rename(abs, at)
+            report.applied.push(p.file)
+          } else report.conflicts.push({ file: p.file, patch: abs })
+          if (result !== "already")
+            await recordEffect(ctx.host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } })
+          // The edit is back in the tree: the source's restore is over, nothing will bring it back a second time.
+          for (const e of effects)
+            if (e.type === "restore" && e.state === "active" && e.task === source.id && e.patch && norm(e.patch) === norm(abs))
+              await setEffectState(ctx.host, state.dir, state.run.id, e.id, "undone")
         }
-        let at = abs
-        if (result !== "conflict") {
-          at = appliedPath(abs)
-          await ctx.host.mkdir(dirname(at))
-          await ctx.host.rename(abs, at)
-          report.applied.push(p.file)
-        } else report.conflicts.push({ file: p.file, patch: abs })
-        if (result !== "already")
-          await recordEffect(ctx.host, state.dir, { run: state.run.id, task: task.id, type: "reapply", repo: state.root, path: p.file, patch: at, undo: { kind: "reverse-patch" } })
-        // The edit is back in the tree: the source's restore is over, nothing will bring it back a second time.
-        for (const e of effects)
-          if (e.type === "restore" && e.state === "active" && e.task === source.id && e.patch && norm(e.patch) === norm(abs))
-            await setEffectState(ctx.host, state.dir, state.run.id, e.id, "undone")
-      }
-      if (left.length) src.patches = left
-      else delete src.patches
-      const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-      await writeTicket(ctx.host, state.dir, tasks, src.id)
-      await log(ctx, state, { action: "adopt", task: task.id, from: source.id, ...reapplyData(report) })
-      return { task: task.id, from: source.id, report }
+        if (left.length) src.patches = left
+        else delete src.patches
+        acc = mergeReapply(acc, report)
+        return { task: task.id, from: source.id, report: acc }
+      })
+      await writeTicket(ctx.host, d.state.dir, d.state.tasks, d.result.from)
+      await log(ctx, d.state, { action: "adopt", task: d.result.task, from: d.result.from, ...reapplyData(d.result.report) })
+      return d.result
     })
     const lines = [tr("adopt.done", { id: r.task, from: r.from, n: r.report.applied.length + r.report.conflicts.length }), ...reapplyLines(r.report)]
     if (r.report.conflicts.length) lines.push(tr("adopt.conflicts", { id: r.task }))
@@ -1210,30 +1295,38 @@ async function bringBackKept(ctx: ToolContext, args: ParsedArgs): Promise<Reappl
   const first = await resolveRun(ctx, args)
   const id = taskIdArg(args)
   const insensitive = caseInsensitive(ctx.host.platform)
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
-    const original = findTask(state, id)
-    if (original.status !== "in_progress") {
-      if (!["pending", "failed"].includes(original.status)) return undefined
-      const kept = await keptOf(ctx.host, state, original)
+  return withTree(ctx, first.run.id, async (ctx) => {
+    let reapply: ReapplyReport | undefined
+    const d = await decide(ctx, first, "reapply", async (state, draft) => {
+      const original = findTask(state, id)
+      if (original.status !== "in_progress") {
+        if (!["pending", "failed"].includes(original.status)) return undefined
+        const kept = await keptOf(ctx.host, state, original)
+        if (!kept.length) return undefined
+        const files = kept.map((p) => p.file).join(", ")
+        throw new ToolError(tr(original.status === "failed" ? "done.released_failed" : "done.released", { id: original.id, status: original.status, files }), 1, {
+          status: original.status,
+          kept: kept.map((p) => p.file),
+        })
+      }
+      const task = draft.tasks.tasks.find((t) => t.id === original.id)!
+      const recovered = await recoverKept(ctx.host, state, task)
+      const kept = task.patches ?? []
       if (!kept.length) return undefined
-      const files = kept.map((p) => p.file).join(", ")
-      throw new ToolError(tr(original.status === "failed" ? "done.released_failed" : "done.released", { id: original.id, status: original.status, files }), 1, {
-        status: original.status,
-        kept: kept.map((p) => p.file),
-      })
-    }
-    const copy = clone(state.tasks)
-    const task = copy.tasks.find((t) => t.id === original.id)!
-    const recovered = await recoverKept(ctx.host, state, task)
-    const kept = task.patches ?? []
-    if (!kept.length) return undefined
-    const own = possession(task)
-    const others = state.tasks.tasks.filter((t) => t.id !== task.id && t.status === "in_progress").flatMap(possession)
-    const away = kept.filter((p) => !inPossession(p.file, own, insensitive) || inPossession(p.file, others, insensitive)).map((p) => p.file)
-    const reapply = away.length ? undefined : await reapplyPatches(ctx.host, state, task, () => true)
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-    await writeTicket(ctx.host, state.dir, tasks, task.id)
+      const own = possession(task)
+      const busy = state.tasks.tasks.filter((t) => t.id !== task.id && t.status === "in_progress")
+      // Which files are someone else's decides what comes back: those tasks must not move meanwhile.
+      draft.guard(...busy.map((t) => t.id))
+      const others = busy.flatMap(possession)
+      const away = kept.filter((p) => !inPossession(p.file, own, insensitive) || inPossession(p.file, others, insensitive)).map((p) => p.file)
+      if (!away.length) reapply = mergeReapply(reapply, await reapplyPatches(ctx.host, state, task, () => true))
+      return { task: task.id, recovered, away }
+    })
+    if (!d.result) return undefined
+    const { task: taskId, recovered, away } = d.result
+    const state = d.state
+    const task = { id: taskId }
+    await writeTicket(ctx.host, state.dir, state.tasks, task.id)
     await log(ctx, state, {
       action: "reapply",
       task: task.id,
@@ -1275,7 +1368,7 @@ defineAction(
       closeTask(task, "skipped", ctx.host.now().toISOString())
       task.reason = reason
       return { reason, ...keptLog(kept) }
-    })
+    }, { tree: true })
     const released = wasRunning ? `; ${await giveBack(ctx, t.state.run.id, t.task.id)}` : ""
     const back = wasRunning ? retakenLines(await retakeYielded(ctx, t.state)) : []
     return ok([`${tr("skip.done", { id: t.task.id, reason: reason! })}${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
@@ -1299,7 +1392,7 @@ defineAction(
       closeTask(task, "failed", ctx.host.now().toISOString())
       task.error = error
       return { error, ...keptLog(kept) }
-    })
+    }, { tree: true })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const back = retakenLines(await retakeYielded(ctx, t.state))
     return ok([`${tr("fail.done", { id: t.task.id, error: error! })}; ${released}${keptNote(kept)}`, progressLine(t.tasks.tasks), ...back].join("\n"), {
@@ -1339,7 +1432,7 @@ defineAction(
       kept = await keepTask(ctx, state, task)
       to = backToPending(task, state.run.maxAttempts, tr("release.released"), ctx.host.now().toISOString())
       return keptLog(kept)
-    })
+    }, { tree: true })
     const released = await giveBack(ctx, t.state.run.id, t.task.id)
     const where = to === "failed" ? tr("release.failed_now", { error: t.task.error ?? "" }) : tr("release.pending", { attempts: t.task.attempts, max: t.state.run.maxAttempts })
     const back = retakenLines(await retakeYielded(ctx, t.state))
@@ -1383,20 +1476,27 @@ export interface AgentEnd {
  * says the agent waits, `waiting`), the task waits for it in progress, with its locks; otherwise it goes back to the
  * queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person.
  */
-export async function agentEnded(ctx: ToolContext, args: ParsedArgs, opts: { waiting?: string; expired?: boolean } = {}): Promise<AgentEnd> {
-  const first = await resolveRun(ctx, args)
-  const before = findTask(first, taskIdArg(args))
-  const live = opts.expired ? [] : await liveProcs(ctx.host, before.procs ?? [])
+export async function agentEnded(
+  ctx: ToolContext,
+  args: ParsedArgs,
+  opts: { waiting?: string; expired?: boolean; wait?: { since: string; endedAt?: string; gen?: number } } = {},
+): Promise<AgentEnd> {
   const waiting = opts.expired ? undefined : opts.waiting
-  const waits = live.length > 0 || !!waiting
-  let outcome: AgentEnd["outcome"] = waits ? "awaiting" : "pending"
+  let outcome = "pending" as AgentEnd["outcome"]
   let kept = NOTHING_KEPT
   let count = 0
   let max = DEFAULT_MAX_AGENT_ENDED
-  const t = await transition(ctx, args, waits ? "await" : "agent-ended", async (task, state) => {
+  // Decided on the state the event is made from (ticket 60): the processes looked at are the ones registered in it,
+  // so one registered meanwhile refuses the event and the decision is made again with it.
+  const t = await transition(ctx, args, () => (outcome === "awaiting" ? "await" : "agent-ended"), async (task, state, draft) => {
     if (task.status !== "in_progress") throw new ToolError(tr("task.not_running", { id: task.id, status: task.status }))
-    // The subagent came back while the clock decided: nothing to expire.
-    if (opts.expired && !task.awaiting) throw new ToolError(tr("wait.back", { id: task.id }))
+    // The subagent came back while the clock decided, or waited again: only the very wait that ran out expires.
+    const w = opts.wait
+    if (opts.expired && (!task.awaiting || (w && (task.awaiting.since !== w.since || task.awaiting.endedAt !== w.endedAt || (w.gen !== undefined && draft.gen(task.id) !== w.gen)))))
+      throw new ToolError(tr("wait.back", { id: task.id }))
+    const live = opts.expired ? [] : await liveProcs(ctx.host, task.procs ?? [])
+    const waits = live.length > 0 || !!waiting
+    outcome = waits ? "awaiting" : "pending"
     const now = ctx.host.now().toISOString()
     max = state.run.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED
     count = task.agentEnded ?? 0
@@ -1417,7 +1517,8 @@ export async function agentEnded(ctx: ToolContext, args: ParsedArgs, opts: { wai
     if (count >= max) {
       closeTask(task, "failed", now)
       task.error = tr("agent_ended.limit", { why, n: count, max })
-      await writeRun(ctx.host, state.dir, { ...state.run, status: "paused", needsPerson: { reason: "agent-ended", task: task.id, count, max, at: now } })
+      draft.run.status = "paused"
+      draft.run.needsPerson = { reason: "agent-ended", task: task.id, count, max, at: now }
       outcome = "limit"
     } else {
       task.owner = null
@@ -1427,7 +1528,7 @@ export async function agentEnded(ctx: ToolContext, args: ParsedArgs, opts: { wai
       delete task.startedAt
     }
     return { agentEnded: count, max, ...(opts.expired ? { expired: true } : {}), ...(outcome === "limit" ? { paused: true } : {}), ...keptLog(kept) }
-  })
+  }, { tree: true })
   const released = outcome === "awaiting" ? "" : await giveBack(ctx, t.state.run.id, t.task.id)
   const back = outcome === "awaiting" ? [] : retakenLines(await retakeYielded(ctx, t.state))
   return { outcome, task: t.task, tasks: t.tasks, state: t.state, kept, count, max, released, back }
@@ -1462,17 +1563,16 @@ export async function awaitBack(ctx: ToolContext, run: string, taskId: string, h
     return false
   }
   if (!first.tasks.tasks.some((t) => t.id === taskId && t.awaiting)) return false
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
-    const copy = clone(state.tasks)
-    const t = copy.tasks.find((x) => x.id === taskId)
+  const d = await decide(ctx, first, "await-back", (_state, draft) => {
+    const t = draft.tasks.tasks.find((x) => x.id === taskId)
     if (!t?.awaiting || t.status !== "in_progress") return false
     delete t.awaiting
-    const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-    await writeTicket(ctx.host, state.dir, tasks, t.id)
-    await log(ctx, state, { action: "await-back", task: t.id, how })
     return true
   })
+  if (!d.result) return false
+  await writeTicket(ctx.host, d.state.dir, d.state.tasks, taskId)
+  await log(ctx, d.state, { action: "await-back", task: taskId, how })
+  return true
 }
 
 /** What one pass over the awaiting tasks did: a process ended (the agent should come back now), or the wait ran out. */
@@ -1501,7 +1601,8 @@ export async function sweepAwaiting(
 ): Promise<AwaitEvent[]> {
   let first: RunState
   try {
-    first = await resolveRun(ctx, { action: "wait", positionals: [], options: { run } })
+    // Read with its generations: every decision below is made on this picture and refused if the task moved since.
+    first = await reload(ctx, await resolveRun(ctx, { action: "wait", positionals: [], options: { run } }))
   } catch {
     return []
   }
@@ -1513,18 +1614,21 @@ export async function sweepAwaiting(
       if (!agent || (await agentAlive(agent).catch(() => undefined)) !== false) continue
       const live = await liveProcs(ctx.host, task.procs!)
       if (!live.length) continue
-      const rewaited = await withLock(ctx.host, first.dir, async () => {
-        const state = await reload(ctx, first)
-        const copy = clone(state.tasks)
-        const t = copy.tasks.find((x) => x.id === task.id)
-        if (!t || t.status !== "in_progress" || t.awaiting) return false
+      // Decided on what was read above (ticket 60): if the task moved since (its subagent came back, a wait was
+      // declared), the event is refused and nothing is decided on the old picture.
+      const seen = first.gens?.tasks[task.id]
+      const rewaited = await decide(ctx, first, "await", (_state, draft) => {
+        const t = draft.tasks.tasks.find((x) => x.id === task.id)
+        if (!t || t.status !== "in_progress" || t.awaiting || (seen !== undefined && draft.gen(t.id) !== seen)) return false
         t.awaiting = { since: ctx.host.now().toISOString(), pids: live.map((p) => p.pid), agent }
-        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-        await writeTicket(ctx.host, state.dir, tasks, t.id)
-        await log(ctx, state, { action: "await", task: t.id, from: "in_progress", to: "in_progress", pids: t.awaiting.pids, agent, how: "sweep" })
         return true
       })
-      if (rewaited) first = await reload(ctx, first)
+      if (rewaited.result) {
+        const t = rewaited.state.tasks.tasks.find((x) => x.id === task.id)!
+        await writeTicket(ctx.host, rewaited.state.dir, rewaited.state.tasks, task.id)
+        await log(ctx, rewaited.state, { action: "await", task: task.id, from: "in_progress", to: "in_progress", pids: t.awaiting!.pids, agent, how: "sweep" })
+        first = await reload(ctx, first)
+      }
     } catch {
       // The task moved meanwhile: left as it is.
     }
@@ -1532,6 +1636,8 @@ export async function sweepAwaiting(
   const grace = awaitGraceMs(first.run, DEFAULT_AWAIT_GRACE)
   for (const task of first.tasks.tasks.filter((t) => t.status === "in_progress" && t.awaiting)) {
     const a = task.awaiting!
+    // The task's generation when its wait was looked at: a decision on that picture lands only if it did not move.
+    let gen = first.gens?.tasks[task.id] ?? 0
     try {
       let alive = a.host && host ? await host(task).catch(() => undefined) : undefined
       if (alive === undefined) {
@@ -1543,18 +1649,18 @@ export async function sweepAwaiting(
       if (a.inline) {
         // The orchestrator's own process ended: no subagent to wait for, the wait is simply over. The task goes
         // back to being the orchestrator's to continue (told at once by the `await-ended` alert).
-        const over = await withLock(ctx.host, first.dir, async () => {
-          const state = await reload(ctx, first)
-          const copy = clone(state.tasks)
-          const t = copy.tasks.find((x) => x.id === task.id)
-          if (!t?.awaiting?.inline || t.status !== "in_progress") return false
+        const over = await decide(ctx, first, "await-ended", (_state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id)
+          // Only the very wait that was looked at: one declared since (more pids) is left to the next pass.
+          if (!t?.awaiting?.inline || t.status !== "in_progress" || draft.gen(t.id) !== gen) return undefined
           const pids = t.awaiting.pids
           delete t.awaiting
-          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-          await log(ctx, state, { action: "await-ended", task: t.id, pids, inline: true })
-          return true
+          return pids
         })
-        if (over) out.push({ task: task.id, what: "ended" })
+        if (over.result) {
+          await log(ctx, over.state, { action: "await-ended", task: task.id, pids: over.result, inline: true })
+          out.push({ task: task.id, what: "ended" })
+        }
         continue
       }
       const now = ctx.host.now()
@@ -1562,20 +1668,22 @@ export async function sweepAwaiting(
       if (!endedAt) {
         const at = now.toISOString()
         endedAt = at
-        const marked = await withLock(ctx.host, first.dir, async () => {
-          const state = await reload(ctx, first)
-          const copy = clone(state.tasks)
-          const t = copy.tasks.find((x) => x.id === task.id)
-          if (!t?.awaiting || t.status !== "in_progress" || t.awaiting.endedAt) return false
+        const marked = await decide(ctx, first, "await-ended", (_state, draft) => {
+          const t = draft.tasks.tasks.find((x) => x.id === task.id)
+          // Only the very wait whose processes were looked at (ticket 60): a new one (the subagent came back and
+          // waited again, more pids declared) is not marked on the old picture.
+          if (!t?.awaiting || t.status !== "in_progress" || t.awaiting.endedAt || draft.gen(t.id) !== gen) return undefined
           t.awaiting.endedAt = at
-          await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-          await log(ctx, state, { action: "await-ended", task: t.id, pids: t.awaiting.pids, ...(t.awaiting.agent ? { agent: t.awaiting.agent } : {}), grace: first.run.awaitGrace ?? DEFAULT_AWAIT_GRACE })
-          return true
+          return t.awaiting
         })
-        if (marked) out.push({ task: task.id, what: "ended", ...(a.agent ? { agent: a.agent } : {}) })
+        if (!marked.result) continue
+        gen = marked.state.gens?.tasks[task.id] ?? gen
+        await log(ctx, marked.state, { action: "await-ended", task: task.id, pids: marked.result.pids, ...(marked.result.agent ? { agent: marked.result.agent } : {}), grace: first.run.awaitGrace ?? DEFAULT_AWAIT_GRACE })
+        out.push({ task: task.id, what: "ended", ...(a.agent ? { agent: a.agent } : {}) })
       }
       if (now.getTime() - Date.parse(endedAt) < grace) continue
-      await agentEnded({ ...ctx, ...(a.agent ? { agent: a.agent } : {}) }, { action: "release", positionals: [task.id], options: { run } }, { expired: true })
+      // Expires only this wait (since, endedAt): a wait the subagent began again meanwhile is refused (ticket 60).
+      await agentEnded({ ...ctx, ...(a.agent ? { agent: a.agent } : {}) }, { action: "release", positionals: [task.id], options: { run } }, { expired: true, wait: { since: a.since, endedAt, gen } })
       out.push({ task: task.id, what: "expired", ...(a.agent ? { agent: a.agent } : {}) })
     } catch {
       // The task moved meanwhile (done, back, released): left as it is.
@@ -1650,25 +1758,22 @@ defineAction(
   async (ctx, args) => {
     if (args.options["all-failed"]) {
       const first = await resolveRun(ctx, args)
-      const reopened = await withLock(ctx.host, first.dir, async () => {
-        const state = await reload(ctx, first)
-        const copy = clone(state.tasks)
+      const d = await decide(ctx, first, "retry", (_state, draft) => {
         const ids: string[] = []
-        for (const task of copy.tasks)
+        for (const task of draft.tasks.tasks)
           if (task.status === "failed") {
             reopen(task)
             task.attempts = 0
             ids.push(task.id)
           }
-        if (!ids.length) return { ids, tasks: state.tasks }
-        const tasks = await writeTasks(ctx.host, state.dir, copy, state.tasks.revision)
-        for (const id of ids) {
-          await writeTicket(ctx.host, state.dir, tasks, id)
-          await log(ctx, state, { action: "retry", task: id, from: "failed", to: "pending" })
-        }
-        await syncRunStatus(ctx, state, tasks.tasks)
-        return { ids, tasks }
+        if (ids.length) syncRunStatus(draft.run, draft.tasks.tasks)
+        return ids
       })
+      for (const id of d.result) {
+        await writeTicket(ctx.host, d.state.dir, d.state.tasks, id)
+        await log(ctx, d.state, { action: "retry", task: id, from: "failed", to: "pending" })
+      }
+      const reopened = { ids: d.result, tasks: d.state.tasks }
       const text = reopened.ids.length ? tr("retry.reopened", { list: reopened.ids.join(", ") }) : tr("retry.none")
       return ok(`${text}\n${progressLine(reopened.tasks.tasks)}`, { reopened: reopened.ids })
     }
@@ -1685,11 +1790,10 @@ defineAction(
 
 async function setPaused(ctx: ToolContext, args: ParsedArgs, paused: boolean) {
   const first = await resolveRun(ctx, args)
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
+  const d = await decide(ctx, first, paused ? "pause" : "unpause", (state, draft) => {
     const from = state.run.status
     const status = paused ? "paused" : counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
-    const run: RunFile = { ...state.run, status }
+    const run: RunFile = { ...draft.run, status }
     // A person unpausing has seen why it needed one (rev. 5.8).
     if (!paused) delete run.needsPerson
     // A pause by hand over a transient one: the host no longer resumes it by itself (the tasks stay kept).
@@ -1697,13 +1801,15 @@ async function setPaused(ctx: ToolContext, args: ParsedArgs, paused: boolean) {
       const { resumeAt: _gone, ...pause } = run.pause
       run.pause = pause
     }
-    if (JSON.stringify(run) !== JSON.stringify(state.run)) await writeRun(ctx.host, state.dir, run)
-    // Really unpaused (it was paused), the keepalive counts again from zero; an unpause of a run that was not
-    // paused changes nothing, so it cannot reset the count.
-    if (!paused && from === "paused") await clearKeepalive(ctx.host, state.dir)
-    await log(ctx, state, { action: paused ? "pause" : "unpause", from, to: status })
-    return { ...state, run }
+    draft.run = run
+    return { from, status }
   })
+  const { from, status } = d.result
+  // Really unpaused (it was paused), the keepalive counts again from zero; an unpause of a run that was not
+  // paused changes nothing, so it cannot reset the count.
+  if (!paused && from === "paused") await clearKeepalive(ctx.host, d.state.dir)
+  await log(ctx, d.state, { action: paused ? "pause" : "unpause", from, to: status })
+  return d.state
 }
 
 /** What leaving a transient pause did: the text for the orchestrator and the keys others took meanwhile. */
@@ -1722,32 +1828,35 @@ export interface LeftPause {
  * Undefined when the run is not in such a pause (or it is not due yet).
  */
 export async function leavePause(ctx: ToolContext, first: RunState, opts: { due?: Date; auto?: boolean; how?: string } = {}): Promise<LeftPause | undefined> {
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
+  const d = await decide(ctx, first, opts.auto ? "auto-resume" : "unpause", (state, draft) => {
     const pause = state.run.pause
     if (state.run.status !== "paused" || !pause) return undefined
     if (opts.due && (!pause.resumeAt || Date.parse(pause.resumeAt) > opts.due.getTime())) return undefined
     // A run that also needs a person (rev. 5.8) waits for one: the clock does not resume it.
     if (opts.auto && state.run.needsPerson) return undefined
-    const run: RunFile = { ...state.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" }
+    const run: RunFile = { ...draft.run, status: counts(state.tasks.tasks).remaining === 0 ? "done" : "active" }
     delete run.pause
     delete run.needsPerson
     const signature = progressSignature(state.tasks)
     if (opts.auto) run.pauseStreak = { signature, n: state.run.pauseStreak?.signature === signature ? state.run.pauseStreak.n + 1 : 1 }
     else delete run.pauseStreak
-    await writeRun(ctx.host, state.dir, run)
-    await clearKeepalive(ctx.host, state.dir)
-    const next = { ...state, run }
-    const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress")
-    const lost: Record<string, string[]> = {}
-    for (const t of inProgress) {
-      const refused = await retakeMissing(ctx, next, t).catch(() => [] as string[])
-      if (refused.length) lost[t.id] = refused.map((k) => describeKey(k, state.root, ctx.host.platform))
-    }
-    const how = opts.how ?? (opts.auto ? "due" : "unpause")
-    await log(ctx, state, { action: opts.auto ? "auto-resume" : "unpause", how, kind: pause.kind, kept: inProgress.map((t) => t.id), ...(Object.keys(lost).length ? { lost } : {}) })
-    return { state: next, text: resumeText(run, pause, inProgress, ctx.tool, lost), kept: inProgress.map((t) => t.id), lost }
+    draft.run = run
+    return { pause, run }
   })
+  if (!d.result) return undefined
+  const { pause, run } = d.result
+  const state = d.state
+  await clearKeepalive(ctx.host, state.dir)
+  const next = state
+  const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress")
+  const lost: Record<string, string[]> = {}
+  for (const t of inProgress) {
+    const refused = await retakeMissing(ctx, next, t).catch(() => [] as string[])
+    if (refused.length) lost[t.id] = refused.map((k) => describeKey(k, state.root, ctx.host.platform))
+  }
+  const how = opts.how ?? (opts.auto ? "due" : "unpause")
+  await log(ctx, state, { action: opts.auto ? "auto-resume" : "unpause", how, kind: pause.kind, kept: inProgress.map((t) => t.id), ...(Object.keys(lost).length ? { lost } : {}) })
+  return { state: next, text: resumeText(run, pause, inProgress, ctx.tool, lost), kept: inProgress.map((t) => t.id), lost }
 }
 
 defineAction(
@@ -1788,44 +1897,48 @@ defineAction(
     const keepOwners = !!args.options["keep-owners"]
     const released: { id: string; to: string; uncommitted: string[]; kept: Kept }[] = []
     const kept: string[] = []
-    const state = await withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first)
-      const now = ctx.host.now().toISOString()
-      const run = { ...state.run }
-      if (run.status === "paused") run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
-      // A transient pause (rev. 5.7) kept its tasks in progress: their expired locks are taken back, not released.
-      const transient = state.run.status === "paused" && !!state.run.pause
-      delete run.pause
-      delete run.needsPerson
-      if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
-        run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }]
-      const copy = clone(state.tasks)
-      for (const task of copy.tasks) {
-        if (task.status !== "in_progress") continue
-        const keys = taskKeys(state.root, task, ctx.host.platform)
-        const missing = keys.length ? await missingKeys(ctx, state, task) : []
-        if (keepOwners || !keys.length || missing.length === 0) {
-          kept.push(task.id)
-          continue
+    const state = await withTree(ctx, first.run.id, async (ctx) => {
+      const d = await decide(ctx, first, "resume", async (state, draft) => {
+        released.length = 0
+        kept.length = 0
+        const now = ctx.host.now().toISOString()
+        const run = { ...draft.run }
+        if (run.status === "paused") run.status = counts(state.tasks.tasks).remaining === 0 ? "done" : "active"
+        // A transient pause (rev. 5.7) kept its tasks in progress: their expired locks are taken back, not released.
+        const transient = state.run.status === "paused" && !!state.run.pause
+        delete run.pause
+        delete run.needsPerson
+        if (ctx.session && !run.sessions.some((s) => s.tool === ctx.tool && s.id === ctx.session))
+          run.sessions = [...run.sessions, { tool: ctx.tool, id: ctx.session, boundAt: now }]
+        for (const task of draft.tasks.tasks) {
+          if (task.status !== "in_progress") continue
+          const keys = taskKeys(state.root, task, ctx.host.platform)
+          const missing = keys.length ? await missingKeys(ctx, state, task) : []
+          if (keepOwners || !keys.length || missing.length === 0) {
+            kept.push(task.id)
+            continue
+          }
+          if (transient && (await retakeMissing(ctx, state, task).catch(() => missing)).length === 0) {
+            kept.push(task.id)
+            continue
+          }
+          const edits = await keepTask(ctx, state, task)
+          const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now)
+          released.push({ id: task.id, to, uncommitted: edits.left, kept: edits })
         }
-        if (transient && (await retakeMissing(ctx, state, task).catch(() => missing)).length === 0) {
-          kept.push(task.id)
-          continue
-        }
-        const edits = await keepTask(ctx, state, task)
-        const to = backToPending(task, run.maxAttempts, tr("resume.no_locks_reason"), now)
-        released.push({ id: task.id, to, uncommitted: edits.left, kept: edits })
-      }
-      const tasks = released.length ? await writeTasks(ctx.host, state.dir, copy, state.tasks.revision) : state.tasks
-      if (JSON.stringify(run) !== JSON.stringify(state.run)) await writeRun(ctx.host, state.dir, run)
+        draft.run = run
+        return state.run.status
+      })
+      const state = d.state
+      const tasks = state.tasks
       for (const r of released) {
         await writeTicket(ctx.host, state.dir, tasks, r.id)
         await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) })
       }
       await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept })
       // Only a resume that leaves a pause starts the count over (released tasks are progress anyway).
-      if (state.run.status === "paused") await clearKeepalive(ctx.host, state.dir)
-      return { ...state, run, tasks }
+      if (d.result === "paused") await clearKeepalive(ctx.host, state.dir)
+      return state
     })
     // Whatever is left of a released task's locks (a stale holder) goes back too.
     for (const r of released) await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {})
@@ -1850,17 +1963,17 @@ defineAction(
     if (wanted !== "on" && wanted !== "off") throw new ToolError(tr("keepalive.usage"), 2)
     const on = wanted === "on"
     const first = await resolveRun(ctx, args)
-    const state = await withLock(ctx.host, first.dir, async () => {
-      const state = await reload(ctx, first)
+    const d = await decide(ctx, first, "keepalive", (state, draft) => {
       const from = state.run.keepalive !== false
-      const run = { ...state.run, keepalive: on }
-      if (from !== on || state.run.keepalive === undefined) await writeRun(ctx.host, state.dir, run)
-      // On again: a give-up (or a hold) is forgotten, so the run is watched again; from off, everything is.
-      if (on && !from) await clearKeepalive(ctx.host, state.dir)
-      else if (on) await rearmKeepalive(ctx.host, state.dir)
-      await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted })
-      return { ...state, run }
+      draft.run.keepalive = on
+      return from
     })
+    const from = d.result
+    const state = d.state
+    // On again: a give-up (or a hold) is forgotten, so the run is watched again; from off, everything is.
+    if (on && !from) await clearKeepalive(ctx.host, state.dir)
+    else if (on) await rearmKeepalive(ctx.host, state.dir)
+    await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted })
     return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on })
   },
   "help.keepalive",
@@ -2118,35 +2231,38 @@ defineAction(
       // Moving an edit between the tree and a patch is undone one by one only (undo <e-id>).
       const effects = (await effectsOf(ctx.host, { repo: paths.repoRoot, run: runId }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type))
       if (!effects.length) return ok(tr("undo.run_clean", { run: runId }), { undone: [] })
-      const done = await undoMany(ctx, paths, effects, force)
+      // Reverts and patches touch the working tree: under the run's tree key (serial.ts).
+      const done = await withTree(ctx, runId, (ctx) => undoMany(ctx, paths, effects, force))
       return ok(`${tr("undo.run_done", { run: runId })}\n${done.join("\n")}`, { undone: done })
     }
     const state = await resolveRun(ctx, args)
-    const paths = await requirePaths(ctx.host, ctx.cwd)
-    const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active")
-    if (id) {
-      const e = all.find((x) => x.id === id)
-      if (!e) throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }))
-      const done = await undoMany(ctx, paths, [e], force)
-      return ok(done.join("\n"), { undone: done })
-    }
-    const task = findTask(state, taskId)
-    if (task.status === "in_progress") throw new ToolError(tr("undo.task_running", { id: task.id }))
-    const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type))
-    if (!effects.length) throw new ToolError(tr("undo.task_clean", { id: task.id }))
-    const done = await undoMany(ctx, paths, effects, force)
-    const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
-      if (x.status === "done") {
-        x.status = "pending"
-        x.commit = null
-        delete x.evidence
-        delete x.finishedAt
-        delete x.startedAt
-        for (const a of x.acceptance) a.done = false
+    return withTree(ctx, state.run.id, async (ctx) => {
+      const paths = await requirePaths(ctx.host, ctx.cwd)
+      const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active")
+      if (id) {
+        const e = all.find((x) => x.id === id)
+        if (!e) throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }))
+        const done = await undoMany(ctx, paths, [e], force)
+        return ok(done.join("\n"), { undone: done })
       }
-      return { undone: done }
+      const task = findTask(state, taskId)
+      if (task.status === "in_progress") throw new ToolError(tr("undo.task_running", { id: task.id }))
+      const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type))
+      if (!effects.length) throw new ToolError(tr("undo.task_clean", { id: task.id }))
+      const done = await undoMany(ctx, paths, effects, force)
+      const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
+        if (x.status === "done") {
+          x.status = "pending"
+          x.commit = null
+          delete x.evidence
+          delete x.finishedAt
+          delete x.startedAt
+          for (const a of x.acceptance) a.done = false
+        }
+        return { undone: done }
+      })
+      return ok(`${done.join("\n")}\n${task.id} → ${t.task.status}\n${progressLine(t.tasks.tasks)}`, { undone: done, task: task.id, status: t.task.status })
     })
-    return ok(`${done.join("\n")}\n${task.id} → ${t.task.status}\n${progressLine(t.tasks.tasks)}`, { undone: done, task: task.id, status: t.task.status })
   },
   "help.undo",
 )

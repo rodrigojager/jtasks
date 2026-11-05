@@ -9,8 +9,8 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Effect } from "../src/ledger.ts"
 import type { TasksFile } from "../src/schema.ts"
-import { withLock } from "../src/store.ts"
-import { cleanupTemp, host, makeRepo, releaseGroup, sh, tasks, tasksOk, tempDir, writeFiles, runPath } from "./helpers.ts"
+import { withTree } from "../src/serial.ts"
+import { cleanupTemp, context, makeRepo, releaseGroup, sh, tasks, tasksOk, tempDir, writeFiles, runPath } from "./helpers.ts"
 
 const runs: string[] = []
 afterAll(async () => {
@@ -60,10 +60,13 @@ async function refusedThenEnded(repo: string) {
 async function releaseLostItsWrite(repo: string, dir: string) {
   await tasksOk(repo, ["start", "T01"])
   writeFiles(repo, { "src/a.ts": "a, the code\n", "src/c.ts": "c, the code\n" })
-  const before = readFileSync(join(dir, "tasks.json"), "utf8")
+  const before = JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8"))
   await tasksOk(repo, ["release", "T01", "--agent-ended"])
   expect(read(repo, "src/a.ts")).toBe("a\n")
-  writeFileSync(join(dir, "tasks.json"), before)
+  // With events (ticket 60) the write cannot be lost: the old content comes back as a snapshot that claims to have
+  // folded everything (a run carried over from 0.3.x in that state).
+  const after = JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8"))
+  writeFileSync(join(dir, "tasks.json"), JSON.stringify({ ...before, eventOffset: after.eventOffset, gens: after.gens }, null, 2))
 }
 
 describe("done never leaves kept edits behind (ticket 58)", () => {
@@ -131,17 +134,18 @@ describe("done never leaves kept edits behind (ticket 58)", () => {
   })
 })
 
-describe("the run's write lock (ticket 58)", () => {
+describe("the run's tree key (tickets 58, 60)", () => {
   test("a holder working for more than 10 s is not taken for a dead one", async () => {
-    const dir = tempDir("lock")
+    const ctx = context(tempDir("lock"))
+    const run = `slow-${Date.now().toString(36)}`
     const spans: [string, number, number][] = []
-    const slow = withLock(host, dir, async () => {
+    const slow = withTree(ctx, run, async () => {
       const at = Date.now()
       await Bun.sleep(11_500)
       spans.push(["slow", at, Date.now()])
     })
-    await Bun.sleep(300)
-    const quick = withLock(host, dir, async () => {
+    await Bun.sleep(1000)
+    const quick = withTree(ctx, run, async () => {
       spans.push(["quick", Date.now(), Date.now()])
     })
     await Promise.all([slow, quick])

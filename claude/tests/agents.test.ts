@@ -164,11 +164,13 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(machine.locks.map((l) => l.owner)).toEqual([`gt:${run}/T01`])
     // The ttl ran out: jlock no longer has it.
     machine.locks.splice(0)
-    const holds = () => machine.commands.filter((c) => c.startsWith('jlock hold')).length
+    // The task's holds (the run's tree key, taken around the retake, is not one).
+    const taskHolds = () => machine.commands.filter((c) => c.startsWith('jlock hold') && !c.includes(' name:jtasks:'))
+    const holds = () => taskHolds().length
     const before = holds()
     await clock.advance(60_000)
     expect(holds()).toBe(before + 1)
-    expect(machine.commands.filter((c) => c.startsWith('jlock hold')).at(-1)).toContain('--no-wait')
+    expect(taskHolds().at(-1)).toContain('--no-wait')
     expect(machine.locks.map((l) => l.owner)).toEqual([`gt:${run}/T01`])
     const log = machine.read(`${ROOT}/.scratch/jtasks/runs/${run}/log.jsonl`)!.trim().split('\n').map((l) => JSON.parse(l).action)
     expect(log).toContain('retake')

@@ -4,14 +4,26 @@ import type { Resident } from "./host.js";
 import { type HoldMode, type HoldOutcome, type Identity } from "./jlock.js";
 import { type ReapplyReport } from "./keep.js";
 import { type Awaiting, type RunFile, type Task, type TasksFile } from "./schema.js";
+import { type StateDraft } from "./store.js";
 import { type RepoPaths } from "./workspace.js";
 import { type ParsedArgs, type ToolContext } from "./tool.js";
 /** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
 export declare function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState>;
 /** The repository's runs in its data folder (only its own when other repositories share the folder). */
 export declare function repoRuns(ctx: ToolContext, paths: RepoPaths): Promise<import("./store.ts").RunEntry[]>;
-/** Re-reads run.json and tasks.json (inside the write lock, before deciding). */
+/** Reads the run's state again (snapshots and events, store.ts). */
 export declare function reload(ctx: ToolContext, state: RunState): Promise<RunState>;
+export interface Decided<R> {
+    /** The state after the event (or as read, when the decision changed nothing). */
+    state: RunState;
+    result: R;
+    changed: boolean;
+}
+/**
+ * A decision on the run's state committed as one event (store.ts `commit`): `fn` gets the state as read and the copy
+ * to edit, and runs again when the fold refuses the event (someone changed the same tasks meanwhile). Throwing refuses.
+ */
+export declare function decide<R>(ctx: ToolContext, first: RunState, action: string, fn: (state: RunState, draft: StateDraft, attempt: number) => Promise<R> | R): Promise<Decided<R>>;
 export declare function findTask(state: RunState, id: string | undefined): Task;
 export declare function taskIdArg(args: ParsedArgs): string | undefined;
 export declare function log(ctx: ToolContext, state: RunState, entry: Record<string, unknown> & {
@@ -44,6 +56,8 @@ export declare function acquireHold(ctx: ToolContext, state: RunState, task: Tas
  * another window's holds). A hold told this way ends with 0; one released from outside ends with 14 by itself.
  */
 export declare function releaseHolds(ctx: ToolContext, run: string, task: string): Promise<string[]>;
+/** The trailer of a done's commit (ticket 60): the run and the task, so a done made again finds its own commit. */
+export declare function doneTrailer(run: string, task: string): string;
 export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
     text: string;
     data: {
@@ -168,6 +182,11 @@ export interface AgentEnd {
 export declare function agentEnded(ctx: ToolContext, args: ParsedArgs, opts?: {
     waiting?: string;
     expired?: boolean;
+    wait?: {
+        since: string;
+        endedAt?: string;
+        gen?: number;
+    };
 }): Promise<AgentEnd>;
 /** The subagent of an awaiting task is at work again (the host saw its loop start): the wait is over. */
 export declare function awaitBack(ctx: ToolContext, run: string, taskId: string, how: string): Promise<boolean>;

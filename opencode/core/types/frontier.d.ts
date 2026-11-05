@@ -9,6 +9,11 @@ export interface RunState {
     dir: string;
     run: RunFile;
     tasks: TasksFile;
+    /** The generations the state was read at (ticket 60), when the reader kept them: a decision can insist on them. */
+    gens?: {
+        run: number;
+        tasks: Record<string, number>;
+    };
 }
 export declare function ownerOf(run: string, task: string): string;
 /** The jlock keys of a task's ownership: its files and claims as absolute keys, or `*` when exclusive. */

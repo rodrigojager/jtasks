@@ -58,6 +58,11 @@ export interface Host {
   readonly platform: string
   /** What runs the tool, for `jtasks doctor` (`bun 1.3.14`, `claude-code mod`). */
   readonly runtime?: string
+  /**
+   * Whether a spawned child keeps its standard input open until `closeInput` (the Node host): a `jlock hold
+   * --release-on-eof` then lives exactly as long as this process (serial.ts). The mod's $.process.spawn closes it at once.
+   */
+  readonly holdsInput?: boolean
   cwd(): string
   env(name: string): string | undefined
   now(): Date
@@ -72,7 +77,7 @@ export interface Host {
   rename(from: string, to: string): Promise<void>
   remove(path: string, options?: { recursive?: boolean }): Promise<void>
   mkdir(path: string): Promise<void>
-  /** Creates one folder (its parent must exist); `false` when it already exists. The core's short write lock. */
+  /** Creates one folder (its parent must exist); `false` when it already exists. */
   mkdirExclusive(path: string): Promise<boolean>
   /** `[]` when the folder does not exist. */
   list(path: string): Promise<DirEntry[]>

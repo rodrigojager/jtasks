@@ -16,6 +16,8 @@ export interface RunState {
   dir: string
   run: RunFile
   tasks: TasksFile
+  /** The generations the state was read at (ticket 60), when the reader kept them: a decision can insist on them. */
+  gens?: { run: number; tasks: Record<string, number> }
 }
 
 export function ownerOf(run: string, task: string): string {

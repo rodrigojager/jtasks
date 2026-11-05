@@ -7,6 +7,8 @@ export * from "./validate.js";
 export * from "./tool.js";
 export * from "./ids.js";
 export * from "./store.js";
+export * from "./events.js";
+export * from "./serial.js";
 export * from "./format.js";
 export * from "./git.js";
 export * from "./workspace.js";

@@ -1,14 +1,14 @@
 // The pause a host makes by itself on a transient failure of the provider (plan rev. 5.7), and the way back. The
-// classifier is ./transient.ts; this module writes run.json under the run's lock. A host calls `pauseForFailure` when
-// a subagent (or the orchestrator) died on a transient failure, in place of `release --agent-ended`: the run is
-// paused, every task in progress stays in progress with its locks (the host keeps renewing them while it lives), and
-// the subagent's place in the host is kept. `resumeIfDue` (the host's clock) and `resumeNow` (a reset the host
-// detected) leave the pause and answer the text that tells the orchestrator to resume the same agents.
+// classifier is ./transient.ts; this module changes run.json through the run's events (store.ts). A host calls
+// `pauseForFailure` when a subagent (or the orchestrator) died on a transient failure, in place of `release
+// --agent-ended`: the run is paused, every task in progress stays in progress with its locks (the host keeps renewing
+// them while it lives), and the subagent's place in the host is kept. `resumeIfDue` (the host's clock) and
+// `resumeNow` (a reset the host detected) leave the pause and answer the text that tells the orchestrator to resume
+// the same agents.
 
-import { leavePause, log, reload, resolveRun, type LeftPause } from "./actions.ts"
+import { decide, leavePause, log, resolveRun, type LeftPause } from "./actions.ts"
 import { progressSignature } from "./keepalive.ts"
 import type { AutoPause } from "./schema.ts"
-import { writeRun, withLock } from "./store.ts"
 import type { ToolContext } from "./tool.ts"
 import { pausedTasks, resumeAtOf, type Classification } from "./transient.ts"
 import { actorOf } from "./plan.ts"
@@ -34,9 +34,8 @@ export async function pauseForFailure(ctx: ToolContext, req: PauseRequest): Prom
   } catch {
     return undefined
   }
-  return withLock(ctx.host, first.dir, async () => {
-    const state = await reload(ctx, first)
-    const run = { ...state.run }
+  const d = await decide(ctx, first, "auto-pause", (state, draft) => {
+    const run = { ...draft.run }
     if (run.status === "done") return undefined
     const now = ctx.host.now()
     const inProgress = state.tasks.tasks.filter((t) => t.status === "in_progress")
@@ -65,19 +64,23 @@ export async function pauseForFailure(ctx: ToolContext, req: PauseRequest): Prom
     if (resumeAt) pause.resumeAt = resumeAt
     run.status = "paused"
     run.pause = pause
-    await writeRun(ctx.host, state.dir, run)
-    await log(ctx, state, {
-      action: "auto-pause",
-      kind: pause.kind,
-      detail: pause.detail,
-      kept: tasks.map((t) => t.id),
-      ...(req.task ? { task: req.task } : {}),
-      ...(resetAt ? { resetAt } : {}),
-      ...(resumeAt ? { resumeAt } : {}),
-      streak,
-    })
-    return pause
+    draft.run = run
+    return { pause, tasks, resetAt, resumeAt, streak }
   })
+  if (!d.result) return undefined
+  const { pause, tasks, resetAt, resumeAt, streak } = d.result
+  const state = d.state
+  await log(ctx, state, {
+    action: "auto-pause",
+    kind: pause.kind,
+    detail: pause.detail,
+    kept: tasks.map((t) => t.id),
+    ...(req.task ? { task: req.task } : {}),
+    ...(resetAt ? { resetAt } : {}),
+    ...(resumeAt ? { resumeAt } : {}),
+    streak,
+  })
+  return pause
 }
 
 async function stateOf(ctx: ToolContext, run: string) {

@@ -29,9 +29,9 @@ export declare function earliestExpiry(locks: JlockLock[]): number | undefined;
 export declare function renewalNeed(state: RunState, task: Task, locks: JlockLock[], platform: string, now: number, every?: number): "none" | "fresh" | "retake" | "renew";
 /**
  * One pass of a long-lived host over a run: every task in progress whose owner `mine` accepts (this session and its
- * subagents) gets its holds renewed before they expire, or taken again when they did. The run's write lock is taken
- * per task and only around the release and the new hold, after re-reading the task (no `done` or `release` of it
- * runs in between); and if the task left `in_progress` anyway (a lock broken as stale), what was taken is given back.
+ * subagents) gets its holds renewed before they expire, or taken again when they did. The run's tree key (serial.ts)
+ * is taken per task and only around the release and the new hold, after re-reading the task (no `done` or `release`
+ * of it runs in between); and if the task left `in_progress` anyway, what was taken is given back.
  * Never throws: a failure is logged and left for the next pass.
  */
 export declare function renewRun(ctx: ToolContext, run: string, mine: (owner: string) => boolean, every?: number): Promise<{

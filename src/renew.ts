@@ -11,7 +11,8 @@ import { ownerOf, taskKeys, type RunState } from "./frontier.ts"
 import { canRenew, jlockList, jlockRenew, type JlockLock } from "./jlock.ts"
 import type { Task } from "./schema.ts"
 import { DEFAULT_HOLD_TTL } from "./schema.ts"
-import { readTasks, withLock } from "./store.ts"
+import { readTasks } from "./store.ts"
+import { withTree } from "./serial.ts"
 import type { ToolContext } from "./tool.ts"
 
 /** How often a long-lived host looks at its holds. */
@@ -102,9 +103,9 @@ async function renewTask(ctx: ToolContext, state: RunState, task: Task): Promise
 
 /**
  * One pass of a long-lived host over a run: every task in progress whose owner `mine` accepts (this session and its
- * subagents) gets its holds renewed before they expire, or taken again when they did. The run's write lock is taken
- * per task and only around the release and the new hold, after re-reading the task (no `done` or `release` of it
- * runs in between); and if the task left `in_progress` anyway (a lock broken as stale), what was taken is given back.
+ * subagents) gets its holds renewed before they expire, or taken again when they did. The run's tree key (serial.ts)
+ * is taken per task and only around the release and the new hold, after re-reading the task (no `done` or `release`
+ * of it runs in between); and if the task left `in_progress` anyway, what was taken is given back.
  * Never throws: a failure is logged and left for the next pass.
  */
 export async function renewRun(
@@ -132,7 +133,8 @@ export async function renewRun(
     }
     let result: RenewResult = "fresh"
     try {
-      result = await withLock(ctx.host, first.dir, async () => {
+      // Under the run's tree key: no done or release of the task runs between the read and the new hold.
+      result = await withTree(ctx, run, async (ctx) => {
         const state = await reload(ctx, first)
         const task = state.tasks.tasks.find((t) => t.id === candidate.id)
         if (!task || task.status !== "in_progress" || task.owner !== candidate.owner) return "fresh"
