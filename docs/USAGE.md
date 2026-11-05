@@ -57,7 +57,7 @@ The mod and the plugin carry their own copy of the core (`core/core.js`, built f
 
 ## Where run data lives
 
-A run's files (`run.json`, `tasks.json`, the tickets, `ledger.jsonl`, `log.jsonl`, saved patches) live in
+A run's files (`run.json`, `tasks.json`, `events.jsonl`, the tickets, `ledger.jsonl`, `log.jsonl`, saved patches) live in
 `<data folder>/runs/<run>/`. Every form (CLI, mod, plugin) asks the core's one resolver (`resolvePaths` in
 `src/workspace.ts`) for the repository and the data folder, from the folder the agent was opened in:
 
@@ -97,6 +97,33 @@ current folder; `jtasks doctor` has the same as its `data` check.
 The mod and the plugin keep, with the run bound to a session, both the repository root and the data folder the tool
 answered (`bindPaths` of the result), and read the run from there; a binding stored by an older version has no data
 folder and is read as a legacy run.
+
+### How a run's state is kept
+
+Since 0.4.0 (ticket 60) a run's state is the sum of the events appended to `events.jsonl`; there is no write lock.
+Every change is one line, `{ v, id, at, actor, ops: [{ task, gen, set, unset }], run?: { gen, set, unset } }`: the
+fields of each task (and of `run.json`) that changed, and the generation of each one the change was decided on. The
+fold applies an event whole when every task it names (and the run, when it names it) is still at that generation,
+which then moves by one; otherwise the event is ignored. Every reader, in any process, folds to the same state.
+
+- **Changing**: read the state, decide on a copy, append the event, fold up to it. Refused (someone changed the same
+  task meanwhile): read again and decide again, up to 20 times. A decision made on an old read never lands.
+- **`run.json` and `tasks.json`** stay, as snapshots: each says how far into `events.jsonl` it is (`eventOffset`) and
+  the generations there (`gens`); `run.json` says `format: 2`. A reader folds the events after the snapshot, and the
+  writer of an event rewrites both. They are views: never edit them by hand while a run is in use.
+- **The working tree** (a task's edits kept as patches or brought back, the commit of a `done`, files put back to
+  HEAD) is changed by one transition at a time: `start`, `done`, `release`, `fail`, `skip`, the end of a subagent,
+  `resume`, a lost lock, `yield`, `adopt`, `undo` and a claim that brings patches back hold the jlock key
+  `name:jtasks:<run>:git`. The CLI and the plugin hold it with `jlock hold --release-on-eof` (it goes the instant the
+  process dies, however long the transition takes); the mod, whose `$.process.spawn` closes standard input, with
+  `--detach --ttl 10m`, given back at the end (docs/DEVIATIONS.md, 18). A transition decided again does its effects
+  again, harmlessly: the commit of a `done` carries the trailer `Jtasks-Task: <run>/<task> gen <n>` and is not made
+  twice; a release made again finds its patches in the ledger.
+- **A run from before 0.4.0** opens as it is: its files are the base at offset 0, every generation 0, and the first
+  change creates `events.jsonl`. A 0.3.x jtasks writing to a run 0.4.0 has written is not supported: update every host
+  (CLI, mod, plugin) together.
+- `log.jsonl` is still the audit and where the alerts come from; `keepalive.json` is still the host's memory, the
+  last write wins. The mod appends to both files with a short `bun -e` (or `node -e`) that writes the line at once.
 
 ## The plan
 
@@ -284,8 +311,9 @@ task that is pending (or failed) and keeps its edits: the answer says so and tel
 What happened on 30/10/2026: a `release --agent-ended` kept 25 files as patches for 18 s inside the run's write
 lock; the lock was broken as "dead" after 10 s by the resumed subagent's `done`, which committed only what was still
 dirty; the release's tasks.json write then lost (stale revision), so `patches` stayed empty and the task was done
-without its code. The write lock now has a heartbeat (its holder writes `.write.lock/beat` every 2 s; only 10 s
-without a sign of life make it dead; a waiter waits up to 60 s), and the checks above cover a write lost anyway.
+without its code. Since 0.4.0 there is no write lock at all (see [How a run's state is kept](#how-a-runs-state-is-kept)):
+a decision made on an old read never lands, and the working tree is changed by one transition at a time; the checks
+above still cover a run carried over in that state.
 
 #### Recovering the kept edits of a task already done
 

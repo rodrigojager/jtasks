@@ -63,6 +63,17 @@ do cwd (`<work_dir>/WORKSPACE.md` com front matter `jproject: 1`). A pasta de da
 ou `--data-dir`), do `jtasks_data` do front matter, ou do legado `<repo>/.scratch/jtasks`; só o legado mexe em
 `.git/info/exclude`. O resultado que liga um run traz `bindPaths` (`root` e `data`), guardados no estado do mod e do
 plugin; o `gc` reconhece runs pela pasta de dados resolvida.
+Ticket 60 (versão 0.4.0): não existe mais trava de escrita (`withLock`/`.write.lock` saíram). O estado do run é a
+dobra de `events.jsonl` (`src/events.ts`: evento `{ v, id, at, actor, ops: [{ task, gen, set, unset }], run? }`,
+dobra pura por gerações de tarefa e do run); `commit` em `src/store.ts` é o commit otimista (lê, decide numa cópia,
+acrescenta o diff como um evento, dobra e confere; recusado, decide de novo até 20 vezes; `guard` para o que a decisão
+leu sem mudar), e `decide`/`transition` em `src/actions.ts` o usam. `tasks.json` e `run.json` são snapshots com
+`eventOffset` e `gens` (`run.json` com `format: 2`); `readState`/`readTasks`/`readRun` dobram o resto. Os efeitos na
+árvore rodam sob a chave do jlock `name:jtasks:<run>:git` (`src/serial.ts`, `withTree`), segura com
+`--release-on-eof` pelo próprio processo (no mod, `--detach --ttl 10m`), e são idempotentes (trailer
+`Jtasks-Task: <run>/<task> gen <n>` no commit do `done`, patches recuperados do ledger). O `appendText` do mod é um
+`bun -e` que escreve de uma vez. Desvios em `docs/DEVIATIONS.md` (18); testes de corrida em `test/race.test.ts` (host
+simulado em `test/race-host.ts`), dobra em `test/events.test.ts`, processos reais em `test/multiprocess.test.ts`.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node; `workspace.ts` resolve repositório e pasta de
 dados), `cli/jtasks.ts`, `dist/` e as cópias em

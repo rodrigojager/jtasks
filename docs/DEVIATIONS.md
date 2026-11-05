@@ -290,3 +290,43 @@ mostra como toast. Sem `session.synthetic` no host, o aviso fica só no log, no 
 esperando um processo lançado de outro jeito, `jtasks wait <id> --pid <pid>` antes. Orquestrador: deixar em paz a
 tarefa "aguardando processo" e seguir com as outras. Pessoa: numa pausa por `needsPerson`, ver a tarefa, depois
 `jtasks retry <id>` e `jtasks unpause`. Para ajustar: `maxAgentEnded` e `awaitGrace` no plano.
+
+## 18. Estado por eventos: a chave da árvore com tarefa exclusiva, o mod com `--detach`, e as decisões incertas (ticket 60)
+
+**O que mudou:** o ticket 60 tirou a trava de escrita (`withLock`, `.write.lock`): o estado é a dobra de
+`events.jsonl` com commit otimista, e os efeitos na árvore rodam sob a chave do jlock `name:jtasks:<run>:git`, segura
+pelo próprio processo com `jlock hold --release-on-eof`. Três pontos saíram diferentes do texto do ticket:
+
+1. **Tarefa `exclusive`:** ela segura `*`, e `*` cobre toda chave, as `name:` também. O jlock só concede uma chave em
+   conflito ao mesmo dono, então enquanto uma tarefa exclusiva da execução está em andamento a chave da árvore é
+   segura sob o dono dela (`gt:<run>/<tarefa>`): o `start` da exclusiva já a pede assim, e quem a encontra recusada por
+   esse `*` tenta de novo com esse dono. Duas transições ao mesmo tempo nesse período não se excluem pela chave (o
+   jlock concede as duas ao mesmo dono); o estado continua certo pela dobra, e os efeitos são idempotentes (o commit
+   do `done` com o trailer não é refeito, um `release` refeito acha os patches no ledger).
+2. **O mod segura a chave com `--detach --ttl 10m`, não com `--release-on-eof`:** o `$.process.spawn` do Claude Code
+   fecha a entrada padrão do filho na hora, o que soltaria a trava no mesmo instante. A chave é devolvida no `finally`
+   com `jlock release`; se o Claude Code morrer segurando-a, as transições de árvore dessa execução esperam até 10 min
+   (o ttl). O CLI e o plugin (host do Node) usam `--release-on-eof`. O rascunho do plano (`plan --add/--fix/--commit`)
+   usa a mesma ideia com a chave `name:jtasks:<rascunho>:draft`.
+3. **O que não estava no ticket e foi decidido pelo lado seguro:**
+   - O `start` toma a chave da árvore (ele traz patches de volta); assim dois `start` da mesma tarefa nunca pegam as
+     travas juntos, e o segundo vê a tarefa em andamento antes de pedir qualquer trava. As travas da tarefa são pegas
+     uma vez só, mesmo quando a decisão é refeita.
+   - Uma decisão que se apoia em outra tarefa sem mudá-la declara isso (`guard`): o `adopt` (a tarefa que adota) e a
+     volta dos patches antes do `done` (as outras tarefas em andamento, cuja posse decide o que volta). O `done` não
+     guarda as outras tarefas: a posse delas vem também das travas do jlock, que o `claim` pega antes do evento.
+   - O relógio (`sweepAwaiting`) decide sobre a geração da tarefa que leu: marcar o fim do processo, encerrar uma
+     espera `inline` e expirar uma espera só valem se a tarefa não mudou desde a leitura (além de conferir `since` e
+     `endedAt`). Uma mudança qualquer no meio (um `exec` que acabou) adia a decisão para a próxima passada, nunca
+     solta travas nem volta arquivos ao HEAD com base numa foto velha.
+   - `renew` roda sob a chave da árvore só quando há o que renovar ou retomar, para não correr junto com um `done` ou
+     `release` da mesma tarefa.
+   - Um leitor reescreve os snapshots só depois de dobrar 64 eventos ou mais (quem grava um evento sempre reescreve):
+     no mod, cada regravação custa processos (`cmd move`), e o painel lê a toda hora.
+
+**Consequência:** nenhuma para quem usa, fora o arquivo novo `events.jsonl` e `format: 2` no `run.json`. Um jtasks
+0.3.x não deve escrever numa execução que a 0.4.0 já escreveu.
+
+**O que fazer:** subir CLI, mod e plugin juntos para a 0.4.0. Se o Claude Code cair no meio de uma transição, as
+outras transições de árvore da mesma execução esperam o ttl de 10 min (ou `jlock release name:jtasks:<run>:git
+--owner <dono>`, que `jlock list` mostra).
