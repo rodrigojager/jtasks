@@ -1,12 +1,12 @@
 // Cleaning and archiving (section 11): a finished run leaves the project without a treasure hunt.
 
-import { requireRepo } from "./git.ts"
 import type { Host } from "./host.ts"
 import { slugify } from "./ids.ts"
 import { effectLine, effectsOf, recordEffect, setEffectState, type Effect } from "./ledger.ts"
 import { basename, caseInsensitive, join } from "./paths.ts"
-import { jtasksHome, readTasks, runDir, runsDir, SCRATCH } from "./store.ts"
+import { jtasksHome, listRuns, readTasks, runDir, runsDir } from "./store.ts"
 import { defineAction, ok, ToolError, type ToolContext } from "./tool.ts"
+import { requirePaths } from "./workspace.ts"
 import { tr } from "./i18n.ts"
 
 export function archiveDir(host: Host, root: string, run: string): string {
@@ -47,21 +47,28 @@ defineAction(
   "clean",
   async (ctx, args) => {
     const { host } = ctx
-    const root = await requireRepo(host, ctx.cwd)
+    const paths = await requirePaths(host, ctx.cwd)
+    const root = paths.repoRoot
+    const data = paths.dataDir
     const all = !!args.options.all
     const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
     if (!all && !id) throw new ToolError(tr("clean.which"), 2)
-    const ids = all ? (await host.list(runsDir(root))).filter((e) => e.kind === "dir").map((e) => e.name) : [id!]
-    for (const r of ids) if (!(await host.stat(runDir(root, r)))) throw new ToolError(tr("run.not_in", { run: r, dir: runsDir(root) }))
+    // A data folder other repositories share loses only this repository's runs, one by one.
+    const ids = !all
+      ? [id!]
+      : paths.shared
+        ? (await listRuns(host, data, { root, caseInsensitive: caseInsensitive(host.platform) })).map((r) => r.run.id)
+        : (await host.list(runsDir(data))).filter((e) => e.kind === "dir").map((e) => e.name)
+    for (const r of ids) if (!(await host.stat(runDir(data, r)))) throw new ToolError(tr("run.not_in", { run: r, dir: runsDir(data) }))
     const lines: string[] = []
     const busy: string[] = []
     const left: Effect[] = []
     for (const r of ids) {
-      const running = await runningTasks(host, runDir(root, r))
+      const running = await runningTasks(host, runDir(data, r))
       if (running.length) busy.push(`${r} (${running.join(", ")})`)
       left.push(...(await survivors(ctx, root, r)))
     }
-    const target = all ? join(root, SCRATCH) : runDir(root, id!)
+    const target = all ? (paths.shared ? runsDir(data) : data) : runDir(data, id!)
     lines.push(all ? tr("clean.delete_all", { target, n: ids.length }) : tr("clean.delete", { target }))
     if (left.length) {
       lines.push(tr("clean.effects"))
@@ -77,8 +84,9 @@ defineAction(
       const all = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform))
       dirs.push(...all.filter((e) => e.type === "dir" && e.state === "active"))
     }
-    await host.remove(target, { recursive: true })
-    for (const e of dirs) await setEffectState(host, runDir(root, e.run), e.run, e.id, "undone")
+    if (all && paths.shared) for (const r of ids) await host.remove(runDir(data, r), { recursive: true })
+    else await host.remove(target, { recursive: true })
+    for (const e of dirs) await setEffectState(host, runDir(data, e.run), e.run, e.id, "undone")
     lines.push(tr("clean.deleted", { target }))
     return ok(lines.join("\n"), { target, effects: left, removed: true })
   },
@@ -89,11 +97,11 @@ defineAction(
   "archive",
   async (ctx, args) => {
     const { host } = ctx
-    const root = await requireRepo(host, ctx.cwd)
+    const { repoRoot: root, dataDir: data } = await requirePaths(host, ctx.cwd)
     const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined)
     if (!id) throw new ToolError(tr("archive.which"), 2)
-    const dir = runDir(root, id)
-    if (!(await host.stat(dir))) throw new ToolError(tr("run.not_in", { run: id, dir: runsDir(root) }))
+    const dir = runDir(data, id)
+    if (!(await host.stat(dir))) throw new ToolError(tr("run.not_in", { run: id, dir: runsDir(data) }))
     const running = await runningTasks(host, dir)
     if (running.length) throw new ToolError(tr("archive.busy", { run: id, tasks: running.join(", ") }))
     const to = archiveDir(host, root, id)
@@ -114,10 +122,10 @@ defineAction(
 /** Brings an archived run back into the repository (`resume <run> --from-archive`). */
 export async function unarchive(ctx: ToolContext, run: string): Promise<string> {
   const { host } = ctx
-  const root = await requireRepo(host, ctx.cwd)
+  const { repoRoot: root, dataDir: data } = await requirePaths(host, ctx.cwd)
   const from = archiveDir(host, root, run)
   if (!(await host.stat(from))) throw new ToolError(tr("archive.none", { run, from }))
-  const dir = runDir(root, run)
+  const dir = runDir(data, run)
   if (await host.stat(dir)) throw new ToolError(tr("archive.already", { run, dir }))
   await moveDir(host, from, dir)
   const archived = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter(

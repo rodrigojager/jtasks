@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { readEffects } from "../src/ledger.ts"
 import type { TasksFile } from "../src/schema.ts"
-import { cleanupTemp, host, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -34,7 +34,7 @@ async function finishedRun() {
     writeFiles(repo, { [file]: `${id}\n` })
     await tasksOk(repo, ["done", id, "--evidence", "ok"])
   }
-  return { repo, run, dir: join(repo, ".scratch/jtasks/runs", run) }
+  return { repo, run, dir: (await runPath(repo, run)) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile

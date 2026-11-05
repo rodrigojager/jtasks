@@ -38,8 +38,8 @@ export function isAlert(entry: LogEntry, actor: string): boolean {
 const LOG = "log.jsonl"
 
 /** Where a host starts reading a run's log: its end now (what happened before is not news). */
-export async function logEnd(host: Host, root: string, run: string): Promise<number> {
-  return ((await host.readText(join(runDir(root, run), LOG)).catch(() => undefined)) ?? "").length
+export async function logEnd(host: Host, data: string, run: string): Promise<number> {
+  return ((await host.readText(join(runDir(data, run), LOG)).catch(() => undefined)) ?? "").length
 }
 
 export interface AlertRead {
@@ -49,8 +49,8 @@ export interface AlertRead {
 }
 
 /** The whole lines of the run's log written since `offset` that the orchestrator `actor` must hear about. */
-export async function readAlerts(host: Host, root: string, run: string, offset: number, actor: string): Promise<AlertRead> {
-  const text = (await host.readText(join(runDir(root, run), LOG)).catch(() => undefined)) ?? ""
+export async function readAlerts(host: Host, data: string, run: string, offset: number, actor: string): Promise<AlertRead> {
+  const text = (await host.readText(join(runDir(data, run), LOG)).catch(() => undefined)) ?? ""
   // A log shorter than what was read is another file (the run archived and back): read on from its end.
   if (text.length < offset) return { entries: [], offset: text.length }
   const fresh = text.slice(offset)
@@ -83,8 +83,8 @@ export function briefStatus(run: RunFile, tasks: TasksFile): string {
 }
 
 /** The status line of a run read now (files only, no jlock), or undefined when its files are gone. */
-export async function readBrief(host: Host, root: string, runId: string): Promise<string | undefined> {
-  const dir = runDir(root, runId)
+export async function readBrief(host: Host, data: string, runId: string): Promise<string | undefined> {
+  const dir = runDir(data, runId)
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   return run && tasks ? briefStatus(run, tasks) : undefined
 }

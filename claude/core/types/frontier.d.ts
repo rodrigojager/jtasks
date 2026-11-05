@@ -2,7 +2,10 @@
 import { type JlockLock } from "./jlock.js";
 import type { RunFile, Task, TasksFile, WaitingFor } from "./schema.js";
 export interface RunState {
+    /** The repository root. */
     root: string;
+    /** The data folder that holds `runs/` (see workspace.ts). */
+    data: string;
     dir: string;
     run: RunFile;
     tasks: TasksFile;

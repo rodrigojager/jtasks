@@ -95,9 +95,11 @@ export function installMachine(on: On, root: string): Machine {
   const ok = (stdout = '') => ({ value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
   const fail = (stderr = '') => ({ value: { exitCode: 1, stdout: '', stderr, isStdoutTruncated: false, isStderrTruncated: false } })
 
-  const git = (args: readonly string[]) => {
+  const git = (args: readonly string[], cwd?: string) => {
     const a = args.join(' ')
-    if (a === 'rev-parse --show-toplevel') return ok(`${root}\n`)
+    // Only inside the repository: a jproject container around it is a plain folder (src/workspace.ts).
+    if (a === 'rev-parse --show-toplevel')
+      return !cwd || norm(cwd) === norm(root) || norm(cwd).startsWith(`${norm(root)}/`) ? ok(`${root}\n`) : fail('fatal: not a git repository')
     if (a === 'symbolic-ref --short -q HEAD') return ok(`${current}\n`)
     if (a === 'rev-parse --verify -q HEAD') return ok('abc1234\n')
     if (a.startsWith('rev-parse --verify -q refs/heads/')) return branches.has(a.slice(33)) ? ok('abc1234\n') : fail()
@@ -181,7 +183,7 @@ export function installMachine(on: On, root: string): Machine {
   on('process.run', (_$, e) => {
     commands.push(e.argv.join(' '))
     const [exe, ...args] = e.argv
-    if (exe === 'git') return git(args)
+    if (exe === 'git') return git(args, e.init?.cwd)
     // The pids the core looks at (rev. 5.8): Windows' tasklist, POSIX's ps.
     if (exe === 'tasklist') {
       const pid = Number(/PID eq (\d+)/.exec(args.join(' '))?.[1])

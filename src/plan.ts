@@ -1,10 +1,10 @@
 // `jtasks plan`: from a validated plan to a run (run.json, tasks.json, tickets, branch, ledger) and `jtasks runs`.
 
 import { formatRunsList } from "./format.ts"
-import { addExcludeLine, branchExists, currentBranch, git, gitOk, hasExcludeLine, removeExcludeLine, requireRepo } from "./git.ts"
+import { addExcludeLine, branchExists, currentBranch, git, gitOk, hasExcludeLine, removeExcludeLine } from "./git.ts"
 import { runId } from "./ids.ts"
 import { recordEffect } from "./ledger.ts"
-import { basename, isAbsolute, join } from "./paths.ts"
+import { basename, caseInsensitive, isAbsolute, join, normalize } from "./paths.ts"
 import {
   DEFAULT_HOLD_TTL,
   DEFAULT_AWAIT_GRACE,
@@ -23,6 +23,7 @@ import { appendLog, atomicWrite, listRuns, readJson, runDir, runsDir, stringify,
 import { readTicketsDir, ticketReadLine, writeTickets } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
+import { excludeLineOf, requirePaths, type RepoPaths } from "./workspace.ts"
 import { tr } from "./i18n.ts"
 
 export function actorOf(ctx: ToolContext): string {
@@ -60,6 +61,8 @@ export interface CreateRunOptions {
 export interface CreatedRun {
   run: RunFile
   tasks: TasksFile
+  /** The data folder the run is in (see workspace.ts). */
+  data: string
   dir: string
   tickets: string[]
 }
@@ -67,7 +70,8 @@ export interface CreatedRun {
 /** Builds the run from a plan that already passed the complete validation. */
 export async function createRun(ctx: ToolContext, plan: PlanInput, options: CreateRunOptions = {}): Promise<CreatedRun> {
   const { host } = ctx
-  const root = await requireRepo(host, ctx.cwd)
+  const paths = await requirePaths(host, ctx.cwd)
+  const root = paths.repoRoot
   const base = await currentBranch(host, root)
   const useRunBranch = plan.branch !== "current"
   if (!base) throw new ToolError(tr("plan.detached"))
@@ -80,9 +84,9 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
   if (!id) {
     const slug = options.name || plan.feature || plan.objective || "run"
     do id = runId(slug, now, () => host.random())
-    while (await host.stat(runDir(root, id)))
+    while (await host.stat(runDir(paths.dataDir, id)))
   }
-  const dir = runDir(root, id)
+  const dir = runDir(paths.dataDir, id)
   const branch = useRunBranch ? `gt/${id}` : base
   if (useRunBranch && (await branchExists(host, root, branch))) throw new ToolError(tr("plan.branch_exists", { branch }))
 
@@ -116,13 +120,16 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
 
   const existed = !!(await host.stat(dir))
   const undo: (() => Promise<unknown>)[] = []
+  // Only data inside the repository (the legacy `.scratch/jtasks`) needs hiding from git; outside it, nothing in the
+  // repository is touched.
+  const line = excludeLineOf(paths)
   try {
-    const addedExclude = !(await hasExcludeLine(host, root, ".scratch/"))
+    const addedExclude = line !== undefined && !(await hasExcludeLine(host, root, line))
     await host.mkdir(dir)
     if (!existed) undo.push(() => host.remove(dir, { recursive: true }))
     if (addedExclude) {
-      await addExcludeLine(host, root, ".scratch/")
-      undo.push(() => removeExcludeLine(host, root, ".scratch/"))
+      await addExcludeLine(host, root, line)
+      undo.push(() => removeExcludeLine(host, root, line))
     }
     await atomicWrite(host, join(dir, "run.json"), stringify(run))
     await atomicWrite(host, join(dir, "tasks.json"), stringify(tasks))
@@ -143,13 +150,13 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
         type: "exclude",
         repo: root,
         path: ".git/info/exclude",
-        line: ".scratch/",
+        line,
         undo: { kind: "remove-line" },
       })
     if (useRunBranch)
       await recordEffect(host, dir, { run: id, type: "branch", repo: root, ref: branch, from: base, undo: { kind: "git-branch-delete" } })
     await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "plan", tasks: tasks.tasks.length })
-    return { run, tasks, dir, tickets }
+    return { run, tasks, data: paths.dataDir, dir, tickets }
   } catch (error) {
     for (const step of undo.reverse()) await step().catch(() => {})
     throw error
@@ -182,7 +189,12 @@ export async function planFromJson(ctx: ToolContext, raw: unknown, options: Crea
       data: { errors },
     }
   const created = await createRun(ctx, plan, options)
-  return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id })
+  return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created))
+}
+
+/** The binding a created run gives the session: its id, repository root and data folder. */
+export function bindOf(created: CreatedRun): Partial<ToolResult> {
+  return { bind: created.run.id, bindPaths: { root: created.run.repo.root, data: created.data } }
 }
 
 // ── Plan in batches (rev. 5.1): a draft that is not a run yet ─────────────────────────────────────────────────
@@ -204,28 +216,34 @@ export interface Draft {
   branch?: "run" | "current"
   shared?: string[]
   sharedPolicy?: PlanInput["sharedPolicy"]
+  /** The repository the draft is for (a data folder several repositories share lists only its own). */
+  repo?: string
   tasks: PlanTask[]
 }
 
 const draftFile = (dir: string) => join(dir, "draft.json")
 
 /** Open drafts of the repository: run folders with a `draft.json` and no `run.json` yet. */
-export async function listDrafts(ctx: ToolContext, root: string): Promise<{ id: string; dir: string; draft: Draft }[]> {
+export async function listDrafts(ctx: ToolContext, paths: RepoPaths): Promise<{ id: string; dir: string; draft: Draft }[]> {
   const out: { id: string; dir: string; draft: Draft }[] = []
-  for (const entry of await ctx.host.list(runsDir(root))) {
+  const insensitive = caseInsensitive(ctx.host.platform)
+  const norm = (p: string) => (insensitive ? normalize(p).toLowerCase() : normalize(p))
+  for (const entry of await ctx.host.list(runsDir(paths.dataDir))) {
     if (entry.kind !== "dir") continue
-    const dir = join(runsDir(root), entry.name)
+    const dir = join(runsDir(paths.dataDir), entry.name)
     if (await ctx.host.stat(join(dir, "run.json"))) continue
     const draft = await readJson<Draft>(ctx.host, draftFile(dir)).catch(() => undefined)
+    if (draft && paths.shared && draft.repo && norm(draft.repo) !== norm(paths.repoRoot)) continue
     if (draft) out.push({ id: draft.id, dir, draft })
   }
   return out.sort((a, b) => a.draft.created.localeCompare(b.draft.created))
 }
 
 async function resolveDraft(ctx: ToolContext, args: ParsedArgs): Promise<{ root: string; dir: string; draft: Draft }> {
-  const root = await requireRepo(ctx.host, ctx.cwd)
+  const paths = await requirePaths(ctx.host, ctx.cwd)
+  const root = paths.repoRoot
   const wanted = typeof args.options.run === "string" ? args.options.run : undefined
-  const drafts = await listDrafts(ctx, root)
+  const drafts = await listDrafts(ctx, paths)
   if (wanted) {
     const found = drafts.find((d) => d.id === wanted)
     if (!found) throw new ToolError(tr("draft.not_found", { id: wanted }))
@@ -275,8 +293,9 @@ export function draftSummary(draft: Draft): string {
 
 async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const { host } = ctx
-  const root = await requireRepo(host, ctx.cwd)
-  const open = await listDrafts(ctx, root)
+  const paths = await requirePaths(host, ctx.cwd)
+  const root = paths.repoRoot
+  const open = await listDrafts(ctx, paths)
   if (open.length > 0)
     throw new ToolError(
       tr("draft.already_open", { ids: open.map((d) => d.id).join(", ") }),
@@ -287,13 +306,14 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
   const now = host.now()
   let id: string
   do id = runId(name || objective || "run", now, () => host.random())
-  while (await host.stat(runDir(root, id)))
-  const dir = runDir(root, id)
-  const draft: Draft = { version: 1, id, created: now.toISOString(), tasks: [] }
+  while (await host.stat(runDir(paths.dataDir, id)))
+  const dir = runDir(paths.dataDir, id)
+  const draft: Draft = { version: 1, id, created: now.toISOString(), repo: root, tasks: [] }
   if (name) draft.feature = name
   if (objective) draft.objective = objective
   if (source) draft.source = source
-  const addedExclude = await addExcludeLine(host, root, ".scratch/")
+  const line = excludeLineOf(paths)
+  const addedExclude = line !== undefined && (await addExcludeLine(host, root, line))
   await host.mkdir(dir)
   await saveDraft(ctx, dir, draft)
   await recordEffect(host, dir, { run: id, type: "dir", repo: root, path: dir, undo: { kind: "rmdir" } })
@@ -303,7 +323,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
       type: "exclude",
       repo: root,
       path: ".git/info/exclude",
-      line: ".scratch/",
+      line,
       undo: { kind: "remove-line" },
     })
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" })
@@ -395,7 +415,7 @@ async function draftCommit(ctx: ToolContext, args: ParsedArgs): Promise<ToolResu
     return ok(
       createdText(created, warnings),
       { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings },
-      { bind: created.run.id },
+      bindOf(created),
     )
   })
 }
@@ -415,8 +435,8 @@ defineAction("plan", async (ctx, args) => {
 for (const key of ["help.plan.draft", "help.plan.add", "help.plan.fix", "help.plan.show", "help.plan.commit"]) addUsage(key)
 
 defineAction("runs", async (ctx) => {
-  const root = await requireRepo(ctx.host, ctx.cwd)
-  const runs = await listRuns(ctx.host, root)
+  const paths = await requirePaths(ctx.host, ctx.cwd)
+  const runs = await listRuns(ctx.host, paths.dataDir, paths.shared ? { root: paths.repoRoot, caseInsensitive: caseInsensitive(ctx.host.platform) } : undefined)
   return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) })
 }, "help.runs")
 
@@ -443,7 +463,7 @@ defineAction(
     if (errors.length) return { ok: false, code: 1, text: `${read.join("\n")}\n${tr("import.refused")} ${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
     const name = typeof args.options.name === "string" ? args.options.name : basename(dir.replace(/\/issues$/, ""))
     const created = await createRun(ctx, plan, { name })
-    return ok(`${read.join("\n")}\n${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, { bind: created.run.id })
+    return ok(`${read.join("\n")}\n${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, bindOf(created))
   },
   "help.import",
 )

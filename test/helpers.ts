@@ -7,6 +7,7 @@ import { join } from "node:path"
 import { createNodeHost } from "../src/node-host.ts"
 import { runTool, type ToolContext, type ToolResult } from "../src/tool.ts"
 import "../src/index.ts"
+import { resolvePaths } from "../src/workspace.ts"
 
 export const TEST_ROOT = (
   process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : join(tmpdir(), "jtasks-tests"))
@@ -104,4 +105,18 @@ export async function tasksOk(cwd: string, argv: string[], extra: Partial<ToolCo
   const r = await tasks(cwd, argv, extra)
   if (!r.ok) throw new Error(`jtasks ${argv.join(" ")} failed (${r.code}): ${r.text}`)
   return r
+}
+
+/** The folder of a run (and a path inside it), where the core resolves the data folder for `repo` (src/workspace.ts). */
+export async function runPath(repo: string, run: string, ...more: string[]): Promise<string> {
+  const paths = await resolvePaths(host, repo)
+  if (!paths) throw new Error(`no repository at ${repo}`)
+  return join(paths.dataDir, "runs", run, ...more)
+}
+
+/** The data folder the core resolves for `repo` (src/workspace.ts): where its runs are. */
+export async function dataPath(repo: string): Promise<string> {
+  const paths = await resolvePaths(host, repo)
+  if (!paths) throw new Error(`no repository at ${repo}`)
+  return paths.dataDir
 }

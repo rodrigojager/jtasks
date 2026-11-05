@@ -1,14 +1,14 @@
 // The protocol and the run's progress line, in every model request of a bound session (and in compaction), so
 // that the list survives compaction. Read from tasks.json/run.json only: no jlock call per request.
 
-import { pauseProtocolLine, progressLine, protocolText, readRun, readTasks, runDir, tr } from "../core/core.js"
+import { boundData, pauseProtocolLine, progressLine, protocolText, readRun, readTasks, runDir, tr } from "../core/core.js"
 import type { Host } from "../core/core.js"
 import type { RunBinding } from "./binding.ts"
 
 export const CONTEXT_SOURCE = "jtasks"
 
 export async function contextText(host: Host, binding: RunBinding): Promise<string | undefined> {
-  const dir = runDir(binding.root, binding.run)
+  const dir = runDir(boundData(binding), binding.run)
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!run || !tasks) return undefined
   const summary = run.status === "paused" ? `${tr("status.paused")} · ${progressLine(tasks.tasks)}` : progressLine(tasks.tasks)

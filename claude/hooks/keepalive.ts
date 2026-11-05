@@ -5,7 +5,7 @@
 // until the run moves), never over a draft the person is typing (it waits until the box is empty and the session
 // idle), never in a -p run or the SDK.
 
-import { checkKeepalive, holdKeepalive, stalledNotice, type KeepaliveDecision } from '../core/core.js'
+import { boundData, checkKeepalive, holdKeepalive, stalledNotice, type KeepaliveDecision } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 
 /** What the keepalive needs from $ besides the port (closures built in session.start). */
@@ -88,7 +88,7 @@ export class Keepalive {
    */
   async restore(status: (text: string | undefined) => void): Promise<void> {
     const bound = await this.port.getRun()
-    const notice = bound ? await stalledNotice(createModHost(this.port, await this.port.cwd()), bound.root, bound.run).catch(() => undefined) : undefined
+    const notice = bound ? await stalledNotice(createModHost(this.port, await this.port.cwd()), boundData(bound), bound.run).catch(() => undefined) : undefined
     this.shown = !!notice
     status(notice?.replace(/^⚠\s*/, ''))
   }
@@ -137,7 +137,7 @@ export class Keepalive {
     if (reason === 'aborted') {
       this.deferred = false
       this.clearShown()
-      await holdKeepalive(createModHost(this.port, await this.port.cwd()), bound.root, bound.run)
+      await holdKeepalive(createModHost(this.port, await this.port.cwd()), boundData(bound), bound.run)
       return undefined
     }
     // An API error or a refusal: nothing is sent (it could fail the same way), but the person is told at once.
@@ -154,7 +154,7 @@ export class Keepalive {
   async tick(): Promise<KeepaliveDecision | undefined> {
     if (this.shown) {
       const bound = await this.port.getRun()
-      const notice = bound ? await stalledNotice(createModHost(this.port, await this.port.cwd()), bound.root, bound.run).catch(() => 'keep') : undefined
+      const notice = bound ? await stalledNotice(createModHost(this.port, await this.port.cwd()), boundData(bound), bound.run).catch(() => 'keep') : undefined
       if (!notice) this.clearShown()
     }
     if (this.queued && (await this.flush())) return undefined
@@ -177,6 +177,7 @@ export class Keepalive {
     if (agents.ending) this.deferred = true
     const decision = await checkKeepalive(host, {
       root: bound.root,
+      data: boundData(bound),
       run: bound.run,
       liveAgents: agents.live,
       actor: await this.actor(),
@@ -211,7 +212,7 @@ export class Keepalive {
     const bound = await this.port.getRun()
     if (!bound) return false
     const host = createModHost(this.port, await this.port.cwd())
-    const decision = await checkKeepalive(host, { root: bound.root, run: bound.run, liveAgents: (await this.liveAgents(bound.run)).live, actor: await this.actor(), fresh: true })
+    const decision = await checkKeepalive(host, { root: bound.root, data: boundData(bound), run: bound.run, liveAgents: (await this.liveAgents(bound.run)).live, actor: await this.actor(), fresh: true })
     return decision.action !== 'none'
   }
 }

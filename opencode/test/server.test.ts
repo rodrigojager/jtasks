@@ -1,11 +1,11 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Host, Resident } from "../core/core.js"
 import { tr } from "../core/core.js"
 import { createNodeHost } from "../core/node-host.js"
 import { PLUGIN_ID, TOOL_NAME } from "../server.ts"
-import { cleanupTemp, fakeHost, makeRepo, sh, writeFiles } from "./fake-host.ts"
+import { cleanupTemp, fakeHost, makeRepo, runPath, sh, tempDir, writeFiles } from "./fake-host.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -130,13 +130,13 @@ describe("OpenCode plugin", () => {
     expect(await h.permission("c1", "read", ["src/other.ts"])).toMatchObject({ effect: "allow" })
     // The main agent edits freely, but never the run's files.
     expect(await h.permission("s1", "edit", ["src/other.ts"])).toMatchObject({ effect: "allow" })
-    const tj = `.scratch/jtasks/runs/${run}/tasks.json`
+    const tj = await runPath(repo, run, "tasks.json")
     expect((await h.permission("s1", "edit", [tj])).effect).toBe("deny")
     // After claim, the file is in the ownership.
     await h.call("c1", "claim T01 src/other.ts")
     expect(await h.permission("c1", "edit", ["src/other.ts"])).toMatchObject({ effect: "allow" })
     await h.call("c1", "release T01")
-    expect(JSON.parse(readFileSync(join(repo, ".scratch/jtasks/runs", run, "tasks.json"), "utf8")).tasks[0].status).toBe("pending")
+    expect(JSON.parse(readFileSync(await runPath(repo, run, "tasks.json"), "utf8")).tasks[0].status).toBe("pending")
   })
 
   test("a subagent call of an unknown task is refused; another --run than the bound one is refused", async () => {
@@ -214,7 +214,7 @@ describe("OpenCode plugin", () => {
     const { repo, h } = await setup()
     const planned = await h.call("s1", "plan", plan)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
     const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
     const until = async (check: () => boolean) => {
@@ -255,7 +255,7 @@ describe("OpenCode plugin", () => {
     const { repo, h } = await setup()
     const planned = await h.call("s1", "plan", { tasks: [{ id: "T01", title: "Base", files: ["src/a.ts"] }, { id: "T02", title: "Depois", files: ["src/b.ts"], dependsOn: ["T01"] }] })
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const dir = await runPath(repo, run)
     const until = async (check: () => boolean) => {
       for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
       expect(check()).toBe(true)
@@ -339,7 +339,7 @@ describe("OpenCode plugin", () => {
     if (h.cleanup) cleanups.push(h.cleanup)
     const planned = await h.call("s1", "plan", { holdTtl: "3s", tasks: [{ id: "T01", title: "Longa", files: ["src/a.ts"] }] })
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const dir = await runPath(repo, run)
     const held = () =>
       (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks.filter(
         (l) => l.holder?.owner === `gt:${run}/T01`,
@@ -364,7 +364,7 @@ describe("OpenCode plugin", () => {
     if (h.cleanup) cleanups.push(h.cleanup)
     const planned = await h.call("s1", "plan", plan)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string; owner: string | null }[]
     const runOf = () => JSON.parse(readFileSync(join(dir, "run.json"), "utf8"))
     const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
@@ -403,7 +403,7 @@ describe("OpenCode plugin", () => {
     // The clock reaches resumeAt: active again, and the root is told to resume session c1.
     const r = runOf()
     r.pause.resumeAt = new Date(Date.now() - 1000).toISOString()
-    writeFiles(repo, { [`.scratch/jtasks/runs/${run}/run.json`]: JSON.stringify(r) })
+    writeFileSync(await runPath(repo, run, "run.json"), JSON.stringify(r))
     await until(() => runOf().status === "active")
     await until(() => h.synthetics.some((s) => s.text.includes("task_id c1")))
     expect(tasksOf()[0]!.status).toBe("in_progress")
@@ -414,7 +414,7 @@ describe("OpenCode plugin", () => {
     const { repo, h } = await setup()
     const planned = await h.call("s1", "plan", plan)
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
-    const dir = join(repo, ".scratch/jtasks/runs", run)
+    const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
     const runOf = () => JSON.parse(readFileSync(join(dir, "run.json"), "utf8"))
     const until = async (check: () => boolean) => {
@@ -443,5 +443,35 @@ describe("OpenCode plugin", () => {
       memory = undefined
     }
     expect(memory).toBeUndefined()
+  })
+
+  test("opened in a jproject container: run data in the container's work folder, nothing in product/, the binding keeps both", async () => {
+    const container = tempDir("container")
+    writeFiles(container, { "_work/WORKSPACE.md": "---\njproject: 1\nproduct_dir: product\nwork_dir: _work\njtasks_data: _work/30-plan/jtasks\n---\n" })
+    const product = join(container, "product")
+    writeFiles(product, { "README.md": "# p\n" })
+    sh(product, "git", "init", "-q", "-b", "main")
+    sh(product, "git", "config", "user.email", "t@example.test")
+    sh(product, "git", "config", "user.name", "T")
+    sh(product, "git", "add", "-A")
+    sh(product, "git", "commit", "-q", "-m", "init")
+    const exclude = readFileSync(join(product, ".git/info/exclude"), "utf8")
+    const h = await fakeHost(container)
+    if (h.cleanup) cleanups.push(h.cleanup)
+    const planned = await h.call("s1", "plan", { ...plan, branch: "current" })
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    expect(existsSync(join(container, "_work/30-plan/jtasks/runs", run, "tasks.json"))).toBe(true)
+    expect(existsSync(join(product, ".scratch"))).toBe(false)
+    expect(readFileSync(join(product, ".git/info/exclude"), "utf8")).toBe(exclude)
+    expect(sh(product, "git", "status", "--porcelain", "--untracked-files=all")).toBe("")
+    const binding = h.storage.get("binding/s1") as { run: string; root: string; data: string }
+    expect(binding.run).toBe(run)
+    expect(binding.root.toLowerCase()).toBe(product.replace(/\\/g, "/").toLowerCase())
+    expect(binding.data.toLowerCase()).toBe(`${container}/_work/30-plan/jtasks`.toLowerCase())
+    // The sidebar's view and the protocol read the run from there.
+    const client = h.rpcClient({ id: "jtasks" }) as any
+    expect(((await client.state({ sessionID: "s1" })) as { view: { kind: string; run?: string } }).view).toMatchObject({ kind: "run", run })
+    const tj = join(container, "_work/30-plan/jtasks/runs", run, "tasks.json")
+    expect((await h.permission("s1", "edit", [tj])).effect).toBe("deny")
   })
 })

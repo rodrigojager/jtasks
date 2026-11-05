@@ -5,6 +5,8 @@ export type BoundRun = {
   run: string
   /** The repository root of the run. */
   root: string
+  /** The run's data folder, as the tool answered it (absent in a binding an older version stored: legacy). */
+  data?: string
 }
 
 /** The task a subagent works on (from its spawn's `--task`, or its own `jtasks start`). */

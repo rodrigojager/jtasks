@@ -11,7 +11,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import { awaitBack, deliveryLabel, ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readBrief, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
+import { awaitBack, boundData, deliveryLabel, ensureJlock, parseArgs, pauseForFailure, type Classification, pauseNotice, readBrief, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, resumeNow, runDir, runTool, select, splitCommand, systemLocale, tr, type Resident, type ToolContext, type ToolResult } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 import { AlertWatch } from './alerts.ts'
 import { serializedCommand, spawnDecision } from './agents.ts'
@@ -98,11 +98,13 @@ export async function callTool(p: Port, command: string, json: unknown, agentId?
       await p.setAgents(Object.fromEntries(Object.entries(agents).filter(([, a]) => !(a.paused && a.task === id))))
   }
   if (result.ok && result.bind) {
-    const dir = (result.data as { dir?: string } | undefined)?.dir?.replace(/\\/g, '/')
-    const root = dir ? dir.replace(/\/\.scratch\/jtasks\/runs\/[^/]+$/, '') : (bound?.root ?? cwd)
-    await p.setRun({ run: result.bind, root })
+    // The tool says where the run is (repository and data folder); a run bound before is kept as it was.
+    const next = result.bindPaths
+      ? { run: result.bind, root: result.bindPaths.root, data: result.bindPaths.data }
+      : { run: result.bind, root: bound?.root ?? cwd, ...(bound?.data ? { data: bound.data } : {}) }
+    await p.setRun(next)
     // The alerts of a run start where its log is now (rev. 5.8).
-    await alerts?.start({ run: result.bind, root }).catch(() => undefined)
+    await alerts?.start(next).catch(() => undefined)
   }
   return result
 }
@@ -170,7 +172,7 @@ async function pauseFor(p: Port, failure: Classification, agentId: string | unde
   const ctx = await sessionCtx(p, bound.run)
   if (mine) {
     // Only a task still in progress is worth keeping; one the subagent finished already goes on as before.
-    const tasks = await readTasks(ctx.host, runDir(bound.root, bound.run)).catch(() => undefined)
+    const tasks = await readTasks(ctx.host, runDir(boundData(bound), bound.run)).catch(() => undefined)
     if (tasks?.tasks.find((t) => t.id === mine.task)?.status !== 'in_progress') return undefined
   }
   const pause = await pauseForFailure(ctx, { run: bound.run, failure, ...(mine ? { task: mine.task } : {}), ...(agentId ? { agent: agentId } : {}) })
@@ -186,7 +188,7 @@ async function leaveTransientPause(p: Port, how?: string): Promise<void> {
   if (!bound) return
   const ctx = await sessionCtx(p, bound.run)
   // Cheap first: run.json alone (no git, no jlock) every two seconds.
-  const run = await readRun(ctx.host, runDir(bound.root, bound.run)).catch(() => undefined)
+  const run = await readRun(ctx.host, runDir(boundData(bound), bound.run)).catch(() => undefined)
   if (pauseShown && !(run?.status === 'paused' && run.pause)) {
     pauseShown = false
     tell?.clear()
@@ -317,7 +319,8 @@ export const register: Register = (on) => {
       const p = port
       if (!p || !paneOpen) return
       const bound = await p.getRun()
-      const files = bound ? [`${bound.root}/.scratch/jtasks/runs/${bound.run}/tasks.json`, `${bound.root}/.scratch/jtasks/runs/${bound.run}/run.json`] : []
+      const dir = bound ? runDir(boundData(bound), bound.run) : undefined
+      const files = dir ? [`${dir}/tasks.json`, `${dir}/run.json`] : []
       const stats = await Promise.all(files.map((f) => p.stat(f).then((x) => x.mtimeMs, () => 0)))
       const current = `${bound?.run ?? ''}:${stats.join(',')}`
       if (!force && current === signature && !isLive(await read($, viewAtom))) return
@@ -526,7 +529,7 @@ export const register: Register = (on) => {
     // now, so the orchestrator never answers it from a stale picture (rev. 5.8).
     if (e.origin?.kind === 'task-notification' && p) {
       const bound = await p.getRun().catch(() => null)
-      const brief = bound ? await readBrief(createModHost(p, await p.cwd()), bound.root, bound.run).catch(() => undefined) : undefined
+      const brief = bound ? await readBrief(createModHost(p, await p.cwd()), boundData(bound), bound.run).catch(() => undefined) : undefined
       return next(brief ? { ...e, context: [...(e.context ?? []), statusContext(bound!.run, brief)] } : e)
     }
     if (e.origin?.kind !== 'plugin' || e.origin.name !== 'jtasks' || !keepalive || !p) return next(e)

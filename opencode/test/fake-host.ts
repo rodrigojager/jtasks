@@ -5,6 +5,8 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Host } from "../core/core.js"
+import { resolvePaths } from "../core/core.js"
+import { createNodeHost } from "../core/node-host.js"
 import { createServerPlugin } from "../server.ts"
 
 type Hook = (event: any) => Promise<void> | void
@@ -47,6 +49,13 @@ export function makeRepo(): string {
   sh(dir, "git", "add", "-A")
   sh(dir, "git", "commit", "-q", "-m", "init")
   return dir
+}
+
+/** The folder of a run (and a path inside it), where the core resolves the data folder for `repo` (workspace.ts). */
+export async function runPath(repo: string, run: string, ...more: string[]): Promise<string> {
+  const paths = await resolvePaths(createNodeHost(), repo)
+  if (!paths) throw new Error(`no repository at ${repo}`)
+  return join(paths.dataDir, "runs", run, ...more)
 }
 
 export function writeFiles(dir: string, files: Record<string, string>) {

@@ -5,7 +5,7 @@ import { afterAll, describe, expect, test } from "bun:test"
 import { appendFileSync, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { TasksFile } from "../src/schema.ts"
-import { cleanupTemp, foreignHold, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles } from "./helpers.ts"
+import { cleanupTemp, foreignHold, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
 
 const runs: string[] = []
 afterAll(async () => {
@@ -23,7 +23,7 @@ async function newRun() {
   const repo = makeRepo("release", { "src/a.ts": "a\n", "lib/b.ts": "b\n", "README.md": "# t\n" })
   const r = await tasksOk(repo, ["plan"], { json: plan })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile

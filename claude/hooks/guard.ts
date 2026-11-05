@@ -2,7 +2,7 @@
 // subagent bound to a task edits only inside its ownership and runs no mutating git; nobody edits the run's own
 // files by hand.
 
-import { checkEdit, checkShell, readTasks, runDir, type Host, type Verdict } from '../core/core.js'
+import { boundData, checkEdit, checkShell, readTasks, runDir, type Host, type Verdict } from '../core/core.js'
 import type { AgentTask, BoundRun } from '../types'
 
 export type GuardedCall =
@@ -14,10 +14,10 @@ export type GuardedCall =
 export async function judgeCall(host: Host, cwd: string, bound: BoundRun, agent: AgentTask | undefined, call: GuardedCall): Promise<Verdict> {
   let task
   if (agent && agent.run === bound.run) {
-    const tasks = await readTasks(host, runDir(bound.root, bound.run))
+    const tasks = await readTasks(host, runDir(boundData(bound), bound.run))
     task = tasks?.tasks.find((t) => t.id === agent.task && t.status === 'in_progress')
   }
-  const ctx = { root: bound.root, platform: host.platform, cwd, task, home: host.env('HOME') ?? host.env('USERPROFILE') }
+  const ctx = { root: bound.root, data: boundData(bound), platform: host.platform, cwd, task, home: host.env('HOME') ?? host.env('USERPROFILE') }
   if (call.tool === 'Bash') return checkShell(ctx, call.command)
   return checkEdit(ctx, call.tool === 'NotebookEdit' ? call.notebook_path : call.file_path)
 }

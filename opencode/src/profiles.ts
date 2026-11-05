@@ -2,7 +2,7 @@
 // The `subagent` call of a task (`--task <id>` in its prompt) gets the agent of the task's profile; a profile the
 // run does not have refuses the call. Agents named by the profiles get the profile's model through agent.transform.
 
-import { readTasks, runDir, tr, taskOfPrompt } from "../core/core.js"
+import { boundData, readTasks, runDir, tr, taskOfPrompt } from "../core/core.js"
 import type { Host, Profile } from "../core/core.js"
 import type { RunBinding } from "./binding.ts"
 
@@ -21,7 +21,7 @@ export async function agentFor(host: Host, binding: RunBinding, prompt: string):
   const { run, task } = taskOfPrompt(prompt)
   if (!task) return {}
   if (run && run !== binding.run) return { error: tr("spawn.other_run", { run, bound: binding.run }) }
-  const tasks = await readTasks(host, runDir(binding.root, binding.run)).catch(() => undefined)
+  const tasks = await readTasks(host, runDir(boundData(binding), binding.run)).catch(() => undefined)
   const t = tasks?.tasks.find((x) => x.id === task)
   if (!tasks || !t) return { error: tr("task.not_found", { run: binding.run, id: task }) }
   const profile = tasks.profiles[t.profile]

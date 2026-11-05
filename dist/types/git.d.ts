@@ -3,9 +3,8 @@ import type { Host, RunResult } from "./host.js";
 export declare function git(host: Host, cwd: string, args: string[], stdin?: string): Promise<RunResult>;
 /** Runs git and throws a ToolError with git's own message when it fails. */
 export declare function gitOk(host: Host, cwd: string, args: string[], stdin?: string): Promise<string>;
-/** The repository's root, or `undefined` outside a git repository. */
+/** `cwd`'s own git repository root, or `undefined` outside one (a jproject container: see `resolvePaths`). */
 export declare function repoRoot(host: Host, cwd: string): Promise<string | undefined>;
-export declare function requireRepo(host: Host, cwd: string): Promise<string>;
 /** The current branch name, or `undefined` with a detached HEAD. Works before the first commit. */
 export declare function currentBranch(host: Host, root: string): Promise<string | undefined>;
 export declare function branchExists(host: Host, root: string, branch: string): Promise<boolean>;

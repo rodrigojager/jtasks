@@ -7,7 +7,7 @@
 // looks at the tasks waiting for a process every ten seconds (core's sweepAwaiting): with the agent's status from
 // $.agent.list for a wait the mod declared, with the pids for one `jtasks exec`/`wait` registered.
 
-import { alertNotice, alertText, logEnd, readAlerts, readRun, readTasks, runDir, sweepAwaiting, type Task, type ToolContext } from '../core/core.js'
+import { boundData, alertNotice, alertText, logEnd, readAlerts, readRun, readTasks, runDir, sweepAwaiting, type Task, type ToolContext } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
 
 /** What the watch needs from $ besides the port (closures built in session.start). */
@@ -49,7 +49,7 @@ export class AlertWatch {
     if (!b) return
     const key = this.key(b.root, b.run)
     if (this.offsets.has(key)) return
-    this.offsets.set(key, await logEnd(createModHost(this.port, await this.port.cwd()), b.root, b.run))
+    this.offsets.set(key, await logEnd(createModHost(this.port, await this.port.cwd()), boundData(b), b.run))
   }
 
   /** Checks run one after the other (the clock's and the end of a subagent's): never two reads of the same lines. */
@@ -72,10 +72,10 @@ export class AlertWatch {
     }
     const host = createModHost(this.port, await this.port.cwd())
     const actor = `claude:${await this.port.sessionId()}`
-    const read = await readAlerts(host, bound.root, bound.run, this.offsets.get(key)!, actor)
+    const read = await readAlerts(host, boundData(bound), bound.run, this.offsets.get(key)!, actor)
     this.offsets.set(key, read.offset)
     if (!read.entries.length) return undefined
-    const dir = runDir(bound.root, bound.run)
+    const dir = runDir(boundData(bound), bound.run)
     const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
     if (!run || !tasks) return undefined
     const text = alertText(run, tasks, read.entries, 'claude')
@@ -122,7 +122,7 @@ export class AlertWatch {
     const bound = await this.port.getRun()
     if (!bound) return
     const host = createModHost(this.port, await this.port.cwd())
-    const tasks = await readTasks(host, runDir(bound.root, bound.run)).catch(() => undefined)
+    const tasks = await readTasks(host, runDir(boundData(bound), bound.run)).catch(() => undefined)
     if (!tasks?.tasks.some((t) => t.status === 'in_progress' && (t.awaiting || t.procs?.length))) return
     await sweepAwaiting(await this.ui.ctx(bound.run), bound.run, (task) => this.agentWaits(task), (agent) => this.agentAlive(agent))
   }

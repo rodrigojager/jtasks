@@ -2,13 +2,13 @@
 // the message (English, for the model) with the status line, and the person's notice.
 
 import { afterAll, describe, expect, test } from "bun:test"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { alertNotice, alertText, briefStatus, deliveryKind, deliveryLabel, isAlert, logEnd, readAlerts, readBrief } from "../src/alerts.ts"
 import { keepaliveDecision, nudgeText } from "../src/keepalive.ts"
 import type { AutoPause } from "../src/schema.ts"
 import { resumeText } from "../src/transient.ts"
 import { readRun, readTasks, type LogEntry } from "../src/store.ts"
-import { cleanupTemp, host, makeRepo, releaseGroup, tasksOk } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, releaseGroup, tasksOk, runPath, dataPath } from "./helpers.ts"
 
 const runs: string[] = []
 afterAll(async () => {
@@ -45,15 +45,15 @@ describe("reading a run's log", () => {
     const r = await tasksOk(repo, ["plan"], { json: { tasks: [{ id: "T01", title: "Base", files: ["src"] }, { id: "T02", title: "Depois", files: ["lib"], dependsOn: ["T01"] }] } })
     const run = r.bind!
     runs.push(run)
-    const dir = join(repo, ".scratch/jtasks/runs", run)
-    const from = await logEnd(host, repo, run)
-    expect((await readAlerts(host, repo, run, from, "cli")).entries).toEqual([])
+    const dir = (await runPath(repo, run))
+    const from = await logEnd(host, await dataPath(repo), run)
+    expect((await readAlerts(host, await dataPath(repo), run, from, "cli")).entries).toEqual([])
     // A subagent of the CLI orchestrator starts and ends without finishing (as a host would report it).
     await tasksOk(repo, ["start", "T01"], { agent: "a1" })
     await tasksOk(repo, ["release", "T01", "--agent-ended"], { agent: "a1" })
-    const read = await readAlerts(host, repo, run, from, "cli")
+    const read = await readAlerts(host, await dataPath(repo), run, from, "cli")
     expect(read.entries.map((e) => e.action)).toEqual(["agent-ended"])
-    expect((await readAlerts(host, repo, run, read.offset, "cli")).entries).toEqual([])
+    expect((await readAlerts(host, await dataPath(repo), run, read.offset, "cli")).entries).toEqual([])
     const file = (await readRun(host, dir))!
     const tasks = (await readTasks(host, dir))!
     const text = alertText(file, tasks, read.entries, "claude")
@@ -62,7 +62,7 @@ describe("reading a run's log", () => {
     expect(text).toContain("Status now: feitas 0/2 (0%) · restam 2")
     expect(text).toContain("Go on with the protocol: jtasks next")
     expect(alertNotice(file, tasks, read.entries)).toBe("T01 voltou à fila: o subagente terminou sem concluir (1/3)")
-    expect(await readBrief(host, repo, run)).toBe("feitas 0/2 (0%) · restam 2")
+    expect(await readBrief(host, await dataPath(repo), run)).toBe("feitas 0/2 (0%) · restam 2")
     // The person sees a few words for each message the host sends; the model reads the whole text.
     expect(deliveryKind(text)).toBe("alert")
     expect(deliveryLabel(text)).toBe("aviso da execução")
@@ -77,18 +77,18 @@ describe("reading a run's log", () => {
     const r = await tasksOk(repo, ["plan"], { json: { maxAgentEnded: 1, tasks: [{ id: "T01", title: "Base", files: ["src"] }] } })
     const run = r.bind!
     runs.push(run)
-    const dir = join(repo, ".scratch/jtasks/runs", run)
-    const from = await logEnd(host, repo, run)
+    const dir = (await runPath(repo, run))
+    const from = await logEnd(host, await dataPath(repo), run)
     await tasksOk(repo, ["start", "T01"], { agent: "a1" })
     await tasksOk(repo, ["release", "T01", "--agent-ended", "--waiting", "background: bun test"], { agent: "a1" })
-    let read = await readAlerts(host, repo, run, from, "cli")
+    let read = await readAlerts(host, await dataPath(repo), run, from, "cli")
     let text = alertText((await readRun(host, dir))!, (await readTasks(host, dir))!, read.entries, "claude")
     expect(text).toContain("- T01: its subagent's loop ended while a process it started still runs (background: bun test)")
     expect(text).toContain("Status now: feitas 0/1 (0%) · 1 em andamento · restam 1 · em andamento: T01 (aguardando processo)")
     expect(alertNotice((await readRun(host, dir))!, (await readTasks(host, dir))!, read.entries)).toBe("T01 aguarda o processo (background: bun test); o subagente volta quando ele terminar")
     // Ended for good now (no process, no word from the host): the limit (1) fails it and pauses the run.
     await tasksOk(repo, ["release", "T01", "--agent-ended"], { agent: "a1" })
-    read = await readAlerts(host, repo, run, read.offset, "cli")
+    read = await readAlerts(host, await dataPath(repo), run, read.offset, "cli")
     const file = (await readRun(host, dir))!
     const tasks = (await readTasks(host, dir))!
     text = alertText(file, tasks, read.entries, "opencode")
@@ -104,10 +104,10 @@ describe("the keepalive", () => {
     const repo = makeRepo("alerts3", { "src/a.ts": "a\n", "README.md": "# t\n" })
     const r = await tasksOk(repo, ["plan"], { json: { tasks: [{ id: "T01", title: "Base", files: ["src"] }] } })
     runs.push(r.bind!)
-    const dir = join(repo, ".scratch/jtasks/runs", r.bind!)
+    const dir = (await runPath(repo, r.bind!))
     await tasksOk(repo, ["start", "T01"])
     await tasksOk(repo, ["release", "T01", "--agent-ended", "--waiting", "x"])
-    const state = { root: repo, dir, run: (await readRun(host, dir))!, tasks: (await readTasks(host, dir))! }
+    const state = { root: repo, data: dirname(dirname(dir)), dir, run: (await readRun(host, dir))!, tasks: (await readTasks(host, dir))! }
     expect(keepaliveDecision({ state, locks: [], platform: process.platform, liveAgents: 0, actor: "cli" })).toEqual({ action: "none", reason: "nothing-ready" })
   })
 })

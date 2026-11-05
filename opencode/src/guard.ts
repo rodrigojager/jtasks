@@ -2,7 +2,7 @@
 // session in a bound run are judged by the core's rule (src/guard.ts): outside the task's ownership, git mutators
 // of a subagent, and direct edits of tasks.json/tickets are denied with the reason.
 
-import { checkEdit, checkShell, readTasks, runDir } from "../core/core.js"
+import { boundData, checkEdit, checkShell, readTasks, runDir } from "../core/core.js"
 import type { Host } from "../core/core.js"
 import type { Bindings } from "./binding.ts"
 
@@ -21,11 +21,11 @@ export async function judge(host: Host, bindings: Bindings, event: Evaluation, f
   const mine = await bindings.task(event.sessionID)
   let task
   if (mine && mine.run === run.run) {
-    const tasks = await readTasks(host, runDir(run.root, run.run)).catch(() => undefined)
+    const tasks = await readTasks(host, runDir(boundData(run), run.run)).catch(() => undefined)
     task = tasks?.tasks.find((t) => t.id === mine.task && t.status === "in_progress")
   }
   const cwd = (await bindings.directory(event.sessionID)) ?? fallbackDir
-  const ctx = { root: run.root, platform: host.platform, cwd, task, home: host.env("HOME") ?? host.env("USERPROFILE") }
+  const ctx = { root: run.root, data: boundData(run), platform: host.platform, cwd, task, home: host.env("HOME") ?? host.env("USERPROFILE") }
   for (const resource of event.resources) {
     const verdict = event.action === "edit" ? checkEdit(ctx, resource) : checkShell(ctx, resource)
     if (!verdict.allow) {

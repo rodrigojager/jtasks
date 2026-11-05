@@ -7,7 +7,7 @@ import { join } from "node:path"
 import type { TasksFile } from "../src/schema.ts"
 import { chainKeys } from "../src/keep.ts"
 import { escapePath, patchRel } from "../src/patches.ts"
-import { cleanupTemp, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles } from "./helpers.ts"
+import { cleanupTemp, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
 
 const runs: string[] = []
 afterAll(async () => {
@@ -27,7 +27,7 @@ async function newRun() {
   const repo = makeRepo("yield", { "a.ts": BASE, "b.ts": BASE, "c.ts": BASE, "README.md": "# t\n" })
   const r = await tasksOk(repo, ["plan"], { json: plan })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
@@ -200,7 +200,7 @@ describe("yield", () => {
     const n = await tasksOk(repo, ["next"])
     expect(n.text).toContain("T01 pegou de volta c.ts")
     expect((n.data as { ready: unknown[] }).ready).toEqual([])
-    expect(task(join(repo, ".scratch/jtasks/runs", r.bind!), "T01").claimed).toEqual(["c.ts"])
+    expect(task(await runPath(repo, r.bind!), "T01").claimed).toEqual(["c.ts"])
   })
 
   test("chain keys: the keys held by the owner", () => {

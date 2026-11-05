@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { parseTicket } from "../src/tickets.ts"
 import type { TasksFile } from "../src/schema.ts"
-import { REPO_ROOT, cleanupTemp, makeRepo, tasks, tasksOk } from "./helpers.ts"
+import { REPO_ROOT, cleanupTemp, makeRepo, tasks, tasksOk, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -53,7 +53,7 @@ describe("reading tickets", () => {
   test("import --yes creates the run (all pending); generated tickets read back give the same tasks", async () => {
     const repo = makeRepo()
     const r = await tasksOk(repo, ["import", FIXTURES, "--yes", "--name", "jlock-fixtures"])
-    const dir = join(repo, ".scratch/jtasks/runs", r.bind!)
+    const dir = (await runPath(repo, r.bind!))
     const first = JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
     expect(first.tasks.map((t) => [t.id, t.status, !!t.exclusive])).toEqual([
       ["T01", "pending", false],
@@ -65,7 +65,7 @@ describe("reading tickets", () => {
     // Round trip: the run's own tickets, imported into another repository, give the same tasks.
     const other = makeRepo()
     const again = await tasksOk(other, ["import", join(dir, "tickets"), "--yes"])
-    const second = JSON.parse(readFileSync(join(other, ".scratch/jtasks/runs", again.bind!, "tasks.json"), "utf8")) as TasksFile
+    const second = JSON.parse(readFileSync(await runPath(other, again.bind!, "tasks.json"), "utf8")) as TasksFile
     expect(second.tasks).toEqual(first.tasks)
   })
 

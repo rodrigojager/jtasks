@@ -9,7 +9,8 @@ const RUN = "cursory-261023-k7f2"
 function state(tasks: PlanTask[], status: RunFile["status"] = "active"): RunState {
   return {
     root: ROOT,
-    dir: `${ROOT}/.scratch/jtasks/runs/${RUN}`,
+    data: `${ROOT}/_work/30-plan/jtasks`,
+    dir: `${ROOT}/_work/30-plan/jtasks/runs/${RUN}`,
     run: { id: RUN, status } as RunFile,
     tasks: { version: 1, run: RUN, revision: 1, profiles: DEFAULT_PROFILES, tasks: tasks.map((t) => toTask(t, DEFAULT_PROFILES)) },
   }

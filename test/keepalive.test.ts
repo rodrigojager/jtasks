@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import type { RunState } from "../src/frontier.ts"
 import type { JlockLock } from "../src/jlock.ts"
 import { checkKeepalive, hadActivity, holdKeepalive, keepaliveDecision, keepaliveNotice, keepaliveStatus, keepaliveTries, keepaliveWhat, progressSignature, readKeepalive, type KeepaliveInput } from "../src/keepalive.ts"
@@ -8,7 +8,7 @@ import { toTask } from "../src/plan.ts"
 import { DEFAULT_PROFILES, type PlanTask, type RunFile, type Task } from "../src/schema.ts"
 import { appendLog } from "../src/store.ts"
 import { validatePlan } from "../src/validate.ts"
-import { cleanupTemp, host, makeRepo, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, tasks, tasksOk, dataPath } from "./helpers.ts"
 
 afterAll(cleanupTemp)
 
@@ -19,6 +19,7 @@ const ACTOR = "claude:s1"
 function state(list: (PlanTask & Partial<Task>)[], run: Partial<RunFile> = {}): RunState {
   return {
     root: ROOT,
+    data: `${ROOT}/.scratch/jtasks`,
     dir: `${ROOT}/.scratch/jtasks/runs/${RUN}`,
     run: { id: RUN, status: "active", ...run } as RunFile,
     tasks: {
@@ -219,26 +220,26 @@ describe("keepalive in the tool", () => {
     expect((await tasksOk(repo, ["keepalive", "off"])).text).toBe(`execução ${run}: retomada desligada (só o modelo mantém o laço andando)`)
     expect(JSON.parse(readFileSync(join(dir, "run.json"), "utf8")).keepalive).toBe(false)
     expect((await tasksOk(repo, ["status"])).text).toContain("retomada: desligada")
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "off" })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "off" })
     await tasksOk(repo, ["keepalive", "on"])
     const log = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l))
     expect(log.filter((e) => e.action === "keepalive").map((e) => [e.from, e.to])).toEqual([["on", "off"], ["off", "on"]])
 
     // The end of a turn, twice with no progress, then the host gives up: keepalive.json and the log keep it.
-    const one = await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })
+    const one = await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })
     expect(one).toMatchObject({ action: "nudge", tries: 1, ready: ["T01"] })
     expect((await tasksOk(repo, ["status"])).text).toMatch(/retomada: reabriu o laço em \S+ \(mensagem 1 de 2\)/)
     // A check before delivering does not count.
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, fresh: true })).toMatchObject({ action: "nudge", tries: 1 })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, fresh: true })).toMatchObject({ action: "nudge", tries: 1 })
     // What the model may answer with never resets the count: unpause and resume of a run that is not paused,
     // keepalive on while it is on and has not given up.
     await tasksOk(repo, ["unpause"])
     await tasksOk(repo, ["resume", run])
     await tasksOk(repo, ["keepalive", "on"])
     expect(await readKeepalive(host, dir)).toMatchObject({ action: "nudge", tries: 1 })
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })).toMatchObject({ action: "nudge", tries: 2 })
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })).toMatchObject({ action: "stalled", tries: 3 })
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "stalled" })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })).toMatchObject({ action: "nudge", tries: 2 })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })).toMatchObject({ action: "stalled", tries: 3 })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "stalled" })
     expect((await tasksOk(repo, ["status"])).text).toContain("retomada desistiu: T01 por fazer, nada rodando, 2 mensagem(ns) sem progresso")
     const events = readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l).action)
     expect(events.filter((a) => a.startsWith("keepalive-"))).toEqual(["keepalive-nudge", "keepalive-nudge", "keepalive-stalled"])
@@ -246,21 +247,21 @@ describe("keepalive in the tool", () => {
     expect(existsSync(join(dir, "keepalive.json"))).toBe(false)
 
     // An API error: told at once, said by status, quiet after.
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true, cause: "error" })).toMatchObject({ action: "stalled", cause: "error" })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true, cause: "error" })).toMatchObject({ action: "stalled", cause: "error" })
     expect((await tasksOk(repo, ["status"])).text).toContain("retomada parada depois de um erro: T01 por fazer, nada rodando")
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "stalled" })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "stalled" })
     await tasksOk(repo, ["keepalive", "on"])
 
     // An interruption holds it until the run moves; pause stops it; unpause starts over.
-    await holdKeepalive(host, repo, run)
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "held" })
+    await holdKeepalive(host, await dataPath(repo), run)
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, commit: true })).toEqual({ action: "none", reason: "held" })
     expect((await tasksOk(repo, ["status"])).text).toContain("retomada: em silêncio depois de uma interrupção")
     await tasksOk(repo, ["pause"])
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0 })).toEqual({ action: "none", reason: "paused" })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0 })).toEqual({ action: "none", reason: "paused" })
     await tasksOk(repo, ["unpause"])
     expect(await readKeepalive(host, dir)).toBeUndefined()
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 0 })).toMatchObject({ action: "nudge", tries: 1 })
-    expect(await checkKeepalive(host, { root: repo, run, liveAgents: 2 })).toEqual({ action: "none", reason: "agents-running" })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0 })).toMatchObject({ action: "nudge", tries: 1 })
+    expect(await checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 2 })).toEqual({ action: "none", reason: "agents-running" })
   })
 
   test("a subagent that works in rounds (waits, comes back, waits again) starts the count over; the orchestrator's own wait does not", async () => {
@@ -268,7 +269,7 @@ describe("keepalive in the tool", () => {
     const r = await tasksOk(repo, ["plan", JSON.stringify(PLAN)])
     const { dir, run } = r.data as { dir: string; run: string }
     await tasksOk(repo, ["start", "T01"], { tool: "claude", session: "s1", agent: "a1" })
-    const check = () => checkKeepalive(host, { root: repo, run, liveAgents: 0, actor: "claude:s1", commit: true })
+    const check = () => checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, actor: "claude:s1", commit: true })
     expect(await check()).toMatchObject({ action: "nudge", tries: 1, orphans: ["T01"], agents: { T01: "a1" } })
     expect(await check()).toMatchObject({ action: "nudge", tries: 2 })
     await Bun.sleep(5)

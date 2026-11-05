@@ -234,6 +234,13 @@ var en_default = {
   "doctor.step_jlock": "install jlock with its official installer",
   "doctor.summary": "ok: {ok}, warnings: {warn}, failures: {fail}",
   "doctor.would": "would install:",
+  "doctor.data_here": "run data here: {dir} ({source})",
+  "doctor.data_no_repo": "here: no git repository and no jproject container",
+  "doctor.data_saved": "saved setting: {value}",
+  "doctor.data_unset": "no setting saved",
+  "doctor.data_in_repo": "the run data would be inside the container's repository",
+  "doctor.data_fix": "jtasks config data-dir <path>, or jtasks doctor --fix --yes --data-dir <path>",
+  "doctor.step_data": "save the data folder {value} in {file}",
   "done.claimed": "claimed during the task: {files}; update the plan if other tasks touch them too",
   "done.detached": "a detached HEAD",
   "done.done": "{id} done: {what}; {released}",
@@ -310,7 +317,7 @@ var en_default = {
   "gc.usage": "use jtasks gc --scan <root> (a report) or jtasks gc --remove <path> --yes",
   "gc.worktree_refused": "git worktree remove refused: {message} (unsaved changes?); nothing was removed",
   "gc.worktree_removed": "git worktree remove in {owner}",
-  "git.not_a_repo": "not a git repository: {cwd} (jtasks makes one commit per task)",
+  "git.not_a_repo": "not a git repository nor a jproject container: {cwd} (jtasks makes one commit per task)",
   "guard.git": "a subagent does not run git {sub}: the commit is made by jtasks done {id}",
   "guard.outside": "outside the ownership of {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json and the tickets change only through the jtasks tool; never by hand",
@@ -355,6 +362,7 @@ var en_default = {
   "help.validate": "validate <json|@file|folder>          validates a plan (or a folder of tickets) without writing",
   "help.wait": "wait <id> --pid <pid>[,…]             the task waits for this process if its subagent ends",
   "help.yield": "yield <id> [<file…>]                  gives back contested files only; edits kept as patches",
+  "help.config": "config [data-dir <path> | --unset]    where run data goes (JTASKS_HOME/config.json)",
   "import.check_only": "nothing was written (--check)",
   "import.has_errors": "the plan read has {n} error(s):",
   "import.line": "{file} → {id} · {title} · depends on: {deps} · ownership: {own} · {n} criteria",
@@ -648,7 +656,17 @@ var en_default = {
   "yield.nothing": "{id} has no claim refused for a deadlock to yield from: name the files, jtasks yield {id} <file…>",
   "yield.refused": "yield refused: {errors}",
   "yield.saved": "edits kept as patches: {list}",
-  "yield.untouched": "left as they are (another owner holds them now): {files}"
+  "yield.untouched": "left as they are (another owner holds them now): {files}",
+  "config.question": "Where should jtasks store run data (tasks, tickets, ledger)? This folder should NOT be inside your versioned code. Default for jproject containers: _work/30-plan/jtasks. You can use any path, relative to the project container or absolute.",
+  "config.saved": "data folder saved: {value} (in {file})",
+  "config.removed": "data folder setting removed (in {file})",
+  "config.show": "data folder setting: {value} (in {file})",
+  "config.none": "data folder setting: none (in {file})",
+  "config.usage": "use: jtasks config data-dir <path>, or jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "the container's WORKSPACE.md",
+  "data.source.legacy": "legacy: inside the repository, hidden by .git/info/exclude"
 };
 // locales/pt-BR.json
 var pt_BR_default = {
@@ -759,6 +777,13 @@ var pt_BR_default = {
   "doctor.step_jlock": "instalar o jlock pelo instalador oficial",
   "doctor.summary": "ok: {ok}, avisos: {warn}, falhas: {fail}",
   "doctor.would": "instalaria:",
+  "doctor.data_here": "dados dos runs aqui: {dir} ({source})",
+  "doctor.data_no_repo": "aqui: nenhum repositório git e nenhum container jproject",
+  "doctor.data_saved": "configuração gravada: {value}",
+  "doctor.data_unset": "nenhuma configuração gravada",
+  "doctor.data_in_repo": "os dados dos runs ficariam dentro do repositório do container",
+  "doctor.data_fix": "jtasks config data-dir <caminho>, ou jtasks doctor --fix --yes --data-dir <caminho>",
+  "doctor.step_data": "gravar a pasta de dados {value} em {file}",
   "done.claimed": "reclamados durante a tarefa: {files}; atualize o plano se outras tarefas também os tocam",
   "done.detached": "HEAD destacado",
   "done.done": "{id} feita: {what}; {released}",
@@ -835,7 +860,7 @@ var pt_BR_default = {
   "gc.usage": "use jtasks gc --scan <raiz> (relatório) ou jtasks gc --remove <caminho> --yes",
   "gc.worktree_refused": "git worktree remove recusou: {message} (mudanças não salvas?); nada foi removido",
   "gc.worktree_removed": "git worktree remove em {owner}",
-  "git.not_a_repo": "não é um repositório git: {cwd} (o jtasks faz um commit por tarefa)",
+  "git.not_a_repo": "não é um repositório git nem um container jproject: {cwd} (o jtasks faz um commit por tarefa)",
   "guard.git": "subagente não roda git {sub}: o commit é feito por jtasks done {id}",
   "guard.outside": "fora da posse de {id}: {rel}; use jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e os tickets só mudam pela ferramenta tasks; nunca à mão",
@@ -880,6 +905,7 @@ var pt_BR_default = {
   "help.validate": "validate <json|@arquivo|pasta>        valida um plano (ou uma pasta de tickets) sem gravar",
   "help.wait": "wait <id> --pid <pid>[,…]             a tarefa espera este processo se o subagente terminar",
   "help.yield": "yield <id> [<arquivo…>]               cede só os arquivos disputados; edições viram patch",
+  "help.config": "config [data-dir <caminho> | --unset] onde ficam os dados dos runs (JTASKS_HOME/config.json)",
   "import.check_only": "nada foi gravado (--check)",
   "import.has_errors": "o plano lido tem {n} erro(s):",
   "import.line": "{file} → {id} · {title} · depende de: {deps} · posse: {own} · {n} critério(s)",
@@ -1173,7 +1199,17 @@ var pt_BR_default = {
   "yield.nothing": "{id} não tem claim recusado por deadlock de onde ceder: diga os arquivos, jtasks yield {id} <arquivo…>",
   "yield.refused": "yield recusado: {errors}",
   "yield.saved": "edições guardadas em patch: {list}",
-  "yield.untouched": "deixados como estão (outro dono os segura agora): {files}"
+  "yield.untouched": "deixados como estão (outro dono os segura agora): {files}",
+  "config.question": "Onde o jtasks deve guardar os dados dos runs (tarefas, tickets, ledger)? Esta pasta NÃO deve ficar dentro do código versionado. Padrão para containers jproject: _work/30-plan/jtasks. Pode ser qualquer caminho, relativo ao container do projeto ou absoluto.",
+  "config.saved": "pasta de dados gravada: {value} (em {file})",
+  "config.removed": "configuração da pasta de dados removida (em {file})",
+  "config.show": "pasta de dados configurada: {value} (em {file})",
+  "config.none": "pasta de dados configurada: nenhuma (em {file})",
+  "config.usage": "use: jtasks config data-dir <caminho>, ou jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "o WORKSPACE.md do container",
+  "data.source.legacy": "legado: dentro do repositório, escondido por .git/info/exclude"
 };
 // locales/es.json
 var es_default = {
@@ -1284,6 +1320,13 @@ var es_default = {
   "doctor.step_jlock": "instalar jlock con su instalador oficial",
   "doctor.summary": "ok: {ok}, avisos: {warn}, fallos: {fail}",
   "doctor.would": "se instalaría:",
+  "doctor.data_here": "datos de los runs aquí: {dir} ({source})",
+  "doctor.data_no_repo": "aquí: ningún repositorio git ni contenedor jproject",
+  "doctor.data_saved": "ajuste guardado: {value}",
+  "doctor.data_unset": "ningún ajuste guardado",
+  "doctor.data_in_repo": "los datos de los runs quedarían dentro del repositorio del contenedor",
+  "doctor.data_fix": "jtasks config data-dir <ruta>, o jtasks doctor --fix --yes --data-dir <ruta>",
+  "doctor.step_data": "guardar la carpeta de datos {value} en {file}",
   "done.claimed": "pedidos durante la tarea: {files}; actualiza el plan si otras tareas también los tocan",
   "done.detached": "un HEAD separado",
   "done.done": "{id} hecha: {what}; {released}",
@@ -1360,7 +1403,7 @@ var es_default = {
   "gc.usage": "usa jtasks gc --scan <raíz> (un informe) o jtasks gc --remove <ruta> --yes",
   "gc.worktree_refused": "git worktree remove se negó: {message} (¿cambios sin guardar?); no se eliminó nada",
   "gc.worktree_removed": "git worktree remove en {owner}",
-  "git.not_a_repo": "no es un repositorio git: {cwd} (jtasks hace un commit por tarea)",
+  "git.not_a_repo": "no es un repositorio git ni un contenedor jproject: {cwd} (jtasks hace un commit por tarea)",
   "guard.git": "un subagente no ejecuta git {sub}: el commit lo hace jtasks done {id}",
   "guard.outside": "fuera de la posesión de {id}: {rel}; usa jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json y los tickets solo cambian con la herramienta tasks; nunca a mano",
@@ -1405,6 +1448,7 @@ var es_default = {
   "help.validate": "validate <json|@archivo|carpeta>      valida un plan (o una carpeta de tickets) sin escribir",
   "help.wait": "wait <id> --pid <pid>[,…]             la tarea espera este proceso si su subagente termina",
   "help.yield": "yield <id> [<archivo…>]               cede solo los archivos disputados; ediciones como patch",
+  "help.config": "config [data-dir <ruta> | --unset]    dónde van los datos de los runs (JTASKS_HOME/config.json)",
   "import.check_only": "no se escribió nada (--check)",
   "import.has_errors": "el plan leído tiene {n} error(es):",
   "import.line": "{file} → {id} · {title} · depende de: {deps} · posesión: {own} · {n} criterio(s)",
@@ -1698,7 +1742,17 @@ var es_default = {
   "yield.nothing": "{id} no tiene un claim rechazado por deadlock del cual ceder: indica los archivos, jtasks yield {id} <archivo…>",
   "yield.refused": "yield rechazado: {errors}",
   "yield.saved": "ediciones guardadas como patch: {list}",
-  "yield.untouched": "dejados como están (otro dueño los tiene ahora): {files}"
+  "yield.untouched": "dejados como están (otro dueño los tiene ahora): {files}",
+  "config.question": "¿Dónde debe guardar jtasks los datos de los runs (tareas, tickets, ledger)? Esta carpeta NO debe estar dentro del código versionado. Por defecto en contenedores jproject: _work/30-plan/jtasks. Puede ser cualquier ruta, relativa al contenedor del proyecto o absoluta.",
+  "config.saved": "carpeta de datos guardada: {value} (en {file})",
+  "config.removed": "ajuste de la carpeta de datos eliminado (en {file})",
+  "config.show": "carpeta de datos configurada: {value} (en {file})",
+  "config.none": "carpeta de datos configurada: ninguna (en {file})",
+  "config.usage": "uso: jtasks config data-dir <ruta>, o jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "el WORKSPACE.md del contenedor",
+  "data.source.legacy": "heredado: dentro del repositorio, oculto por .git/info/exclude"
 };
 // locales/fr.json
 var fr_default = {
@@ -1809,6 +1863,13 @@ var fr_default = {
   "doctor.step_jlock": "installer jlock avec son installeur officiel",
   "doctor.summary": "ok: {ok}, avertissements: {warn}, échecs: {fail}",
   "doctor.would": "installerait:",
+  "doctor.data_here": "données des runs ici: {dir} ({source})",
+  "doctor.data_no_repo": "ici: aucun dépôt git ni conteneur jproject",
+  "doctor.data_saved": "réglage enregistré: {value}",
+  "doctor.data_unset": "aucun réglage enregistré",
+  "doctor.data_in_repo": "les données des runs seraient dans le dépôt du conteneur",
+  "doctor.data_fix": "jtasks config data-dir <chemin>, ou jtasks doctor --fix --yes --data-dir <chemin>",
+  "doctor.step_data": "enregistrer le dossier de données {value} dans {file}",
   "done.claimed": "demandés pendant la tâche: {files}; mettez à jour le plan si d'autres tâches les touchent aussi",
   "done.detached": "un HEAD détaché",
   "done.done": "{id} terminée: {what}; {released}",
@@ -1885,7 +1946,7 @@ var fr_default = {
   "gc.usage": "utilisez jtasks gc --scan <racine> (un rapport) ou jtasks gc --remove <chemin> --yes",
   "gc.worktree_refused": "git worktree remove a refusé: {message} (changements non enregistrés?); rien n'a été retiré",
   "gc.worktree_removed": "git worktree remove dans {owner}",
-  "git.not_a_repo": "pas un dépôt git: {cwd} (jtasks fait un commit par tâche)",
+  "git.not_a_repo": "ni un dépôt git ni un conteneur jproject: {cwd} (jtasks fait un commit par tâche)",
   "guard.git": "un sous-agent ne lance pas git {sub}: le commit est fait par jtasks done {id}",
   "guard.outside": "hors de la possession de {id}: {rel}; utilisez jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json et les tickets ne changent que par l'outil tasks; jamais à la main",
@@ -1930,6 +1991,7 @@ var fr_default = {
   "help.validate": "validate <json|@fichier|dossier>      valide un plan (ou un dossier de tickets) sans écrire",
   "help.wait": "wait <id> --pid <pid>[,…]             la tâche attend ce processus si son sous-agent s'arrête",
   "help.yield": "yield <id> [<fichier…>]               cède les fichiers disputés seulement; modifs en patch",
+  "help.config": "config [data-dir <chemin> | --unset]  où vont les données des runs (JTASKS_HOME/config.json)",
   "import.check_only": "rien n'a été écrit (--check)",
   "import.has_errors": "le plan lu a {n} erreur(s):",
   "import.line": "{file} → {id} · {title} · dépend de: {deps} · possession: {own} · {n} critère(s)",
@@ -2223,7 +2285,17 @@ var fr_default = {
   "yield.nothing": "{id} n'a pas de claim refusé pour deadlock d'où céder: nommez les fichiers, jtasks yield {id} <fichier…>",
   "yield.refused": "yield refusé: {errors}",
   "yield.saved": "modifications gardées en patch: {list}",
-  "yield.untouched": "laissés tels quels (un autre propriétaire les tient maintenant): {files}"
+  "yield.untouched": "laissés tels quels (un autre propriétaire les tient maintenant): {files}",
+  "config.question": "Où jtasks doit-il ranger les données des runs (tâches, tickets, ledger)? Ce dossier ne doit PAS être dans votre code versionné. Par défaut pour les conteneurs jproject: _work/30-plan/jtasks. N'importe quel chemin convient, relatif au conteneur du projet ou absolu.",
+  "config.saved": "dossier de données enregistré: {value} (dans {file})",
+  "config.removed": "réglage du dossier de données retiré (dans {file})",
+  "config.show": "dossier de données réglé: {value} (dans {file})",
+  "config.none": "dossier de données réglé: aucun (dans {file})",
+  "config.usage": "usage: jtasks config data-dir <chemin>, ou jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "le WORKSPACE.md du conteneur",
+  "data.source.legacy": "ancien mode: dans le dépôt, caché par .git/info/exclude"
 };
 // locales/de.json
 var de_default = {
@@ -2334,6 +2406,13 @@ var de_default = {
   "doctor.step_jlock": "jlock mit seinem offiziellen Installer installieren",
   "doctor.summary": "ok: {ok}, Warnungen: {warn}, Fehler: {fail}",
   "doctor.would": "würde installieren:",
+  "doctor.data_here": "Run-Daten hier: {dir} ({source})",
+  "doctor.data_no_repo": "hier: kein git-Repository und kein jproject-Container",
+  "doctor.data_saved": "gespeicherte Einstellung: {value}",
+  "doctor.data_unset": "keine Einstellung gespeichert",
+  "doctor.data_in_repo": "die Run-Daten lägen im Repository des Containers",
+  "doctor.data_fix": "jtasks config data-dir <Pfad>, oder jtasks doctor --fix --yes --data-dir <Pfad>",
+  "doctor.step_data": "den Datenordner {value} in {file} speichern",
   "done.claimed": "während der Aufgabe angefordert: {files}; aktualisiere den Plan, wenn andere Aufgaben sie auch berühren",
   "done.detached": "ein losgelöster HEAD",
   "done.done": "{id} erledigt: {what}; {released}",
@@ -2410,7 +2489,7 @@ var de_default = {
   "gc.usage": "nutze jtasks gc --scan <wurzel> (ein Bericht) oder jtasks gc --remove <pfad> --yes",
   "gc.worktree_refused": "git worktree remove lehnte ab: {message} (ungespeicherte Änderungen?); nichts wurde entfernt",
   "gc.worktree_removed": "git worktree remove in {owner}",
-  "git.not_a_repo": "kein git-Repository: {cwd} (jtasks macht einen Commit pro Aufgabe)",
+  "git.not_a_repo": "weder git-Repository noch jproject-Container: {cwd} (jtasks macht einen Commit pro Aufgabe)",
   "guard.git": "ein Subagent führt git {sub} nicht aus: den Commit macht jtasks done {id}",
   "guard.outside": "außerhalb des Besitzes von {id}: {rel}; nutze jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json und die Tickets ändern sich nur über das Tool tasks; nie von Hand",
@@ -2455,6 +2534,7 @@ var de_default = {
   "help.validate": "validate <json|@datei|ordner>         prüft einen Plan (oder Ticket-Ordner), ohne zu schreiben",
   "help.wait": "wait <id> --pid <pid>[,…]             die Aufgabe wartet auf diesen Prozess, endet ihr Subagent",
   "help.yield": "yield <id> [<datei…>]                 gibt nur umkämpfte Dateien ab; Änderungen als Patch",
+  "help.config": "config [data-dir <Pfad> | --unset]    wohin die Run-Daten gehen (JTASKS_HOME/config.json)",
   "import.check_only": "nichts wurde geschrieben (--check)",
   "import.has_errors": "der gelesene Plan hat {n} Fehler:",
   "import.line": "{file} → {id} · {title} · hängt ab von: {deps} · Besitz: {own} · Kriterien: {n}",
@@ -2748,7 +2828,17 @@ var de_default = {
   "yield.nothing": "{id} hat keinen wegen Deadlock abgelehnten claim, aus dem sie abgeben könnte: nenne die Dateien, jtasks yield {id} <datei…>",
   "yield.refused": "yield abgelehnt: {errors}",
   "yield.saved": "Änderungen als Patch aufbewahrt: {list}",
-  "yield.untouched": "so gelassen, wie sie sind (ein anderer Besitzer hält sie jetzt): {files}"
+  "yield.untouched": "so gelassen, wie sie sind (ein anderer Besitzer hält sie jetzt): {files}",
+  "config.question": "Wo soll jtasks die Run-Daten ablegen (Aufgaben, Tickets, Ledger)? Dieser Ordner soll NICHT in deinem versionierten Code liegen. Standard für jproject-Container: _work/30-plan/jtasks. Jeder Pfad geht, relativ zum Projekt-Container oder absolut.",
+  "config.saved": "Datenordner gespeichert: {value} (in {file})",
+  "config.removed": "Einstellung des Datenordners entfernt (in {file})",
+  "config.show": "eingestellter Datenordner: {value} (in {file})",
+  "config.none": "eingestellter Datenordner: keiner (in {file})",
+  "config.usage": "Aufruf: jtasks config data-dir <Pfad>, oder jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "die WORKSPACE.md des Containers",
+  "data.source.legacy": "Altmodus: im Repository, verborgen durch .git/info/exclude"
 };
 // locales/it.json
 var it_default = {
@@ -2859,6 +2949,13 @@ var it_default = {
   "doctor.step_jlock": "installare jlock con il suo installer ufficiale",
   "doctor.summary": "ok: {ok}, avvisi: {warn}, errori: {fail}",
   "doctor.would": "installerebbe:",
+  "doctor.data_here": "dati dei run qui: {dir} ({source})",
+  "doctor.data_no_repo": "qui: nessun repository git e nessun container jproject",
+  "doctor.data_saved": "impostazione salvata: {value}",
+  "doctor.data_unset": "nessuna impostazione salvata",
+  "doctor.data_in_repo": "i dati dei run finirebbero nel repository del container",
+  "doctor.data_fix": "jtasks config data-dir <percorso>, oppure jtasks doctor --fix --yes --data-dir <percorso>",
+  "doctor.step_data": "salvare la cartella dei dati {value} in {file}",
   "done.claimed": "ottenuti durante l'attività: {files}; aggiorna il piano se li toccano anche altre attività",
   "done.detached": "un HEAD staccato",
   "done.done": "{id} completata: {what}; {released}",
@@ -2935,7 +3032,7 @@ var it_default = {
   "gc.usage": "usa jtasks gc --scan <radice> (un report) o jtasks gc --remove <percorso> --yes",
   "gc.worktree_refused": "git worktree remove rifiutato: {message} (modifiche non salvate?); nulla è stato rimosso",
   "gc.worktree_removed": "git worktree remove in {owner}",
-  "git.not_a_repo": "non è un repository git: {cwd} (jtasks fa un commit per attività)",
+  "git.not_a_repo": "non è un repository git né un container jproject: {cwd} (jtasks fa un commit per attività)",
   "guard.git": "un subagente non esegue git {sub}: il commit lo fa jtasks done {id}",
   "guard.outside": "fuori dal possesso di {id}: {rel}; usa jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json e i ticket cambiano solo tramite lo strumento tasks; mai a mano",
@@ -2980,6 +3077,7 @@ var it_default = {
   "help.validate": "validate <json|@file|cartella>        convalida un piano (o una cartella di ticket) senza scrivere",
   "help.wait": "wait <id> --pid <pid>[,…]             l'attività attende questo processo se il subagente termina",
   "help.yield": "yield <id> [<file…>]                  cede solo i file contesi; modifiche salvate come patch",
+  "help.config": "config [data-dir <percorso> | --unset] dove vanno i dati dei run (JTASKS_HOME/config.json)",
   "import.check_only": "nulla è stato scritto (--check)",
   "import.has_errors": "il piano letto ha errori ({n}):",
   "import.line": "{file} → {id} · {title} · dipende da: {deps} · possesso: {own} · criteri: {n}",
@@ -3273,7 +3371,17 @@ var it_default = {
   "yield.nothing": "{id} non ha un claim rifiutato per deadlock da cui cedere: indica i file, jtasks yield {id} <file…>",
   "yield.refused": "yield rifiutato: {errors}",
   "yield.saved": "modifiche salvate come patch: {list}",
-  "yield.untouched": "lasciati come sono (un altro proprietario li tiene ora): {files}"
+  "yield.untouched": "lasciati come sono (un altro proprietario li tiene ora): {files}",
+  "config.question": "Dove deve salvare jtasks i dati dei run (attività, ticket, ledger)? Questa cartella NON deve stare dentro il codice versionato. Predefinito per i container jproject: _work/30-plan/jtasks. Va bene qualsiasi percorso, relativo al container del progetto o assoluto.",
+  "config.saved": "cartella dei dati salvata: {value} (in {file})",
+  "config.removed": "impostazione della cartella dei dati rimossa (in {file})",
+  "config.show": "cartella dei dati impostata: {value} (in {file})",
+  "config.none": "cartella dei dati impostata: nessuna (in {file})",
+  "config.usage": "uso: jtasks config data-dir <percorso>, oppure jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "il WORKSPACE.md del container",
+  "data.source.legacy": "modalità storica: nel repository, nascosta da .git/info/exclude"
 };
 // locales/zh-CN.json
 var zh_CN_default = {
@@ -3384,6 +3492,13 @@ var zh_CN_default = {
   "doctor.step_jlock": "用官方安装程序安装 jlock",
   "doctor.summary": "ok：{ok}，警告：{warn}，失败：{fail}",
   "doctor.would": "将会安装：",
+  "doctor.data_here": "此处的 run 数据：{dir}（{source}）",
+  "doctor.data_no_repo": "此处：没有 git 仓库，也没有 jproject 容器",
+  "doctor.data_saved": "已保存的设置：{value}",
+  "doctor.data_unset": "未保存设置",
+  "doctor.data_in_repo": "run 数据会位于容器的仓库内",
+  "doctor.data_fix": "jtasks config data-dir <路径>，或 jtasks doctor --fix --yes --data-dir <路径>",
+  "doctor.step_data": "将数据文件夹 {value} 保存到 {file}",
   "done.claimed": "任务期间 claim 的文件：{files}；如果其他任务也涉及它们，请更新计划",
   "done.detached": "分离的 HEAD",
   "done.done": "{id} 已完成：{what}；{released}",
@@ -3460,7 +3575,7 @@ var zh_CN_default = {
   "gc.usage": "用法：jtasks gc --scan <根目录>（报告）或 jtasks gc --remove <路径> --yes",
   "gc.worktree_refused": "git worktree remove 被拒绝：{message}（有未保存的修改？）；未删除任何内容",
   "gc.worktree_removed": "在 {owner} 中执行了 git worktree remove",
-  "git.not_a_repo": "不是 git 仓库：{cwd}（jtasks 每个任务提交一次）",
+  "git.not_a_repo": "既不是 git 仓库也不是 jproject 容器：{cwd}（jtasks 每个任务提交一次）",
   "guard.git": "子智能体不运行 git {sub}：提交由 jtasks done {id} 完成",
   "guard.outside": "超出 {id} 的所有权：{rel}；使用 jtasks claim {id} {rel}",
   "guard.run_files": "{rel}：tasks.json、run.json 和工单只能通过 tasks 工具修改；切勿手动修改",
@@ -3505,6 +3620,7 @@ var zh_CN_default = {
   "help.validate": "validate <json|@文件|文件夹>          校验计划（或工单文件夹），不写入",
   "help.wait": "wait <id> --pid <pid>[,…]             子智能体结束时，任务等待该进程",
   "help.yield": "yield <id> [<文件…>]                  只让出有争用的文件；修改保存为补丁",
+  "help.config": "config [data-dir <路径> | --unset]    run 数据存放位置（JTASKS_HOME/config.json）",
   "import.check_only": "未写入任何内容（--check）",
   "import.has_errors": "读取的计划有 {n} 个错误：",
   "import.line": "{file} → {id} · {title} · 依赖：{deps} · 所有权：{own} · {n} 条验收标准",
@@ -3798,7 +3914,17 @@ var zh_CN_default = {
   "yield.nothing": "{id} 没有因死锁被拒绝的 claim 可据以让出：请指定文件，jtasks yield {id} <文件…>",
   "yield.refused": "yield 被拒绝：{errors}",
   "yield.saved": "修改已保存为补丁：{list}",
-  "yield.untouched": "保持原样（现在由另一个所有者持有）：{files}"
+  "yield.untouched": "保持原样（现在由另一个所有者持有）：{files}",
+  "config.question": "jtasks 应把 run 数据（任务、工单、ledger）存放在哪里？这个文件夹不应位于受版本控制的代码中。jproject 容器的默认值：_work/30-plan/jtasks。可以是任意路径，相对于项目容器或绝对路径。",
+  "config.saved": "已保存数据文件夹：{value}（在 {file}）",
+  "config.removed": "已删除数据文件夹设置（在 {file}）",
+  "config.show": "数据文件夹设置：{value}（在 {file}）",
+  "config.none": "数据文件夹设置：无（在 {file}）",
+  "config.usage": "用法：jtasks config data-dir <路径>，或 jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "容器的 WORKSPACE.md",
+  "data.source.legacy": "旧方式：在仓库内，由 .git/info/exclude 隐藏"
 };
 // locales/ja.json
 var ja_default = {
@@ -3909,6 +4035,13 @@ var ja_default = {
   "doctor.step_jlock": "公式インストーラーで jlock をインストール",
   "doctor.summary": "ok: {ok}、警告: {warn}、失敗: {fail}",
   "doctor.would": "インストール予定:",
+  "doctor.data_here": "ここでの run データ: {dir}（{source}）",
+  "doctor.data_no_repo": "ここ: git リポジトリも jproject コンテナもない",
+  "doctor.data_saved": "保存された設定: {value}",
+  "doctor.data_unset": "設定は保存されていない",
+  "doctor.data_in_repo": "run データがコンテナのリポジトリ内に置かれてしまう",
+  "doctor.data_fix": "jtasks config data-dir <パス>、または jtasks doctor --fix --yes --data-dir <パス>",
+  "doctor.step_data": "データフォルダー {value} を {file} に保存する",
   "done.claimed": "タスク中に claim したファイル: {files}。他のタスクも触れるなら計画を更新すること",
   "done.detached": "detached HEAD",
   "done.done": "{id} 完了: {what}。{released}",
@@ -3985,7 +4118,7 @@ var ja_default = {
   "gc.usage": "使い方: jtasks gc --scan <ルート>（レポート）または jtasks gc --remove <パス> --yes",
   "gc.worktree_refused": "git worktree remove が拒否した: {message}（未保存の変更?）。何も削除していない",
   "gc.worktree_removed": "{owner} で git worktree remove",
-  "git.not_a_repo": "git リポジトリではない: {cwd}（jtasks はタスクごとに 1 コミットする）",
+  "git.not_a_repo": "git リポジトリでも jproject コンテナでもない: {cwd}（jtasks はタスクごとに 1 コミットする）",
   "guard.git": "サブエージェントは git {sub} を実行しない: コミットは jtasks done {id} が行う",
   "guard.outside": "{id} の所有権外: {rel}。jtasks claim {id} {rel} を使う",
   "guard.run_files": "{rel}: tasks.json、run.json、チケットは tasks ツール経由でのみ変更する。手で編集しない",
@@ -4030,6 +4163,7 @@ var ja_default = {
   "help.validate": "validate <json|@ファイル|フォルダ>    計画（またはチケットのフォルダ）を書き込まずに検証",
   "help.wait": "wait <id> --pid <pid>[,…]             サブエージェントが終了してもタスクはこのプロセスを待つ",
   "help.yield": "yield <id> [<ファイル…>]               競合ファイルだけを譲る。編集はパッチで保存",
+  "help.config": "config [data-dir <パス> | --unset]    run データの置き場所（JTASKS_HOME/config.json）",
   "import.check_only": "何も書き込んでいない（--check）",
   "import.has_errors": "読み込んだ計画にエラーが {n} 件:",
   "import.line": "{file} → {id} · {title} · 依存: {deps} · 所有権: {own} · 基準 {n} 件",
@@ -4323,7 +4457,17 @@ var ja_default = {
   "yield.nothing": "{id} にはデッドロックで拒否された claim がない: ファイルを指定する、jtasks yield {id} <ファイル…>",
   "yield.refused": "yield 拒否: {errors}",
   "yield.saved": "編集をパッチとして保存: {list}",
-  "yield.untouched": "そのまま（いまは別の所有者が持っている）: {files}"
+  "yield.untouched": "そのまま（いまは別の所有者が持っている）: {files}",
+  "config.question": "jtasks は run データ（タスク、チケット、ledger）をどこに保存しますか？このフォルダーはバージョン管理されたコードの中に置かないでください。jproject コンテナの既定値: _work/30-plan/jtasks。プロジェクトのコンテナからの相対パスか絶対パスで、どこでも指定できます。",
+  "config.saved": "データフォルダーを保存しました: {value}（{file}）",
+  "config.removed": "データフォルダーの設定を削除しました（{file}）",
+  "config.show": "データフォルダーの設定: {value}（{file}）",
+  "config.none": "データフォルダーの設定: なし（{file}）",
+  "config.usage": "使い方: jtasks config data-dir <パス>、または jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "コンテナの WORKSPACE.md",
+  "data.source.legacy": "従来方式: リポジトリ内、.git/info/exclude で隠す"
 };
 // locales/ru.json
 var ru_default = {
@@ -4434,6 +4578,13 @@ var ru_default = {
   "doctor.step_jlock": "установить jlock официальным установщиком",
   "doctor.summary": "ok: {ok}, предупреждений: {warn}, сбоев: {fail}",
   "doctor.would": "будет установлено:",
+  "doctor.data_here": "данные run здесь: {dir} ({source})",
+  "doctor.data_no_repo": "здесь: нет ни git-репозитория, ни контейнера jproject",
+  "doctor.data_saved": "сохранённая настройка: {value}",
+  "doctor.data_unset": "настройка не сохранена",
+  "doctor.data_in_repo": "данные run оказались бы внутри репозитория контейнера",
+  "doctor.data_fix": "jtasks config data-dir <путь> или jtasks doctor --fix --yes --data-dir <путь>",
+  "doctor.step_data": "сохранить папку данных {value} в {file}",
   "done.claimed": "получены во время задачи: {files}; обновите план, если их трогают и другие задачи",
   "done.detached": "отсоединённый HEAD",
   "done.done": "{id} выполнена: {what}; {released}",
@@ -4510,7 +4661,7 @@ var ru_default = {
   "gc.usage": "используйте jtasks gc --scan <корень> (отчёт) или jtasks gc --remove <путь> --yes",
   "gc.worktree_refused": "git worktree remove отказал: {message} (несохранённые изменения?); ничего не удалено",
   "gc.worktree_removed": "git worktree remove в {owner}",
-  "git.not_a_repo": "не git-репозиторий: {cwd} (jtasks делает один коммит на задачу)",
+  "git.not_a_repo": "не git-репозиторий и не контейнер jproject: {cwd} (jtasks делает один коммит на задачу)",
   "guard.git": "субагент не запускает git {sub}: коммит делает jtasks done {id}",
   "guard.outside": "вне владения {id}: {rel}; используйте jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: tasks.json, run.json и тикеты меняются только через инструмент tasks; никогда вручную",
@@ -4555,6 +4706,7 @@ var ru_default = {
   "help.validate": "validate <json|@файл|папка>           проверяет план (или папку тикетов) без записи",
   "help.wait": "wait <id> --pid <pid>[,…]             задача ждёт этот процесс, если её субагент завершится",
   "help.yield": "yield <id> [<файл…>]                  уступает только спорные файлы; правки в патчах",
+  "help.config": "config [data-dir <путь> | --unset]    куда идут данные run (JTASKS_HOME/config.json)",
   "import.check_only": "ничего не записано (--check)",
   "import.has_errors": "в прочитанном плане ошибки ({n}):",
   "import.line": "{file} → {id} · {title} · зависит от: {deps} · владение: {own} · критериев: {n}",
@@ -4848,7 +5000,17 @@ var ru_default = {
   "yield.nothing": "у {id} нет claim, отклонённого из-за deadlock, от которого можно уступить: укажите файлы, jtasks yield {id} <файл…>",
   "yield.refused": "yield отклонён: {errors}",
   "yield.saved": "правки сохранены как патчи: {list}",
-  "yield.untouched": "оставлены как есть (теперь их держит другой владелец): {files}"
+  "yield.untouched": "оставлены как есть (теперь их держит другой владелец): {files}",
+  "config.question": "Где jtasks хранить данные run (задачи, тикеты, ledger)? Эта папка НЕ должна быть внутри версионируемого кода. По умолчанию для контейнеров jproject: _work/30-plan/jtasks. Подойдёт любой путь, относительно контейнера проекта или абсолютный.",
+  "config.saved": "папка данных сохранена: {value} (в {file})",
+  "config.removed": "настройка папки данных удалена (в {file})",
+  "config.show": "настроенная папка данных: {value} (в {file})",
+  "config.none": "настроенная папка данных: нет (в {file})",
+  "config.usage": "использование: jtasks config data-dir <путь> или jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "WORKSPACE.md контейнера",
+  "data.source.legacy": "старый режим: внутри репозитория, скрыто через .git/info/exclude"
 };
 // locales/ar.json
 var ar_default = {
@@ -4959,6 +5121,13 @@ var ar_default = {
   "doctor.step_jlock": "تثبيت jlock بمثبّته الرسمي",
   "doctor.summary": "ok: {ok}، التحذيرات: {warn}، الإخفاقات: {fail}",
   "doctor.would": "سيُثبَّت:",
+  "doctor.data_here": "بيانات التشغيل هنا: {dir} ({source})",
+  "doctor.data_no_repo": "هنا: لا مستودع git ولا حاوية jproject",
+  "doctor.data_saved": "الإعداد المحفوظ: {value}",
+  "doctor.data_unset": "لا إعداد محفوظ",
+  "doctor.data_in_repo": "ستكون بيانات التشغيل داخل مستودع الحاوية",
+  "doctor.data_fix": "jtasks config data-dir <مسار>، أو jtasks doctor --fix --yes --data-dir <مسار>",
+  "doctor.step_data": "حفظ مجلد البيانات {value} في {file}",
   "done.claimed": "طُلبت أثناء المهمة: {files}؛ حدّث الخطة إن كانت مهام أخرى تمسّها أيضًا",
   "done.detached": "HEAD منفصل",
   "done.done": "أُنجزت {id}: {what}؛ {released}",
@@ -5035,7 +5204,7 @@ var ar_default = {
   "gc.usage": "استخدم jtasks gc --scan <root> (تقرير) أو jtasks gc --remove <path> --yes",
   "gc.worktree_refused": "رفض git worktree remove: {message} (تغييرات غير محفوظة؟)؛ لم يُزل شيء",
   "gc.worktree_removed": "git worktree remove في {owner}",
-  "git.not_a_repo": "ليس مستودع git: {cwd} (يصنع jtasks إيداعًا واحدًا لكل مهمة)",
+  "git.not_a_repo": "ليس مستودع git ولا حاوية jproject: {cwd} (يصنع jtasks إيداعًا واحدًا لكل مهمة)",
   "guard.git": "الوكيل الفرعي لا يشغّل git {sub}: الإيداع يصنعه jtasks done {id}",
   "guard.outside": "خارج ملكية {id}: {rel}؛ استخدم jtasks claim {id} {rel}",
   "guard.run_files": "{rel}: لا تتغير tasks.json و run.json والتذاكر إلا عبر أداة tasks؛ لا تُعدَّل يدويًا أبدًا",
@@ -5080,6 +5249,7 @@ var ar_default = {
   "help.validate": "validate <json|@file|folder>          يتحقق من خطة (أو مجلد تذاكر) دون كتابة",
   "help.wait": "wait <id> --pid <pid>[,…]             تنتظر المهمة هذه العملية إذا انتهى وكيلها الفرعي",
   "help.yield": "yield <id> [<file…>]                  يتنازل عن الملفات المتنازع عليها فقط؛ التعديلات كرُقع",
+  "help.config": "config [data-dir <مسار> | --unset]    مكان بيانات التشغيل (JTASKS_HOME/config.json)",
   "import.check_only": "لم يُكتب شيء (--check)",
   "import.has_errors": "في الخطة المقروءة أخطاء ({n}):",
   "import.line": "{file} → {id} · {title} · تعتمد على: {deps} · الملكية: {own} · المعايير: {n}",
@@ -5373,7 +5543,17 @@ var ar_default = {
   "yield.nothing": "ليس لدى {id} طلب claim مرفوض بسبب deadlock للتنازل منه: سمِّ الملفات، jtasks yield {id} <file…>",
   "yield.refused": "رُفض yield: {errors}",
   "yield.saved": "حُفظت التعديلات كرُقع: {list}",
-  "yield.untouched": "تُركت كما هي (يمسكها مالك آخر الآن): {files}"
+  "yield.untouched": "تُركت كما هي (يمسكها مالك آخر الآن): {files}",
+  "config.question": "أين يحفظ jtasks بيانات التشغيل (المهام، التذاكر، ledger)؟ يجب ألا يكون هذا المجلد داخل الشيفرة المُدارة بالإصدارات. الافتراضي لحاويات jproject: _work/30-plan/jtasks. يمكن استخدام أي مسار، نسبيًا إلى حاوية المشروع أو مطلقًا.",
+  "config.saved": "حُفظ مجلد البيانات: {value} (في {file})",
+  "config.removed": "أُزيل إعداد مجلد البيانات (في {file})",
+  "config.show": "إعداد مجلد البيانات: {value} (في {file})",
+  "config.none": "إعداد مجلد البيانات: لا شيء (في {file})",
+  "config.usage": "الاستخدام: jtasks config data-dir <مسار>، أو jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "ملف WORKSPACE.md للحاوية",
+  "data.source.legacy": "الوضع القديم: داخل المستودع، مخفي عبر .git/info/exclude"
 };
 // locales/hi.json
 var hi_default = {
@@ -5484,6 +5664,13 @@ var hi_default = {
   "doctor.step_jlock": "jlock को उसके आधिकारिक इंस्टॉलर से इंस्टॉल करें",
   "doctor.summary": "ok: {ok}, चेतावनियाँ: {warn}, विफल: {fail}",
   "doctor.would": "इंस्टॉल किया जाएगा:",
+  "doctor.data_here": "यहाँ run डेटा: {dir} ({source})",
+  "doctor.data_no_repo": "यहाँ: न git रिपॉज़िटरी, न jproject कंटेनर",
+  "doctor.data_saved": "सहेजी गई सेटिंग: {value}",
+  "doctor.data_unset": "कोई सेटिंग सहेजी नहीं गई",
+  "doctor.data_in_repo": "run डेटा कंटेनर की रिपॉज़िटरी के अंदर चला जाएगा",
+  "doctor.data_fix": "jtasks config data-dir <पथ>, या jtasks doctor --fix --yes --data-dir <पथ>",
+  "doctor.step_data": "डेटा फ़ोल्डर {value} को {file} में सहेजना",
   "done.claimed": "कार्य के दौरान claim की गईं: {files}; अगर दूसरे कार्य भी इन्हें छूते हैं तो योजना अपडेट करें",
   "done.detached": "एक detached HEAD",
   "done.done": "{id} पूरा: {what}; {released}",
@@ -5560,7 +5747,7 @@ var hi_default = {
   "gc.usage": "उपयोग: jtasks gc --scan <रूट> (रिपोर्ट) या jtasks gc --remove <पथ> --yes",
   "gc.worktree_refused": "git worktree remove अस्वीकृत: {message} (बिना सहेजे बदलाव?); कुछ नहीं हटाया गया",
   "gc.worktree_removed": "{owner} में git worktree remove",
-  "git.not_a_repo": "git रिपॉज़िटरी नहीं: {cwd} (jtasks हर कार्य का एक commit बनाता है)",
+  "git.not_a_repo": "न git रिपॉज़िटरी, न jproject कंटेनर: {cwd} (jtasks हर कार्य का एक commit बनाता है)",
   "guard.git": "सबएजेंट git {sub} नहीं चलाता: commit jtasks done {id} करता है",
   "guard.outside": "{id} के स्वामित्व के बाहर: {rel}; jtasks claim {id} {rel} चलाएँ",
   "guard.run_files": "{rel}: tasks.json, run.json और टिकट केवल tasks टूल से बदलते हैं; कभी हाथ से नहीं",
@@ -5605,6 +5792,7 @@ var hi_default = {
   "help.validate": "validate <json|@file|folder>          बिना लिखे योजना (या टिकटों का फ़ोल्डर) जाँचता है",
   "help.wait": "wait <id> --pid <pid>[,…]             सबएजेंट समाप्त हो तो कार्य इस प्रक्रिया की प्रतीक्षा करे",
   "help.yield": "yield <id> [<file…>]                  केवल विवादित फ़ाइलें छोड़ता है; संपादन patch में",
+  "help.config": "config [data-dir <पथ> | --unset]    run डेटा कहाँ जाता है (JTASKS_HOME/config.json)",
   "import.check_only": "कुछ नहीं लिखा गया (--check)",
   "import.has_errors": "पढ़ी गई योजना में {n} त्रुटि(याँ):",
   "import.line": "{file} → {id} · {title} · निर्भर: {deps} · स्वामित्व: {own} · {n} मानदंड",
@@ -5898,7 +6086,17 @@ var hi_default = {
   "yield.nothing": "{id} के पास डेडलॉक से अस्वीकृत कोई claim नहीं है जिससे छोड़ा जाए: फ़ाइलें बताएँ, jtasks yield {id} <file…>",
   "yield.refused": "yield अस्वीकृत: {errors}",
   "yield.saved": "संपादन patch के रूप में सहेजे गए: {list}",
-  "yield.untouched": "जैसी थीं वैसी छोड़ी गईं (अब कोई दूसरा स्वामी रखता है): {files}"
+  "yield.untouched": "जैसी थीं वैसी छोड़ी गईं (अब कोई दूसरा स्वामी रखता है): {files}",
+  "config.question": "jtasks run डेटा (कार्य, टिकट, ledger) कहाँ रखे? यह फ़ोल्डर आपके वर्ज़न किए गए कोड के अंदर नहीं होना चाहिए। jproject कंटेनरों के लिए डिफ़ॉल्ट: _work/30-plan/jtasks। कोई भी पथ चलेगा, प्रोजेक्ट कंटेनर के सापेक्ष या absolute।",
+  "config.saved": "डेटा फ़ोल्डर सहेजा गया: {value} ({file} में)",
+  "config.removed": "डेटा फ़ोल्डर की सेटिंग हटाई गई ({file} में)",
+  "config.show": "डेटा फ़ोल्डर की सेटिंग: {value} ({file} में)",
+  "config.none": "डेटा फ़ोल्डर की सेटिंग: कोई नहीं ({file} में)",
+  "config.usage": "उपयोग: jtasks config data-dir <पथ>, या jtasks config data-dir --unset",
+  "data.source.env": "JTASKS_SCRATCH",
+  "data.source.config": "jtasks config",
+  "data.source.workspace": "कंटेनर की WORKSPACE.md",
+  "data.source.legacy": "पुराना तरीका: रिपॉज़िटरी के अंदर, .git/info/exclude से छिपा"
 };
 
 // src/i18n.ts
@@ -6555,12 +6753,11 @@ function ticketReadLine(t) {
 }
 
 // src/store.ts
-var SCRATCH = ".scratch/jtasks";
-function runsDir(root) {
-  return join(root, SCRATCH, "runs");
+function runsDir(data) {
+  return join(data, "runs");
 }
-function runDir(root, run) {
-  return join(runsDir(root), run);
+function runDir(data, run) {
+  return join(runsDir(data), run);
 }
 function jtasksHome(host) {
   const own = host.env("JTASKS_HOME");
@@ -6689,16 +6886,19 @@ async function mutateTasks(host, dir, change) {
     return { tasks: await writeTasks(host, dir, copy, tasks.revision), result };
   });
 }
-async function listRuns(host, root) {
+async function listRuns(host, data, repo) {
   const out = [];
-  for (const entry of await host.list(runsDir(root))) {
+  const norm = (p) => repo?.caseInsensitive ? normalize(p).toLowerCase() : normalize(p);
+  for (const entry of await host.list(runsDir(data))) {
     if (entry.kind !== "dir")
       continue;
-    const dir = join(runsDir(root), entry.name);
+    const dir = join(runsDir(data), entry.name);
     const run = await readRun(host, dir).catch(() => {
       return;
     });
     if (!run)
+      continue;
+    if (repo && run.repo?.root && norm(run.repo.root) !== norm(repo.root))
       continue;
     out.push({ dir, run, tasks: await readTasks(host, dir).catch(() => {
       return;
@@ -6892,7 +7092,8 @@ var BOOLEAN_FLAGS = new Set([
   "add",
   "agent-ended",
   "fresh",
-  "claims"
+  "claims",
+  "unset"
 ]);
 var OPTIONAL_VALUE = new Set(["fix"]);
 function parseArgs(argv) {
@@ -7166,12 +7367,6 @@ async function repoRoot(host, cwd) {
     return;
   return slash(r.stdout.trim());
 }
-async function requireRepo(host, cwd) {
-  const root = await repoRoot(host, cwd);
-  if (!root)
-    throw new ToolError(tr("git.not_a_repo", { cwd }));
-  return root;
-}
 async function currentBranch(host, root) {
   const r = await git(host, root, ["symbolic-ref", "--short", "-q", "HEAD"]);
   const name = r.stdout.trim();
@@ -7245,6 +7440,185 @@ async function commitReachable(host, root, ref) {
   const r = await git(host, root, ["branch", "--all", "--contains", ref, "--format=%(refname)"]);
   return r.code === 0 && r.stdout.trim() !== "";
 }
+// src/workspace.ts
+var LEGACY_DATA = ".scratch/jtasks";
+var DEFAULT_CONTAINER_DATA = "_work/30-plan/jtasks";
+var DEFAULT_WORK_DIR = "_work";
+var DEFAULT_PRODUCT_DIR = "product";
+function configFile(host) {
+  return join(jtasksHome(host), "config.json");
+}
+async function readConfig(host) {
+  const text = await host.readText(configFile(host)).catch(() => {
+    return;
+  });
+  if (!text)
+    return {};
+  try {
+    const value = JSON.parse(text);
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+async function writeConfig(host, change) {
+  const next = { ...await readConfig(host) };
+  for (const [key, value] of Object.entries(change)) {
+    if (value === undefined || value === "")
+      delete next[key];
+    else
+      next[key] = value;
+  }
+  await host.writeText(configFile(host), `${JSON.stringify(next, null, 2)}
+`);
+  return next;
+}
+function parseFrontMatter(text) {
+  const lines = text.replace(/^﻿/, "").split(/\r?\n/);
+  if (lines[0]?.trim() !== "---")
+    return;
+  const out = {};
+  for (let i = 1;i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === "---" || line.trim() === "...")
+      return out;
+    const m = /^([A-Za-z_][\w-]*)\s*:\s*(.*)$/.exec(line);
+    if (!m)
+      continue;
+    let value = m[2].trim();
+    if (/^["']/.test(value)) {
+      const q = value[0];
+      const end = value.indexOf(q, 1);
+      value = end > 0 ? value.slice(1, end) : value.slice(1);
+    } else
+      value = value.replace(/\s+#.*$/, "").trim();
+    out[m[1]] = value;
+  }
+  return;
+}
+function within(base, value) {
+  const v = slash(value);
+  return isAbsolute(v) ? normalize(v) : join(base, v);
+}
+async function containerAt(host, root, workName) {
+  const workspace = join(root, workName, "WORKSPACE.md");
+  const text = await host.readText(workspace).catch(() => {
+    return;
+  });
+  if (text === undefined)
+    return;
+  const fm = parseFrontMatter(text);
+  if (!fm || fm.jproject?.trim() !== "1")
+    return;
+  const work = fm.work_dir || DEFAULT_WORK_DIR;
+  const insensitive = caseInsensitive(host.platform);
+  const same = (a, b) => insensitive ? normalize(a).toLowerCase() === normalize(b).toLowerCase() : normalize(a) === normalize(b);
+  if (!same(join(root, work), join(root, workName)))
+    return;
+  const c = { root, product: within(root, fm.product_dir || DEFAULT_PRODUCT_DIR), work: join(root, work), workspace };
+  if (fm.secrets_dir)
+    c.secrets = within(root, fm.secrets_dir);
+  if (fm.jtasks_data)
+    c.jtasksData = within(root, fm.jtasks_data);
+  return c;
+}
+var NOT_WORK = new Set([".git", "node_modules"]);
+async function findContainer(host, cwd) {
+  let dir = normalize(isAbsolute(cwd) ? cwd : join(host.cwd(), cwd));
+  for (;; ) {
+    const found = await containerAt(host, dir, DEFAULT_WORK_DIR);
+    if (found)
+      return found;
+    for (const e of await host.list(dir).catch(() => [])) {
+      if (e.kind !== "dir" || e.name === DEFAULT_WORK_DIR || NOT_WORK.has(e.name))
+        continue;
+      if (!await host.stat(join(dir, e.name, "WORKSPACE.md")))
+        continue;
+      const other = await containerAt(host, dir, e.name);
+      if (other)
+        return other;
+    }
+    const up = dirname(dir);
+    if (up === dir || normalize(up) === normalize(dir))
+      return;
+    dir = up;
+  }
+}
+async function gitTop(host, cwd) {
+  const r = await git(host, cwd, ["rev-parse", "--show-toplevel"]).catch(() => {
+    return;
+  });
+  if (!r || r.code !== 0)
+    return;
+  return slash(r.stdout.trim());
+}
+async function resolveDataDir(host, repoRoot2, container) {
+  const env = host.env("JTASKS_SCRATCH")?.trim();
+  if (env)
+    return { dataDir: within(container?.root ?? repoRoot2, env), source: "env", shared: isAbsolute(slash(env)) };
+  const saved = (await readConfig(host)).dataDir?.trim();
+  if (saved && isAbsolute(slash(saved)))
+    return { dataDir: normalize(slash(saved)), source: "config", shared: true };
+  if (saved && container)
+    return { dataDir: within(container.root, saved), source: "config", shared: false };
+  if (container)
+    return { dataDir: container.jtasksData ?? join(container.root, DEFAULT_CONTAINER_DATA), source: "workspace", shared: false };
+  return { dataDir: join(repoRoot2, LEGACY_DATA), source: "legacy", shared: false };
+}
+function dataInRepo(repoRoot2, dataDir, platform) {
+  const rel = relativeInside(repoRoot2, dataDir, caseInsensitive(platform));
+  return rel === undefined ? undefined : rel || ".";
+}
+function legacyDataDir(repoRoot2) {
+  return join(repoRoot2, LEGACY_DATA);
+}
+function boundData(binding) {
+  return binding.data ?? legacyDataDir(binding.root);
+}
+async function resolvePaths(host, cwd) {
+  const container = await findContainer(host, cwd);
+  const insensitive = caseInsensitive(host.platform);
+  let repoRoot2 = await gitTop(host, cwd);
+  if (container && (!repoRoot2 || relativeInside(container.root, repoRoot2, insensitive) === undefined))
+    repoRoot2 = await gitTop(host, container.product);
+  if (!repoRoot2)
+    return;
+  const mine = container && relativeInside(container.root, repoRoot2, insensitive) !== undefined ? container : undefined;
+  const data = await resolveDataDir(host, repoRoot2, mine);
+  const out = { repoRoot: repoRoot2, ...data };
+  if (mine)
+    out.container = mine;
+  const rel = dataInRepo(repoRoot2, data.dataDir, host.platform);
+  if (rel !== undefined)
+    out.inRepo = rel;
+  return out;
+}
+async function requirePaths(host, cwd) {
+  const paths = await resolvePaths(host, cwd);
+  if (!paths)
+    throw new ToolError(tr("git.not_a_repo", { cwd }));
+  return paths;
+}
+async function requireRepo(host, cwd) {
+  return (await requirePaths(host, cwd)).repoRoot;
+}
+function excludeLineOf(paths) {
+  if (paths.inRepo === undefined)
+    return;
+  if (paths.inRepo === LEGACY_DATA)
+    return ".scratch/";
+  return paths.inRepo === "." ? undefined : `${paths.inRepo}/`;
+}
+function isDataPath(paths, rel, platform) {
+  if (paths.inRepo === undefined || paths.inRepo === ".")
+    return false;
+  const insensitive = caseInsensitive(platform);
+  const p = insensitive ? rel.toLowerCase() : rel;
+  const d = insensitive ? paths.inRepo.toLowerCase() : paths.inRepo;
+  if (d === LEGACY_DATA && (p === ".scratch" || p.startsWith(".scratch/")))
+    return true;
+  return p === d || p.startsWith(`${d}/`);
+}
 // src/plan.ts
 function actorOf(ctx) {
   const base = ctx.session ? `${ctx.tool}:${ctx.session}` : ctx.tool;
@@ -7277,7 +7651,8 @@ function toTask(p, profiles, source) {
 }
 async function createRun(ctx, plan, options = {}) {
   const { host } = ctx;
-  const root = await requireRepo(host, ctx.cwd);
+  const paths = await requirePaths(host, ctx.cwd);
+  const root = paths.repoRoot;
   const base = await currentBranch(host, root);
   const useRunBranch = plan.branch !== "current";
   if (!base)
@@ -7291,9 +7666,9 @@ async function createRun(ctx, plan, options = {}) {
     const slug = options.name || plan.feature || plan.objective || "run";
     do
       id = runId(slug, now, () => host.random());
-    while (await host.stat(runDir(root, id)));
+    while (await host.stat(runDir(paths.dataDir, id)));
   }
-  const dir = runDir(root, id);
+  const dir = runDir(paths.dataDir, id);
   const branch = useRunBranch ? `gt/${id}` : base;
   if (useRunBranch && await branchExists(host, root, branch))
     throw new ToolError(tr("plan.branch_exists", { branch }));
@@ -7326,14 +7701,15 @@ async function createRun(ctx, plan, options = {}) {
   };
   const existed = !!await host.stat(dir);
   const undo = [];
+  const line = excludeLineOf(paths);
   try {
-    const addedExclude = !await hasExcludeLine(host, root, ".scratch/");
+    const addedExclude = line !== undefined && !await hasExcludeLine(host, root, line);
     await host.mkdir(dir);
     if (!existed)
       undo.push(() => host.remove(dir, { recursive: true }));
     if (addedExclude) {
-      await addExcludeLine(host, root, ".scratch/");
-      undo.push(() => removeExcludeLine(host, root, ".scratch/"));
+      await addExcludeLine(host, root, line);
+      undo.push(() => removeExcludeLine(host, root, line));
     }
     await atomicWrite(host, join(dir, "run.json"), stringify(run));
     await atomicWrite(host, join(dir, "tasks.json"), stringify(tasks));
@@ -7353,13 +7729,13 @@ async function createRun(ctx, plan, options = {}) {
         type: "exclude",
         repo: root,
         path: ".git/info/exclude",
-        line: ".scratch/",
+        line,
         undo: { kind: "remove-line" }
       });
     if (useRunBranch)
       await recordEffect(host, dir, { run: id, type: "branch", repo: root, ref: branch, from: base, undo: { kind: "git-branch-delete" } });
     await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "plan", tasks: tasks.tasks.length });
-    return { run, tasks, dir, tickets };
+    return { run, tasks, data: paths.dataDir, dir, tickets };
   } catch (error) {
     for (const step of undo.reverse())
       await step().catch(() => {});
@@ -7392,29 +7768,37 @@ ${errors.map((e) => `- ${e}`).join(`
       data: { errors }
     };
   const created = await createRun(ctx, plan, options);
-  return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id });
+  return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created));
+}
+function bindOf(created) {
+  return { bind: created.run.id, bindPaths: { root: created.run.repo.root, data: created.data } };
 }
 var draftFile = (dir) => join(dir, "draft.json");
-async function listDrafts(ctx, root) {
+async function listDrafts(ctx, paths) {
   const out = [];
-  for (const entry of await ctx.host.list(runsDir(root))) {
+  const insensitive = caseInsensitive(ctx.host.platform);
+  const norm = (p) => insensitive ? normalize(p).toLowerCase() : normalize(p);
+  for (const entry of await ctx.host.list(runsDir(paths.dataDir))) {
     if (entry.kind !== "dir")
       continue;
-    const dir = join(runsDir(root), entry.name);
+    const dir = join(runsDir(paths.dataDir), entry.name);
     if (await ctx.host.stat(join(dir, "run.json")))
       continue;
     const draft = await readJson(ctx.host, draftFile(dir)).catch(() => {
       return;
     });
+    if (draft && paths.shared && draft.repo && norm(draft.repo) !== norm(paths.repoRoot))
+      continue;
     if (draft)
       out.push({ id: draft.id, dir, draft });
   }
   return out.sort((a, b) => a.draft.created.localeCompare(b.draft.created));
 }
 async function resolveDraft(ctx, args) {
-  const root = await requireRepo(ctx.host, ctx.cwd);
+  const paths = await requirePaths(ctx.host, ctx.cwd);
+  const root = paths.repoRoot;
   const wanted = typeof args.options.run === "string" ? args.options.run : undefined;
-  const drafts = await listDrafts(ctx, root);
+  const drafts = await listDrafts(ctx, paths);
   if (wanted) {
     const found = drafts.find((d) => d.id === wanted);
     if (!found)
@@ -7478,8 +7862,9 @@ function draftSummary(draft) {
 }
 async function draftOpen(ctx, args) {
   const { host } = ctx;
-  const root = await requireRepo(host, ctx.cwd);
-  const open = await listDrafts(ctx, root);
+  const paths = await requirePaths(host, ctx.cwd);
+  const root = paths.repoRoot;
+  const open = await listDrafts(ctx, paths);
   if (open.length > 0)
     throw new ToolError(tr("draft.already_open", { ids: open.map((d) => d.id).join(", ") }));
   const name = typeof args.options.name === "string" ? args.options.name : undefined;
@@ -7489,16 +7874,17 @@ async function draftOpen(ctx, args) {
   let id;
   do
     id = runId(name || objective || "run", now, () => host.random());
-  while (await host.stat(runDir(root, id)));
-  const dir = runDir(root, id);
-  const draft = { version: 1, id, created: now.toISOString(), tasks: [] };
+  while (await host.stat(runDir(paths.dataDir, id)));
+  const dir = runDir(paths.dataDir, id);
+  const draft = { version: 1, id, created: now.toISOString(), repo: root, tasks: [] };
   if (name)
     draft.feature = name;
   if (objective)
     draft.objective = objective;
   if (source)
     draft.source = source;
-  const addedExclude = await addExcludeLine(host, root, ".scratch/");
+  const line = excludeLineOf(paths);
+  const addedExclude = line !== undefined && await addExcludeLine(host, root, line);
   await host.mkdir(dir);
   await saveDraft(ctx, dir, draft);
   await recordEffect(host, dir, { run: id, type: "dir", repo: root, path: dir, undo: { kind: "rmdir" } });
@@ -7508,7 +7894,7 @@ async function draftOpen(ctx, args) {
       type: "exclude",
       repo: root,
       path: ".git/info/exclude",
-      line: ".scratch/",
+      line,
       undo: { kind: "remove-line" }
     });
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" });
@@ -7598,7 +7984,7 @@ async function draftCommit(ctx, args) {
       return refused(tr("draft.commit_refused"), errors);
     const created = await createRun(ctx, plan, { id: current2.id });
     await ctx.host.remove(draftFile(dir));
-    return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, { bind: created.run.id });
+    return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created));
   });
 }
 defineAction("plan", async (ctx, args) => {
@@ -7620,8 +8006,8 @@ defineAction("plan", async (ctx, args) => {
 for (const key of ["help.plan.draft", "help.plan.add", "help.plan.fix", "help.plan.show", "help.plan.commit"])
   addUsage(key);
 defineAction("runs", async (ctx) => {
-  const root = await requireRepo(ctx.host, ctx.cwd);
-  const runs = await listRuns(ctx.host, root);
+  const paths = await requirePaths(ctx.host, ctx.cwd);
+  const runs = await listRuns(ctx.host, paths.dataDir, paths.shared ? { root: paths.repoRoot, caseInsensitive: caseInsensitive(ctx.host.platform) } : undefined);
   return ok(formatRunsList(runs), { runs: runs.map((r) => ({ id: r.run.id, status: r.run.status, dir: r.dir })) });
 }, "help.runs");
 defineAction("import", async (ctx, args) => {
@@ -7656,7 +8042,7 @@ ${errors.map((e) => `- ${e}`).join(`
   const created = await createRun(ctx, plan, { name });
   return ok(`${read.join(`
 `)}
-${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, { bind: created.run.id });
+${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, bindOf(created));
 }, "help.import");
 // src/jlock.ts
 var JLOCK = {
@@ -8441,7 +8827,7 @@ async function rearmKeepalive(host, dir) {
     await clearKeepalive(host, dir);
 }
 async function checkKeepalive(host, check) {
-  const dir = runDir(check.root, check.run);
+  const dir = runDir(check.data, check.run);
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => {
     return;
   }), readTasks(host, dir).catch(() => {
@@ -8449,7 +8835,7 @@ async function checkKeepalive(host, check) {
   })]);
   if (!run || !tasks)
     return { action: "none", reason: "finished" };
-  const state = { root: check.root, dir, run, tasks };
+  const state = { root: check.root, data: check.data, dir, run, tasks };
   const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 });
   if (quick.action === "none")
     return quick;
@@ -8476,8 +8862,8 @@ async function checkKeepalive(host, check) {
   }
   return decision;
 }
-async function holdKeepalive(host, root, runId2) {
-  const dir = runDir(root, runId2);
+async function holdKeepalive(host, data, runId2) {
+  const dir = runDir(data, runId2);
   const tasks = await readTasks(host, dir).catch(() => {
     return;
   });
@@ -8506,8 +8892,8 @@ function keepaliveNotice(run, tasks, memory) {
     return;
   return tr("view.stalled", { what: keepaliveWhat(memory.ready ?? [], memory.orphans ?? [], memory.agents, memory.tool) });
 }
-async function stalledNotice(host, root, runId2) {
-  const dir = runDir(root, runId2);
+async function stalledNotice(host, data, runId2) {
+  const dir = runDir(data, runId2);
   const [run, tasks, memory] = await Promise.all([readRun(host, dir).catch(() => {
     return;
   }), readTasks(host, dir).catch(() => {
@@ -8548,25 +8934,27 @@ async function survivors(ctx, root, run) {
 }
 defineAction("clean", async (ctx, args) => {
   const { host } = ctx;
-  const root = await requireRepo(host, ctx.cwd);
+  const paths = await requirePaths(host, ctx.cwd);
+  const root = paths.repoRoot;
+  const data = paths.dataDir;
   const all = !!args.options.all;
   const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
   if (!all && !id)
     throw new ToolError(tr("clean.which"), 2);
-  const ids = all ? (await host.list(runsDir(root))).filter((e) => e.kind === "dir").map((e) => e.name) : [id];
+  const ids = !all ? [id] : paths.shared ? (await listRuns(host, data, { root, caseInsensitive: caseInsensitive(host.platform) })).map((r) => r.run.id) : (await host.list(runsDir(data))).filter((e) => e.kind === "dir").map((e) => e.name);
   for (const r of ids)
-    if (!await host.stat(runDir(root, r)))
-      throw new ToolError(tr("run.not_in", { run: r, dir: runsDir(root) }));
+    if (!await host.stat(runDir(data, r)))
+      throw new ToolError(tr("run.not_in", { run: r, dir: runsDir(data) }));
   const lines = [];
   const busy = [];
   const left = [];
   for (const r of ids) {
-    const running = await runningTasks(host, runDir(root, r));
+    const running = await runningTasks(host, runDir(data, r));
     if (running.length)
       busy.push(`${r} (${running.join(", ")})`);
     left.push(...await survivors(ctx, root, r));
   }
-  const target = all ? join(root, SCRATCH) : runDir(root, id);
+  const target = all ? paths.shared ? runsDir(data) : data : runDir(data, id);
   lines.push(all ? tr("clean.delete_all", { target, n: ids.length }) : tr("clean.delete", { target }));
   if (left.length) {
     lines.push(tr("clean.effects"));
@@ -8587,22 +8975,26 @@ ${tr("clean.busy", { tasks: busy.join(", ") })}`);
     const all2 = await effectsOf(host, { repo: root, run: r }, caseInsensitive(host.platform));
     dirs.push(...all2.filter((e) => e.type === "dir" && e.state === "active"));
   }
-  await host.remove(target, { recursive: true });
+  if (all && paths.shared)
+    for (const r of ids)
+      await host.remove(runDir(data, r), { recursive: true });
+  else
+    await host.remove(target, { recursive: true });
   for (const e of dirs)
-    await setEffectState(host, runDir(root, e.run), e.run, e.id, "undone");
+    await setEffectState(host, runDir(data, e.run), e.run, e.id, "undone");
   lines.push(tr("clean.deleted", { target }));
   return ok(lines.join(`
 `), { target, effects: left, removed: true });
 }, "help.clean");
 defineAction("archive", async (ctx, args) => {
   const { host } = ctx;
-  const root = await requireRepo(host, ctx.cwd);
+  const { repoRoot: root, dataDir: data } = await requirePaths(host, ctx.cwd);
   const id = args.positionals[0] ?? (typeof args.options.run === "string" ? args.options.run : undefined);
   if (!id)
     throw new ToolError(tr("archive.which"), 2);
-  const dir = runDir(root, id);
+  const dir = runDir(data, id);
   if (!await host.stat(dir))
-    throw new ToolError(tr("run.not_in", { run: id, dir: runsDir(root) }));
+    throw new ToolError(tr("run.not_in", { run: id, dir: runsDir(data) }));
   const running = await runningTasks(host, dir);
   if (running.length)
     throw new ToolError(tr("archive.busy", { run: id, tasks: running.join(", ") }));
@@ -8620,11 +9012,11 @@ defineAction("archive", async (ctx, args) => {
 }, "help.archive");
 async function unarchive(ctx, run) {
   const { host } = ctx;
-  const root = await requireRepo(host, ctx.cwd);
+  const { repoRoot: root, dataDir: data } = await requirePaths(host, ctx.cwd);
   const from = archiveDir(host, root, run);
   if (!await host.stat(from))
     throw new ToolError(tr("archive.none", { run, from }));
-  const dir = runDir(root, run);
+  const dir = runDir(data, run);
   if (await host.stat(dir))
     throw new ToolError(tr("archive.already", { run, dir }));
   await moveDir(host, from, dir);
@@ -8730,7 +9122,7 @@ function ownKeys(state, task, platform) {
 async function changedUnder(host, state, keys) {
   const out = [];
   for (const e of await status(host, state.root)) {
-    if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH)
+    if (isDataPath({ inRepo: dataInRepo(state.root, state.data, host.platform) }, e.path, host.platform))
       continue;
     const key = normalizeKey(e.path, state.root, host.platform);
     if (keys.some((k) => covers(k, key)) && !out.includes(e.path))
@@ -9065,9 +9457,10 @@ function awaitingWhat(task) {
 
 // src/actions.ts
 async function resolveRun(ctx, args) {
-  const root = await requireRepo(ctx.host, ctx.cwd);
+  const paths = await requirePaths(ctx.host, ctx.cwd);
+  const root = paths.repoRoot;
   const explicit = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
-  const runs = await listRuns(ctx.host, root);
+  const runs = await repoRuns(ctx, paths);
   let entry = explicit ? runs.find((r) => r.run.id === explicit) : undefined;
   if (explicit && !entry)
     throw new ToolError(tr("run.not_found", { run: explicit }));
@@ -9081,7 +9474,10 @@ async function resolveRun(ctx, args) {
   }
   if (!entry.tasks)
     throw new ToolError(tr("run.no_tasks", { run: entry.run.id }));
-  return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks };
+  return { root, data: paths.dataDir, dir: entry.dir, run: entry.run, tasks: entry.tasks };
+}
+async function repoRuns(ctx, paths) {
+  return listRuns(ctx.host, paths.dataDir, paths.shared ? { root: paths.repoRoot, caseInsensitive: caseInsensitive(ctx.host.platform) } : undefined);
 }
 async function sweptRun(ctx, args) {
   const state = await resolveRun(ctx, args);
@@ -9475,7 +9871,7 @@ async function splitChanges(ctx, state, task, withOthers = true) {
   const out = { inside: [], others: [], outside: [], released: [] };
   const left = withOthers ? await releasedEdits(ctx.host, state) : new Map;
   for (const e of await status(ctx.host, state.root)) {
-    if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH)
+    if (isDataPath({ inRepo: dataInRepo(state.root, state.data, ctx.host.platform) }, e.path, ctx.host.platform))
       continue;
     let list = out.outside;
     if (inPossession(e.path, own, insensitive))
@@ -10616,7 +11012,7 @@ defineAction("resume", async (ctx, args) => {
   lines.push(s.text);
   const releasedData = released.map((r) => ({ id: r.id, to: r.to, ...keptLog(r.kept) }));
   return ok(lines.join(`
-`), { ...s.data, released: releasedData, kept }, { bind: state.run.id });
+`), { ...s.data, released: releasedData, kept }, { bind: state.run.id, bindPaths: { root: state.root, data: state.data } });
 }, "help.resume");
 defineAction("keepalive", async (ctx, args) => {
   const wanted = args.positionals[0];
@@ -10669,7 +11065,7 @@ defineAction("exec", async (ctx, args) => {
   const state = await resolveRun(ctx, args).catch(() => {
     return;
   });
-  const root = state?.root ?? await requireRepo(ctx.host, ctx.cwd);
+  const root = state?.root ?? (await requirePaths(ctx.host, ctx.cwd)).repoRoot;
   const command = argv.join(" ");
   const entry = state ? serializeEntry(state.run.serialize, command) : undefined;
   const full = entry ? [
@@ -10731,7 +11127,7 @@ defineAction("ledger", async (ctx, args) => {
     return ok(lines2.join(`
 `), { effects: all });
   }
-  const root = await requireRepo(ctx.host, ctx.cwd);
+  const root = (await requirePaths(ctx.host, ctx.cwd)).repoRoot;
   const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
   const effects = await effectsOf(ctx.host, { repo: root, run }, insensitive);
   const active = effects.filter((e) => e.state === "active").length;
@@ -10740,16 +11136,17 @@ defineAction("ledger", async (ctx, args) => {
   return ok(lines.join(`
 `), { effects });
 }, "help.ledger");
-function dirtyFiles(entries) {
-  return entries.map((e) => e.path).filter((p) => !p.startsWith(`${SCRATCH}/`) && p !== SCRATCH);
+function dirtyFiles(paths, entries, platform) {
+  return entries.map((e) => e.path).filter((p) => !isDataPath(paths, p, platform));
 }
-async function undoEffect(ctx, root, e, force) {
+async function undoEffect(ctx, paths, e, force) {
   const { host } = ctx;
-  const dir = runDir(root, e.run);
+  const root = paths.repoRoot;
+  const dir = runDir(paths.dataDir, e.run);
   switch (e.undo.kind) {
     case "git-revert": {
       const ref = e.undo.ref ?? e.ref;
-      const dirty = dirtyFiles(await status(host, root));
+      const dirty = dirtyFiles(paths, await status(host, root), host.platform);
       if (dirty.length)
         throw new ToolError(tr("undo.dirty", { id: e.id, files: dirty.join(", ") }));
       if (!await commitExists(host, root, ref))
@@ -10775,7 +11172,7 @@ async function undoEffect(ctx, root, e, force) {
       if (!force && !await isMerged(host, root, branch, base2))
         throw new ToolError(tr("undo.unmerged", { id: e.id, branch, base: base2 }));
       if (await currentBranch(host, root) === branch) {
-        const dirty = dirtyFiles(await status(host, root));
+        const dirty = dirtyFiles(paths, await status(host, root), host.platform);
         if (dirty.length)
           throw new ToolError(tr("undo.branch_dirty", { id: e.id, branch, files: dirty.join(", ") }));
         await gitOk(host, root, ["switch", "-q", base2]);
@@ -10784,7 +11181,7 @@ async function undoEffect(ctx, root, e, force) {
       return tr("undo.branch_removed", { id: e.id, branch, base: base2 });
     }
     case "remove-line": {
-      const others = (await host.list(runsDir(root))).filter((d) => d.kind === "dir" && d.name !== e.run);
+      const others = paths.inRepo === undefined ? [] : (await host.list(runsDir(paths.dataDir))).filter((d) => d.kind === "dir" && d.name !== e.run);
       if (others.length && !force)
         throw new ToolError(tr("undo.exclude_shared", { id: e.id, line: e.line ?? "", runs: others.map((d) => d.name).join(", ") }));
       const removed = await removeExcludeLine(host, root, e.line ?? ".scratch/");
@@ -10838,11 +11235,11 @@ async function patchFile(host, e) {
       return f;
   throw new ToolError(tr("undo.no_patch", { id: e.id, patch: e.patch ?? "" }));
 }
-async function undoMany(ctx, root, effects, force) {
+async function undoMany(ctx, paths, effects, force) {
   const done = [];
   for (const e of [...effects].sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id))) {
     try {
-      done.push(await undoEffect(ctx, root, e, force));
+      done.push(await undoEffect(ctx, paths, e, force));
     } catch (error) {
       if (error instanceof ToolError && done.length)
         throw new ToolError(`${done.join(`
@@ -10850,7 +11247,7 @@ async function undoMany(ctx, root, effects, force) {
 ${tr("undo.stopped", { message: error.message })}`, error.code, { undone: done });
       throw error;
     }
-    await setEffectState(ctx.host, runDir(root, e.run), e.run, e.id, "undone");
+    await setEffectState(ctx.host, runDir(paths.dataDir, e.run), e.run, e.id, "undone");
   }
   return done;
 }
@@ -10879,22 +11276,23 @@ defineAction("undo", async (ctx, args) => {
     const runId2 = typeof args.options.run === "string" ? args.options.run : undefined;
     if (!runId2)
       throw new ToolError(tr("undo.which"), 2);
-    const root = await requireRepo(ctx.host, ctx.cwd);
-    const effects2 = (await effectsOf(ctx.host, { repo: root, run: runId2 }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
+    const paths2 = await requirePaths(ctx.host, ctx.cwd);
+    const effects2 = (await effectsOf(ctx.host, { repo: paths2.repoRoot, run: runId2 }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type));
     if (!effects2.length)
       return ok(tr("undo.run_clean", { run: runId2 }), { undone: [] });
-    const done2 = await undoMany(ctx, root, effects2, force);
+    const done2 = await undoMany(ctx, paths2, effects2, force);
     return ok(`${tr("undo.run_done", { run: runId2 })}
 ${done2.join(`
 `)}`, { undone: done2 });
   }
   const state = await resolveRun(ctx, args);
+  const paths = await requirePaths(ctx.host, ctx.cwd);
   const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active");
   if (id) {
     const e = all.find((x) => x.id === id);
     if (!e)
       throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }));
-    const done2 = await undoMany(ctx, state.root, [e], force);
+    const done2 = await undoMany(ctx, paths, [e], force);
     return ok(done2.join(`
 `), { undone: done2 });
   }
@@ -10904,7 +11302,7 @@ ${done2.join(`
   const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type));
   if (!effects.length)
     throw new ToolError(tr("undo.task_clean", { id: task.id }));
-  const done = await undoMany(ctx, state.root, effects, force);
+  const done = await undoMany(ctx, paths, effects, force);
   const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
     if (x.status === "done") {
       x.status = "pending";
@@ -10926,7 +11324,8 @@ defineAction("effects", async (ctx, args) => {
   if (!args.options.check)
     throw new ToolError(tr("effects.usage"), 2);
   const { host } = ctx;
-  const root = await requireRepo(host, ctx.cwd);
+  const paths = await requirePaths(host, ctx.cwd);
+  const root = paths.repoRoot;
   const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun;
   const effects = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter((e) => e.state === "active");
   const gone = [];
@@ -10946,9 +11345,9 @@ defineAction("effects", async (ctx, args) => {
     else if (e.type === "patch")
       present = !!await host.stat(e.patch) || !!await host.stat(appliedPath(e.patch));
     if (!present) {
-      await setEffectState(host, runDir(root, e.run), e.run, e.id, "gone");
+      await setEffectState(host, runDir(paths.dataDir, e.run), e.run, e.id, "gone");
       gone.push(effectLine({ ...e, state: "gone" }));
-    } else if (e.type !== "dir" && e.type !== "archive" && !await host.stat(runDir(root, e.run)))
+    } else if (e.type !== "dir" && e.type !== "archive" && !await host.stat(runDir(paths.dataDir, e.run)))
       leftovers.push(effectLine(e));
   }
   const lines = [tr("effects.checked", { n: effects.length })];
@@ -11164,13 +11563,13 @@ function isAlert(entry, actor) {
   return entry.to === "failed" && action !== "fail" || FOREIGN.has(action);
 }
 var LOG = "log.jsonl";
-async function logEnd(host, root, run) {
-  return (await host.readText(join(runDir(root, run), LOG)).catch(() => {
+async function logEnd(host, data, run) {
+  return (await host.readText(join(runDir(data, run), LOG)).catch(() => {
     return;
   }) ?? "").length;
 }
-async function readAlerts(host, root, run, offset, actor) {
-  const text = await host.readText(join(runDir(root, run), LOG)).catch(() => {
+async function readAlerts(host, data, run, offset, actor) {
+  const text = await host.readText(join(runDir(data, run), LOG)).catch(() => {
     return;
   }) ?? "";
   if (text.length < offset)
@@ -11205,8 +11604,8 @@ function briefStatus(run, tasks) {
     parts.push(tr("status.failed", { list: failed.map((t) => t.id).join(", ") }));
   return parts.join(" · ");
 }
-async function readBrief(host, root, runId2) {
-  const dir = runDir(root, runId2);
+async function readBrief(host, data, runId2) {
+  const dir = runDir(data, runId2);
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => {
     return;
   }), readTasks(host, dir).catch(() => {
@@ -11400,11 +11799,24 @@ async function classify(host, dir) {
   const git2 = await host.stat(join(dir, ".git"));
   if (git2?.kind === "file")
     return worktreeFinding(host, dir, await host.readText(join(dir, ".git")) ?? "");
-  if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file") {
-    const inRepo = /\/\.scratch\/jtasks\/runs$/i.test(dirname(slash(dir)));
-    return runFinding(host, dir, inRepo ? "run" : "archive");
-  }
+  if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file")
+    return runFinding(host, dir, await isLiveRun(host, dir) ? "run" : "archive");
   return;
+}
+async function isLiveRun(host, dir) {
+  const insensitive = caseInsensitive(host.platform);
+  const same = (a, b) => insensitive ? normalize(a).toLowerCase() === normalize(b).toLowerCase() : normalize(a) === normalize(b);
+  const parent = dirname(slash(dir));
+  const run = await readJson(host, join(dir, "run.json")).catch(() => {
+    return;
+  });
+  const root = run?.repo?.root;
+  const paths = root && await host.stat(root) ? await resolvePaths(host, root).catch(() => {
+    return;
+  }) : undefined;
+  if (paths)
+    return same(parent, runsDir(paths.dataDir));
+  return root ? same(parent, runsDir(legacyDataDir(root))) : false;
 }
 async function scan(host, root, depth = 4) {
   const out = [];
@@ -11512,13 +11924,17 @@ function owned(ctx, rel) {
     return o === "." || covers(o, p);
   });
 }
-var TOOL_FILES = `${SCRATCH}/`;
 function checkEdit(ctx, path) {
+  const abs = isAbsolute(slash(path)) ? normalize(slash(path)) : join(ctx.cwd, slash(path));
+  const data = ctx.data ?? legacyDataDir(ctx.root);
+  const own = relativeInside(data, abs, caseInsensitive(ctx.platform));
+  if (own !== undefined)
+    return { allow: false, reason: tr("guard.run_files", { rel: repoRelative(ctx, abs) ?? abs }) };
   const rel = repoRelative(ctx, slash(path));
   if (rel === undefined)
     return ALLOW;
   const lower = caseInsensitive(ctx.platform) ? rel.toLowerCase() : rel;
-  if (lower.startsWith(TOOL_FILES) || lower === SCRATCH)
+  if (lower.startsWith(`${LEGACY_DATA}/`) || lower === LEGACY_DATA)
     return { allow: false, reason: tr("guard.run_files", { rel }) };
   if (!ctx.task || owned(ctx, rel))
     return ALLOW;
@@ -12115,8 +12531,8 @@ function viewLines(view, options) {
     out.push(lineText(l, options.width));
   return out;
 }
-async function loadView(host, root, run, tool) {
-  const dir = runDir(root, run);
+async function loadView(host, root, data, run, tool) {
+  const dir = runDir(data, run);
   const [runFile, tasks] = await Promise.all([readRun(host, dir).catch(() => {
     return;
   }), readTasks(host, dir).catch(() => {
@@ -12126,13 +12542,13 @@ async function loadView(host, root, run, tool) {
     return;
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => []);
-  const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool);
+  const view = buildView({ root, data, dir, run: runFile, tasks }, locks, host.platform, tool);
   const needs = runFile.status === "paused" ? runFile.needsPerson : undefined;
   const notice = needs ? tr("view.needs_person", { id: needs.task, n: needs.count }) : runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
   return notice ? { ...view, notice } : view;
 }
-async function loadRunsView(host, root) {
-  return runsView(await listRuns(host, root));
+async function loadRunsView(host, paths) {
+  return runsView(await listRuns(host, paths.dataDir, paths.shared ? { root: paths.repoRoot, caseInsensitive: caseInsensitive(host.platform) } : undefined));
 }
 // src/doctor.ts
 var OPENCODE_AGENTS = ["execute", "execute-deep", "review"];
@@ -12210,6 +12626,22 @@ async function checkHome(host) {
   const effects = await readEffects(host, globalLedger(host));
   return { name: "home", status: "ok", detail: tr("doctor.home_ok", { home, n: effects.length }) };
 }
+async function checkData(ctx) {
+  const { host } = ctx;
+  const saved = (await readConfig(host)).dataDir;
+  const setting = saved ? tr("doctor.data_saved", { value: saved }) : tr("doctor.data_unset");
+  const paths = await resolvePaths(host, ctx.cwd).catch(() => {
+    return;
+  });
+  const where = paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : tr("doctor.data_no_repo");
+  const fix = saved ? undefined : tr("doctor.data_fix");
+  if (paths?.container && paths.inRepo !== undefined)
+    return { name: "data", status: "warn", detail: `${where}; ${tr("doctor.data_in_repo")}; ${setting}`, fix: tr("doctor.data_fix") };
+  return fix ? { name: "data", status: "ok", detail: `${where}; ${setting}`, fix } : { name: "data", status: "ok", detail: `${where}; ${setting}` };
+}
+function sourceText(source) {
+  return tr(`data.source.${source}`);
+}
 async function checkOpenCode(host, cwd) {
   const config = join(userHome(host), ".config/opencode");
   if (!await isDir(host, config))
@@ -12276,6 +12708,7 @@ async function runChecks(ctx, lang2) {
     await checkGit(host),
     await checkJlock(host),
     await checkHome(host),
+    await checkData(ctx),
     await checkOpenCode(host, ctx.cwd),
     await checkClaude(host),
     await checkSkills(host),
@@ -12306,7 +12739,7 @@ async function installFile(host, from, to) {
   const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, undo: { kind: "remove-file" } });
   return tr("doctor.file_installed", { file: to, id: e.id });
 }
-async function fixSteps(ctx, checks) {
+async function fixSteps(ctx, checks, args) {
   const { host } = ctx;
   const pkg = ctx.packageRoot;
   const steps = [];
@@ -12325,7 +12758,29 @@ async function fixSteps(ctx, checks) {
       const to = join(m.dir, name);
       steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "skills", m.host, m.skill, name), to) });
     }
+  const value = await dataDirAnswer(ctx, args);
+  if (value)
+    steps.push({
+      what: tr("doctor.step_data", { value, file: configFile(host) }),
+      data: true,
+      run: async () => {
+        await writeConfig(host, { dataDir: value });
+        return tr("config.saved", { value, file: configFile(host) });
+      }
+    });
   return steps;
+}
+async function dataDirAnswer(ctx, args) {
+  const given = typeof args.options["data-dir"] === "string" ? args.options["data-dir"].trim() : undefined;
+  if (given)
+    return given;
+  if (!args.options.yes || !ctx.ask || (await readConfig(ctx.host)).dataDir)
+    return;
+  const answer = (await ctx.ask(`${tr("config.question")}
+> `).catch(() => {
+    return;
+  }))?.trim();
+  return answer || undefined;
 }
 async function installJlock2(ctx) {
   const done = await installJlock(ctx.host, "doctor").catch((error) => {
@@ -12345,14 +12800,18 @@ async function doctor(ctx, args) {
     return { ok: summary.fail === 0, code: summary.fail ? 20 : 0, text, data };
   if (ctx.tool !== "cli" || !ctx.packageRoot)
     throw new ToolError(tr("doctor.fix_cli_only"));
-  const steps = await fixSteps(ctx, checks);
+  const steps = await fixSteps(ctx, checks, args);
+  const question = !(await readConfig(ctx.host)).dataDir && !steps.some((s) => s.data) ? `
+
+${tr("config.question")}
+${tr("doctor.data_fix")}` : "";
   if (!steps.length)
     return ok(`${text}
 
-${tr("doctor.nothing_to_fix")}`, { ...data, fixed: [] });
+${tr("doctor.nothing_to_fix")}${question}`, { ...data, fixed: [] });
   if (!args.options.yes)
-    return ok([text, "", tr("doctor.would"), ...steps.map((s) => `  ${s.what}`), tr("doctor.confirm")].join(`
-`), { ...data, planned: steps.map((s) => s.what) });
+    return ok(`${[text, "", tr("doctor.would"), ...steps.map((s) => `  ${s.what}`), tr("doctor.confirm")].join(`
+`)}${question}`, { ...data, planned: steps.map((s) => s.what) });
   const done = [];
   for (const s of steps)
     done.push(await s.run());
@@ -12361,6 +12820,40 @@ ${tr("doctor.nothing_to_fix")}`, { ...data, fixed: [] });
 `), { ...data, fixed: done, after });
 }
 defineAction("doctor", doctor, "help.doctor");
+defineAction("config", async (ctx, args) => {
+  const { host } = ctx;
+  const [key, value] = args.positionals;
+  const file = configFile(host);
+  if (key === undefined) {
+    const saved = (await readConfig(host)).dataDir;
+    const paths2 = await resolvePaths(host, ctx.cwd).catch(() => {
+      return;
+    });
+    const lines = [
+      saved ? tr("config.show", { value: saved, file }) : tr("config.none", { file }),
+      paths2 ? tr("doctor.data_here", { dir: paths2.dataDir, source: sourceText(paths2.source) }) : tr("doctor.data_no_repo")
+    ];
+    if (!saved)
+      lines.push("", tr("config.question"), tr("doctor.data_fix"));
+    return ok(lines.join(`
+`), { file, dataDir: saved ?? null, resolved: paths2 ?? null });
+  }
+  if (key !== "data-dir")
+    throw new ToolError(tr("config.usage"), 2);
+  if (args.options.unset) {
+    await writeConfig(host, { dataDir: undefined });
+    return ok(tr("config.removed", { file }), { file, dataDir: null });
+  }
+  if (!value?.trim())
+    throw new ToolError(tr("config.usage"), 2);
+  await writeConfig(host, { dataDir: value.trim() });
+  const paths = await resolvePaths(host, ctx.cwd).catch(() => {
+    return;
+  });
+  const here = paths ? `
+${tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) })}` : "";
+  return ok(`${tr("config.saved", { value: value.trim(), file })}${here}`, { file, dataDir: value.trim(), resolved: paths ?? null });
+}, "help.config");
 export {
   yymmdd,
   yieldedKeys,
@@ -12369,6 +12862,7 @@ export {
   writeTasks,
   writeRun,
   writeKeepalive,
+  writeConfig,
   withLock,
   width,
   warningLines,
@@ -12405,6 +12899,7 @@ export {
   stalledNotice,
   splitCommand,
   splitChanges,
+  sourceText,
   slugify,
   slash,
   skillHosts,
@@ -12436,10 +12931,14 @@ export {
   resumeHow,
   resumeAtOf,
   resolveRun,
+  resolvePaths,
+  resolveDataDir,
   resolve,
   resetOf,
   resetJlockSetup,
   requireRepo,
+  requirePaths,
+  repoRuns,
   repoRoot,
   repoRelative,
   renewalNeed,
@@ -12465,6 +12964,7 @@ export {
   readJsonArg,
   readJson,
   readEffects,
+  readConfig,
   readBrief,
   readAlerts,
   protocolText,
@@ -12482,6 +12982,7 @@ export {
   pauseForFailure,
   parseTicket,
   parseTasklist,
+  parseFrontMatter,
   parseDuration,
   parseArgs,
   ownerOf,
@@ -12502,6 +13003,7 @@ export {
   listRuns,
   listDrafts,
   lineText,
+  legacyDataDir,
   leavePause,
   lang,
   kindLabel,
@@ -12524,6 +13026,7 @@ export {
   jlockBin,
   isNameKey,
   isMerged,
+  isDataPath,
   isAlert,
   isAbsolute,
   installedJlock,
@@ -12545,6 +13048,8 @@ export {
   firstConflict,
   findingLine,
   findTask,
+  findContainer,
+  excludeLineOf,
   excludeFile,
   ensureJlock,
   endsWait,
@@ -12561,12 +13066,14 @@ export {
   deliveryLabel,
   deliveryKind,
   defineAction,
+  dataInRepo,
   currentBranch,
   createdText,
   createRun,
   covers,
   counts,
   conflicts,
+  configFile,
   commitReachable,
   commitExists,
   clone,
@@ -12587,7 +13094,9 @@ export {
   buildView,
   briefStatus,
   branchExists,
+  boundData,
   blockerText,
+  bindOf,
   basename,
   barCells,
   bar,
@@ -12616,7 +13125,6 @@ export {
   StaleRevisionError,
   SKILL_FILES,
   SKILLS,
-  SCRATCH,
   RESET_MARGIN_MS,
   RENEW_MARGIN_MS,
   RENEW_JLOCK,
@@ -12626,6 +13134,7 @@ export {
   OPENCODE_AGENTS,
   MIN_JLOCK,
   MAX_AUTO_RESUMES,
+  LEGACY_DATA,
   KIND_TABLE,
   KEEPALIVE_FILE,
   JLOCK,
@@ -12637,6 +13146,7 @@ export {
   DEFAULT_MAX_AGENT_ENDED,
   DEFAULT_KEEPALIVE_TRIES,
   DEFAULT_HOLD_TTL,
+  DEFAULT_CONTAINER_DATA,
   DEFAULT_AWAIT_GRACE,
   CATALOGS,
   BAR_CELLS,

@@ -90,6 +90,8 @@ export declare function clearKeepalive(host: Host, dir: string): Promise<void>;
 export declare function rearmKeepalive(host: Host, dir: string): Promise<void>;
 export interface KeepaliveCheck {
     root: string;
+    /** The data folder of the run (see workspace.ts). */
+    data: string;
     run: string;
     liveAgents: number;
     actor?: string;
@@ -103,10 +105,10 @@ export interface KeepaliveCheck {
 /** Reads the run (files and jlock), decides and, with `commit`, records what the host is about to do. */
 export declare function checkKeepalive(host: Host, check: KeepaliveCheck): Promise<KeepaliveDecision>;
 /** The person interrupted the orchestrator: no message until the run moves (a later end of turn with progress). */
-export declare function holdKeepalive(host: Host, root: string, runId: string): Promise<void>;
+export declare function holdKeepalive(host: Host, data: string, runId: string): Promise<void>;
 /** The keepalive line of `jtasks status`: off, or what the host did for the progress the run is at now. */
 export declare function keepaliveStatus(run: RunFile, tasks: TasksFile, memory: KeepaliveMemory | undefined, maxTries: number): string | undefined;
 /** The line of the sidebar when the host gave up on the progress the run is at now (cleared by any progress). */
 export declare function keepaliveNotice(run: RunFile, tasks: TasksFile, memory: KeepaliveMemory | undefined): string | undefined;
 /** The sidebar's line for a run read now, or undefined when the host has not given up on it as it stands. */
-export declare function stalledNotice(host: Host, root: string, runId: string): Promise<string | undefined>;
+export declare function stalledNotice(host: Host, data: string, runId: string): Promise<string | undefined>;

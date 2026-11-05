@@ -4,6 +4,7 @@
 import { assess, blockerText, waitingOf, waitingText, type RunState } from "./frontier.ts"
 import { counts, progress } from "./format.ts"
 import type { Host } from "./host.ts"
+import { caseInsensitive } from "./paths.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
 import { keepaliveNotice, readKeepalive } from "./keepalive.ts"
 import { pauseViewNotice } from "./transient.ts"
@@ -211,13 +212,13 @@ export function viewLines(view: View, options: { collapsed: boolean; width: numb
 }
 
 /** The view of one run, read now: its files and `jlock list --under <repo>` (the whole machine with `*` in play). */
-export async function loadView(host: Host, root: string, run: string, tool: ToolName): Promise<RunView | undefined> {
-  const dir = runDir(root, run)
+export async function loadView(host: Host, root: string, data: string, run: string, tool: ToolName): Promise<RunView | undefined> {
+  const dir = runDir(data, run)
   const [runFile, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!runFile || !tasks) return undefined
   const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
   const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => [])
-  const view = buildView({ root, dir, run: runFile, tasks }, locks, host.platform, tool)
+  const view = buildView({ root, data, dir, run: runFile, tasks }, locks, host.platform, tool)
   // A run that needs a person (rev. 5.8) says so; a transient pause (rev. 5.7) says why and until when; otherwise a
   // give-up of the keepalive, if any.
   const needs = runFile.status === "paused" ? runFile.needsPerson : undefined
@@ -229,6 +230,7 @@ export async function loadView(host: Host, root: string, run: string, tool: Tool
   return notice ? { ...view, notice } : view
 }
 
-export async function loadRunsView(host: Host, root: string): Promise<RunsView> {
-  return runsView(await listRuns(host, root))
+/** The repository's runs in its data folder (only its own when the folder is shared: see workspace.ts). */
+export async function loadRunsView(host: Host, paths: { repoRoot: string; dataDir: string; shared?: boolean }): Promise<RunsView> {
+  return runsView(await listRuns(host, paths.dataDir, paths.shared ? { root: paths.repoRoot, caseInsensitive: caseInsensitive(host.platform) } : undefined))
 }

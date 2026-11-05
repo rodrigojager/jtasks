@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { readEffects } from "../src/ledger.ts"
-import { cleanupTemp, host, makeRepo, releaseGroup, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, releaseGroup, tasks, tasksOk, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -19,7 +19,7 @@ const plan = [{ id: "T01", title: "Base", files: ["src/a.ts"] }]
 async function newRun(repo = makeRepo(), name = "limpa") {
   const r = await tasksOk(repo, ["plan", "--name", name], { json: plan })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!).replace(/\\/g, "/") }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)).replace(/\\/g, "/") }
 }
 
 const globalEffects = async (run: string) =>

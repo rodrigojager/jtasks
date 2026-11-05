@@ -10,7 +10,7 @@ import { join } from "node:path"
 import type { Effect } from "../src/ledger.ts"
 import type { TasksFile } from "../src/schema.ts"
 import { withLock } from "../src/store.ts"
-import { cleanupTemp, host, makeRepo, releaseGroup, sh, tasks, tasksOk, tempDir, writeFiles } from "./helpers.ts"
+import { cleanupTemp, host, makeRepo, releaseGroup, sh, tasks, tasksOk, tempDir, writeFiles, runPath } from "./helpers.ts"
 
 const runs: string[] = []
 afterAll(async () => {
@@ -28,7 +28,7 @@ async function newRun() {
   const repo = makeRepo("kept", { "src/a.ts": "a\n", "src/c.ts": "c\n", "lib/b.ts": "b\n", "README.md": "# t\n" })
   const r = await tasksOk(repo, ["plan"], { json: plan })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile

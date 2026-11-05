@@ -10,7 +10,7 @@
 
 import { Plugin } from "@opencode/plugin"
 import type { Resident } from "./core/core.js"
-import { awaitBack, deliveryLabel, ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, sweepAwaiting, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
+import { awaitBack, boundData, deliveryLabel, ensureJlock, holdModeFor, parseArgs, pauseForFailure, pauseNotice, readRun, readTasks, renewRun, RENEW_EVERY_MS, resumeIfDue, runDir, runTool, select, splitCommand, sweepAwaiting, systemLocale, tr, VERSION, type Classification, type Host, type Profile, type ToolContext, type ToolResult } from "./core/core.js"
 import { createNodeHost } from "./core/node-host.js"
 import { onSessionEnded } from "./src/agents.ts"
 import { RunAlerts, statusTail } from "./src/alerts.ts"
@@ -80,8 +80,8 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
       const holdMode = await holdModeFor(host).catch(() => "detach" as const)
       const bindings = new Bindings(ctx.storage as unknown as StorageLike, ctx.session as never)
       const fallbackDir = ctx.location.directory as string
-      // The runs this process works on, by run: its repository root and the root sessions bound to it.
-      const working = new Map<string, { root: string; sessions: Set<string> }>()
+      // The runs this process works on, by run: its repository root, its data folder and the root sessions bound to it.
+      const working = new Map<string, { root: string; data?: string; sessions: Set<string> }>()
       // Set once the RPC exists (a give-up repaints the sidebar through its `changed`).
       let keepalive: RootKeepalive | undefined
       // Set once the RPC exists: what a run does without the root session asking (rev. 5.8).
@@ -124,7 +124,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         }
         if (run) tctx.boundRun = run.run
         if (run) {
-          const w = working.get(run.run) ?? { root: run.root, sessions: new Set<string>() }
+          const w = working.get(run.run) ?? { root: run.root, ...(run.data ? { data: run.data } : {}), sessions: new Set<string>() }
           if (!w.sessions.has(tctx.session!)) await alerts?.watch(run, tctx.session!).catch(() => undefined)
           w.sessions.add(tctx.session!)
           working.set(run.run, w)
@@ -133,11 +133,12 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         if (json !== undefined) tctx.json = json
         const result = await runTool(tctx, argv)
         if (result.ok && result.bind) {
-          const data = result.data as { dir?: string; repo?: string } | undefined
-          const dir = data?.dir?.replace(/\\/g, "/")
-          const root = dir ? dir.replace(/\/\.scratch\/jtasks\/runs\/[^/]+$/, "") : (run?.root ?? tctx.cwd)
-          await bindings.bind(sessionID, { run: result.bind, root })
-          const tasks = await readTasks(host, runDir(root, result.bind)).catch(() => undefined)
+          // The tool says where the run is (repository and data folder); a run bound before is kept as it was.
+          const binding = result.bindPaths
+            ? { run: result.bind, root: result.bindPaths.root, data: result.bindPaths.data }
+            : { run: result.bind, root: run?.root ?? tctx.cwd, ...(run?.data ? { data: run.data } : {}) }
+          await bindings.bind(sessionID, binding)
+          const tasks = await readTasks(host, runDir(boundData(binding), result.bind)).catch(() => undefined)
           if (tasks) {
             const missing = await applyModels(tasks.profiles)
             if (missing.length) result.text += `\n${missing.map(([p, a]) => agentMissingLine(p, a)).join("\n")}`
@@ -234,7 +235,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         const task = taskOfPrompt(input.prompt).task
         const resuming = RESUME_FIELDS.some((f) => typeof (input as Record<string, unknown>)[f] === "string")
         if (task && !resuming) {
-          const t = (await readTasks(host, runDir(run.root, run.run)).catch(() => undefined))?.tasks.find((x) => x.id === task)
+          const t = (await readTasks(host, runDir(boundData(run), run.run)).catch(() => undefined))?.tasks.find((x) => x.id === task)
           const child = t?.status === "in_progress" ? /\/agent:([^/]+)$/.exec(t.owner ?? "")?.[1] : undefined
           if (child && (await bindings.task(child))?.task === task) throw new Error(`jtasks: ${tr("spawn.kept_session", { task, agent: child })}`)
         }
@@ -288,7 +289,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
             void onSessionEnded(host, bindings, sessionID, end, (id, command) => call(id, command, undefined), async (task) => {
               // Another idle of a session the pause already kept keeps it still (only its deletion gives it back).
               const run = await bindings.run(sessionID)
-              const file = run && end === "idle" ? await readRun(host, runDir(run.root, run.run)).catch(() => undefined) : undefined
+              const file = run && end === "idle" ? await readRun(host, runDir(boundData(run), run.run)).catch(() => undefined) : undefined
               if (file?.status === "paused" && file.pause?.tasks.some((t) => t.id === task && t.agent === sessionID)) return true
               if (!failures.has(sessionID)) await host.sleep(SETTLE_MS)
               return pauseOn(sessionID, failures.take(sessionID), task)
@@ -321,7 +322,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         resuming = true
         void (async () => {
           for (const [run, w] of working) {
-            const file = await readRun(host, runDir(w.root, run)).catch(() => undefined)
+            const file = await readRun(host, runDir(boundData(w), run)).catch(() => undefined)
             if (file?.status !== "paused" || !file.pause?.resumeAt || Date.parse(file.pause.resumeAt) > host.now().getTime()) continue
             const root = [...w.sessions][0]!
             const left = await resumeIfDue(sessionCtx({ run, root: w.root }, root), run).catch(() => undefined)
@@ -345,7 +346,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         void (async () => {
           const sweep = alertPasses++ % 5 === 0
           for (const [run, w] of working) {
-            const binding = { run, root: w.root }
+            const binding = { run, root: w.root, ...(w.data ? { data: w.data } : {}) }
             if (sweep) await sweepAwaiting(sessionCtx(binding, [...w.sessions][0]!), run).catch(() => [])
             for (const s of w.sessions) await alerts?.check(binding, s).catch(() => undefined)
           }

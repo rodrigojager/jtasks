@@ -2,18 +2,17 @@
 // an incremental `revision` that refuses a write based on a stale read.
 
 import type { Host } from "./host.ts"
-import { join } from "./paths.ts"
+import { join, normalize } from "./paths.ts"
 import type { RunFile, TasksFile } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
-export const SCRATCH = ".scratch/jtasks"
-
-export function runsDir(root: string): string {
-  return join(root, SCRATCH, "runs")
+/** The runs of a data folder (`resolvePaths(...).dataDir`, see workspace.ts). */
+export function runsDir(data: string): string {
+  return join(data, "runs")
 }
 
-export function runDir(root: string, run: string): string {
-  return join(runsDir(root), run)
+export function runDir(data: string, run: string): string {
+  return join(runsDir(data), run)
 }
 
 /** `%USERPROFILE%\.jtasks`, or `JTASKS_HOME`. */
@@ -173,14 +172,19 @@ export interface RunEntry {
   tasks?: TasksFile
 }
 
-/** The runs of the repository: folders with a `run.json` (a draft alone is not a run yet). */
-export async function listRuns(host: Host, root: string): Promise<RunEntry[]> {
+/**
+ * The runs of a data folder: folders with a `run.json` (a draft alone is not a run yet). With `repo`, only that
+ * repository's runs (a data folder several repositories share).
+ */
+export async function listRuns(host: Host, data: string, repo?: { root: string; caseInsensitive: boolean }): Promise<RunEntry[]> {
   const out: RunEntry[] = []
-  for (const entry of await host.list(runsDir(root))) {
+  const norm = (p: string) => (repo?.caseInsensitive ? normalize(p).toLowerCase() : normalize(p))
+  for (const entry of await host.list(runsDir(data))) {
     if (entry.kind !== "dir") continue
-    const dir = join(runsDir(root), entry.name)
+    const dir = join(runsDir(data), entry.name)
     const run = await readRun(host, dir).catch(() => undefined)
     if (!run) continue
+    if (repo && run.repo?.root && norm(run.repo.root) !== norm(repo.root)) continue
     out.push({ dir, run, tasks: await readTasks(host, dir).catch(() => undefined) })
   }
   return out.sort((a, b) => a.run.created.localeCompare(b.run.created) || a.run.id.localeCompare(b.run.id))

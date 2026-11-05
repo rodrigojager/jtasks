@@ -4,13 +4,13 @@
 
 import { afterAll, describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { agentEnded, awaitBack, sweepAwaiting } from "../src/actions.ts"
 import { alertNotice, alertText, logEnd, readAlerts } from "../src/alerts.ts"
 import { checkKeepalive } from "../src/keepalive.ts"
 import { parseTasklist, probe, procAlive } from "../src/procs.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
-import { cleanupTemp, context, host, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, context, host, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, runPath, dataPath } from "./helpers.ts"
 
 const runs: string[] = []
 const children: { kill(): void }[] = []
@@ -25,7 +25,7 @@ async function newRun(extra: Record<string, unknown> = {}) {
   const repo = makeRepo("await", { "src/a.ts": "a\n", "lib/b.ts": "b\n", "README.md": "# t\n" })
   const r = await tasksOk(repo, ["plan"], { json: { ...extra, tasks: [{ id: "T01", title: "Base", files: ["src"] }, { id: "T02", title: "Lib", files: ["lib/b.ts"] }] } })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)) }
 }
 
 const tasksOf = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
@@ -236,7 +236,7 @@ describe("the end of a subagent", () => {
     const orchestrator = { tool: "claude" as const, session: "s1" }
     await tasksOk(repo, ["start", "T01"], orchestrator)
     await tasksOk(repo, ["start", "T02"], orchestrator)
-    const keepalive = () => checkKeepalive(host, { root: repo, run, liveAgents: 0, actor: "claude:s1" })
+    const keepalive = () => checkKeepalive(host, { root: repo, data: dirname(dirname(dir)), run, liveAgents: 0, actor: "claude:s1" })
     // Before: both in progress with nobody on them, as far as the keepalive can tell.
     const idle = await keepalive()
     expect(idle.action === "nudge" && idle.orphans).toEqual(["T01", "T02"])
@@ -257,7 +257,7 @@ describe("the end of a subagent", () => {
     child.kill()
     second.kill()
     await Promise.all([child.exited, second.exited])
-    const offset = await logEnd(host, repo, run)
+    const offset = await logEnd(host, await dataPath(repo), run)
     expect(await sweepAwaiting(ctx, run)).toEqual([{ task: "T01", what: "ended" }])
     // The wait is simply over: still in progress, still the orchestrator's, its locks kept, nothing spent.
     expect(t01(dir)).toMatchObject({ status: "in_progress", owner: "claude:s1", attempts: 1 })
@@ -265,7 +265,7 @@ describe("the end of a subagent", () => {
     expect(t01(dir).agentEnded).toBeUndefined()
     expect(heldBy(run, "T01").length).toBeGreaterThan(0)
     // The orchestrator hears of it at once, told to continue the task itself.
-    const alerts = await readAlerts(host, repo, run, offset, "claude:s1")
+    const alerts = await readAlerts(host, await dataPath(repo), run, offset, "claude:s1")
     expect(alerts.entries).toMatchObject([{ action: "await-ended", task: "T01", inline: true, pids: [child.pid, second.pid] }])
     const text = alertText(runOf(dir), tasksOf(dir), alerts.entries, "claude")
     expect(text).toContain(`T01: the process you waited for (pid ${child.pid}, ${second.pid}) ended. You run T01 yourself`)

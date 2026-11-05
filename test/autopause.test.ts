@@ -7,7 +7,7 @@ import { join } from "node:path"
 import { pauseForFailure, resumeIfDue } from "../src/autopause.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
 import { classifyFailure } from "../src/transient.ts"
-import { cleanupTemp, context, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, context, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, runPath } from "./helpers.ts"
 
 setDefaultTimeout(60_000)
 
@@ -27,7 +27,7 @@ async function newRun() {
   const repo = makeRepo()
   const r = await tasksOk(repo, ["plan"], { json: { tasks: plan } })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile

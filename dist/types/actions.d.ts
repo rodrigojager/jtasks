@@ -4,9 +4,12 @@ import type { Resident } from "./host.js";
 import { type HoldMode, type HoldOutcome, type Identity } from "./jlock.js";
 import { type ReapplyReport } from "./keep.js";
 import { type Awaiting, type RunFile, type Task, type TasksFile } from "./schema.js";
+import { type RepoPaths } from "./workspace.js";
 import { type ParsedArgs, type ToolContext } from "./tool.js";
 /** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
 export declare function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState>;
+/** The repository's runs in its data folder (only its own when other repositories share the folder). */
+export declare function repoRuns(ctx: ToolContext, paths: RepoPaths): Promise<import("./store.ts").RunEntry[]>;
 /** Re-reads run.json and tasks.json (inside the write lock, before deciding). */
 export declare function reload(ctx: ToolContext, state: RunState): Promise<RunState>;
 export declare function findTask(state: RunState, id: string | undefined): Task;

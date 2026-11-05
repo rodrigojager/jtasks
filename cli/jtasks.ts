@@ -2,6 +2,7 @@
 // The `jtasks` CLI: the core's tool on the terminal, with the Node host.
 
 import { join } from "node:path"
+import { createInterface } from "node:readline/promises"
 import { runTool } from "../src/index.ts"
 import { createNodeHost } from "../src/node-host.ts"
 
@@ -19,6 +20,18 @@ const result = await runTool(
     packageRoot: join(import.meta.dir, "..").replace(/\\/g, "/"),
     boundRun: process.env.JTASKS_RUN || undefined,
     stdin: async () => await new Response(Bun.stdin.stream()).text(),
+    // A question (`doctor --fix --yes` asks where run data goes) only on a terminal: scripts and agents never block.
+    ask:
+      process.stdin.isTTY && process.stdout.isTTY
+        ? async (question) => {
+            const rl = createInterface({ input: process.stdin, output: process.stdout })
+            try {
+              return await rl.question(question)
+            } finally {
+              rl.close()
+            }
+          }
+        : undefined,
   },
   argv,
 )

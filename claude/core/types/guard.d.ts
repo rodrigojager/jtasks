@@ -9,6 +9,8 @@ export type Verdict = {
 export interface GuardContext {
     /** The repository root. */
     root: string;
+    /** The run's data folder (see workspace.ts); absent, the legacy `<root>/.scratch/jtasks`. */
+    data?: string;
     platform: string;
     /** Where relative paths and commands are resolved from. */
     cwd: string;

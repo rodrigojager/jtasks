@@ -5,7 +5,7 @@
 // an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person. Unless `kept` says the
 // session died on a transient failure and the run was paused with the task kept (rev. 5.7).
 
-import { readTasks, runDir, type Host, type ToolResult } from "../core/core.js"
+import { boundData, readTasks, runDir, type Host, type ToolResult } from "../core/core.js"
 import type { Bindings } from "./binding.ts"
 
 export type SessionEnd = "idle" | "deleted"
@@ -28,7 +28,7 @@ export async function onSessionEnded(
   if (!bound) return undefined
   const run = await bindings.run(sessionID)
   if (!run || run.run !== bound.run) return undefined
-  const tasks = await readTasks(host, runDir(run.root, run.run)).catch(() => undefined)
+  const tasks = await readTasks(host, runDir(boundData(run), run.run)).catch(() => undefined)
   const task = tasks?.tasks.find((t) => t.id === bound.task)
   if (!task || task.status !== "in_progress" || !task.owner?.endsWith(`/agent:${sessionID}`)) return undefined
   if (kept && (await kept(task.id).catch(() => false))) return undefined

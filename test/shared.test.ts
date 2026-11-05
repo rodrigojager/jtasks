@@ -5,7 +5,7 @@ import { afterAll, describe, expect, test } from "bun:test"
 import { appendFileSync } from "node:fs"
 import { join } from "node:path"
 import { validatePlan } from "../src/validate.ts"
-import { cleanupTemp, makeRepo, releaseGroup, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, makeRepo, releaseGroup, tasks, tasksOk, runPath } from "./helpers.ts"
 
 const runs: string[] = []
 afterAll(async () => {
@@ -57,7 +57,7 @@ describe("shared files in the plan", () => {
     expect(v.text).toContain("ok: 3 tarefa(s), nenhum erro\n1 aviso(s):\n- T01 e T02 tocam o arquivo compartilhado src/manifests.ts")
     const p = await tasksOk(repo, ["plan"], { json: { ...base, sharedPolicy: "serialize" } })
     runs.push(p.bind!)
-    const run = JSON.parse(await Bun.file(join(repo, ".scratch/jtasks/runs", p.bind!, "run.json")).text())
+    const run = JSON.parse(await Bun.file((await runPath(repo, p.bind!, "run.json"))).text())
     expect(run).toMatchObject({ shared: ["src/manifests.ts", "src/run/types.ts"], sharedPolicy: "serialize" })
   })
 })
@@ -95,7 +95,7 @@ describe("status --claims", () => {
     const repo = makeRepo()
     const p = await tasksOk(repo, ["plan"], { json: base })
     runs.push(p.bind!)
-    const dir = join(repo, ".scratch/jtasks/runs", p.bind!)
+    const dir = (await runPath(repo, p.bind!))
     const key = (f: string) => join(repo, f).replace(/\\/g, "/")
     const at = new Date().toISOString()
     const lines = [

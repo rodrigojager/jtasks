@@ -9,18 +9,18 @@ import { type LogEntry } from "./store.js";
  */
 export declare function isAlert(entry: LogEntry, actor: string): boolean;
 /** Where a host starts reading a run's log: its end now (what happened before is not news). */
-export declare function logEnd(host: Host, root: string, run: string): Promise<number>;
+export declare function logEnd(host: Host, data: string, run: string): Promise<number>;
 export interface AlertRead {
     entries: LogEntry[];
     /** Where the next read starts. */
     offset: number;
 }
 /** The whole lines of the run's log written since `offset` that the orchestrator `actor` must hear about. */
-export declare function readAlerts(host: Host, root: string, run: string, offset: number, actor: string): Promise<AlertRead>;
+export declare function readAlerts(host: Host, data: string, run: string, offset: number, actor: string): Promise<AlertRead>;
 /** One line of what the run is now, in the person's language: progress, pause, what runs (and waits), what failed. */
 export declare function briefStatus(run: RunFile, tasks: TasksFile): string;
 /** The status line of a run read now (files only, no jlock), or undefined when its files are gone. */
-export declare function readBrief(host: Host, root: string, runId: string): Promise<string | undefined>;
+export declare function readBrief(host: Host, data: string, runId: string): Promise<string | undefined>;
 /** What one entry tells the orchestrator (English, for the model). */
 export declare function alertLine(e: LogEntry, tasks: Task[], tool: string | undefined, grace: string): string;
 /**

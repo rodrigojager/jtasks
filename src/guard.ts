@@ -5,7 +5,7 @@
 import { covers } from "./keys.ts"
 import { caseInsensitive, isAbsolute, join, normalize, relativeInside, slash } from "./paths.ts"
 import type { Task } from "./schema.ts"
-import { SCRATCH } from "./store.ts"
+import { LEGACY_DATA, legacyDataDir } from "./workspace.ts"
 import { tr } from "./i18n.ts"
 
 export type Verdict = { allow: true } | { allow: false; reason: string }
@@ -15,6 +15,8 @@ const ALLOW: Verdict = { allow: true }
 export interface GuardContext {
   /** The repository root. */
   root: string
+  /** The run's data folder (see workspace.ts); absent, the legacy `<root>/.scratch/jtasks`. */
+  data?: string
   platform: string
   /** Where relative paths and commands are resolved from. */
   cwd: string
@@ -41,14 +43,18 @@ function owned(ctx: GuardContext, rel: string): boolean {
   })
 }
 
-const TOOL_FILES = `${SCRATCH}/`
-
 /** An edit (Edit, Write, NotebookEdit, OpenCode's edit/write/patch) of one path. */
 export function checkEdit(ctx: GuardContext, path: string): Verdict {
+  const abs = isAbsolute(slash(path)) ? normalize(slash(path)) : join(ctx.cwd, slash(path))
+  // The run's own files, wherever the data folder is (inside the repository or out of it).
+  const data = ctx.data ?? legacyDataDir(ctx.root)
+  const own = relativeInside(data, abs, caseInsensitive(ctx.platform))
+  if (own !== undefined) return { allow: false, reason: tr("guard.run_files", { rel: repoRelative(ctx, abs) ?? abs }) }
   const rel = repoRelative(ctx, slash(path))
   if (rel === undefined) return ALLOW
   const lower = caseInsensitive(ctx.platform) ? rel.toLowerCase() : rel
-  if (lower.startsWith(TOOL_FILES) || lower === SCRATCH)
+  // Legacy data: nothing under `.scratch/` is code.
+  if (lower.startsWith(`${LEGACY_DATA}/`) || lower === LEGACY_DATA)
     return { allow: false, reason: tr("guard.run_files", { rel }) }
   if (!ctx.task || owned(ctx, rel)) return ALLOW
   return { allow: false, reason: tr("guard.outside", { id: ctx.task.id, rel }) }

@@ -9,6 +9,7 @@ export * from "./ids.js";
 export * from "./store.js";
 export * from "./format.js";
 export * from "./git.js";
+export * from "./workspace.js";
 export * from "./ledger.js";
 export * from "./tickets.js";
 export * from "./plan.js";

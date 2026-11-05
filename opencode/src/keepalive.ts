@@ -4,7 +4,7 @@
 // line in the sidebar and a toast in the TUI (the view's `notice`, through the RPC's `changed`), also at once after a
 // failed execution (nothing is sent then). Never after an interrupted execution (quiet until the run moves).
 
-import { checkKeepalive, holdKeepalive, type Host, type KeepaliveDecision } from "../core/core.js"
+import { boundData, checkKeepalive, holdKeepalive, type Host, type KeepaliveDecision } from "../core/core.js"
 import type { Bindings } from "./binding.ts"
 
 export type Outcome = "succeeded" | "failed" | "interrupted"
@@ -96,7 +96,7 @@ export class RootKeepalive {
     if (since !== undefined && this.host.now().getTime() - since < PENDING_MS) return undefined
     const outcome = this.outcome.get(root)
     if (outcome === "interrupted") {
-      await holdKeepalive(this.host, run.root, run.run)
+      await holdKeepalive(this.host, boundData(run), run.run)
       return undefined
     }
     // A transient failure of the root itself (rev. 5.7): the run is paused, the keepalive stays quiet.
@@ -107,7 +107,7 @@ export class RootKeepalive {
     const liveAgents = [...this.children.values()].filter((r) => r === root).length
     // A failed execution: nothing is sent (it could fail the same way), but the sidebar says it at once.
     const cause = outcome === "failed" ? { cause: "error" as const } : {}
-    const decision = await checkKeepalive(this.host, { root: run.root, run: run.run, liveAgents, actor: `opencode:${root}`, commit: true, ...cause })
+    const decision = await checkKeepalive(this.host, { root: run.root, data: boundData(run), run: run.run, liveAgents, actor: `opencode:${root}`, commit: true, ...cause })
     if (decision.action === "nudge") {
       this.pending.set(root, this.host.now().getTime())
       await this.sink.send(root, decision.text).catch((error) => {

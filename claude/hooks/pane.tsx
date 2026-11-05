@@ -1,7 +1,7 @@
 // The "Tasks" pane: the bound run's checklist and bar (the core's view model, the same the OpenCode sidebar draws),
 // folded to one line by its header button. The view is kept in $.state, so writing it redraws the pane.
 
-import { barCells, headerText, lineText, loadRunsView, loadView, repoRoot, summaryTail, tr, type View } from '../core/core.js'
+import { barCells, boundData, headerText, lineText, loadRunsView, loadView, resolvePaths, summaryTail, tr, type View } from '../core/core.js'
 import type { PaneView } from '../types'
 import type { ViewLine } from '../core/types/view.js'
 import { createModHost, type Port } from './mod-host.ts'
@@ -15,11 +15,12 @@ export async function computeView(p: Port): Promise<PaneView> {
   const host = createModHost(p, cwd)
   const bound = await p.getRun()
   if (bound) {
-    const v = await loadView(host, bound.root, bound.run, 'claude')
+    const v = await loadView(host, bound.root, boundData(bound), bound.run, 'claude')
     if (v) return v as PaneView
   }
-  const root = await repoRoot(host, cwd)
-  return (root ? await loadRunsView(host, root) : { kind: 'runs', runs: [] }) as PaneView
+  // The session's folder may be the repository or a jproject container around it (core's workspace.ts).
+  const paths = await resolvePaths(host, cwd)
+  return (paths ? await loadRunsView(host, paths) : { kind: 'runs', runs: [] }) as PaneView
 }
 
 /**

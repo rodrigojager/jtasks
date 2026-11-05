@@ -13,7 +13,7 @@ import { readEffects, recordEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, nextPatchNumber, patchRel, restoreFile, writePatch } from "./patches.ts"
 import { basename, caseInsensitive, join, slash } from "./paths.ts"
 import type { SavedPatch, Task } from "./schema.ts"
-import { SCRATCH } from "./store.ts"
+import { dataInRepo, isDataPath } from "./workspace.ts"
 
 const HOLDING = new Set(["start", "claim", "renew", "retake", "reclaim"])
 
@@ -68,7 +68,7 @@ export function ownKeys(state: RunState, task: Task, platform: string): string[]
 export async function changedUnder(host: Host, state: RunState, keys: string[]): Promise<string[]> {
   const out: string[] = []
   for (const e of await gitStatus(host, state.root)) {
-    if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH) continue
+    if (isDataPath({ inRepo: dataInRepo(state.root, state.data, host.platform) }, e.path, host.platform)) continue
     const key = normalizeKey(e.path, state.root, host.platform)
     if (keys.some((k) => covers(k, key)) && !out.includes(e.path)) out.push(e.path)
   }

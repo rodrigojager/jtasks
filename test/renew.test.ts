@@ -5,7 +5,7 @@ import type { Resident } from "../src/host.ts"
 import { earliestExpiry, renewRun, renewMargin, ttlMs } from "../src/renew.ts"
 import { takenSince } from "../src/keep.ts"
 import type { TasksFile } from "../src/schema.ts"
-import { cleanupTemp, context, foreignHold, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, tempDir, writeFiles } from "./helpers.ts"
+import { cleanupTemp, context, foreignHold, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, tempDir, writeFiles, runPath } from "./helpers.ts"
 
 // Real git and jlock processes, and holds that expire in seconds.
 setDefaultTimeout(60_000)
@@ -26,7 +26,7 @@ async function newRun(holdTtl: string, extra: object = {}) {
   const repo = makeRepo()
   const r = await tasksOk(repo, ["plan"], { json: { tasks: plan, holdTtl }, ...extra })
   runs.push(r.bind!)
-  return { repo, run: r.bind!, dir: join(repo, ".scratch/jtasks/runs", r.bind!) }
+  return { repo, run: r.bind!, dir: (await runPath(repo, r.bind!)) }
 }
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile

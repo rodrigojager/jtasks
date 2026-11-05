@@ -5,7 +5,8 @@ import { git } from "./git.ts"
 import type { Host } from "./host.ts"
 import { recordGlobalEffect } from "./ledger.ts"
 import { caseInsensitive, dirname, isAbsolute, join, normalize, slash } from "./paths.ts"
-import { readJson } from "./store.ts"
+import { readJson, runsDir } from "./store.ts"
+import { legacyDataDir, resolvePaths } from "./workspace.ts"
 import type { RunFile } from "./schema.ts"
 import { defineAction, ok, ToolError, type ToolContext } from "./tool.ts"
 import { tr } from "./i18n.ts"
@@ -114,11 +115,25 @@ async function runFinding(host: Host, dir: string, type: "run" | "archive"): Pro
 export async function classify(host: Host, dir: string): Promise<Finding | undefined> {
   const git = await host.stat(join(dir, ".git"))
   if (git?.kind === "file") return worktreeFinding(host, dir, (await host.readText(join(dir, ".git"))) ?? "")
-  if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file") {
-    const inRepo = /\/\.scratch\/jtasks\/runs$/i.test(dirname(slash(dir)))
-    return runFinding(host, dir, inRepo ? "run" : "archive")
-  }
+  if ((await host.stat(join(dir, "run.json")))?.kind === "file" && (await host.stat(join(dir, "tasks.json")))?.kind === "file")
+    return runFinding(host, dir, (await isLiveRun(host, dir)) ? "run" : "archive")
   return undefined
+}
+
+/**
+ * Whether a run folder sits where its repository keeps its runs now: `runs/` of the data folder resolved for the
+ * repository its run.json names (see workspace.ts), not a guess from the path. A folder elsewhere (an archive in
+ * JTASKS_HOME, a copy) is an archive; a run whose repository is gone is judged by the legacy layout.
+ */
+async function isLiveRun(host: Host, dir: string): Promise<boolean> {
+  const insensitive = caseInsensitive(host.platform)
+  const same = (a: string, b: string) => (insensitive ? normalize(a).toLowerCase() === normalize(b).toLowerCase() : normalize(a) === normalize(b))
+  const parent = dirname(slash(dir))
+  const run = await readJson<RunFile>(host, join(dir, "run.json")).catch(() => undefined)
+  const root = run?.repo?.root
+  const paths = root && (await host.stat(root)) ? await resolvePaths(host, root).catch(() => undefined) : undefined
+  if (paths) return same(parent, runsDir(paths.dataDir))
+  return root ? same(parent, runsDir(legacyDataDir(root))) : false
 }
 
 /** Walks `root` read-only, at most `depth` folders down, never into links, node_modules or .git. */

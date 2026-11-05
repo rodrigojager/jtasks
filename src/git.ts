@@ -3,7 +3,6 @@
 import type { Host, RunResult } from "./host.ts"
 import { isAbsolute, join, slash } from "./paths.ts"
 import { ToolError } from "./tool.ts"
-import { tr } from "./i18n.ts"
 
 export async function git(host: Host, cwd: string, args: string[], stdin?: string): Promise<RunResult> {
   return host.run(["git", ...args], { cwd, stdin, env: { GIT_TERMINAL_PROMPT: "0", GIT_EDITOR: "true" } })
@@ -16,17 +15,11 @@ export async function gitOk(host: Host, cwd: string, args: string[], stdin?: str
   return r.stdout
 }
 
-/** The repository's root, or `undefined` outside a git repository. */
+/** `cwd`'s own git repository root, or `undefined` outside one (a jproject container: see `resolvePaths`). */
 export async function repoRoot(host: Host, cwd: string): Promise<string | undefined> {
   const r = await git(host, cwd, ["rev-parse", "--show-toplevel"])
   if (r.code !== 0) return undefined
   return slash(r.stdout.trim())
-}
-
-export async function requireRepo(host: Host, cwd: string): Promise<string> {
-  const root = await repoRoot(host, cwd)
-  if (!root) throw new ToolError(tr("git.not_a_repo", { cwd }))
-  return root
 }
 
 /** The current branch name, or `undefined` with a detached HEAD. Works before the first commit. */

@@ -228,6 +228,8 @@ export async function rearmKeepalive(host: Host, dir: string): Promise<void> {
 
 export interface KeepaliveCheck {
   root: string
+  /** The data folder of the run (see workspace.ts). */
+  data: string
   run: string
   liveAgents: number
   actor?: string
@@ -241,10 +243,10 @@ export interface KeepaliveCheck {
 
 /** Reads the run (files and jlock), decides and, with `commit`, records what the host is about to do. */
 export async function checkKeepalive(host: Host, check: KeepaliveCheck): Promise<KeepaliveDecision> {
-  const dir = runDir(check.root, check.run)
+  const dir = runDir(check.data, check.run)
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!run || !tasks) return { action: "none", reason: "finished" }
-  const state: RunState = { root: check.root, dir, run, tasks }
+  const state: RunState = { root: check.root, data: check.data, dir, run, tasks }
   // Cheap answers first, with no jlock call: paused, finished, off, agents alive, or nothing ready even with every
   // lock free (locks only take ready tasks away).
   const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 })
@@ -272,8 +274,8 @@ export async function checkKeepalive(host: Host, check: KeepaliveCheck): Promise
 }
 
 /** The person interrupted the orchestrator: no message until the run moves (a later end of turn with progress). */
-export async function holdKeepalive(host: Host, root: string, runId: string): Promise<void> {
-  const dir = runDir(root, runId)
+export async function holdKeepalive(host: Host, data: string, runId: string): Promise<void> {
+  const dir = runDir(data, runId)
   const tasks = await readTasks(host, dir).catch(() => undefined)
   if (!tasks) return
   await writeKeepalive(host, dir, { signature: progressSignature(tasks), action: "held", tries: 0, at: host.now().toISOString() })
@@ -299,8 +301,8 @@ export function keepaliveNotice(run: RunFile, tasks: TasksFile, memory: Keepaliv
 }
 
 /** The sidebar's line for a run read now, or undefined when the host has not given up on it as it stands. */
-export async function stalledNotice(host: Host, root: string, runId: string): Promise<string | undefined> {
-  const dir = runDir(root, runId)
+export async function stalledNotice(host: Host, data: string, runId: string): Promise<string | undefined> {
+  const dir = runDir(data, runId)
   const [run, tasks, memory] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined), readKeepalive(host, dir)])
   return run && tasks ? keepaliveNotice(run, tasks, memory) : undefined
 }

@@ -3,7 +3,8 @@
 // even on failure). `jtasks doctor --fix` lists what it would install; `--fix --yes` installs it: jlock through its
 // official installer, the OpenCode agents and the skills of the three agents, each file recorded in the global
 // ledger so `jtasks undo <g-id>` removes it (every command also installs a missing jlock by itself: setup.ts). It never overwrites a file that differs, never touches PATH, and never
-// installs the mod or the plugin.
+// installs the mod or the plugin. The `data` check says where run data goes for the current folder, and `--fix` asks
+// for the data folder (`--data-dir <path>`, or a question on a terminal) and saves it in JTASKS_HOME/config.json.
 
 import { choose, systemLocale, tr } from "./i18n.ts"
 import type { Host } from "./host.ts"
@@ -13,6 +14,7 @@ import { dirname, join } from "./paths.ts"
 import { installJlock as installJlockWith, jlockInstallPath, userHome } from "./setup.ts"
 import { jtasksHome } from "./store.ts"
 import { defineAction, ok, ToolError, VERSION, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
+import { configFile, readConfig, resolvePaths, writeConfig, type DataSource } from "./workspace.ts"
 
 export type CheckStatus = "ok" | "warn" | "fail"
 
@@ -107,6 +109,25 @@ async function checkHome(host: Host): Promise<Check> {
   return { name: "home", status: "ok", detail: tr("doctor.home_ok", { home, n: effects.length }) }
 }
 
+/** Where run data goes for the current folder, and the saved setting (`jtasks config data-dir`). */
+async function checkData(ctx: ToolContext): Promise<Check> {
+  const { host } = ctx
+  const saved = (await readConfig(host)).dataDir
+  const setting = saved ? tr("doctor.data_saved", { value: saved }) : tr("doctor.data_unset")
+  const paths = await resolvePaths(host, ctx.cwd).catch(() => undefined)
+  const where = paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : tr("doctor.data_no_repo")
+  const fix = saved ? undefined : tr("doctor.data_fix")
+  // A jproject container whose run data would land inside product/: what the container is meant to avoid.
+  if (paths?.container && paths.inRepo !== undefined)
+    return { name: "data", status: "warn", detail: `${where}; ${tr("doctor.data_in_repo")}; ${setting}`, fix: tr("doctor.data_fix") }
+  return fix ? { name: "data", status: "ok", detail: `${where}; ${setting}`, fix } : { name: "data", status: "ok", detail: `${where}; ${setting}` }
+}
+
+/** Which rule chose the data folder, in words. */
+export function sourceText(source: DataSource): string {
+  return tr(`data.source.${source}`)
+}
+
 /** The OpenCode agents of the default profiles: in the user's agents folder, the project's, or opencode.json. */
 async function checkOpenCode(host: Host, cwd: string): Promise<Check> {
   const config = join(userHome(host), ".config/opencode")
@@ -174,6 +195,7 @@ export async function runChecks(ctx: ToolContext, lang: string | undefined): Pro
     await checkGit(host),
     await checkJlock(host),
     await checkHome(host),
+    await checkData(ctx),
     await checkOpenCode(host, ctx.cwd),
     await checkClaude(host),
     await checkSkills(host),
@@ -199,6 +221,8 @@ interface FixStep {
   /** One line for the list. */
   what: string
   run: () => Promise<string>
+  /** The step that saves the data folder. */
+  data?: boolean
 }
 
 /** Copies one file of the package to `to`, recording it in the global ledger; an existing file is never replaced. */
@@ -212,7 +236,7 @@ async function installFile(host: Host, from: string, to: string): Promise<string
   return tr("doctor.file_installed", { file: to, id: e.id })
 }
 
-async function fixSteps(ctx: ToolContext, checks: Check[]): Promise<FixStep[]> {
+async function fixSteps(ctx: ToolContext, checks: Check[], args: ParsedArgs): Promise<FixStep[]> {
   const { host } = ctx
   const pkg = ctx.packageRoot!
   const steps: FixStep[] = []
@@ -230,7 +254,29 @@ async function fixSteps(ctx: ToolContext, checks: Check[]): Promise<FixStep[]> {
       const to = join(m.dir, name)
       steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "skills", m.host, m.skill, name), to) })
     }
+  const value = await dataDirAnswer(ctx, args)
+  if (value)
+    steps.push({
+      what: tr("doctor.step_data", { value, file: configFile(host) }),
+      data: true,
+      run: async () => {
+        await writeConfig(host, { dataDir: value })
+        return tr("config.saved", { value, file: configFile(host) })
+      },
+    })
   return steps
+}
+
+/**
+ * The data folder `--fix` saves: `--data-dir <path>`, or, with `--yes`, none saved yet and the CLI on a terminal, the
+ * answer to the question (empty: nothing saved). Never asks without a terminal: the doctor stays scriptable.
+ */
+async function dataDirAnswer(ctx: ToolContext, args: ParsedArgs): Promise<string | undefined> {
+  const given = typeof args.options["data-dir"] === "string" ? args.options["data-dir"].trim() : undefined
+  if (given) return given
+  if (!args.options.yes || !ctx.ask || (await readConfig(ctx.host)).dataDir) return undefined
+  const answer = (await ctx.ask(`${tr("config.question")}\n> `).catch(() => undefined))?.trim()
+  return answer || undefined
 }
 
 /** jlock through its official installer (setup.ts), recorded in the global ledger. */
@@ -250,9 +296,11 @@ async function doctor(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const text = checksText(checks)
   if (!args.options.fix) return { ok: summary.fail === 0, code: summary.fail ? 20 : 0, text, data }
   if (ctx.tool !== "cli" || !ctx.packageRoot) throw new ToolError(tr("doctor.fix_cli_only"))
-  const steps = await fixSteps(ctx, checks)
-  if (!steps.length) return ok(`${text}\n\n${tr("doctor.nothing_to_fix")}`, { ...data, fixed: [] })
-  if (!args.options.yes) return ok([text, "", tr("doctor.would"), ...steps.map((s) => `  ${s.what}`), tr("doctor.confirm")].join("\n"), { ...data, planned: steps.map((s) => s.what) })
+  const steps = await fixSteps(ctx, checks, args)
+  // No answer about the data folder and none saved: the question, so the person knows it can be set.
+  const question = !(await readConfig(ctx.host)).dataDir && !steps.some((s) => s.data) ? `\n\n${tr("config.question")}\n${tr("doctor.data_fix")}` : ""
+  if (!steps.length) return ok(`${text}\n\n${tr("doctor.nothing_to_fix")}${question}`, { ...data, fixed: [] })
+  if (!args.options.yes) return ok(`${[text, "", tr("doctor.would"), ...steps.map((s) => `  ${s.what}`), tr("doctor.confirm")].join("\n")}${question}`, { ...data, planned: steps.map((s) => s.what) })
   const done: string[] = []
   for (const s of steps) done.push(await s.run())
   const after = await runChecks(ctx, lang)
@@ -260,3 +308,34 @@ async function doctor(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
 }
 
 defineAction("doctor", doctor, "help.doctor")
+
+// `jtasks config`: the settings in JTASKS_HOME/config.json. Today one: where run data goes (`data-dir`).
+defineAction(
+  "config",
+  async (ctx, args) => {
+    const { host } = ctx
+    const [key, value] = args.positionals
+    const file = configFile(host)
+    if (key === undefined) {
+      const saved = (await readConfig(host)).dataDir
+      const paths = await resolvePaths(host, ctx.cwd).catch(() => undefined)
+      const lines = [
+        saved ? tr("config.show", { value: saved, file }) : tr("config.none", { file }),
+        paths ? tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) }) : tr("doctor.data_no_repo"),
+      ]
+      if (!saved) lines.push("", tr("config.question"), tr("doctor.data_fix"))
+      return ok(lines.join("\n"), { file, dataDir: saved ?? null, resolved: paths ?? null })
+    }
+    if (key !== "data-dir") throw new ToolError(tr("config.usage"), 2)
+    if (args.options.unset) {
+      await writeConfig(host, { dataDir: undefined })
+      return ok(tr("config.removed", { file }), { file, dataDir: null })
+    }
+    if (!value?.trim()) throw new ToolError(tr("config.usage"), 2)
+    await writeConfig(host, { dataDir: value.trim() })
+    const paths = await resolvePaths(host, ctx.cwd).catch(() => undefined)
+    const here = paths ? `\n${tr("doctor.data_here", { dir: paths.dataDir, source: sourceText(paths.source) })}` : ""
+    return ok(`${tr("config.saved", { value: value.trim(), file })}${here}`, { file, dataDir: value.trim(), resolved: paths ?? null })
+  },
+  "help.config",
+)

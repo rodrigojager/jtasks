@@ -20,11 +20,11 @@ const checksOf = (r: { data?: unknown }) => (r.data as { checks: Check[] }).chec
 const check = (r: { data?: unknown }, name: string) => checksOf(r).find((c) => c.name === name)!
 
 describe("jtasks doctor", () => {
-  test("a healthy machine: eight checks in order, none failing, exit 0, the same in --json", async () => {
+  test("a healthy machine: nine checks in order, none failing, exit 0, the same in --json", async () => {
     const repo = makeRepo()
     const home = tempDir("user-home")
     const r = await doctor(repo, { JTASKS_USER_HOME: home })
-    expect(checksOf(r).map((c) => c.name)).toEqual(["version", "git", "jlock", "home", "opencode", "claude", "skills", "language"])
+    expect(checksOf(r).map((c) => c.name)).toEqual(["version", "git", "jlock", "home", "data", "opencode", "claude", "skills", "language"])
     expect(checksOf(r).filter((c) => c.status === "fail")).toEqual([])
     expect(r.code).toBe(0)
     expect(check(r, "version").detail).toMatch(/^jtasks \d+\.\d+\.\d+ · bun \d/)

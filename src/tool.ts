@@ -30,6 +30,8 @@ export interface ToolContext {
   json?: unknown
   /** Standard input of the CLI, for a `-` argument. */
   stdin?: () => Promise<string>
+  /** Asks the person one question and answers the line typed (the CLI on a terminal only; absent elsewhere). */
+  ask?: (question: string) => Promise<string | undefined>
   /** The subagent calling, when the host knows it (owner becomes `<tool>:<session>/agent:<id>`). */
   agent?: string
   /**
@@ -56,6 +58,11 @@ export interface ToolResult {
   data?: unknown
   /** Set when the action binds a run to the session (`plan`, `resume`). */
   bind?: string
+  /**
+   * With `bind`: the run's repository root and data folder (see workspace.ts), which the mod and the plugin keep
+   * with the binding instead of deducing one from the other.
+   */
+  bindPaths?: { root: string; data: string }
 }
 
 export class ToolError extends Error {
@@ -93,6 +100,7 @@ const BOOLEAN_FLAGS = new Set([
   "agent-ended",
   "fresh",
   "claims",
+  "unset",
 ])
 
 /** Flags that take a value when one follows, and are a plain flag otherwise. */

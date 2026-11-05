@@ -12,7 +12,6 @@ import {
   hasExcludeLine,
   isMerged,
   removeExcludeLine,
-  requireRepo,
   shortHead,
   status as gitStatus,
 } from "./git.ts"
@@ -68,7 +67,8 @@ import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
 import { DEFAULT_AWAIT_GRACE, DEFAULT_HOLD_TTL, DEFAULT_MAX_AGENT_ENDED, type Awaiting, type Hold, type RunFile, type Task, type TaskProcess, type TasksFile, type Yielded } from "./schema.ts"
-import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, SCRATCH, withLock, writeRun, writeTasks } from "./store.ts"
+import { appendLog, clone, jtasksHome, listRuns, readRun, readTasks, runDir, runsDir, withLock, writeRun, writeTasks } from "./store.ts"
+import { dataInRepo, isDataPath, requirePaths, type RepoPaths } from "./workspace.ts"
 import { ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { normalizeFileEntry } from "./validate.ts"
@@ -78,9 +78,10 @@ import { tr } from "./i18n.ts"
 
 /** `--run`, else the run bound to the session (or JTASKS_RUN), else the only active run of the repository. */
 export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<RunState> {
-  const root = await requireRepo(ctx.host, ctx.cwd)
+  const paths = await requirePaths(ctx.host, ctx.cwd)
+  const root = paths.repoRoot
   const explicit = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
-  const runs = await listRuns(ctx.host, root)
+  const runs = await repoRuns(ctx, paths)
   let entry = explicit ? runs.find((r) => r.run.id === explicit) : undefined
   if (explicit && !entry) throw new ToolError(tr("run.not_found", { run: explicit }))
   if (!entry) {
@@ -92,7 +93,12 @@ export async function resolveRun(ctx: ToolContext, args: ParsedArgs): Promise<Ru
     if (!entry) throw new ToolError(tr("run.none"))
   }
   if (!entry.tasks) throw new ToolError(tr("run.no_tasks", { run: entry.run.id }))
-  return { root, dir: entry.dir, run: entry.run, tasks: entry.tasks }
+  return { root, data: paths.dataDir, dir: entry.dir, run: entry.run, tasks: entry.tasks }
+}
+
+/** The repository's runs in its data folder (only its own when other repositories share the folder). */
+export async function repoRuns(ctx: ToolContext, paths: RepoPaths) {
+  return listRuns(ctx.host, paths.dataDir, paths.shared ? { root: paths.repoRoot, caseInsensitive: caseInsensitive(ctx.host.platform) } : undefined)
 }
 
 /** The run of a command, after a pass over its tasks waiting for a process (rev. 5.8): `next` and `status`. */
@@ -551,7 +557,7 @@ export async function splitChanges(ctx: ToolContext, state: RunState, task: Task
   const out: TreeSplit = { inside: [], others: [], outside: [], released: [] }
   const left = withOthers ? await releasedEdits(ctx.host, state) : new Map<string, string>()
   for (const e of await gitStatus(ctx.host, state.root)) {
-    if (e.path.startsWith(`${SCRATCH}/`) || e.path === SCRATCH) continue
+    if (isDataPath({ inRepo: dataInRepo(state.root, state.data, ctx.host.platform) }, e.path, ctx.host.platform)) continue
     let list = out.outside
     if (inPossession(e.path, own, insensitive)) list = out.inside
     else if (inPossession(e.path, otherOwn, insensitive)) list = out.others
@@ -1830,7 +1836,7 @@ defineAction(
     const s = await statusOf(ctx, state)
     lines.push(s.text)
     const releasedData = released.map((r) => ({ id: r.id, to: r.to, ...keptLog(r.kept) }))
-    return ok(lines.join("\n"), { ...s.data, released: releasedData, kept }, { bind: state.run.id })
+    return ok(lines.join("\n"), { ...s.data, released: releasedData, kept }, { bind: state.run.id, bindPaths: { root: state.root, data: state.data } })
   },
   "help.resume",
 )
@@ -1898,7 +1904,7 @@ defineAction(
     const argv = args.positionals
     if (!argv.length) throw new ToolError(tr("exec.no_command"), 2)
     const state = await resolveRun(ctx, args).catch(() => undefined)
-    const root = state?.root ?? (await requireRepo(ctx.host, ctx.cwd))
+    const root = state?.root ?? (await requirePaths(ctx.host, ctx.cwd)).repoRoot
     const command = argv.join(" ")
     const entry = state ? serializeEntry(state.run.serialize, command) : undefined
     const full = entry
@@ -1967,7 +1973,7 @@ defineAction(
       }
       return ok(lines.join("\n"), { effects: all })
     }
-    const root = await requireRepo(ctx.host, ctx.cwd)
+    const root = (await requirePaths(ctx.host, ctx.cwd)).repoRoot
     const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
     const effects = await effectsOf(ctx.host, { repo: root, run }, insensitive)
     const active = effects.filter((e) => e.state === "active").length
@@ -1978,18 +1984,19 @@ defineAction(
   "help.ledger",
 )
 
-function dirtyFiles(entries: { path: string }[]): string[] {
-  return entries.map((e) => e.path).filter((p) => !p.startsWith(`${SCRATCH}/`) && p !== SCRATCH)
+function dirtyFiles(paths: RepoPaths, entries: { path: string }[], platform: string): string[] {
+  return entries.map((e) => e.path).filter((p) => !isDataPath(paths, p, platform))
 }
 
 /** Undoes one effect (or refuses with a ToolError, changing nothing). Returns what was done. */
-async function undoEffect(ctx: ToolContext, root: string, e: Effect, force: boolean): Promise<string> {
+async function undoEffect(ctx: ToolContext, paths: RepoPaths, e: Effect, force: boolean): Promise<string> {
   const { host } = ctx
-  const dir = runDir(root, e.run)
+  const root = paths.repoRoot
+  const dir = runDir(paths.dataDir, e.run)
   switch (e.undo.kind) {
     case "git-revert": {
       const ref = e.undo.ref ?? e.ref!
-      const dirty = dirtyFiles(await gitStatus(host, root))
+      const dirty = dirtyFiles(paths, await gitStatus(host, root), host.platform)
       if (dirty.length) throw new ToolError(tr("undo.dirty", { id: e.id, files: dirty.join(", ") }))
       if (!(await commitExists(host, root, ref))) throw new ToolError(tr("undo.no_commit", { id: e.id, ref }))
       const r = await git(host, root, ["revert", "--no-edit", ref])
@@ -2011,7 +2018,7 @@ async function undoEffect(ctx: ToolContext, root: string, e: Effect, force: bool
       if (!force && !(await isMerged(host, root, branch, base)))
         throw new ToolError(tr("undo.unmerged", { id: e.id, branch, base }))
       if ((await currentBranch(host, root)) === branch) {
-        const dirty = dirtyFiles(await gitStatus(host, root))
+        const dirty = dirtyFiles(paths, await gitStatus(host, root), host.platform)
         if (dirty.length) throw new ToolError(tr("undo.branch_dirty", { id: e.id, branch, files: dirty.join(", ") }))
         await gitOk(host, root, ["switch", "-q", base])
       }
@@ -2019,7 +2026,8 @@ async function undoEffect(ctx: ToolContext, root: string, e: Effect, force: bool
       return tr("undo.branch_removed", { id: e.id, branch, base })
     }
     case "remove-line": {
-      const others = (await host.list(runsDir(root))).filter((d) => d.kind === "dir" && d.name !== e.run)
+      // Only a legacy run (its data inside the repository) added the line; the other runs there still need it.
+      const others = paths.inRepo === undefined ? [] : (await host.list(runsDir(paths.dataDir))).filter((d) => d.kind === "dir" && d.name !== e.run)
       if (others.length && !force)
         throw new ToolError(tr("undo.exclude_shared", { id: e.id, line: e.line ?? "", runs: others.map((d) => d.name).join(", ") }))
       const removed = await removeExcludeLine(host, root, e.line ?? ".scratch/")
@@ -2067,17 +2075,17 @@ async function patchFile(host: ToolContext["host"], e: Effect): Promise<string> 
 }
 
 /** Undoes effects newest first; stops at the first refusal, saying what was already undone. */
-async function undoMany(ctx: ToolContext, root: string, effects: Effect[], force: boolean) {
+async function undoMany(ctx: ToolContext, paths: RepoPaths, effects: Effect[], force: boolean) {
   const done: string[] = []
   for (const e of [...effects].sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id))) {
     try {
-      done.push(await undoEffect(ctx, root, e, force))
+      done.push(await undoEffect(ctx, paths, e, force))
     } catch (error) {
       if (error instanceof ToolError && done.length)
         throw new ToolError(`${done.join("\n")}\n${tr("undo.stopped", { message: error.message })}`, error.code, { undone: done })
       throw error
     }
-    await setEffectState(ctx.host, runDir(root, e.run), e.run, e.id, "undone")
+    await setEffectState(ctx.host, runDir(paths.dataDir, e.run), e.run, e.id, "undone")
   }
   return done
 }
@@ -2106,26 +2114,27 @@ defineAction(
     if (!id && !taskId) {
       const runId = typeof args.options.run === "string" ? args.options.run : undefined
       if (!runId) throw new ToolError(tr("undo.which"), 2)
-      const root = await requireRepo(ctx.host, ctx.cwd)
+      const paths = await requirePaths(ctx.host, ctx.cwd)
       // Moving an edit between the tree and a patch is undone one by one only (undo <e-id>).
-      const effects = (await effectsOf(ctx.host, { repo: root, run: runId }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type))
+      const effects = (await effectsOf(ctx.host, { repo: paths.repoRoot, run: runId }, insensitive)).filter((e) => e.state === "active" && !PATCH_MOVES.includes(e.type))
       if (!effects.length) return ok(tr("undo.run_clean", { run: runId }), { undone: [] })
-      const done = await undoMany(ctx, root, effects, force)
+      const done = await undoMany(ctx, paths, effects, force)
       return ok(`${tr("undo.run_done", { run: runId })}\n${done.join("\n")}`, { undone: done })
     }
     const state = await resolveRun(ctx, args)
+    const paths = await requirePaths(ctx.host, ctx.cwd)
     const all = (await effectsOf(ctx.host, { repo: state.root, run: state.run.id }, insensitive)).filter((e) => e.state === "active")
     if (id) {
       const e = all.find((x) => x.id === id)
       if (!e) throw new ToolError(tr("undo.no_effect", { id, run: state.run.id }))
-      const done = await undoMany(ctx, state.root, [e], force)
+      const done = await undoMany(ctx, paths, [e], force)
       return ok(done.join("\n"), { undone: done })
     }
     const task = findTask(state, taskId)
     if (task.status === "in_progress") throw new ToolError(tr("undo.task_running", { id: task.id }))
     const effects = all.filter((e) => e.task === task.id && !e.reverts && e.type !== "patch" && !PATCH_MOVES.includes(e.type))
     if (!effects.length) throw new ToolError(tr("undo.task_clean", { id: task.id }))
-    const done = await undoMany(ctx, state.root, effects, force)
+    const done = await undoMany(ctx, paths, effects, force)
     const t = await transition(ctx, { ...args, positionals: [task.id] }, "undo", (x) => {
       if (x.status === "done") {
         x.status = "pending"
@@ -2147,7 +2156,8 @@ defineAction(
   async (ctx, args) => {
     if (!args.options.check) throw new ToolError(tr("effects.usage"), 2)
     const { host } = ctx
-    const root = await requireRepo(host, ctx.cwd)
+    const paths = await requirePaths(host, ctx.cwd)
+    const root = paths.repoRoot
     const run = typeof args.options.run === "string" ? args.options.run : ctx.boundRun
     const effects = (await effectsOf(host, { repo: root, run }, caseInsensitive(host.platform))).filter((e) => e.state === "active")
     const gone: string[] = []
@@ -2161,9 +2171,9 @@ defineAction(
       else if (e.type === "archive") present = !!(await host.stat(e.to!))
       else if (e.type === "patch") present = !!(await host.stat(e.patch!)) || !!(await host.stat(appliedPath(e.patch!)))
       if (!present) {
-        await setEffectState(host, runDir(root, e.run), e.run, e.id, "gone")
+        await setEffectState(host, runDir(paths.dataDir, e.run), e.run, e.id, "gone")
         gone.push(effectLine({ ...e, state: "gone" }))
-      } else if (e.type !== "dir" && e.type !== "archive" && !(await host.stat(runDir(root, e.run)))) leftovers.push(effectLine(e))
+      } else if (e.type !== "dir" && e.type !== "archive" && !(await host.stat(runDir(paths.dataDir, e.run)))) leftovers.push(effectLine(e))
     }
     const lines = [tr("effects.checked", { n: effects.length })]
     lines.push(gone.length ? `${tr("effects.gone")}\n${gone.map((l) => `  ${l}`).join("\n")}` : tr("effects.none_gone"))

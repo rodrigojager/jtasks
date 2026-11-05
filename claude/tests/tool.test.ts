@@ -52,12 +52,35 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(m.read(`${ROOT}/.git/info/exclude`)).toBe('.scratch/\n')
     expect(m.list(`${ROOT}/.scratch/jtasks/runs/${run}/tickets`)).toEqual(['01-base.md', '02-junta.md'])
 
-    expect(states).toEqual([expect.objectContaining({ plugin: 'jtasks', key: 'run', value: { run, root: ROOT } })])
+    expect(states).toEqual([expect.objectContaining({ plugin: 'jtasks', key: 'run', value: { run, root: ROOT, data: `${ROOT}/.scratch/jtasks` } })])
 
     const status = await call($, 'status')
     expect(status.split('\n')[0]).toBe('feitas 0/2 (0%) · restam 2')
     expect(status).toContain('prontas: T01')
     expect(await call($, 'status --run outra-261024-zzzz')).toBe(`esta sessão está ligada à execução ${run}; --run outra-261024-zzzz é recusado`)
+  })
+
+  test(`opened in a jproject container: the run goes to the container's work folder, nothing into product/ · ${os}`, async ($, on) => {
+    const BOX = ROOT.replace(/repo$/, 'box')
+    const PRODUCT = `${BOX}/product`
+    const m = installMachine(on, PRODUCT)
+    installSession(on, BOX)
+    m.write(`${BOX}/_work/WORKSPACE.md`, '---\njproject: 1\nproduct_dir: product\nwork_dir: _work\njtasks_data: _work/30-plan/jtasks\n---\n')
+    const states: unknown[] = []
+    on('state.set', (_$, e, next) => {
+      if (e.key === 'run') states.push(e)
+      return next(e)
+    })
+    await $.session.start({ cwd: BOX, surface: 'terminal', isInteractive: true })
+
+    const run = /execução (\S+) criada/.exec(await call($, 'plan', PLAN))![1]!
+    const data = `${BOX}/_work/30-plan/jtasks`
+    expect(JSON.parse(m.read(`${data}/runs/${run}/tasks.json`)!).tasks.map((t: { id: string }) => t.id)).toEqual(['T01', 'T02'])
+    expect(m.list(`${data}/runs/${run}/tickets`)).toEqual(['01-base.md', '02-junta.md'])
+    expect(m.exists(`${PRODUCT}/.scratch`)).toBe(false)
+    expect(m.read(`${PRODUCT}/.git/info/exclude`)).toBeUndefined()
+    expect(states).toEqual([expect.objectContaining({ plugin: 'jtasks', key: 'run', value: { run, root: PRODUCT, data } })])
+    expect((await call($, 'status')).split('\n')[0]).toBe('feitas 0/2 (0%) · restam 2')
   })
 
   test(`the protocol section is in the system prompt only while a run is bound · ${os}`, async ($, on) => {

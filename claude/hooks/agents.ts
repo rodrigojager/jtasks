@@ -3,7 +3,7 @@
 // reads) and the profile's effort on every model request of its loop; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
 // Bash, run through `jlock run` (one at a time on the machine).
 
-import { readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr, taskOfPrompt } from '../core/core.js'
+import { boundData, readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr, taskOfPrompt } from '../core/core.js'
 import type { BoundRun } from '../types'
 
 // `--run <id>` and `--task <id>` in a prompt: the core reads them (a placeholder such as `<id>` names no task).
@@ -31,7 +31,7 @@ export async function spawnDecision(host: Host, bound: BoundRun, prompt: string)
   const { run, task } = taskOfPrompt(prompt)
   if (!task) return {}
   if (run && run !== bound.run) return { error: tr('spawn.other_run', { run, bound: bound.run }) }
-  const tasks = await readTasks(host, runDir(bound.root, bound.run)).catch(() => undefined)
+  const tasks = await readTasks(host, runDir(boundData(bound), bound.run)).catch(() => undefined)
   const t = tasks?.tasks.find((x) => x.id === task)
   if (!tasks || !t) return { error: tr('task.not_found', { run: bound.run, id: task }) }
   const profile = tasks.profiles[t.profile]
@@ -53,7 +53,7 @@ function quote(text: string): string {
 
 /** The command a subagent's Bash runs: through `jlock run` when it falls under the run's `serialize`. */
 export async function serializedCommand(host: Host, bound: BoundRun, command: string, owner: string): Promise<string | undefined> {
-  const run = await readRun(host, runDir(bound.root, bound.run)).catch(() => undefined)
+  const run = await readRun(host, runDir(boundData(bound), bound.run)).catch(() => undefined)
   const entry = run ? serializeEntry(run.serialize, command) : undefined
   if (!entry) return undefined
   const key = serializeKey(bound.root, entry)

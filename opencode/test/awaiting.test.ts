@@ -8,7 +8,7 @@ import { afterAll, describe, expect, setDefaultTimeout, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { TasksRpc } from "../src/rpc.ts"
-import { cleanupTemp, fakeHost, makeRepo, sh } from "./fake-host.ts"
+import { cleanupTemp, fakeHost, makeRepo, runPath, sh } from "./fake-host.ts"
 
 setDefaultTimeout(60_000)
 
@@ -32,7 +32,7 @@ async function setup(plan: Record<string, unknown> = {}) {
   if (h.cleanup) cleanups.push(h.cleanup)
   const planned = await h.call("s1", "plan", { ...plan, tasks: [{ id: "T01", title: "Base", files: ["src/a.ts"] }, { id: "T02", title: "Depois", files: ["src/b.ts"], dependsOn: ["T01"] }] })
   const run = /execução (\S+) criada/.exec(planned.text)![1]!
-  const dir = join(repo, ".scratch/jtasks/runs", run)
+  const dir = await runPath(repo, run)
   const alerts: { run: string; notice: string }[] = []
   h.rpcClient(TasksRpc).events.on("alert", (e: { data: unknown }) => void alerts.push(e.data as { run: string; notice: string }))
   h.addSession("c1", "s1")

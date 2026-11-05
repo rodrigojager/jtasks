@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { TasksFile } from "../src/schema.ts"
-import { cleanupTemp, makeRepo, tasks, tasksOk } from "./helpers.ts"
+import { cleanupTemp, makeRepo, runPath, tasks, tasksOk } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -22,8 +22,7 @@ const batch2 = [
 ]
 const batch3 = [{ id: "T05", title: "Final", dependsOn: ["T04"], files: ["src/c.ts"], acceptance: ["ok"] }]
 
-const runDir = (repo: string, id: string) => join(repo, ".scratch/jtasks/runs", id)
-const tasksJson = (repo: string, id: string) => JSON.parse(readFileSync(join(runDir(repo, id), "tasks.json"), "utf8")) as TasksFile
+const tasksJson = async (repo: string, id: string) => JSON.parse(readFileSync(await runPath(repo, id, "tasks.json"), "utf8")) as TasksFile
 
 describe("plan in batches", () => {
   test("three batches with cross dependencies pass at --commit; the draft is not a run and disappears", async () => {
@@ -31,7 +30,7 @@ describe("plan in batches", () => {
     const opened = await tasksOk(repo, ["plan", "--draft", "--name", "lotes"])
     const id = (opened.data as { draft: string }).draft
     expect(id).toMatch(/^lotes-\d{6}-[a-z0-9]{4}$/)
-    expect(existsSync(join(runDir(repo, id), "draft.json"))).toBe(true)
+    expect(existsSync(await runPath(repo, id, "draft.json"))).toBe(true)
 
     expect((await tasksOk(repo, ["plan", "--add"], { json: batch1 })).text).toContain("lote aceito: 2 tarefa(s) (T01, T02)")
     // T03 depends on T05, which only arrives in the third batch: fine inside a batch.
@@ -53,9 +52,9 @@ describe("plan in batches", () => {
 
     const committed = await tasksOk(repo, ["plan", "--commit"])
     expect(committed.bind).toBe(id)
-    expect(existsSync(join(runDir(repo, id), "draft.json"))).toBe(false)
-    expect(existsSync(join(runDir(repo, id), "run.json"))).toBe(true)
-    expect(tasksJson(repo, id).tasks.map((t) => t.id)).toEqual(["T01", "T02", "T03", "T04", "T05"])
+    expect(existsSync(await runPath(repo, id, "draft.json"))).toBe(false)
+    expect(existsSync(await runPath(repo, id, "run.json"))).toBe(true)
+    expect((await tasksJson(repo, id)).tasks.map((t) => t.id)).toEqual(["T01", "T02", "T03", "T04", "T05"])
     expect((await tasksOk(repo, ["runs"])).text).toContain(`${id} · active · 0/5 (0%) · Lotes`)
   })
 
@@ -122,6 +121,6 @@ describe("plan in batches", () => {
     await tasksOk(b, ["plan", "--add"], { json: batch3 })
     const batched = await tasksOk(b, ["plan", "--commit"])
     const strip = (t: TasksFile) => ({ ...t, run: "" })
-    expect(strip(tasksJson(b, batched.bind!))).toEqual(strip(tasksJson(a, single.bind!)))
+    expect(strip(await tasksJson(b, batched.bind!))).toEqual(strip(await tasksJson(a, single.bind!)))
   })
 })

@@ -6,7 +6,7 @@
 // not reopen a child session when its process ends, so the message about that names the session to resume
 // (`task_id`). And the result of every subagent call carries the run's status line read at its end.
 
-import { alertNotice, alertText, logEnd, readAlerts, readBrief, readRun, readTasks, runDir, type Host } from "../core/core.js"
+import { boundData, alertNotice, alertText, logEnd, readAlerts, readBrief, readRun, readTasks, runDir, type Host } from "../core/core.js"
 
 export interface AlertSink {
   /** Sends the message to a root session (a synthetic input that resumes it); absent when the host has no such call. */
@@ -28,7 +28,7 @@ export class RunAlerts {
   async watch(run: { run: string; root: string }, session: string): Promise<void> {
     const key = `${run.run}|${session}`
     if (this.offsets.has(key)) return
-    this.offsets.set(key, await logEnd(this.host, run.root, run.run))
+    this.offsets.set(key, await logEnd(this.host, boundData(run), run.run))
   }
 
   /** New transitions for one root session: one message to it and one notice for the person. Answers the message. */
@@ -39,10 +39,10 @@ export class RunAlerts {
       await this.watch(run, session)
       return undefined
     }
-    const read = await readAlerts(this.host, run.root, run.run, offset, `opencode:${session}`)
+    const read = await readAlerts(this.host, boundData(run), run.run, offset, `opencode:${session}`)
     this.offsets.set(key, read.offset)
     if (!read.entries.length) return undefined
-    const dir = runDir(run.root, run.run)
+    const dir = runDir(boundData(run), run.run)
     const [file, tasks] = await Promise.all([readRun(this.host, dir).catch(() => undefined), readTasks(this.host, dir).catch(() => undefined)])
     if (!file || !tasks) return undefined
     const text = alertText(file, tasks, read.entries, "opencode")
@@ -56,6 +56,6 @@ export class RunAlerts {
 
 /** The status line appended to a subagent call's result (English frame, the tool's words inside). */
 export async function statusTail(host: Host, run: { run: string; root: string }): Promise<string | undefined> {
-  const brief = await readBrief(host, run.root, run.run).catch(() => undefined)
+  const brief = await readBrief(host, boundData(run), run.run).catch(() => undefined)
   return brief ? `\n\njtasks status of run ${run.run}, read now from tasks.json: ${brief}` : undefined
 }

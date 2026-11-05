@@ -1,7 +1,7 @@
 // What the model reads about jtasks in Claude Code: the tool's description and the protocol section of the
 // system prompt while a run is bound (the protocol text itself is the core's, shared with OpenCode).
 
-import { pauseProtocolLine, progressLine, protocolText, readRun, readTasks, runDir, tr, VERSION, type Host } from '../core/core.js'
+import { boundData, pauseProtocolLine, progressLine, protocolText, readRun, readTasks, runDir, tr, VERSION, type Host } from '../core/core.js'
 import type { BoundRun } from '../types'
 
 export const TOOL_NAME = 'jtasks'
@@ -29,7 +29,7 @@ const SPAWN = "the Agent tool; the prompt starts with --run and --task, and the 
 
 /** The protocol section for a bound run, or undefined when its files are gone. */
 export async function protocolSection(host: Host, bound: BoundRun): Promise<string | undefined> {
-  const dir = runDir(bound.root, bound.run)
+  const dir = runDir(boundData(bound), bound.run)
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!run || !tasks) return undefined
   const summary = run.status === 'paused' ? `${tr('status.paused')} · ${progressLine(tasks.tasks)}` : progressLine(tasks.tasks)

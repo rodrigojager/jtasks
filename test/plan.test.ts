@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { readEffects } from "../src/ledger.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
 import { StaleRevisionError, mutateTasks, readTasks, writeTasks } from "../src/store.ts"
-import { CLI, cleanupTemp, host, makeRepo, sh, tasks, tasksOk, tempDir } from "./helpers.ts"
+import { CLI, cleanupTemp, host, makeRepo, sh, tasks, tasksOk, tempDir, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -32,7 +32,7 @@ describe("jtasks plan", () => {
     const id = (r.data as { run: string }).run
     expect(id).toMatch(/^cursory-nativo-\d{6}-[a-z0-9]{4}$/)
     expect(r.bind).toBe(id)
-    const dir = join(repo, ".scratch/jtasks/runs", id)
+    const dir = (await runPath(repo, id))
 
     const run = json(join(dir, "run.json")) as RunFile
     expect(run).toMatchObject({
@@ -111,9 +111,9 @@ describe("jtasks plan", () => {
     const r = await tasksOk(repo, ["plan"], { json: { ...plan, branch: "current" } })
     const id = (r.data as { run: string }).run
     expect(branches(repo)).toEqual(["main"])
-    const run = json(join(repo, ".scratch/jtasks/runs", id, "run.json")) as RunFile
+    const run = json((await runPath(repo, id, "run.json"))) as RunFile
     expect(run.repo.branch).toBe("main")
-    const effects = await readEffects(host, join(repo, ".scratch/jtasks/runs", id, "ledger.jsonl"))
+    const effects = await readEffects(host, (await runPath(repo, id, "ledger.jsonl")))
     expect(effects.map((e) => e.type)).toEqual(["dir", "exclude"])
   })
 
@@ -139,7 +139,7 @@ describe("atomic writes and revision", () => {
   test("a write based on a stale revision is refused; concurrent read-change-writes both land under the write lock", async () => {
     const repo = makeRepo()
     const r = await tasksOk(repo, ["plan"], { json: { ...plan, branch: "current" } })
-    const dir = join(repo, ".scratch/jtasks/runs", (r.data as { run: string }).run).replace(/\\/g, "/")
+    const dir = (await runPath(repo, (r.data as { run: string }).run)).replace(/\\/g, "/")
     const first = (await readTasks(host, dir))!
     const second = structuredClone(first)
     second.tasks[0]!.title = "mudado"
