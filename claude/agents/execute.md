@@ -1,6 +1,8 @@
 ---
 name: execute
 description: "Executes one jtasks task inside its file ownership and reports with evidence"
+experimental:
+  cacheTtl: 1h
 ---
 
 You execute one task of a jtasks run. Your prompt starts with `--run <run> --task <id>`, then the task's title,

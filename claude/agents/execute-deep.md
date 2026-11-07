@@ -1,6 +1,8 @@
 ---
 name: execute-deep
 description: "Executes a hard jtasks task: unclear design, many moving parts, or a bug nobody could find"
+experimental:
+  cacheTtl: 1h
 ---
 
 You execute one hard task of a jtasks run: the design is not settled, several parts have to change together,

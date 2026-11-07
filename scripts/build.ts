@@ -6,7 +6,8 @@
 // - the skills of every agent, skills/<agent>/<skill>/, from one source each in skills/source/<skill>/ (the same
 //   text, the host's way of calling the tool), and the Claude Code ones again inside the mod (claude/skills/);
 // - the mod's agents, claude/agents/<name>.md, from the OpenCode ones (opencode/agents/): the same text, Claude Code's
-//   frontmatter (`name`, `description`), so the mod ships them as jtasks:<name>.
+//   frontmatter (`name`, `description`, and the Claude-only fields of `claudeFrontmatter`), so the mod ships them
+//   as jtasks:<name>.
 // `bun scripts/build.ts --check` only reports which generated files differ from a fresh build.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -200,6 +201,16 @@ function skills(): Bundle[] {
   return out
 }
 
+/**
+ * Frontmatter only Claude Code reads, per agent. The executors keep their prompt cache for an hour: a subagent's
+ * default is 5 minutes, and an executor that waits longer than that between two calls (a build, a test run, a
+ * paused task) would write its whole context again.
+ */
+const claudeFrontmatter: Record<string, string> = {
+  "execute.md": "experimental:\n  cacheTtl: 1h\n",
+  "execute-deep.md": "experimental:\n  cacheTtl: 1h\n",
+}
+
 /** claude/agents/<name>.md from opencode/agents/<name>.md: the body as it is, the frontmatter Claude Code's. */
 function agents(): Bundle[] {
   const source = join(root, "opencode/agents")
@@ -211,7 +222,7 @@ function agents(): Bundle[] {
       const [, front, body] = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(raw) ?? []
       const description = /^description: (.*)$/m.exec(front ?? "")?.[1]
       if (body === undefined || !description) throw new Error(`opencode/agents/${name}: no frontmatter with a description`)
-      return { out: `claude/agents/${name}`, text: `---\nname: ${name.replace(/\.md$/, "")}\ndescription: ${description}\n---\n${body}` }
+      return { out: `claude/agents/${name}`, text: `---\nname: ${name.replace(/\.md$/, "")}\ndescription: ${description}\n${claudeFrontmatter[name] ?? ""}---\n${body}` }
     })
 }
 
