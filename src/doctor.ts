@@ -2,7 +2,10 @@
 // `jlock doctor`, each with what to do when it is not ok. It only reads (a temporary file in JTASKS_HOME, removed
 // even on failure). `jtasks doctor --fix` lists what it would install; `--fix --yes` installs it: jlock through its
 // official installer, the OpenCode agents and the skills of the three agents, each file recorded in the global
-// ledger so `jtasks undo <g-id>` removes it (every command also installs a missing jlock by itself: setup.ts). It never overwrites a file that differs, never touches PATH, and never
+// ledger so `jtasks undo <g-id>` removes it (every command also installs a missing jlock by itself: setup.ts). A copy
+// of ours that differs from this build (recorded in the ledger, or a skill whose SKILL.md `name` is the skill's, or an
+// agent whose `description` names jtasks) is outdated: `--fix --yes` replaces it, keeping the previous content in
+// JTASKS_HOME/undo/ so `jtasks undo <g-id>` puts it back. Anyone else's file is never overwritten. It never touches PATH, and never
 // installs the mod or the plugin. The `data` check says where run data goes for the current folder, and `--fix` asks
 // for the data folder (`--data-dir <path>`, or a question on a terminal) and saves it in JTASKS_HOME/config.json.
 
@@ -11,7 +14,7 @@ import type { Host } from "./host.ts"
 import { EOF_JLOCK, jlockBin, jlockEnv, MIN_JLOCK, RENEW_JLOCK, versionAtLeast } from "./jlock.ts"
 import { git } from "./git.ts"
 import { globalLedger, readEffects, recordGlobalEffect } from "./ledger.ts"
-import { dirname, join } from "./paths.ts"
+import { basename, caseInsensitive, dirname, join, slash } from "./paths.ts"
 import { installJlock as installJlockWith, jlockInstallPath, userHome } from "./setup.ts"
 import { jtasksHome } from "./store.ts"
 import { defineAction, ok, ToolError, VERSION, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
@@ -136,8 +139,111 @@ export function sourceText(source: DataSource): string {
   return tr(`data.source.${source}`)
 }
 
+// ── what jtasks installs, and how each copy compares with this build ──────────────────────────────────────────
+
+/** One file of the package and where it goes. */
+interface Bundled {
+  from: string
+  to: string
+}
+
+/**
+ * A skill or agent jtasks installs, as found: `missing`; `foreign` (a file of the same name that is not ours: kept);
+ * `outdated` (ours, and some file differs from this build or is absent: `stale`); `current`.
+ */
+interface Item {
+  label: string
+  state: "missing" | "foreign" | "outdated" | "current"
+  files: Bundled[]
+  stale: Bundled[]
+}
+
+/** The same text, line endings aside. */
+const sameText = (a: string, b: string) => a.replace(/\r\n/g, "\n") === b.replace(/\r\n/g, "\n")
+
+/** One key of a Markdown file's front matter, unquoted. */
+export function frontMatter(text: string, key: string): string | undefined {
+  const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1]
+  const value = block === undefined ? undefined : new RegExp(`^${key}:[ \\t]*(.*)$`, "m").exec(block)?.[1]
+  return value?.trim().replace(/^["']|["']$/g, "")
+}
+
+/** Whether the global ledger has an active install under `path` (a file, or a folder and what is in it). */
+function recordedUnder(host: Host, installed: string[], path: string): boolean {
+  const norm = (p: string) => slash(caseInsensitive(host.platform) ? p.toLowerCase() : p).replace(/\/+$/, "")
+  const base = norm(path)
+  return installed.some((p) => norm(p) === base || norm(p).startsWith(`${base}/`))
+}
+
+async function installedPaths(host: Host): Promise<string[]> {
+  return (await readEffects(host, globalLedger(host))).filter((e) => e.type === "install" && e.state === "active" && e.path).map((e) => e.path!)
+}
+
+/** The files of `files` whose installed copy differs from the package's (an unreadable package file never counts). */
+async function staleFiles(host: Host, files: Bundled[]): Promise<Bundled[]> {
+  const out: Bundled[] = []
+  for (const f of files) {
+    const want = await host.readText(f.from)
+    if (want === undefined) continue
+    const have = await host.readText(f.to)
+    if (have === undefined || !sameText(have, want)) out.push(f)
+  }
+  return out
+}
+
+/** The skills of every agent installed (Claude Code only without the mod), compared with the package at `pkg`. */
+async function skillItems(host: Host, pkg: string | undefined): Promise<Item[]> {
+  const out: Item[] = []
+  // With the mod, Claude Code has the skills already; a copy in ~/.claude/skills would also take /jtasks from the mod.
+  const mod = await claudeModInstalled(host)
+  const installed = await installedPaths(host)
+  for (const h of skillHosts(host)) {
+    if (!(await isDir(host, h.present)) || (mod && h.host === "claude-code")) continue
+    for (const skill of SKILLS) {
+      const dir = join(h.dir, skill)
+      const files = (SKILL_FILES[skill] ?? ["SKILL.md"]).map((name) => ({ from: join(pkg ?? "", "skills", h.host, skill, name), to: join(dir, name) }))
+      const label = `${h.host}/${skill}`
+      const text = await host.readText(join(dir, "SKILL.md"))
+      if (text === undefined) {
+        out.push({ label, state: "missing", files, stale: files })
+        continue
+      }
+      if (frontMatter(text, "name") !== skill && !recordedUnder(host, installed, dir)) {
+        out.push({ label, state: "foreign", files, stale: [] })
+        continue
+      }
+      const stale = pkg ? await staleFiles(host, files) : []
+      out.push({ label, state: stale.length ? "outdated" : "current", files, stale })
+    }
+  }
+  return out
+}
+
+/** The OpenCode agents in the user's agents folder (absent ones: `missing`), compared with the package at `pkg`. */
+async function agentItems(host: Host, pkg: string | undefined): Promise<Item[]> {
+  const config = join(userHome(host), ".config/opencode")
+  if (!(await isDir(host, config))) return []
+  const installed = await installedPaths(host)
+  const out: Item[] = []
+  for (const agent of OPENCODE_AGENTS) {
+    const files = [{ from: join(pkg ?? "", "opencode/agents", `${agent}.md`), to: join(config, "agents", `${agent}.md`) }]
+    const text = await host.readText(files[0]!.to)
+    if (text === undefined) {
+      out.push({ label: agent, state: "missing", files, stale: files })
+      continue
+    }
+    if (!/jtasks/.test(frontMatter(text, "description") ?? "") && !recordedUnder(host, installed, files[0]!.to)) {
+      out.push({ label: agent, state: "foreign", files, stale: [] })
+      continue
+    }
+    const stale = pkg ? await staleFiles(host, files) : []
+    out.push({ label: agent, state: stale.length ? "outdated" : "current", files, stale })
+  }
+  return out
+}
+
 /** The OpenCode agents of the default profiles: in the user's agents folder, the project's, or opencode.json. */
-async function checkOpenCode(host: Host, cwd: string): Promise<Check> {
+async function checkOpenCode(host: Host, cwd: string, pkg: string | undefined): Promise<Check> {
   const config = join(userHome(host), ".config/opencode")
   if (!(await isDir(host, config))) return { name: "opencode", status: "ok", detail: tr("doctor.opencode_absent") }
   const configText = [
@@ -153,8 +259,11 @@ async function checkOpenCode(host: Host, cwd: string): Promise<Check> {
     if (!found) missing.push(agent)
   }
   const plugin = /jtasks/.test(configText) ? tr("doctor.opencode_plugin_listed") : tr("doctor.opencode_plugin_absent")
+  const outdated = (await agentItems(host, pkg)).filter((i) => i.state === "outdated").map((i) => i.label)
+  const stale = outdated.length ? `${tr("doctor.outdated", { list: outdated.join(", ") })}; ` : ""
   if (missing.length)
-    return { name: "opencode", status: "warn", detail: tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "jtasks doctor --fix --yes" }
+    return { name: "opencode", status: "warn", detail: stale + tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "jtasks doctor --fix --yes" }
+  if (outdated.length) return { name: "opencode", status: "warn", detail: stale + plugin, fix: "jtasks doctor --fix --yes" }
   return { name: "opencode", status: "ok", detail: tr("doctor.opencode_ok", { plugin }) }
 }
 
@@ -170,24 +279,17 @@ async function claudeModInstalled(host: Host): Promise<boolean> {
   return /jtasks/.test((await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json"))) ?? "")
 }
 
-async function missingSkills(host: Host): Promise<{ host: string; skill: string; dir: string }[]> {
-  const out: { host: string; skill: string; dir: string }[] = []
-  // With the mod, Claude Code has the skills already; a copy in ~/.claude/skills would also take /jtasks from the mod.
-  const mod = await claudeModInstalled(host)
-  for (const h of skillHosts(host)) {
-    if (!(await isDir(host, h.present)) || (mod && h.host === "claude-code")) continue
-    for (const skill of SKILLS) if (!(await isFile(host, join(h.dir, skill, "SKILL.md")))) out.push({ host: h.host, skill, dir: join(h.dir, skill) })
-  }
-  return out
-}
-
-async function checkSkills(host: Host): Promise<Check> {
+async function checkSkills(host: Host, pkg: string | undefined): Promise<Check> {
   const present = []
   for (const h of skillHosts(host)) if (await isDir(host, h.present)) present.push(h.host)
   if (!present.length) return { name: "skills", status: "ok", detail: tr("doctor.skills_no_agents") }
-  const missing = await missingSkills(host)
-  if (missing.length)
-    return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "jtasks doctor --fix --yes" }
+  const items = await skillItems(host, pkg)
+  const missing = items.filter((i) => i.state === "missing").map((i) => i.label)
+  const outdated = items.filter((i) => i.state === "outdated").map((i) => i.label)
+  const parts = []
+  if (missing.length) parts.push(tr("doctor.skills_missing", { list: missing.join(", ") }))
+  if (outdated.length) parts.push(tr("doctor.outdated", { list: outdated.join(", ") }))
+  if (parts.length) return { name: "skills", status: "warn", detail: parts.join("; "), fix: "jtasks doctor --fix --yes" }
   return { name: "skills", status: "ok", detail: tr("doctor.skills_ok", { agents: present.join(", ") }) }
 }
 
@@ -204,9 +306,9 @@ export async function runChecks(ctx: ToolContext, lang: string | undefined): Pro
     await checkJlock(host),
     await checkHome(host),
     await checkData(ctx),
-    await checkOpenCode(host, ctx.cwd),
+    await checkOpenCode(host, ctx.cwd, ctx.packageRoot),
     await checkClaude(host),
-    await checkSkills(host),
+    await checkSkills(host, ctx.packageRoot),
     checkLanguage(host, lang),
   ]
 }
@@ -245,6 +347,23 @@ async function installFile(host: Host, from: string, to: string): Promise<string
 }
 
 /**
+ * Replaces an outdated copy of ours with the package's file (installs it when absent). The previous content goes to
+ * JTASKS_HOME/undo/, never beside the file, and the ledger effect points at it so `jtasks undo <g-id>` puts it back.
+ */
+async function replaceFile(host: Host, from: string, to: string): Promise<string> {
+  const text = await host.readText(from)
+  if (text === undefined) throw new ToolError(tr("doctor.package_missing", { file: from }))
+  const current = await host.readText(to)
+  if (current === undefined) return installFile(host, from, to)
+  if (sameText(current, text)) return tr("doctor.file_same", { file: to })
+  const backup = join(jtasksHome(host), "undo", `${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e9).toString(36)}`, basename(to))
+  await host.writeText(backup, current)
+  const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, backup, undo: { kind: "restore-file" } })
+  await host.writeText(to, text)
+  return tr("doctor.file_replaced", { file: to, id: e.id })
+}
+
+/**
  * `git init` in a container's product folder, only after a yes on the terminal: it is never done silently. Recorded
  * in the global ledger, so `jtasks undo` removes the `.git` folder it created.
  */
@@ -267,17 +386,13 @@ async function fixSteps(ctx: ToolContext, checks: Check[], args: ParsedArgs): Pr
     steps.push({ what: tr("doctor.step_jlock"), run: () => installJlock(ctx) })
   const bare = await containerWithoutGit(host, ctx.cwd).catch(() => undefined)
   if (bare) steps.push({ what: tr("doctor.step_git_init", { product: bare.product }), run: () => gitInitProduct(ctx, bare.product) })
-  const opencode = join(userHome(host), ".config/opencode")
-  if (checks.find((c) => c.name === "opencode")?.status === "warn")
-    for (const agent of OPENCODE_AGENTS) {
-      const to = join(opencode, "agents", `${agent}.md`)
-      if (!(await isFile(host, to))) steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "opencode/agents", `${agent}.md`), to) })
-    }
-  for (const m of await missingSkills(host))
-    for (const name of SKILL_FILES[m.skill] ?? ["SKILL.md"]) {
-      const to = join(m.dir, name)
-      steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "skills", m.host, m.skill, name), to) })
-    }
+  // Missing agents only when the check misses them (one in the project or opencode.json counts); outdated ones always.
+  const agentsMissing = checks.find((c) => c.name === "opencode")?.status === "warn"
+  const items = [...(await agentItems(host, pkg)).filter((i) => i.state === "outdated" || (agentsMissing && i.state === "missing")), ...(await skillItems(host, pkg))]
+  for (const item of items) {
+    if (item.state === "missing") for (const f of item.files) steps.push({ what: tr("doctor.step_copy", { file: f.to }), run: () => installFile(host, f.from, f.to) })
+    if (item.state === "outdated") for (const f of item.stale) steps.push({ what: tr("doctor.step_replace", { file: f.to }), run: () => replaceFile(host, f.from, f.to) })
+  }
   const value = await dataDirAnswer(ctx, args)
   if (value)
     steps.push({

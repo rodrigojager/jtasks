@@ -28,6 +28,8 @@ export type UndoKind =
   | "unarchive"
   | "agent-config-remove"
   | "remove-file"
+  // An installed file replaced with a newer build (`doctor --fix`): its previous content comes back from `backup`.
+  | "restore-file"
   | "apply-patch"
   | "reverse-patch"
   | "none"
@@ -55,6 +57,8 @@ export interface Effect {
   reverts?: string
   /** For `patch`, `restore` and `reapply`: the patch file (absolute). `path` is then the file, relative to the repository. */
   patch?: string
+  /** For `restore-file`: the previous content of `path`, kept in JTASKS_HOME/undo/ (absolute). */
+  backup?: string
 }
 
 /** The effects that move a task's edit between the tree and a patch: undone one by one (`undo <e-id>`), never in bulk. */

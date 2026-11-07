@@ -62,7 +62,13 @@ Start a new session of the agent afterwards: skills are read when a session star
 
 ## Updating
 
-Run the same command again (or `jtasks doctor --fix --yes`): it replaces the files with the current ones.
+`jtasks doctor` compares each installed copy with the build of the jtasks it runs from and reports the ones that
+differ as outdated; `jtasks doctor --fix --yes` replaces only those files (and installs any that are missing). A copy
+counts as jtasks's when the ledger recorded it or, for one installed by hand, when its `SKILL.md` front matter says
+`name: <skill>`; any other folder of the same name is left alone. The previous content of each replaced file is kept
+in `JTASKS_HOME/undo/` (never beside the skill), and the ledger entry (`jtasks ledger --all-projects`, a `g-…` id)
+lets `jtasks undo <g-id>` put it back. The manual commands above overwrite the files with the current ones, with no
+undo.
 
 ## Editing the skills
 

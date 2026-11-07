@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test"
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 import type { Host } from "../src/host.ts"
 import { cleanupTemp, host, makeRepo, REPO_ROOT, tasks, tasksOk, tempDir } from "./helpers.ts"
 import { setDefaultTimeout } from "bun:test"
@@ -64,6 +64,70 @@ describe("jtasks doctor --fix", () => {
     expect(existsSync(join(home, ".config/opencode/agents/execute.md"))).toBe(true)
     const again = await tasks(repo, ["undo", e.id])
     expect(again.ok).toBe(false)
+  })
+
+  test("an outdated copy is replaced, a current one left alone, and undo puts the old copy back", async () => {
+    const repo = makeRepo()
+    const home = agentHome()
+    const jtasksHome = tempDir("jtasks-home")
+    const ctx = { host: withEnv({ JTASKS_USER_HOME: home, JTASKS_HOME: jtasksHome }), packageRoot: REPO_ROOT }
+    await tasksOk(repo, ["doctor", "--fix", "--yes"], ctx)
+    // An older build of a recorded skill, and of a recorded agent.
+    const skill = join(home, ".config/opencode/skills/jtasks/SKILL.md")
+    const agent = join(home, ".config/opencode/agents/review.md")
+    const oldSkill = "---\nname: jtasks\ndescription: an older build\n---\n\nold\n"
+    writeFileSync(skill, oldSkill)
+    writeFileSync(agent, "old agent\n")
+    const current = join(home, ".codex/skills/to-jtasks/SKILL.md")
+    const before = statSync(current).mtimeMs
+
+    const check = await tasks(repo, ["doctor"], ctx)
+    const checks = (check.data as { checks: { name: string; status: string; detail: string }[] }).checks
+    expect(checks.find((c) => c.name === "skills")!.detail).toContain("opencode/jtasks")
+    expect(checks.find((c) => c.name === "opencode")!.detail).toContain("review")
+    // Without --yes: one line per file, nothing written.
+    const planned = ((await tasksOk(repo, ["doctor", "--fix"], ctx)).data as { planned: string[] }).planned
+    expect(planned).toHaveLength(2)
+    expect(readFileSync(skill, "utf8")).toBe(oldSkill)
+
+    const r = await tasksOk(repo, ["doctor", "--fix", "--yes"], ctx)
+    expect((r.data as { fixed: string[] }).fixed).toHaveLength(2)
+    expect(readFileSync(skill, "utf8")).toBe(readFileSync(join(REPO_ROOT, "skills/opencode/jtasks/SKILL.md"), "utf8"))
+    expect(readFileSync(agent, "utf8")).toBe(readFileSync(join(REPO_ROOT, "opencode/agents/review.md"), "utf8"))
+    expect(statSync(current).mtimeMs).toBe(before)
+    // No backup beside the skill.
+    expect(readdirSync(join(home, ".config/opencode/skills/jtasks"))).toEqual(["SKILL.md"])
+    const after = (r.data as { after: { name: string; status: string }[] }).after
+    expect(after.find((c) => c.name === "skills")!.status).toBe("ok")
+    expect(after.find((c) => c.name === "opencode")!.status).toBe("ok")
+
+    const ledger = await tasksOk(repo, ["ledger", "--all-projects"], ctx)
+    const effects = (ledger.data as { effects: { id: string; path: string; state: string; undo: { kind: string } }[] }).effects
+    const replaced = effects.find((e) => e.path === skill.replace(/\\/g, "/") && e.undo.kind === "restore-file")!
+    const undone = await tasksOk(repo, ["undo", replaced.id], ctx)
+    expect(undone.text).toContain(replaced.id)
+    expect(readFileSync(skill, "utf8")).toBe(oldSkill)
+    expect(readdirSync(join(jtasksHome, "undo"))).toHaveLength(1)
+  })
+
+  test("an unrecorded copy whose SKILL.md names the skill is replaced; one that does not is kept", async () => {
+    const repo = makeRepo()
+    const home = agentHome()
+    const ctx = { host: withEnv({ JTASKS_USER_HOME: home, JTASKS_HOME: tempDir("jtasks-home") }), packageRoot: REPO_ROOT }
+    const ours = join(home, ".codex/skills/jtasks/SKILL.md")
+    const theirs = join(home, ".codex/skills/to-jtasks/SKILL.md")
+    mkdirSync(dirname(ours), { recursive: true })
+    mkdirSync(dirname(theirs), { recursive: true })
+    const old = "---\nname: \"jtasks\"\ndescription: copied by hand\n---\n\nold\n"
+    writeFileSync(ours, old)
+    writeFileSync(theirs, "---\nname: my-own-skill\n---\n")
+    const r = await tasksOk(repo, ["doctor", "--fix", "--yes"], ctx)
+    expect(readFileSync(ours, "utf8")).toBe(readFileSync(join(REPO_ROOT, "skills/codex/jtasks/SKILL.md"), "utf8"))
+    expect(readFileSync(theirs, "utf8")).toBe("---\nname: my-own-skill\n---\n")
+    const line = (r.data as { fixed: string[] }).fixed.find((f) => f.includes(ours.replace(/\\/g, "/")))!
+    const id = /\((g-\d{4})/.exec(line)![1]!
+    await tasksOk(repo, ["undo", id], ctx)
+    expect(readFileSync(ours, "utf8")).toBe(old)
   })
 
   test("a missing jlock is installed by the installer (a fake one here), and the binary is recorded", async () => {

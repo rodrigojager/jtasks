@@ -2241,11 +2241,23 @@ async function undoMany(ctx: ToolContext, paths: RepoPaths, effects: Effect[], f
   return done
 }
 
-/** A global effect (`g-…`, an install by `doctor --fix`): removes the file it installed (and its folder, when empty). */
+/**
+ * A global effect (`g-…`, an install by `doctor --fix`): removes the file it installed (and its folder, when empty),
+ * or, for a copy it replaced with a newer build, puts the previous content back.
+ */
 async function undoGlobal(ctx: ToolContext, id: string): Promise<ToolResult> {
   const { host } = ctx
   const e = (await readEffects(host, globalLedger(host))).find((x) => x.id === id && x.state === "active")
   if (!e) throw new ToolError(tr("undo.no_global", { id }))
+  if (e.undo.kind === "restore-file" && e.path && e.backup) {
+    // A copy `doctor --fix` replaced with a newer build: the previous content comes back from JTASKS_HOME/undo/.
+    const previous = await host.readText(e.backup)
+    if (previous === undefined) throw new ToolError(tr("undo.no_backup", { id: e.id, file: e.backup }))
+    await host.writeText(e.path, previous)
+    await host.remove(dirname(e.backup), { recursive: true }).catch(() => {})
+    await setEffectState(host, jtasksHome(host), e.run, e.id, "undone")
+    return ok(tr("undo.file_restored", { id: e.id, file: e.path }), { undone: [e.id] })
+  }
   if (e.undo.kind !== "remove-file" || !e.path) throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }))
   await host.remove(e.path)
   const parent = dirname(e.path)

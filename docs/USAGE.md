@@ -29,8 +29,11 @@ change it), 20 with one; `--json` gives `{ result, checks: [{ name, status, deta
 
 `--fix --yes` installs jlock through its official installer (which puts it in its own folder and adds that to the
 user's `PATH`, as it does when you run it by hand), and copies the three OpenCode agents and the skills from this
-repository. A file that already exists is never replaced (it is reported). Each file it creates is an effect in the
-global ledger (`jtasks ledger --all-projects`, ids `g-…`), and `jtasks undo <g-id>` removes it. It never installs the
+repository. A copy of ours that differs from this build is reported as outdated (by the `opencode` and `skills`
+checks) and replaced: ours means recorded in the ledger, or a skill whose `SKILL.md` front matter has its `name`, or an
+agent whose `description` names jtasks; anyone else's file of the same name is never replaced (it is reported). Each
+file it creates or replaces is an effect in the global ledger (`jtasks ledger --all-projects`, ids `g-…`), and
+`jtasks undo <g-id>` removes it, or, for a replaced one, puts back the previous content, kept in `JTASKS_HOME/undo/`. It never installs the
 mod in Claude Code nor the plugin in OpenCode (see below), and only the CLI runs `--fix`; in the mod and the plugin
 `doctor` only diagnoses. `JTASKS_USER_HOME` makes it look and install somewhere else than the user's home.
 

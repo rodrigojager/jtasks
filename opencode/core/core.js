@@ -196,6 +196,7 @@ var en_default = {
   "doctor.confirm": "nothing was installed; confirm with jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: already there with other content, kept",
   "doctor.file_installed": "{file}: installed ({id})",
+  "doctor.file_replaced": "{file}: replaced with this build ({id}; undo puts the old copy back)",
   "doctor.file_same": "{file}: already there",
   "doctor.fix": "fix: {fix}",
   "doctor.fix_cli_only": "doctor --fix runs in the CLI: run jtasks doctor --fix --yes in a terminal",
@@ -226,11 +227,13 @@ var en_default = {
   "doctor.opencode_ok": "the agents execute, execute-deep and review are there; {plugin}",
   "doctor.opencode_plugin_absent": "the jtasks plugin is not in its configuration (see opencode/README.md)",
   "doctor.opencode_plugin_listed": "the jtasks plugin is in its configuration",
+  "doctor.outdated": "outdated (differs from this build): {list}",
   "doctor.package_missing": "the package has no {file}",
   "doctor.skills_missing": "skills missing: {list}",
   "doctor.skills_no_agents": "no Claude Code, OpenCode or Codex folder in this home (nothing to check)",
   "doctor.skills_ok": "to-jtasks and jtasks are there for {agents}",
   "doctor.step_copy": "copy {file}",
+  "doctor.step_replace": "replace {file} with this build",
   "doctor.step_jlock": "install jlock with its official installer",
   "doctor.summary": "ok: {ok}, warnings: {warn}, failures: {fail}",
   "doctor.would": "would install:",
@@ -594,11 +597,13 @@ var en_default = {
   "undo.dirty": "{id}: the tree has unsaved changes ({files}); commit or discard them before the undo",
   "undo.exclude_shared": "{id}: other runs still use the line {line} of the exclude ({runs}); use --force to take it out anyway",
   "undo.file_removed": "{id}: {file} removed",
+  "undo.file_restored": "{id}: {file} restored to its previous copy",
   "undo.line_absent": "{id}: the line was no longer in {path}",
   "undo.line_removed": "{id}: line removed in {path}",
   "undo.no_branch": "{id}: the branch {branch} no longer existed",
   "undo.no_commit": "{id}: the commit {ref} no longer exists (see jtasks effects --check)",
   "undo.no_effect": "no active effect {id} in run {run} (see jtasks ledger)",
+  "undo.no_backup": "{id}: the previous copy {file} is gone, nothing restored",
   "undo.no_global": "no active global effect {id} (see jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: the patch {patch} is gone",
   "undo.none": "{id}: there is no automatic undo for {type} ({kind})",
@@ -756,6 +761,7 @@ var pt_BR_default = {
   "doctor.confirm": "nada foi instalado; confirme com jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: já existe com outro conteúdo, mantido",
   "doctor.file_installed": "{file}: instalado ({id})",
+  "doctor.file_replaced": "{file}: substituído por esta versão ({id}; o undo devolve a cópia antiga)",
   "doctor.file_same": "{file}: já existia",
   "doctor.fix": "como resolver: {fix}",
   "doctor.fix_cli_only": "o doctor --fix roda no CLI: rode jtasks doctor --fix --yes num terminal",
@@ -786,11 +792,13 @@ var pt_BR_default = {
   "doctor.opencode_ok": "os agentes execute, execute-deep e review existem; {plugin}",
   "doctor.opencode_plugin_absent": "o plugin jtasks não está na configuração (veja opencode/README.md)",
   "doctor.opencode_plugin_listed": "o plugin jtasks está na configuração",
+  "doctor.outdated": "desatualizado (difere desta versão): {list}",
   "doctor.package_missing": "o pacote não tem {file}",
   "doctor.skills_missing": "faltam as skills: {list}",
   "doctor.skills_no_agents": "nenhuma pasta do Claude Code, OpenCode ou Codex nesta casa (nada a conferir)",
   "doctor.skills_ok": "to-jtasks e jtasks existem para {agents}",
   "doctor.step_copy": "copiar {file}",
+  "doctor.step_replace": "substituir {file} por esta versão",
   "doctor.step_jlock": "instalar o jlock pelo instalador oficial",
   "doctor.summary": "ok: {ok}, avisos: {warn}, falhas: {fail}",
   "doctor.would": "instalaria:",
@@ -1154,11 +1162,13 @@ var pt_BR_default = {
   "undo.dirty": "{id}: a árvore tem mudanças não salvas ({files}); commite ou descarte antes do undo",
   "undo.exclude_shared": "{id}: outras execuções ainda usam a linha {line} do exclude ({runs}); use --force para tirar mesmo assim",
   "undo.file_removed": "{id}: {file} removido",
+  "undo.file_restored": "{id}: {file} voltou à cópia anterior",
   "undo.line_absent": "{id}: a linha já não estava em {path}",
   "undo.line_removed": "{id}: linha removida em {path}",
   "undo.no_branch": "{id}: o branch {branch} já não existia",
   "undo.no_commit": "{id}: o commit {ref} não existe mais (veja jtasks effects --check)",
   "undo.no_effect": "não há efeito ativo {id} na execução {run} (veja jtasks ledger)",
+  "undo.no_backup": "{id}: a cópia anterior {file} sumiu, nada restaurado",
   "undo.no_global": "não há efeito global ativo {id} (veja jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: o patch {patch} não existe mais",
   "undo.none": "{id}: não há desfazer automático para {type} ({kind})",
@@ -1316,6 +1326,7 @@ var es_default = {
   "doctor.confirm": "no se instaló nada; confirma con jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: ya existe con otro contenido, se conserva",
   "doctor.file_installed": "{file}: instalado ({id})",
+  "doctor.file_replaced": "{file}: reemplazado por esta versión ({id}; undo devuelve la copia antigua)",
   "doctor.file_same": "{file}: ya existe",
   "doctor.fix": "cómo resolverlo: {fix}",
   "doctor.fix_cli_only": "doctor --fix se ejecuta en el CLI: ejecuta jtasks doctor --fix --yes en una terminal",
@@ -1346,11 +1357,13 @@ var es_default = {
   "doctor.opencode_ok": "los agentes execute, execute-deep y review existen; {plugin}",
   "doctor.opencode_plugin_absent": "el plugin jtasks no está en su configuración (ver opencode/README.md)",
   "doctor.opencode_plugin_listed": "el plugin jtasks está en su configuración",
+  "doctor.outdated": "desactualizado (difiere de esta versión): {list}",
   "doctor.package_missing": "el paquete no tiene {file}",
   "doctor.skills_missing": "faltan las skills: {list}",
   "doctor.skills_no_agents": "ninguna carpeta de Claude Code, OpenCode o Codex en este home (nada que comprobar)",
   "doctor.skills_ok": "to-jtasks y jtasks existen para {agents}",
   "doctor.step_copy": "copiar {file}",
+  "doctor.step_replace": "reemplazar {file} por esta versión",
   "doctor.step_jlock": "instalar jlock con su instalador oficial",
   "doctor.summary": "ok: {ok}, avisos: {warn}, fallos: {fail}",
   "doctor.would": "se instalaría:",
@@ -1714,11 +1727,13 @@ var es_default = {
   "undo.dirty": "{id}: el árbol tiene cambios sin guardar ({files}); haz commit o descártalos antes del undo",
   "undo.exclude_shared": "{id}: otras ejecuciones aún usan la línea {line} del exclude ({runs}); usa --force para quitarla de todos modos",
   "undo.file_removed": "{id}: {file} eliminado",
+  "undo.file_restored": "{id}: {file} restaurado a su copia anterior",
   "undo.line_absent": "{id}: la línea ya no estaba en {path}",
   "undo.line_removed": "{id}: línea eliminada en {path}",
   "undo.no_branch": "{id}: la rama {branch} ya no existía",
   "undo.no_commit": "{id}: el commit {ref} ya no existe (ver jtasks effects --check)",
   "undo.no_effect": "no hay efecto activo {id} en la ejecución {run} (ver jtasks ledger)",
+  "undo.no_backup": "{id}: la copia anterior {file} ya no está, nada restaurado",
   "undo.no_global": "no hay efecto global activo {id} (ver jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: el patch {patch} ya no existe",
   "undo.none": "{id}: no hay deshacer automático para {type} ({kind})",
@@ -1876,6 +1891,7 @@ var fr_default = {
   "doctor.confirm": "rien n'a été installé; confirmez avec jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: déjà présent avec un autre contenu, conservé",
   "doctor.file_installed": "{file}: installé ({id})",
+  "doctor.file_replaced": "{file}: remplacé par cette version ({id}; undo remet l'ancienne copie)",
   "doctor.file_same": "{file}: déjà présent",
   "doctor.fix": "solution: {fix}",
   "doctor.fix_cli_only": "doctor --fix s'exécute dans le CLI: lancez jtasks doctor --fix --yes dans un terminal",
@@ -1906,11 +1922,13 @@ var fr_default = {
   "doctor.opencode_ok": "les agents execute, execute-deep et review sont présents; {plugin}",
   "doctor.opencode_plugin_absent": "le plugin jtasks n'est pas dans sa configuration (voir opencode/README.md)",
   "doctor.opencode_plugin_listed": "le plugin jtasks est dans sa configuration",
+  "doctor.outdated": "obsolète (diffère de cette version): {list}",
   "doctor.package_missing": "le paquet n'a pas de {file}",
   "doctor.skills_missing": "skills manquantes: {list}",
   "doctor.skills_no_agents": "aucun dossier de Claude Code, OpenCode ou Codex dans ce dossier personnel (rien à vérifier)",
   "doctor.skills_ok": "to-jtasks et jtasks sont présentes pour {agents}",
   "doctor.step_copy": "copier {file}",
+  "doctor.step_replace": "remplacer {file} par cette version",
   "doctor.step_jlock": "installer jlock avec son installeur officiel",
   "doctor.summary": "ok: {ok}, avertissements: {warn}, échecs: {fail}",
   "doctor.would": "installerait:",
@@ -2274,11 +2292,13 @@ var fr_default = {
   "undo.dirty": "{id}: l'arbre a des changements non enregistrés ({files}); commitez-les ou abandonnez-les avant l'undo",
   "undo.exclude_shared": "{id}: d'autres exécutions utilisent encore la ligne {line} de l'exclude ({runs}); utilisez --force pour la retirer quand même",
   "undo.file_removed": "{id}: {file} supprimé",
+  "undo.file_restored": "{id}: {file} remis à sa copie précédente",
   "undo.line_absent": "{id}: la ligne n'était plus dans {path}",
   "undo.line_removed": "{id}: ligne retirée de {path}",
   "undo.no_branch": "{id}: la branche {branch} n'existait plus",
   "undo.no_commit": "{id}: le commit {ref} n'existe plus (voir jtasks effects --check)",
   "undo.no_effect": "aucun effet actif {id} dans l'exécution {run} (voir jtasks ledger)",
+  "undo.no_backup": "{id}: la copie précédente {file} a disparu, rien restauré",
   "undo.no_global": "aucun effet global actif {id} (voir jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: le patch {patch} n'existe plus",
   "undo.none": "{id}: pas d'annulation automatique pour {type} ({kind})",
@@ -2436,6 +2456,7 @@ var de_default = {
   "doctor.confirm": "nichts wurde installiert; bestätige mit jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: existiert bereits mit anderem Inhalt, beibehalten",
   "doctor.file_installed": "{file}: installiert ({id})",
+  "doctor.file_replaced": "{file}: durch diese Version ersetzt ({id}; undo stellt die alte Kopie wieder her)",
   "doctor.file_same": "{file}: bereits vorhanden",
   "doctor.fix": "Abhilfe: {fix}",
   "doctor.fix_cli_only": "doctor --fix läuft im CLI: führe jtasks doctor --fix --yes in einem Terminal aus",
@@ -2466,11 +2487,13 @@ var de_default = {
   "doctor.opencode_ok": "die Agenten execute, execute-deep und review sind vorhanden; {plugin}",
   "doctor.opencode_plugin_absent": "das jtasks-Plugin steht nicht in seiner Konfiguration (siehe opencode/README.md)",
   "doctor.opencode_plugin_listed": "das jtasks-Plugin steht in seiner Konfiguration",
+  "doctor.outdated": "veraltet (weicht von dieser Version ab): {list}",
   "doctor.package_missing": "dem Paket fehlt {file}",
   "doctor.skills_missing": "fehlende Skills: {list}",
   "doctor.skills_no_agents": "kein Ordner von Claude Code, OpenCode oder Codex in diesem Home-Verzeichnis (nichts zu prüfen)",
   "doctor.skills_ok": "to-jtasks und jtasks sind für {agents} vorhanden",
   "doctor.step_copy": "{file} kopieren",
+  "doctor.step_replace": "{file} durch diese Version ersetzen",
   "doctor.step_jlock": "jlock mit seinem offiziellen Installer installieren",
   "doctor.summary": "ok: {ok}, Warnungen: {warn}, Fehler: {fail}",
   "doctor.would": "würde installieren:",
@@ -2834,11 +2857,13 @@ var de_default = {
   "undo.dirty": "{id}: der Arbeitsbaum hat ungespeicherte Änderungen ({files}); committe oder verwirf sie vor dem undo",
   "undo.exclude_shared": "{id}: andere Läufe nutzen noch die Zeile {line} des exclude ({runs}); nutze --force, um sie trotzdem zu entfernen",
   "undo.file_removed": "{id}: {file} entfernt",
+  "undo.file_restored": "{id}: {file} auf die vorherige Kopie zurückgesetzt",
   "undo.line_absent": "{id}: die Zeile stand nicht mehr in {path}",
   "undo.line_removed": "{id}: Zeile in {path} entfernt",
   "undo.no_branch": "{id}: der Branch {branch} existierte nicht mehr",
   "undo.no_commit": "{id}: der Commit {ref} existiert nicht mehr (siehe jtasks effects --check)",
   "undo.no_effect": "kein aktiver Effekt {id} in Lauf {run} (siehe jtasks ledger)",
+  "undo.no_backup": "{id}: die vorherige Kopie {file} fehlt, nichts wiederhergestellt",
   "undo.no_global": "kein aktiver globaler Effekt {id} (siehe jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: der Patch {patch} existiert nicht mehr",
   "undo.none": "{id}: kein automatisches Rückgängigmachen für {type} ({kind})",
@@ -2996,6 +3021,7 @@ var it_default = {
   "doctor.confirm": "nulla è stato installato; conferma con jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: esiste già con un altro contenuto, mantenuto",
   "doctor.file_installed": "{file}: installato ({id})",
+  "doctor.file_replaced": "{file}: sostituito con questa versione ({id}; undo rimette la copia vecchia)",
   "doctor.file_same": "{file}: già presente",
   "doctor.fix": "soluzione: {fix}",
   "doctor.fix_cli_only": "doctor --fix funziona nel CLI: esegui jtasks doctor --fix --yes in un terminale",
@@ -3026,11 +3052,13 @@ var it_default = {
   "doctor.opencode_ok": "gli agenti execute, execute-deep e review ci sono; {plugin}",
   "doctor.opencode_plugin_absent": "il plugin jtasks non è nella sua configurazione (vedi opencode/README.md)",
   "doctor.opencode_plugin_listed": "il plugin jtasks è nella sua configurazione",
+  "doctor.outdated": "obsoleto (diverso da questa versione): {list}",
   "doctor.package_missing": "il pacchetto non ha {file}",
   "doctor.skills_missing": "skill mancanti: {list}",
   "doctor.skills_no_agents": "nessuna cartella di Claude Code, OpenCode o Codex in questa home (niente da verificare)",
   "doctor.skills_ok": "to-jtasks e jtasks ci sono per {agents}",
   "doctor.step_copy": "copiare {file}",
+  "doctor.step_replace": "sostituire {file} con questa versione",
   "doctor.step_jlock": "installare jlock con il suo installer ufficiale",
   "doctor.summary": "ok: {ok}, avvisi: {warn}, errori: {fail}",
   "doctor.would": "installerebbe:",
@@ -3394,11 +3422,13 @@ var it_default = {
   "undo.dirty": "{id}: l'albero ha modifiche non salvate ({files}); fai commit o scartale prima dell'undo",
   "undo.exclude_shared": "{id}: altre esecuzioni usano ancora la riga {line} di exclude ({runs}); usa --force per toglierla comunque",
   "undo.file_removed": "{id}: {file} rimosso",
+  "undo.file_restored": "{id}: {file} riportato alla copia precedente",
   "undo.line_absent": "{id}: la riga non era più in {path}",
   "undo.line_removed": "{id}: riga rimossa in {path}",
   "undo.no_branch": "{id}: il branch {branch} non esisteva più",
   "undo.no_commit": "{id}: il commit {ref} non esiste più (vedi jtasks effects --check)",
   "undo.no_effect": "nessun effetto attivo {id} nell'esecuzione {run} (vedi jtasks ledger)",
+  "undo.no_backup": "{id}: la copia precedente {file} non c'è più, nulla ripristinato",
   "undo.no_global": "nessun effetto globale attivo {id} (vedi jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: la patch {patch} non esiste più",
   "undo.none": "{id}: non c'è annullamento automatico per {type} ({kind})",
@@ -3556,6 +3586,7 @@ var zh_CN_default = {
   "doctor.confirm": "未安装任何内容；用 jtasks doctor --fix --yes 确认",
   "doctor.file_differs": "{file}：已存在但内容不同，已保留",
   "doctor.file_installed": "{file}：已安装（{id}）",
+  "doctor.file_replaced": "{file}：已替换为此版本（{id}；undo 可恢复旧副本）",
   "doctor.file_same": "{file}：已存在",
   "doctor.fix": "修复：{fix}",
   "doctor.fix_cli_only": "doctor --fix 只在 CLI 中运行：在终端中运行 jtasks doctor --fix --yes",
@@ -3586,11 +3617,13 @@ var zh_CN_default = {
   "doctor.opencode_ok": "智能体 execute、execute-deep 和 review 都已存在；{plugin}",
   "doctor.opencode_plugin_absent": "jtasks 插件不在其配置中（见 opencode/README.md）",
   "doctor.opencode_plugin_listed": "jtasks 插件已在其配置中",
+  "doctor.outdated": "已过时（与此版本不同）：{list}",
   "doctor.package_missing": "软件包中没有 {file}",
   "doctor.skills_missing": "缺少 skill：{list}",
   "doctor.skills_no_agents": "此主目录中没有 Claude Code、OpenCode 或 Codex 的文件夹（无需检查）",
   "doctor.skills_ok": "{agents} 已有 to-jtasks 和 jtasks",
   "doctor.step_copy": "复制 {file}",
+  "doctor.step_replace": "用此版本替换 {file}",
   "doctor.step_jlock": "用官方安装程序安装 jlock",
   "doctor.summary": "ok：{ok}，警告：{warn}，失败：{fail}",
   "doctor.would": "将会安装：",
@@ -3954,11 +3987,13 @@ var zh_CN_default = {
   "undo.dirty": "{id}：工作区有未保存的修改（{files}）；undo 之前请提交或丢弃",
   "undo.exclude_shared": "{id}：其他运行仍在使用 exclude 中的第 {line} 行（{runs}）；用 --force 强制移除",
   "undo.file_removed": "{id}：{file} 已删除",
+  "undo.file_restored": "{id}：{file} 已恢复为之前的副本",
   "undo.line_absent": "{id}：该行已不在 {path} 中",
   "undo.line_removed": "{id}：已从 {path} 删除该行",
   "undo.no_branch": "{id}：分支 {branch} 已不存在",
   "undo.no_commit": "{id}：提交 {ref} 已不存在（见 jtasks effects --check）",
   "undo.no_effect": "运行 {run} 中没有生效的副作用 {id}（见 jtasks ledger）",
+  "undo.no_backup": "{id}：之前的副本 {file} 不存在，未恢复任何内容",
   "undo.no_global": "没有生效的全局副作用 {id}（见 jtasks ledger --all-projects）",
   "undo.no_patch": "{id}：补丁 {patch} 已不存在",
   "undo.none": "{id}：{type}（{kind}）没有自动撤销",
@@ -4116,6 +4151,7 @@ var ja_default = {
   "doctor.confirm": "何もインストールしていない。jtasks doctor --fix --yes で確定する",
   "doctor.file_differs": "{file}: 別の内容ですでにある。そのまま残した",
   "doctor.file_installed": "{file}: インストールした（{id}）",
+  "doctor.file_replaced": "{file}: このビルドで置き換えた（{id}。undo で古いコピーに戻る）",
   "doctor.file_same": "{file}: すでにある",
   "doctor.fix": "対処: {fix}",
   "doctor.fix_cli_only": "doctor --fix は CLI で動く: ターミナルで jtasks doctor --fix --yes を実行する",
@@ -4146,11 +4182,13 @@ var ja_default = {
   "doctor.opencode_ok": "エージェント execute、execute-deep、review がある。{plugin}",
   "doctor.opencode_plugin_absent": "jtasks プラグインが設定にない（opencode/README.md を参照）",
   "doctor.opencode_plugin_listed": "jtasks プラグインは設定にある",
+  "doctor.outdated": "古い（このビルドと異なる）: {list}",
   "doctor.package_missing": "パッケージに {file} がない",
   "doctor.skills_missing": "足りないスキル: {list}",
   "doctor.skills_no_agents": "このホームに Claude Code、OpenCode、Codex のフォルダがない（確認対象なし）",
   "doctor.skills_ok": "{agents} に to-jtasks と jtasks がある",
   "doctor.step_copy": "{file} をコピー",
+  "doctor.step_replace": "{file} をこのビルドで置き換え",
   "doctor.step_jlock": "公式インストーラーで jlock をインストール",
   "doctor.summary": "ok: {ok}、警告: {warn}、失敗: {fail}",
   "doctor.would": "インストール予定:",
@@ -4514,11 +4552,13 @@ var ja_default = {
   "undo.dirty": "{id}: ツリーに未保存の変更がある（{files}）。undo の前にコミットするか破棄する",
   "undo.exclude_shared": "{id}: 他の実行がまだ exclude の行 {line} を使っている（{runs}）。それでも外すなら --force",
   "undo.file_removed": "{id}: {file} を削除",
+  "undo.file_restored": "{id}: {file} を以前のコピーに戻した",
   "undo.line_absent": "{id}: その行はもう {path} になかった",
   "undo.line_removed": "{id}: {path} から行を削除",
   "undo.no_branch": "{id}: ブランチ {branch} はもう存在しなかった",
   "undo.no_commit": "{id}: コミット {ref} はもう存在しない（jtasks effects --check を参照）",
   "undo.no_effect": "実行 {run} に有効な副作用 {id} はない（jtasks ledger を参照）",
+  "undo.no_backup": "{id}: 以前のコピー {file} がない。何も戻していない",
   "undo.no_global": "有効なグローバル副作用 {id} はない（jtasks ledger --all-projects を参照）",
   "undo.no_patch": "{id}: パッチ {patch} はもうない",
   "undo.none": "{id}: {type}（{kind}）には自動の取り消しがない",
@@ -4676,6 +4716,7 @@ var ru_default = {
   "doctor.confirm": "ничего не установлено; подтвердите через jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: уже есть с другим содержимым, оставлен",
   "doctor.file_installed": "{file}: установлен ({id})",
+  "doctor.file_replaced": "{file}: заменён этой версией ({id}; undo вернёт старую копию)",
   "doctor.file_same": "{file}: уже есть",
   "doctor.fix": "как исправить: {fix}",
   "doctor.fix_cli_only": "doctor --fix работает в CLI: выполните jtasks doctor --fix --yes в терминале",
@@ -4706,11 +4747,13 @@ var ru_default = {
   "doctor.opencode_ok": "агенты execute, execute-deep и review на месте; {plugin}",
   "doctor.opencode_plugin_absent": "плагина jtasks нет в его конфигурации (см. opencode/README.md)",
   "doctor.opencode_plugin_listed": "плагин jtasks есть в его конфигурации",
+  "doctor.outdated": "устарело (отличается от этой версии): {list}",
   "doctor.package_missing": "в пакете нет {file}",
   "doctor.skills_missing": "нет навыков: {list}",
   "doctor.skills_no_agents": "в этой домашней папке нет папок Claude Code, OpenCode или Codex (проверять нечего)",
   "doctor.skills_ok": "to-jtasks и jtasks на месте для {agents}",
   "doctor.step_copy": "скопировать {file}",
+  "doctor.step_replace": "заменить {file} этой версией",
   "doctor.step_jlock": "установить jlock официальным установщиком",
   "doctor.summary": "ok: {ok}, предупреждений: {warn}, сбоев: {fail}",
   "doctor.would": "будет установлено:",
@@ -5074,11 +5117,13 @@ var ru_default = {
   "undo.dirty": "{id}: в дереве несохранённые изменения ({files}); закоммитьте или отбросьте их до undo",
   "undo.exclude_shared": "{id}: другие прогоны ещё используют строку {line} в exclude ({runs}); используйте --force, чтобы всё равно убрать её",
   "undo.file_removed": "{id}: {file} удалён",
+  "undo.file_restored": "{id}: {file} возвращён к предыдущей копии",
   "undo.line_absent": "{id}: строки уже не было в {path}",
   "undo.line_removed": "{id}: строка удалена из {path}",
   "undo.no_branch": "{id}: ветки {branch} уже не было",
   "undo.no_commit": "{id}: коммита {ref} больше нет (см. jtasks effects --check)",
   "undo.no_effect": "нет активного эффекта {id} в прогоне {run} (см. jtasks ledger)",
+  "undo.no_backup": "{id}: предыдущей копии {file} нет, ничего не восстановлено",
   "undo.no_global": "нет активного глобального эффекта {id} (см. jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: патча {patch} больше нет",
   "undo.none": "{id}: нет автоматической отмены для {type} ({kind})",
@@ -5236,6 +5281,7 @@ var ar_default = {
   "doctor.confirm": "لم يُثبَّت شيء؛ أكّد بالأمر jtasks doctor --fix --yes",
   "doctor.file_differs": "{file}: موجود بالفعل بمحتوى آخر، أُبقي عليه",
   "doctor.file_installed": "{file}: ثُبّت ({id})",
+  "doctor.file_replaced": "{file}: استُبدل بهذا الإصدار ({id}؛ التراجع يعيد النسخة القديمة)",
   "doctor.file_same": "{file}: موجود بالفعل",
   "doctor.fix": "الحل: {fix}",
   "doctor.fix_cli_only": "يعمل doctor --fix في CLI: شغّل jtasks doctor --fix --yes في طرفية",
@@ -5266,11 +5312,13 @@ var ar_default = {
   "doctor.opencode_ok": "الوكلاء execute و execute-deep و review موجودون؛ {plugin}",
   "doctor.opencode_plugin_absent": "الإضافة jtasks ليست في إعداداته (انظر opencode/README.md)",
   "doctor.opencode_plugin_listed": "الإضافة jtasks موجودة في إعداداته",
+  "doctor.outdated": "قديم (يختلف عن هذا الإصدار): {list}",
   "doctor.package_missing": "الحزمة ليس فيها {file}",
   "doctor.skills_missing": "مهارات ناقصة: {list}",
   "doctor.skills_no_agents": "لا مجلد لـ Claude Code أو OpenCode أو Codex في مجلد المستخدم هذا (لا شيء للفحص)",
   "doctor.skills_ok": "to-jtasks و jtasks موجودتان لـ {agents}",
   "doctor.step_copy": "نسخ {file}",
+  "doctor.step_replace": "استبدال {file} بهذا الإصدار",
   "doctor.step_jlock": "تثبيت jlock بمثبّته الرسمي",
   "doctor.summary": "ok: {ok}، التحذيرات: {warn}، الإخفاقات: {fail}",
   "doctor.would": "سيُثبَّت:",
@@ -5634,11 +5682,13 @@ var ar_default = {
   "undo.dirty": "{id}: في الشجرة تغييرات غير محفوظة ({files})؛ أودِعها أو تخلّص منها قبل undo",
   "undo.exclude_shared": "{id}: تشغيلات أخرى لا تزال تستخدم السطر {line} من exclude ({runs})؛ استخدم --force لإزالته رغم ذلك",
   "undo.file_removed": "{id}: أُزيل {file}",
+  "undo.file_restored": "{id}: أُعيد {file} إلى نسخته السابقة",
   "undo.line_absent": "{id}: لم يعد السطر موجودًا في {path}",
   "undo.line_removed": "{id}: أُزيل السطر من {path}",
   "undo.no_branch": "{id}: الفرع {branch} لم يعد موجودًا",
   "undo.no_commit": "{id}: الإيداع {ref} لم يعد موجودًا (انظر jtasks effects --check)",
   "undo.no_effect": "لا أثر نشط {id} في التشغيل {run} (انظر jtasks ledger)",
+  "undo.no_backup": "{id}: النسخة السابقة {file} غير موجودة، لم يُستعد شيء",
   "undo.no_global": "لا أثر عام نشط {id} (انظر jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: الرقعة {patch} لم تعد موجودة",
   "undo.none": "{id}: لا تراجع تلقائي لـ {type} ({kind})",
@@ -5796,6 +5846,7 @@ var hi_default = {
   "doctor.confirm": "कुछ इंस्टॉल नहीं हुआ; jtasks doctor --fix --yes से पुष्टि करें",
   "doctor.file_differs": "{file}: पहले से दूसरी सामग्री के साथ है, रखा गया",
   "doctor.file_installed": "{file}: इंस्टॉल किया गया ({id})",
+  "doctor.file_replaced": "{file}: इस बिल्ड से बदला गया ({id}; undo पुरानी कॉपी लौटाता है)",
   "doctor.file_same": "{file}: पहले से है",
   "doctor.fix": "समाधान: {fix}",
   "doctor.fix_cli_only": "doctor --fix CLI में चलता है: टर्मिनल में jtasks doctor --fix --yes चलाएँ",
@@ -5826,11 +5877,13 @@ var hi_default = {
   "doctor.opencode_ok": "एजेंट execute, execute-deep और review मौजूद हैं; {plugin}",
   "doctor.opencode_plugin_absent": "jtasks प्लगइन उसकी कॉन्फ़िगरेशन में नहीं है (देखें opencode/README.md)",
   "doctor.opencode_plugin_listed": "jtasks प्लगइन उसकी कॉन्फ़िगरेशन में है",
+  "doctor.outdated": "पुराना (इस बिल्ड से अलग): {list}",
   "doctor.package_missing": "पैकेज में {file} नहीं है",
   "doctor.skills_missing": "स्किल गायब: {list}",
   "doctor.skills_no_agents": "इस होम में Claude Code, OpenCode या Codex का कोई फ़ोल्डर नहीं (जाँचने को कुछ नहीं)",
   "doctor.skills_ok": "{agents} के लिए to-jtasks और jtasks मौजूद हैं",
   "doctor.step_copy": "{file} कॉपी करें",
+  "doctor.step_replace": "{file} को इस बिल्ड से बदलें",
   "doctor.step_jlock": "jlock को उसके आधिकारिक इंस्टॉलर से इंस्टॉल करें",
   "doctor.summary": "ok: {ok}, चेतावनियाँ: {warn}, विफल: {fail}",
   "doctor.would": "इंस्टॉल किया जाएगा:",
@@ -6194,11 +6247,13 @@ var hi_default = {
   "undo.dirty": "{id}: ट्री में बिना सहेजे बदलाव हैं ({files}); undo से पहले उन्हें commit करें या हटा दें",
   "undo.exclude_shared": "{id}: दूसरे रन अब भी exclude की पंक्ति {line} इस्तेमाल करते हैं ({runs}); फिर भी हटाने के लिए --force",
   "undo.file_removed": "{id}: {file} हटाया गया",
+  "undo.file_restored": "{id}: {file} पिछली कॉपी पर लौटाया गया",
   "undo.line_absent": "{id}: पंक्ति अब {path} में नहीं थी",
   "undo.line_removed": "{id}: {path} से पंक्ति हटाई गई",
   "undo.no_branch": "{id}: ब्रांच {branch} अब मौजूद नहीं थी",
   "undo.no_commit": "{id}: commit {ref} अब मौजूद नहीं (देखें jtasks effects --check)",
   "undo.no_effect": "रन {run} में कोई सक्रिय प्रभाव {id} नहीं (देखें jtasks ledger)",
+  "undo.no_backup": "{id}: पिछली कॉपी {file} नहीं मिली, कुछ नहीं लौटाया",
   "undo.no_global": "कोई सक्रिय वैश्विक प्रभाव {id} नहीं (देखें jtasks ledger --all-projects)",
   "undo.no_patch": "{id}: patch {patch} अब मौजूद नहीं है",
   "undo.none": "{id}: {type} ({kind}) के लिए कोई स्वचालित पूर्ववत नहीं है",
@@ -7537,7 +7592,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.5.0";
+var VERSION = "0.5.1";
 
 class ToolError extends Error {
   code;
@@ -11897,6 +11952,15 @@ async function undoGlobal(ctx, id) {
   const e = (await readEffects(host, globalLedger(host))).find((x) => x.id === id && x.state === "active");
   if (!e)
     throw new ToolError(tr("undo.no_global", { id }));
+  if (e.undo.kind === "restore-file" && e.path && e.backup) {
+    const previous = await host.readText(e.backup);
+    if (previous === undefined)
+      throw new ToolError(tr("undo.no_backup", { id: e.id, file: e.backup }));
+    await host.writeText(e.path, previous);
+    await host.remove(dirname(e.backup), { recursive: true }).catch(() => {});
+    await setEffectState(host, jtasksHome(host), e.run, e.id, "undone");
+    return ok(tr("undo.file_restored", { id: e.id, file: e.path }), { undone: [e.id] });
+  }
   if (e.undo.kind !== "remove-file" || !e.path)
     throw new ToolError(tr("undo.none", { id: e.id, type: e.type, kind: e.undo.kind }));
   await host.remove(e.path);
@@ -13294,7 +13358,83 @@ async function checkData(ctx) {
 function sourceText(source) {
   return tr(`data.source.${source}`);
 }
-async function checkOpenCode(host, cwd) {
+var sameText = (a, b) => a.replace(/\r\n/g, `
+`) === b.replace(/\r\n/g, `
+`);
+function frontMatter(text, key) {
+  const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1];
+  const value = block === undefined ? undefined : new RegExp(`^${key}:[ \\t]*(.*)$`, "m").exec(block)?.[1];
+  return value?.trim().replace(/^["']|["']$/g, "");
+}
+function recordedUnder(host, installed, path) {
+  const norm = (p) => slash(caseInsensitive(host.platform) ? p.toLowerCase() : p).replace(/\/+$/, "");
+  const base2 = norm(path);
+  return installed.some((p) => norm(p) === base2 || norm(p).startsWith(`${base2}/`));
+}
+async function installedPaths(host) {
+  return (await readEffects(host, globalLedger(host))).filter((e) => e.type === "install" && e.state === "active" && e.path).map((e) => e.path);
+}
+async function staleFiles(host, files) {
+  const out = [];
+  for (const f of files) {
+    const want = await host.readText(f.from);
+    if (want === undefined)
+      continue;
+    const have = await host.readText(f.to);
+    if (have === undefined || !sameText(have, want))
+      out.push(f);
+  }
+  return out;
+}
+async function skillItems(host, pkg) {
+  const out = [];
+  const mod = await claudeModInstalled(host);
+  const installed = await installedPaths(host);
+  for (const h of skillHosts(host)) {
+    if (!await isDir(host, h.present) || mod && h.host === "claude-code")
+      continue;
+    for (const skill of SKILLS) {
+      const dir = join(h.dir, skill);
+      const files = (SKILL_FILES[skill] ?? ["SKILL.md"]).map((name) => ({ from: join(pkg ?? "", "skills", h.host, skill, name), to: join(dir, name) }));
+      const label2 = `${h.host}/${skill}`;
+      const text = await host.readText(join(dir, "SKILL.md"));
+      if (text === undefined) {
+        out.push({ label: label2, state: "missing", files, stale: files });
+        continue;
+      }
+      if (frontMatter(text, "name") !== skill && !recordedUnder(host, installed, dir)) {
+        out.push({ label: label2, state: "foreign", files, stale: [] });
+        continue;
+      }
+      const stale = pkg ? await staleFiles(host, files) : [];
+      out.push({ label: label2, state: stale.length ? "outdated" : "current", files, stale });
+    }
+  }
+  return out;
+}
+async function agentItems(host, pkg) {
+  const config = join(userHome(host), ".config/opencode");
+  if (!await isDir(host, config))
+    return [];
+  const installed = await installedPaths(host);
+  const out = [];
+  for (const agent of OPENCODE_AGENTS) {
+    const files = [{ from: join(pkg ?? "", "opencode/agents", `${agent}.md`), to: join(config, "agents", `${agent}.md`) }];
+    const text = await host.readText(files[0].to);
+    if (text === undefined) {
+      out.push({ label: agent, state: "missing", files, stale: files });
+      continue;
+    }
+    if (!/jtasks/.test(frontMatter(text, "description") ?? "") && !recordedUnder(host, installed, files[0].to)) {
+      out.push({ label: agent, state: "foreign", files, stale: [] });
+      continue;
+    }
+    const stale = pkg ? await staleFiles(host, files) : [];
+    out.push({ label: agent, state: stale.length ? "outdated" : "current", files, stale });
+  }
+  return out;
+}
+async function checkOpenCode(host, cwd, pkg) {
   const config = join(userHome(host), ".config/opencode");
   if (!await isDir(host, config))
     return { name: "opencode", status: "ok", detail: tr("doctor.opencode_absent") };
@@ -13310,8 +13450,12 @@ async function checkOpenCode(host, cwd) {
       missing.push(agent);
   }
   const plugin = /jtasks/.test(configText) ? tr("doctor.opencode_plugin_listed") : tr("doctor.opencode_plugin_absent");
+  const outdated = (await agentItems(host, pkg)).filter((i) => i.state === "outdated").map((i) => i.label);
+  const stale = outdated.length ? `${tr("doctor.outdated", { list: outdated.join(", ") })}; ` : "";
   if (missing.length)
-    return { name: "opencode", status: "warn", detail: tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "jtasks doctor --fix --yes" };
+    return { name: "opencode", status: "warn", detail: stale + tr("doctor.opencode_agents_missing", { agents: missing.join(", "), plugin }), fix: "jtasks doctor --fix --yes" };
+  if (outdated.length)
+    return { name: "opencode", status: "warn", detail: stale + plugin, fix: "jtasks doctor --fix --yes" };
   return { name: "opencode", status: "ok", detail: tr("doctor.opencode_ok", { plugin }) };
 }
 async function checkClaude(host) {
@@ -13325,28 +13469,23 @@ async function checkClaude(host) {
 async function claudeModInstalled(host) {
   return /jtasks/.test(await host.readText(join(userHome(host), ".claude/plugins/installed_plugins.json")) ?? "");
 }
-async function missingSkills(host) {
-  const out = [];
-  const mod = await claudeModInstalled(host);
-  for (const h of skillHosts(host)) {
-    if (!await isDir(host, h.present) || mod && h.host === "claude-code")
-      continue;
-    for (const skill of SKILLS)
-      if (!await isFile(host, join(h.dir, skill, "SKILL.md")))
-        out.push({ host: h.host, skill, dir: join(h.dir, skill) });
-  }
-  return out;
-}
-async function checkSkills(host) {
+async function checkSkills(host, pkg) {
   const present = [];
   for (const h of skillHosts(host))
     if (await isDir(host, h.present))
       present.push(h.host);
   if (!present.length)
     return { name: "skills", status: "ok", detail: tr("doctor.skills_no_agents") };
-  const missing = await missingSkills(host);
+  const items = await skillItems(host, pkg);
+  const missing = items.filter((i) => i.state === "missing").map((i) => i.label);
+  const outdated = items.filter((i) => i.state === "outdated").map((i) => i.label);
+  const parts = [];
   if (missing.length)
-    return { name: "skills", status: "warn", detail: tr("doctor.skills_missing", { list: missing.map((m) => `${m.host}/${m.skill}`).join(", ") }), fix: "jtasks doctor --fix --yes" };
+    parts.push(tr("doctor.skills_missing", { list: missing.join(", ") }));
+  if (outdated.length)
+    parts.push(tr("doctor.outdated", { list: outdated.join(", ") }));
+  if (parts.length)
+    return { name: "skills", status: "warn", detail: parts.join("; "), fix: "jtasks doctor --fix --yes" };
   return { name: "skills", status: "ok", detail: tr("doctor.skills_ok", { agents: present.join(", ") }) };
 }
 function checkLanguage(host, lang2) {
@@ -13361,9 +13500,9 @@ async function runChecks(ctx, lang2) {
     await checkJlock(host),
     await checkHome(host),
     await checkData(ctx),
-    await checkOpenCode(host, ctx.cwd),
+    await checkOpenCode(host, ctx.cwd, ctx.packageRoot),
     await checkClaude(host),
-    await checkSkills(host),
+    await checkSkills(host, ctx.packageRoot),
     checkLanguage(host, lang2)
   ];
 }
@@ -13391,6 +13530,21 @@ async function installFile(host, from, to) {
   const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, undo: { kind: "remove-file" } });
   return tr("doctor.file_installed", { file: to, id: e.id });
 }
+async function replaceFile(host, from, to) {
+  const text = await host.readText(from);
+  if (text === undefined)
+    throw new ToolError(tr("doctor.package_missing", { file: from }));
+  const current2 = await host.readText(to);
+  if (current2 === undefined)
+    return installFile(host, from, to);
+  if (sameText(current2, text))
+    return tr("doctor.file_same", { file: to });
+  const backup = join(jtasksHome(host), "undo", `${host.now().getTime().toString(36)}-${Math.floor(host.random() * 1e9).toString(36)}`, basename(to));
+  await host.writeText(backup, current2);
+  const e = await recordGlobalEffect(host, { run: "doctor", type: "install", repo: dirname(to), path: to, backup, undo: { kind: "restore-file" } });
+  await host.writeText(to, text);
+  return tr("doctor.file_replaced", { file: to, id: e.id });
+}
 async function gitInitProduct(ctx, product) {
   const { host } = ctx;
   const answer = ctx.ask ? (await ctx.ask(`${tr("doctor.container_git_question", { product })}
@@ -13417,18 +13571,16 @@ async function fixSteps(ctx, checks, args) {
   });
   if (bare)
     steps.push({ what: tr("doctor.step_git_init", { product: bare.product }), run: () => gitInitProduct(ctx, bare.product) });
-  const opencode = join(userHome(host), ".config/opencode");
-  if (checks.find((c) => c.name === "opencode")?.status === "warn")
-    for (const agent of OPENCODE_AGENTS) {
-      const to = join(opencode, "agents", `${agent}.md`);
-      if (!await isFile(host, to))
-        steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "opencode/agents", `${agent}.md`), to) });
-    }
-  for (const m of await missingSkills(host))
-    for (const name of SKILL_FILES[m.skill] ?? ["SKILL.md"]) {
-      const to = join(m.dir, name);
-      steps.push({ what: tr("doctor.step_copy", { file: to }), run: () => installFile(host, join(pkg, "skills", m.host, m.skill, name), to) });
-    }
+  const agentsMissing = checks.find((c) => c.name === "opencode")?.status === "warn";
+  const items = [...(await agentItems(host, pkg)).filter((i) => i.state === "outdated" || agentsMissing && i.state === "missing"), ...await skillItems(host, pkg)];
+  for (const item of items) {
+    if (item.state === "missing")
+      for (const f of item.files)
+        steps.push({ what: tr("doctor.step_copy", { file: f.to }), run: () => installFile(host, f.from, f.to) });
+    if (item.state === "outdated")
+      for (const f of item.stale)
+        steps.push({ what: tr("doctor.step_replace", { file: f.to }), run: () => replaceFile(host, f.from, f.to) });
+  }
   const value = await dataDirAnswer(ctx, args);
   if (value)
     steps.push({
@@ -13727,6 +13879,7 @@ export {
   globalLedger,
   gitOk,
   git,
+  frontMatter,
   formatWhen,
   formatRunsList,
   foldLines,

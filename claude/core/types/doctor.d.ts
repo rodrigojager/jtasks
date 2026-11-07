@@ -28,5 +28,7 @@ export declare function skillHosts(host: Host): {
 export declare function checkJlock(host: Host): Promise<Check>;
 /** Which rule chose the data folder, in words. */
 export declare function sourceText(source: DataSource): string;
+/** One key of a Markdown file's front matter, unquoted. */
+export declare function frontMatter(text: string, key: string): string | undefined;
 export declare function runChecks(ctx: ToolContext, lang: string | undefined): Promise<Check[]>;
 export declare function checksText(checks: Check[]): string;
