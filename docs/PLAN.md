@@ -109,6 +109,19 @@ quando o processo termina) vira mensagem ao orquestrador para retomá-la com `ta
 dizem ao subagente para usar `exec`/`wait` em espera longa e ao orquestrador o que é "aguardando processo". Versão
 0.3.0. Marcado com **[rev. 5.8]** nas seções 5, 9 e 18 (ticket 53).
 
+Revision 5.9, 07/11/2026 (0.5.0): a shared **run context** in every ticket. The agent that runs a task starts with a
+fresh context (no inherited conversation), so its ticket is its whole brief; until now a ticket had what the task
+delivers, its criteria, blockers and ownership, but nothing the tasks share. The plan (and any `plan --add` batch)
+takes `"context": { "summary", "read": [paths], "constraints": [texts] }` once, kept in `run.json`; a task may add
+its own `context` (same shape, only what is its own). The tool renders both, deterministically, into a `## Context`
+section at the end of every ticket (summaries, then **Read first** with the paths deduplicated, then
+**Constraints**); `jtasks context` shows the block, `jtasks context --set <json>` replaces it and `--unset` removes
+it, rewriting the tickets of every task not done or skipped. The skills: `to-jtasks` fills the block once from the
+plan (the `to-plan` skill gains a "Context for executors" paragraph for it) and never repeats it per task; the
+executors read the ticket first, then its Read first files. In Codex, a task agent is opened with `spawn_agent`,
+`fork_turns="none"`, and a first line exactly `jtasks-task: <run-id> <task-id>` (a local hook forces the fresh
+context from that line). Marked **[rev. 5.9]** in sections 3, 18 and 23.
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -229,6 +242,13 @@ README.md, README.<tag>.md   onze idiomas (seção 23)
   passo dos arquivos, quais registros, índices, schemas e tipos centrais várias tarefas vão tocar.
 - Ao passar, grava `tasks.json` e gera `tickets/NN-slug.md` (com uma seção Files). O ticket é visão; o JSON é a
   verdade.
+- **Run context [rev. 5.9].** `context` in the plan: `summary` (text), `read` (paths to read first: the plan, its
+  children, ADRs; absolute, or relative to the repository) and `constraints` (standing rules), all optional, unknown
+  fields refused (`context: unknown field "x"`, `T03: context.read must be a list of texts`). Text is trimmed and
+  repeated paths dropped, so the same meaning gives the same bytes. A task's own `context` adds to it. Every ticket
+  ends with `## Context`, rendered by `renderContext` (`src/tickets.ts`) from `run.json`'s block plus the task's;
+  no block anywhere, no section. `jtasks context --set` (an event on `run.json`) re-renders the tickets of the tasks
+  not done or skipped; a finished ticket keeps the context it was done with.
 - **Em lotes [rev. 5.1].** Um plano grande não precisa caber numa resposta do modelo:
   `jtasks plan --draft` abre um rascunho (`draft.json`, ainda não é execução, não aparece no painel);
   `jtasks plan --add <json>` acrescenta um lote e valida só o que dá para validar dentro dele (esquema, ids, perfis,
@@ -951,6 +971,10 @@ motivo.
     aviso, a mensagem, a linha de status); no mod, `--waiting` pelo status do agente e pelo Bash em segundo plano,
     `claude/hooks/alerts.ts` e o `context` das notificações; no plugin, `src/alerts.ts`, `execute.after` e o evento
     `alert` da TUI; protocolo (passos 8 e 9), skills, agentes, 0.3.0.
+26. **[rev. 5.9] Run context in every ticket** (0.5.0): `context` in the plan and per task (`readContext` in
+    `src/validate.ts`), `run.json`'s `context`, the `## Context` section (`renderContext`), `jtasks context
+    [--set|--unset]`, `to-jtasks`/`to-plan`, the executors' brief, and the Codex marker line
+    `jtasks-task: <run-id> <task-id>` with `fork_turns="none"` (`test/context.test.ts`).
 
 ---
 
@@ -1056,6 +1080,13 @@ Com o mod ou o plugin, o protocolo vem injetado e a skill `jtasks` não é neces
 `/goal` (ou `create_goal`) recebe "todas as tarefas da execução `<run>` estão done ou skipped", e a cada volta o
 modelo chama `next`, abre os subagentes e chama `status`. Sem mod nem plugin (um terminal, o Codex), a skill
 `jtasks` é o protocolo: o agente repete `next` até "restam 0" ele mesmo.
+
+**[rev. 5.9]** A task agent starts with a fresh context and its ticket is its brief. Claude Code: the `Agent` tool
+(`jtasks:execute` and the others) already starts fresh; the prompt points to the ticket. OpenCode: a new subagent
+session per task, never one carrying the conversation. Codex: `spawn_agent` with `fork_turns="none"` and a message
+whose **first line is exactly** `jtasks-task: <run-id> <task-id>`, followed by "run this task with the jtasks skill,
+read the ticket first: <path>"; a local hook in the user's Codex forces `fork_turns="none"` whenever a spawn message
+has that line, so the format never changes.
 
 `README.md` didático, no modelo do jlock (por quê, o problema, como funciona com um diagrama Mermaid, instalar com
 `jtasks doctor`, cinco minutos com saídas reais, com Claude Code, com OpenCode, de um terminal ou Codex, garantias e

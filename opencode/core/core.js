@@ -348,6 +348,7 @@ var en_default = {
   "help.release.agent_ended": "release <id> --agent-ended            the host: its subagent ended; waits while its process lives",
   "help.resume": "resume <run> [--keep-owners]          binds the session, unpauses, releases tasks without locks",
   "help.keepalive": "keepalive on|off                      the host reopens an idle loop that has ready tasks",
+  "help.context": "context [--set <json|@file>|--unset]  the run's shared context; --set rewrites open tickets",
   "help.retry": "retry <id> | --all-failed             skipped or failed → pending",
   "help.runs": "runs                                  the repository's runs, with status and progress",
   "help.skip": 'skip <id> --reason "…"                skipped (frees the tasks that depend on it)',
@@ -395,6 +396,7 @@ var en_default = {
   "json.no_stdin": "standard input is not available here",
   "json.plan": "the plan",
   "json.task": "the task",
+  "json.context": "the context",
   "ledger.from": "(from {from})",
   "ledger.global": "global ledger ({file}): {n} effect(s), {active} active",
   "ledger.header": "ledger {scope}: {n} effect(s), {active} active",
@@ -428,6 +430,9 @@ var en_default = {
   "pause.when_at": "it resumes by itself at {at}",
   "pause.when_person": "jtasks unpause resumes it",
   "keepalive.usage": "use: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "use: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "run {run} has no shared context (jtasks context --set <json>)",
+  "context.updated": "run {run}: context updated; tickets rewritten: {n}",
   "keepalive.on": "run {run}: keepalive on (the host reopens the loop when the orchestrator stops with ready tasks and nothing running)",
   "keepalive.off": "run {run}: keepalive off (only the model keeps the loop going)",
   "keepalive.stalled": "run {run} is stopped with {what} and nothing running; {tries} message(s) without progress, the host gave up (jtasks keepalive on watches it again)",
@@ -452,6 +457,10 @@ var en_default = {
   "plan.empty_path": 'empty path in "files"',
   "plan.hold_ttl": '"holdTtl" must be a duration such as 30m, 2h or 1d',
   "plan.keepalive": '"keepalive" must be true or false',
+  "plan.context_object": "{where} must be an object with summary (text), read (list of paths) and constraints (list of texts)",
+  "plan.context_unknown": '{where}: unknown field "{field}" (use summary, read, constraints)',
+  "plan.context_summary": "{where}.summary must be text",
+  "plan.context_list": "{where}.{field} must be a list of texts",
   "plan.max_agent_ended": '"maxAgentEnded" must be an integer above zero',
   "plan.max_attempts": '"maxAttempts" must be an integer above zero',
   "plan.missing_dependency": "{id} depends on {dep}, which does not exist",
@@ -899,6 +908,7 @@ var pt_BR_default = {
   "help.release.agent_ended": "release <id> --agent-ended            o host: subagente terminou; espera se o processo vive",
   "help.resume": "resume <run> [--keep-owners]          liga a sessão, tira da pausa, libera tarefas sem travas",
   "help.keepalive": "keepalive on|off                      o host reabre o laço parado com tarefas prontas",
+  "help.context": "context [--set <json|@file>|--unset]  o contexto comum do run; --set reescreve os tickets abertos",
   "help.retry": "retry <id> | --all-failed             pulada ou falha → pendente",
   "help.runs": "runs                                  execuções do repositório, com status e progresso",
   "help.skip": 'skip <id> --reason "…"                pulada (libera as dependentes)',
@@ -946,6 +956,7 @@ var pt_BR_default = {
   "json.no_stdin": "entrada padrão indisponível aqui",
   "json.plan": "o plano",
   "json.task": "a tarefa",
+  "json.context": "o contexto",
   "ledger.from": "(de {from})",
   "ledger.global": "ledger global ({file}): {n} efeito(s), {active} ativo(s)",
   "ledger.header": "ledger {scope}: {n} efeito(s), {active} ativo(s)",
@@ -979,6 +990,9 @@ var pt_BR_default = {
   "pause.when_at": "retoma sozinha às {at}",
   "pause.when_person": "jtasks unpause retoma",
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "uso: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "execução {run} sem contexto comum (jtasks context --set <json>)",
+  "context.updated": "execução {run}: contexto atualizado; tickets reescritos: {n}",
   "keepalive.on": "execução {run}: retomada ligada (o host reabre o laço quando o orquestrador para com tarefas prontas e nada rodando)",
   "keepalive.off": "execução {run}: retomada desligada (só o modelo mantém o laço andando)",
   "keepalive.stalled": "a execução {run} está parada com {what} e nada rodando; {tries} mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)",
@@ -1003,6 +1017,10 @@ var pt_BR_default = {
   "plan.empty_path": 'caminho vazio em "files"',
   "plan.hold_ttl": '"holdTtl" deve ser uma duração como 30m, 2h ou 1d',
   "plan.keepalive": '"keepalive" deve ser true ou false',
+  "plan.context_object": "{where} deve ser um objeto com summary (texto), read (lista de caminhos) e constraints (lista de textos)",
+  "plan.context_unknown": '{where}: campo desconhecido "{field}" (use summary, read, constraints)',
+  "plan.context_summary": "{where}.summary deve ser texto",
+  "plan.context_list": "{where}.{field} deve ser uma lista de textos",
   "plan.max_agent_ended": '"maxAgentEnded" deve ser um inteiro maior que zero',
   "plan.max_attempts": '"maxAttempts" deve ser um inteiro maior que zero',
   "plan.missing_dependency": "{id} depende de {dep}, que não existe",
@@ -1450,6 +1468,7 @@ var es_default = {
   "help.release.agent_ended": "release <id> --agent-ended            el host: el subagente terminó; espera si su proceso vive",
   "help.resume": "resume <run> [--keep-owners]          liga la sesión, quita la pausa, libera tareas sin bloqueos",
   "help.keepalive": "keepalive on|off                      el host reabre el ciclo parado con tareas listas",
+  "help.context": "context [--set <json|@file>|--unset]  el contexto común; --set reescribe los tickets abiertos",
   "help.retry": "retry <id> | --all-failed             omitida o fallida → pendiente",
   "help.runs": "runs                                  las ejecuciones del repositorio, con estado y progreso",
   "help.skip": 'skip <id> --reason "…"                omitida (libera las tareas que dependen de ella)',
@@ -1497,6 +1516,7 @@ var es_default = {
   "json.no_stdin": "la entrada estándar no está disponible aquí",
   "json.plan": "el plan",
   "json.task": "la tarea",
+  "json.context": "el contexto",
   "ledger.from": "(de {from})",
   "ledger.global": "ledger global ({file}): {n} efecto(s), {active} activo(s)",
   "ledger.header": "ledger {scope}: {n} efecto(s), {active} activo(s)",
@@ -1530,6 +1550,9 @@ var es_default = {
   "pause.when_at": "se reanuda sola a las {at}",
   "pause.when_person": "jtasks unpause la reanuda",
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "uso: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "ejecución {run} sin contexto común (jtasks context --set <json>)",
+  "context.updated": "ejecución {run}: contexto actualizado; tickets reescritos: {n}",
   "keepalive.on": "ejecución {run}: reanudación activada (el host reabre el ciclo cuando el orquestador se detiene con tareas listas y nada en marcha)",
   "keepalive.off": "ejecución {run}: reanudación desactivada (solo el modelo mantiene el ciclo en marcha)",
   "keepalive.stalled": "la ejecución {run} está detenida con {what} y nada en marcha; {tries} mensaje(s) sin progreso, el host se rindió (jtasks keepalive on vuelve a vigilarla)",
@@ -1554,6 +1577,10 @@ var es_default = {
   "plan.empty_path": 'ruta vacía en "files"',
   "plan.hold_ttl": '"holdTtl" debe ser una duración como 30m, 2h o 1d',
   "plan.keepalive": '"keepalive" debe ser true o false',
+  "plan.context_object": "{where} debe ser un objeto con summary (texto), read (lista de rutas) y constraints (lista de textos)",
+  "plan.context_unknown": '{where}: campo desconocido "{field}" (use summary, read, constraints)',
+  "plan.context_summary": "{where}.summary debe ser texto",
+  "plan.context_list": "{where}.{field} debe ser una lista de textos",
   "plan.max_agent_ended": '"maxAgentEnded" debe ser un entero mayor que cero',
   "plan.max_attempts": '"maxAttempts" debe ser un entero mayor que cero',
   "plan.missing_dependency": "{id} depende de {dep}, que no existe",
@@ -2001,6 +2028,7 @@ var fr_default = {
   "help.release.agent_ended": "release <id> --agent-ended            l'hôte: sous-agent arrêté; attend si son processus vit",
   "help.resume": "resume <run> [--keep-owners]          lie la session, sort de pause, libère les tâches sans verrou",
   "help.keepalive": "keepalive on|off                      l'hôte relance la boucle arrêtée avec des tâches prêtes",
+  "help.context": "context [--set <json|@file>|--unset]  le contexte commun ; --set réécrit les tickets ouverts",
   "help.retry": "retry <id> | --all-failed             ignorée ou en échec → en attente",
   "help.runs": "runs                                  les exécutions du dépôt, avec état et progression",
   "help.skip": 'skip <id> --reason "…"                ignorée (libère les tâches qui en dépendent)',
@@ -2048,6 +2076,7 @@ var fr_default = {
   "json.no_stdin": "l'entrée standard n'est pas disponible ici",
   "json.plan": "le plan",
   "json.task": "la tâche",
+  "json.context": "le contexte",
   "ledger.from": "(de {from})",
   "ledger.global": "ledger global ({file}): {n} effet(s), {active} actif(s)",
   "ledger.header": "ledger {scope}: {n} effet(s), {active} actif(s)",
@@ -2081,6 +2110,9 @@ var fr_default = {
   "pause.when_at": "elle reprend seule à {at}",
   "pause.when_person": "jtasks unpause la reprend",
   "keepalive.usage": "usage : jtasks keepalive on|off [--run <id>]",
+  "context.usage": "usage : jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "exécution {run} sans contexte commun (jtasks context --set <json>)",
+  "context.updated": "exécution {run} : contexte mis à jour ; tickets réécrits : {n}",
   "keepalive.on": "exécution {run} : relance activée (l'hôte relance la boucle quand l'orchestrateur s'arrête avec des tâches prêtes et rien en cours)",
   "keepalive.off": "exécution {run} : relance désactivée (seul le modèle fait avancer la boucle)",
   "keepalive.stalled": "l'exécution {run} est arrêtée avec {what} et rien en cours ; {tries} message(s) sans progrès, l'hôte abandonne (jtasks keepalive on la surveille à nouveau)",
@@ -2105,6 +2137,10 @@ var fr_default = {
   "plan.empty_path": 'chemin vide dans "files"',
   "plan.hold_ttl": '"holdTtl" doit être une durée comme 30m, 2h ou 1d',
   "plan.keepalive": '"keepalive" doit valoir true ou false',
+  "plan.context_object": "{where} doit être un objet avec summary (texte), read (liste de chemins) et constraints (liste de textes)",
+  "plan.context_unknown": '{where} : champ inconnu "{field}" (utilisez summary, read, constraints)',
+  "plan.context_summary": "{where}.summary doit être du texte",
+  "plan.context_list": "{where}.{field} doit être une liste de textes",
   "plan.max_agent_ended": '"maxAgentEnded" doit être un entier supérieur à zéro',
   "plan.max_attempts": '"maxAttempts" doit être un entier supérieur à zéro',
   "plan.missing_dependency": "{id} dépend de {dep}, qui n'existe pas",
@@ -2552,6 +2588,7 @@ var de_default = {
   "help.release.agent_ended": "release <id> --agent-ended            Host: Subagent beendet; wartet, solange sein Prozess lebt",
   "help.resume": "resume <run> [--keep-owners]          bindet Sitzung, hebt Pause auf, gibt sperrlose Aufgaben frei",
   "help.keepalive": "keepalive on|off                      Host öffnet die stehende Schleife mit bereiten Aufgaben neu",
+  "help.context": "context [--set <json|@file>|--unset]  gemeinsamer Kontext; --set schreibt offene Tickets neu",
   "help.retry": "retry <id> | --all-failed             übersprungen oder fehlgeschlagen → ausstehend",
   "help.runs": "runs                                  die Läufe des Repositorys, mit Status und Fortschritt",
   "help.skip": 'skip <id> --reason "…"                übersprungen (gibt die abhängigen Aufgaben frei)',
@@ -2599,6 +2636,7 @@ var de_default = {
   "json.no_stdin": "die Standardeingabe ist hier nicht verfügbar",
   "json.plan": "der Plan",
   "json.task": "die Aufgabe",
+  "json.context": "der Kontext",
   "ledger.from": "(aus {from})",
   "ledger.global": "globales Ledger ({file}): {n} Effekt(e), {active} aktiv",
   "ledger.header": "Ledger {scope}: {n} Effekt(e), {active} aktiv",
@@ -2632,6 +2670,9 @@ var de_default = {
   "pause.when_at": "er läuft um {at} von selbst weiter",
   "pause.when_person": "jtasks unpause setzt ihn fort",
   "keepalive.usage": "Aufruf: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "Aufruf: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "Lauf {run} hat keinen gemeinsamen Kontext (jtasks context --set <json>)",
+  "context.updated": "Lauf {run}: Kontext aktualisiert; neu geschriebene Tickets: {n}",
   "keepalive.on": "Lauf {run}: Wiederaufnahme an (der Host öffnet die Schleife wieder, wenn der Orchestrator mit bereiten Aufgaben stoppt und nichts läuft)",
   "keepalive.off": "Lauf {run}: Wiederaufnahme aus (nur das Modell hält die Schleife in Gang)",
   "keepalive.stalled": "Lauf {run} steht mit {what} und nichts läuft; {tries} Nachricht(en) ohne Fortschritt, der Host gibt auf (jtasks keepalive on beobachtet ihn wieder)",
@@ -2656,6 +2697,10 @@ var de_default = {
   "plan.empty_path": 'leerer Pfad in "files"',
   "plan.hold_ttl": '"holdTtl" muss eine Dauer wie 30m, 2h oder 1d sein',
   "plan.keepalive": '"keepalive" muss true oder false sein',
+  "plan.context_object": "{where} muss ein Objekt mit summary (Text), read (Liste von Pfaden) und constraints (Liste von Texten) sein",
+  "plan.context_unknown": '{where}: unbekanntes Feld "{field}" (erlaubt: summary, read, constraints)',
+  "plan.context_summary": "{where}.summary muss Text sein",
+  "plan.context_list": "{where}.{field} muss eine Liste von Texten sein",
   "plan.max_agent_ended": '"maxAgentEnded" muss eine ganze Zahl größer als null sein',
   "plan.max_attempts": '"maxAttempts" muss eine ganze Zahl größer als null sein',
   "plan.missing_dependency": "{id} hängt von {dep} ab, das nicht existiert",
@@ -3103,6 +3148,7 @@ var it_default = {
   "help.release.agent_ended": "release <id> --agent-ended            l'host: subagente terminato; attende se il processo vive",
   "help.resume": "resume <run> [--keep-owners]          lega la sessione, riprende, rilascia attività senza blocchi",
   "help.keepalive": "keepalive on|off                      l'host riapre il ciclo fermo con attività pronte",
+  "help.context": "context [--set <json|@file>|--unset]  il contesto comune; --set riscrive i ticket aperti",
   "help.retry": "retry <id> | --all-failed             saltata o fallita → in sospeso",
   "help.runs": "runs                                  le esecuzioni del repository, con stato e avanzamento",
   "help.skip": 'skip <id> --reason "…"                saltata (libera le attività che ne dipendono)',
@@ -3150,6 +3196,7 @@ var it_default = {
   "json.no_stdin": "lo standard input non è disponibile qui",
   "json.plan": "il piano",
   "json.task": "l'attività",
+  "json.context": "il contesto",
   "ledger.from": "(da {from})",
   "ledger.global": "ledger globale ({file}): effetti: {n}, attivi: {active}",
   "ledger.header": "ledger {scope}: effetti: {n}, attivi: {active}",
@@ -3183,6 +3230,9 @@ var it_default = {
   "pause.when_at": "riprende da sola alle {at}",
   "pause.when_person": "jtasks unpause la riprende",
   "keepalive.usage": "uso: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "uso: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "esecuzione {run} senza contesto comune (jtasks context --set <json>)",
+  "context.updated": "esecuzione {run}: contesto aggiornato; ticket riscritti: {n}",
   "keepalive.on": "esecuzione {run}: ripresa attiva (l'host riapre il ciclo quando l'orchestratore si ferma con attività pronte e niente in corso)",
   "keepalive.off": "esecuzione {run}: ripresa disattivata (solo il modello porta avanti il ciclo)",
   "keepalive.stalled": "l'esecuzione {run} è ferma con {what} e niente in corso; {tries} messaggio/i senza progressi, l'host rinuncia (jtasks keepalive on la sorveglia di nuovo)",
@@ -3207,6 +3257,10 @@ var it_default = {
   "plan.empty_path": 'percorso vuoto in "files"',
   "plan.hold_ttl": '"holdTtl" deve essere una durata come 30m, 2h o 1d',
   "plan.keepalive": '"keepalive" deve essere true o false',
+  "plan.context_object": "{where} deve essere un oggetto con summary (testo), read (elenco di percorsi) e constraints (elenco di testi)",
+  "plan.context_unknown": '{where}: campo sconosciuto "{field}" (usa summary, read, constraints)',
+  "plan.context_summary": "{where}.summary deve essere testo",
+  "plan.context_list": "{where}.{field} deve essere un elenco di testi",
   "plan.max_agent_ended": '"maxAgentEnded" deve essere un intero maggiore di zero',
   "plan.max_attempts": '"maxAttempts" deve essere un intero maggiore di zero',
   "plan.missing_dependency": "{id} dipende da {dep}, che non esiste",
@@ -3654,6 +3708,7 @@ var zh_CN_default = {
   "help.release.agent_ended": "release <id> --agent-ended            宿主用：子智能体已结束；其进程仍在运行则等待",
   "help.resume": "resume <run> [--keep-owners]          绑定会话、取消暂停、释放没有锁的任务",
   "help.keepalive": "keepalive on|off                      有就绪任务时，宿主会重启停下的循环",
+  "help.context": "context [--set <json|@file>|--unset]  运行的共享上下文；--set 重写未完成的工单",
   "help.retry": "retry <id> | --all-failed             已跳过或失败 → 待处理",
   "help.runs": "runs                                  仓库中的运行，含状态和进度",
   "help.skip": 'skip <id> --reason "…"                跳过（解除依赖它的任务的阻塞）',
@@ -3701,6 +3756,7 @@ var zh_CN_default = {
   "json.no_stdin": "此处无法使用标准输入",
   "json.plan": "计划",
   "json.task": "任务",
+  "json.context": "上下文",
   "ledger.from": "（来自 {from}）",
   "ledger.global": "全局 ledger（{file}）：{n} 个副作用，{active} 个生效",
   "ledger.header": "ledger（{scope}）：{n} 个副作用，{active} 个生效",
@@ -3734,6 +3790,9 @@ var zh_CN_default = {
   "pause.when_at": "将在 {at} 自动恢复",
   "pause.when_person": "用 jtasks unpause 恢复",
   "keepalive.usage": "用法：jtasks keepalive on|off [--run <id>]",
+  "context.usage": "用法：jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "运行 {run} 没有共享上下文(jtasks context --set <json>)",
+  "context.updated": "运行 {run}：上下文已更新；重写的工单：{n}",
   "keepalive.on": "运行 {run}：自动续跑已开启(编排者在有就绪任务且无任何运行时停下，宿主会重新开启循环)",
   "keepalive.off": "运行 {run}：自动续跑已关闭(只有模型推动循环)",
   "keepalive.stalled": "运行 {run} 已停下，{what}，且无任何运行；{tries} 条消息没有进展，宿主已放弃(jtasks keepalive on 重新监视)",
@@ -3758,6 +3817,10 @@ var zh_CN_default = {
   "plan.empty_path": '"files" 中有空路径',
   "plan.hold_ttl": '"holdTtl" 必须是时长，如 30m、2h 或 1d',
   "plan.keepalive": '"keepalive" 必须是 true 或 false',
+  "plan.context_object": "{where} 必须是对象，含 summary（文本）、read（路径列表）和 constraints（文本列表）",
+  "plan.context_unknown": '{where}：未知字段 "{field}"（可用 summary、read、constraints）',
+  "plan.context_summary": "{where}.summary 必须是文本",
+  "plan.context_list": "{where}.{field} 必须是文本列表",
   "plan.max_agent_ended": '"maxAgentEnded" 必须是大于零的整数',
   "plan.max_attempts": '"maxAttempts" 必须是大于零的整数',
   "plan.missing_dependency": "{id} 依赖不存在的 {dep}",
@@ -4205,6 +4268,7 @@ var ja_default = {
   "help.release.agent_ended": "release <id> --agent-ended            ホスト用: サブエージェント終了。プロセスが生きていれば待機",
   "help.resume": "resume <run> [--keep-owners]          セッションに結び付け、再開し、ロックのないタスクを解放",
   "help.keepalive": "keepalive on|off                      準備済みタスクがあれば止まったループをホストが再開",
+  "help.context": "context [--set <json|@file>|--unset]  実行の共有コンテキスト。--set で未完了チケットを再生成",
   "help.retry": "retry <id> | --all-failed             スキップまたは失敗 → 未着手",
   "help.runs": "runs                                  リポジトリの実行一覧（状態と進捗つき）",
   "help.skip": 'skip <id> --reason "…"                スキップ（依存するタスクのブロックを解除）',
@@ -4252,6 +4316,7 @@ var ja_default = {
   "json.no_stdin": "ここでは標準入力が使えない",
   "json.plan": "計画",
   "json.task": "タスク",
+  "json.context": "コンテキスト",
   "ledger.from": "（{from} から）",
   "ledger.global": "グローバル ledger（{file}）: 副作用 {n} 件、有効 {active} 件",
   "ledger.header": "ledger（{scope}）: 副作用 {n} 件、有効 {active} 件",
@@ -4285,6 +4350,9 @@ var ja_default = {
   "pause.when_at": "{at} に自動で再開",
   "pause.when_person": "jtasks unpause で再開",
   "keepalive.usage": "使い方: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "使い方: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "実行 {run} に共有コンテキストなし(jtasks context --set <json>)",
+  "context.updated": "実行 {run}: コンテキストを更新。再生成したチケット: {n}",
   "keepalive.on": "実行 {run}: 自動再開オン(準備済みタスクがあり何も動いていない状態でオーケストレーターが止まると、ホストがループを再開する)",
   "keepalive.off": "実行 {run}: 自動再開オフ(ループを進めるのはモデルだけ)",
   "keepalive.stalled": "実行 {run} は停止しています: {what}、何も動いていません。進捗のないメッセージ {tries} 件でホストは断念しました(jtasks keepalive on で再び監視)",
@@ -4309,6 +4377,10 @@ var ja_default = {
   "plan.empty_path": '"files" に空のパス',
   "plan.hold_ttl": '"holdTtl" は 30m、2h、1d のような時間でなければならない',
   "plan.keepalive": '"keepalive" は true か false',
+  "plan.context_object": "{where} は summary(テキスト)、read(パスのリスト)、constraints(テキストのリスト)を持つオブジェクト",
+  "plan.context_unknown": '{where}: 不明なフィールド "{field}"(summary、read、constraints を使用)',
+  "plan.context_summary": "{where}.summary はテキスト",
+  "plan.context_list": "{where}.{field} はテキストのリスト",
   "plan.max_agent_ended": '"maxAgentEnded" は 0 より大きい整数でなければならない',
   "plan.max_attempts": '"maxAttempts" は 0 より大きい整数でなければならない',
   "plan.missing_dependency": "{id} は存在しない {dep} に依存している",
@@ -4756,6 +4828,7 @@ var ru_default = {
   "help.release.agent_ended": "release <id> --agent-ended            хост: субагент завершился; ждёт, пока жив его процесс",
   "help.resume": "resume <run> [--keep-owners]          привязка сессии, снятие паузы, сброс задач без блокировок",
   "help.keepalive": "keepalive on|off                      хост перезапускает простаивающий цикл с готовыми задачами",
+  "help.context": "context [--set <json|@file>|--unset]  общий контекст прогона; --set переписывает открытые тикеты",
   "help.retry": "retry <id> | --all-failed             пропущена или провалена → в ожидании",
   "help.runs": "runs                                  прогоны репозитория со статусом и прогрессом",
   "help.skip": 'skip <id> --reason "…"                пропущена (освобождает зависящие от неё задачи)',
@@ -4803,6 +4876,7 @@ var ru_default = {
   "json.no_stdin": "стандартный ввод здесь недоступен",
   "json.plan": "план",
   "json.task": "задача",
+  "json.context": "контекст",
   "ledger.from": "(из {from})",
   "ledger.global": "глобальный реестр ({file}): эффектов: {n}, активных: {active}",
   "ledger.header": "реестр {scope}: эффектов: {n}, активных: {active}",
@@ -4836,6 +4910,9 @@ var ru_default = {
   "pause.when_at": "возобновится сам в {at}",
   "pause.when_person": "возобновить: jtasks unpause",
   "keepalive.usage": "использование: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "использование: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "у прогона {run} нет общего контекста (jtasks context --set <json>)",
+  "context.updated": "прогон {run}: контекст обновлён; переписано тикетов: {n}",
   "keepalive.on": "прогон {run}: автовозобновление включено (хост снова запускает цикл, когда оркестратор останавливается при готовых задачах и ничего не выполняется)",
   "keepalive.off": "прогон {run}: автовозобновление выключено (цикл держит только модель)",
   "keepalive.stalled": "прогон {run} стоит, {what}, ничего не выполняется; {tries} сообщ. без прогресса, хост сдался (jtasks keepalive on снова следит за ним)",
@@ -4860,6 +4937,10 @@ var ru_default = {
   "plan.empty_path": 'пустой путь в "files"',
   "plan.hold_ttl": '"holdTtl" должен быть длительностью, например 30m, 2h или 1d',
   "plan.keepalive": '"keepalive" должно быть true или false',
+  "plan.context_object": "{where} должен быть объектом с summary (текст), read (список путей) и constraints (список текстов)",
+  "plan.context_unknown": '{where}: неизвестное поле "{field}" (используйте summary, read, constraints)',
+  "plan.context_summary": "{where}.summary должно быть текстом",
+  "plan.context_list": "{where}.{field} должно быть списком текстов",
   "plan.max_agent_ended": '"maxAgentEnded" должен быть целым числом больше нуля',
   "plan.max_attempts": '"maxAttempts" должен быть целым числом больше нуля',
   "plan.missing_dependency": "{id} зависит от {dep}, которой нет",
@@ -5307,6 +5388,7 @@ var ar_default = {
   "help.release.agent_ended": "release <id> --agent-ended            للمضيف: انتهى الوكيل الفرعي؛ تنتظر ما دامت عمليته حية",
   "help.resume": "resume <run> [--keep-owners]          يربط الجلسة، يلغي الإيقاف، يحرّر المهام بلا أقفال",
   "help.keepalive": "keepalive on|off                      يعيد المضيف فتح الحلقة المتوقفة ذات المهام الجاهزة",
+  "help.context": "context [--set <json|@file>|--unset]  السياق المشترك للتشغيل؛ --set يعيد كتابة التذاكر المفتوحة",
   "help.retry": "retry <id> | --all-failed             متخطاة أو فاشلة → معلّقة",
   "help.runs": "runs                                  تشغيلات المستودع، مع الحالة والتقدم",
   "help.skip": 'skip <id> --reason "…"                متخطاة (تُطلق المهام المعتمدة عليها)',
@@ -5354,6 +5436,7 @@ var ar_default = {
   "json.no_stdin": "المدخل القياسي غير متاح هنا",
   "json.plan": "الخطة",
   "json.task": "المهمة",
+  "json.context": "السياق",
   "ledger.from": "(من {from})",
   "ledger.global": "السجل العام ({file}): الآثار: {n}، النشطة: {active}",
   "ledger.header": "السجل {scope}: الآثار: {n}، النشطة: {active}",
@@ -5387,6 +5470,9 @@ var ar_default = {
   "pause.when_at": "يُستأنف وحده عند {at}",
   "pause.when_person": "يستأنفه jtasks unpause",
   "keepalive.usage": "الاستخدام: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "الاستخدام: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "التشغيل {run} بلا سياق مشترك (jtasks context --set <json>)",
+  "context.updated": "التشغيل {run}: حُدّث السياق؛ التذاكر المعاد كتابتها: {n}",
   "keepalive.on": "التشغيل {run}: الاستئناف التلقائي مفعّل (يعيد المضيف فتح الحلقة عندما يتوقف المنسّق ومهام جاهزة باقية ولا شيء يعمل)",
   "keepalive.off": "التشغيل {run}: الاستئناف التلقائي معطّل (النموذج وحده يُبقي الحلقة دائرة)",
   "keepalive.stalled": "التشغيل {run} متوقف و{what} ولا شيء يعمل؛ {tries} رسالة بلا تقدّم، وتوقّف المضيف عن المحاولة (jtasks keepalive on يعيد المراقبة)",
@@ -5411,6 +5497,10 @@ var ar_default = {
   "plan.empty_path": 'مسار فارغ في "files"',
   "plan.hold_ttl": 'يجب أن يكون "holdTtl" مدة مثل 30m أو 2h أو 1d',
   "plan.keepalive": 'يجب أن تكون "keepalive" true أو false',
+  "plan.context_object": "يجب أن يكون {where} كائنًا فيه summary (نص) و read (قائمة مسارات) و constraints (قائمة نصوص)",
+  "plan.context_unknown": '{where}: حقل غير معروف "{field}" (استخدم summary و read و constraints)',
+  "plan.context_summary": "يجب أن يكون {where}.summary نصًا",
+  "plan.context_list": "يجب أن يكون {where}.{field} قائمة نصوص",
   "plan.max_agent_ended": 'يجب أن يكون "maxAgentEnded" عددًا صحيحًا أكبر من صفر',
   "plan.max_attempts": 'يجب أن يكون "maxAttempts" عددًا صحيحًا أكبر من صفر',
   "plan.missing_dependency": "{id} تعتمد على {dep}، وهي غير موجودة",
@@ -5858,6 +5948,7 @@ var hi_default = {
   "help.release.agent_ended": "release <id> --agent-ended            होस्ट: सबएजेंट समाप्त; उसकी प्रक्रिया जीवित हो तो प्रतीक्षा",
   "help.resume": "resume <run> [--keep-owners]          सत्र बाँधता, विराम हटाता, बिना लॉक वाले कार्य छोड़ता है",
   "help.keepalive": "keepalive on|off                      तैयार कार्य हों तो होस्ट रुका लूप फिर खोलता है",
+  "help.context": "context [--set <json|@file>|--unset]  रन का साझा संदर्भ; --set खुले टिकट फिर लिखता है",
   "help.retry": "retry <id> | --all-failed             स्किप या विफल → लंबित",
   "help.runs": "runs                                  रिपॉज़िटरी के रन, स्थिति और प्रगति के साथ",
   "help.skip": 'skip <id> --reason "…"                स्किप (इस पर निर्भर कार्यों को मुक्त करता है)',
@@ -5905,6 +5996,7 @@ var hi_default = {
   "json.no_stdin": "मानक इनपुट यहाँ उपलब्ध नहीं है",
   "json.plan": "योजना",
   "json.task": "कार्य",
+  "json.context": "संदर्भ",
   "ledger.from": "({from} से)",
   "ledger.global": "वैश्विक ledger ({file}): {n} प्रभाव, {active} सक्रिय",
   "ledger.header": "ledger ({scope}): {n} प्रभाव, {active} सक्रिय",
@@ -5938,6 +6030,9 @@ var hi_default = {
   "pause.when_at": "{at} पर अपने आप फिर शुरू होगा",
   "pause.when_person": "jtasks unpause से फिर शुरू करें",
   "keepalive.usage": "उपयोग: jtasks keepalive on|off [--run <id>]",
+  "context.usage": "उपयोग: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
+  "context.none": "रन {run} का कोई साझा संदर्भ नहीं (jtasks context --set <json>)",
+  "context.updated": "रन {run}: संदर्भ अपडेट हुआ; फिर लिखे गए टिकट: {n}",
   "keepalive.on": "रन {run}: स्वतः पुनरारंभ चालू (तैयार कार्य हों और कुछ न चल रहा हो तब ऑर्केस्ट्रेटर रुके तो होस्ट लूप फिर खोलता है)",
   "keepalive.off": "रन {run}: स्वतः पुनरारंभ बंद (लूप को केवल मॉडल आगे बढ़ाता है)",
   "keepalive.stalled": "रन {run} रुका है, {what} और कुछ नहीं चल रहा; {tries} संदेश बिना प्रगति के, होस्ट ने हार मानी (jtasks keepalive on फिर निगरानी करता है)",
@@ -5962,6 +6057,10 @@ var hi_default = {
   "plan.empty_path": '"files" में खाली पथ',
   "plan.hold_ttl": '"holdTtl" 30m, 2h या 1d जैसी अवधि होनी चाहिए',
   "plan.keepalive": '"keepalive" true या false होना चाहिए',
+  "plan.context_object": "{where} एक ऑब्जेक्ट होना चाहिए: summary (पाठ), read (पथों की सूची) और constraints (पाठों की सूची)",
+  "plan.context_unknown": '{where}: अज्ञात फ़ील्ड "{field}" (summary, read, constraints इस्तेमाल करें)',
+  "plan.context_summary": "{where}.summary पाठ होना चाहिए",
+  "plan.context_list": "{where}.{field} पाठों की सूची होनी चाहिए",
   "plan.max_agent_ended": '"maxAgentEnded" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.max_attempts": '"maxAttempts" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.missing_dependency": "{id} {dep} पर निर्भर है, जो मौजूद नहीं है",
@@ -6275,9 +6374,46 @@ function width(text) {
 }
 
 // src/validate.ts
-var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"]);
+var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared", "context"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"]);
+var CONTEXT_FIELDS = ["summary", "read", "constraints"];
 var GLOB = /[*?[\]{}]/;
+function readContext(raw, where = "context") {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw))
+    return { errors: [tr("plan.context_object", { where })] };
+  const obj = raw;
+  const errors = [];
+  for (const key of Object.keys(obj))
+    if (!CONTEXT_FIELDS.includes(key))
+      errors.push(tr("plan.context_unknown", { where, field: key }));
+  const text = (s) => s.replace(/\r\n?/g, `
+`).trim();
+  const context = {};
+  if (obj.summary !== undefined) {
+    if (typeof obj.summary !== "string")
+      errors.push(tr("plan.context_summary", { where }));
+    else if (text(obj.summary))
+      context.summary = text(obj.summary);
+  }
+  for (const key of ["read", "constraints"]) {
+    const value = obj[key];
+    if (value === undefined)
+      continue;
+    if (!isStringList(value)) {
+      errors.push(tr("plan.context_list", { where, field: key }));
+      continue;
+    }
+    const list = [];
+    for (const v of value.map(text))
+      if (v && !list.includes(v))
+        list.push(v);
+    if (list.length)
+      context[key] = list;
+  }
+  if (errors.length)
+    return { errors };
+  return Object.keys(context).length ? { context, errors } : { errors };
+}
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
   if (p === "")
@@ -6405,6 +6541,12 @@ function readPlan(raw) {
     else
       errors.push(tr("plan.shared_policy"));
   }
+  if (obj.context !== undefined) {
+    const read = readContext(obj.context);
+    errors.push(...read.errors);
+    if (read.context)
+      plan.context = read.context;
+  }
   if (!Array.isArray(obj.tasks)) {
     errors.push(tr("plan.no_tasks"));
     return { plan, errors };
@@ -6445,8 +6587,20 @@ function readPlan(raw) {
       if (!ok)
         errors.push(tr("plan.task_acceptance", { name }));
     }
-    if (errors.length === before)
-      plan.tasks.push(t);
+    let context;
+    if (t.context !== undefined) {
+      const read = readContext(t.context, `${name}: context`);
+      errors.push(...read.errors);
+      context = read.context;
+    }
+    if (errors.length === before) {
+      const task = { ...t };
+      if (context)
+        task.context = context;
+      else
+        delete task.context;
+      plan.tasks.push(task);
+    }
   });
   return { plan, errors };
 }
@@ -6676,7 +6830,28 @@ function ticketFileName(task, index) {
 function numbers(tasks) {
   return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]));
 }
-function renderTicket(task, index, all) {
+function renderContext(run, task) {
+  const summaries = [run?.summary, task?.summary].filter((s) => !!s);
+  const read = [];
+  for (const p of [...run?.read ?? [], ...task?.read ?? []])
+    if (!read.includes(p))
+      read.push(p);
+  const constraints = [];
+  for (const c of [...run?.constraints ?? [], ...task?.constraints ?? []])
+    if (!constraints.includes(c))
+      constraints.push(c);
+  if (!summaries.length && !read.length && !constraints.length)
+    return [];
+  const lines = ["## Context", ""];
+  for (const s of summaries)
+    lines.push(s, "");
+  if (read.length)
+    lines.push("**Read first:**", "", ...read.map((p) => `- \`${p}\``), "");
+  if (constraints.length)
+    lines.push("**Constraints:**", "", ...constraints.map((c) => `- ${c}`), "");
+  return lines;
+}
+function renderTicket(task, index, all, context) {
   const nums = numbers(all);
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
   const files = task.exclusive ? tr("ticket.exclusive") : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : tr("ticket.none");
@@ -6712,26 +6887,28 @@ function renderTicket(task, index, all) {
     lines.push(`**Error:** ${task.error}`, "");
   if (task.boundary)
     lines.push(`**Scope boundary:** ${task.boundary}`, "");
+  lines.push(...renderContext(context, task.context));
   return lines.join(`
 `);
 }
-async function writeTickets(host, runDir, tasks) {
+async function writeTickets(host, runDir, tasks, context) {
   const dir = join(runDir, "tickets");
   const names = tasks.tasks.map((t, i) => ticketFileName(t, i));
   await host.mkdir(dir);
   for (let i = 0;i < tasks.tasks.length; i++)
-    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks));
+    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks, context));
   for (const entry of await host.list(dir))
     if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name))
       await host.remove(join(dir, entry.name));
   return names.map((n) => join(dir, n));
 }
-async function writeTicket(host, runDir, tasks, id) {
+async function writeTicket(host, state, id) {
+  const { tasks } = state;
   const index = tasks.tasks.findIndex((t) => t.id === id);
   if (index < 0)
     return;
   const task = tasks.tasks[index];
-  await host.writeText(join(runDir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks));
+  await host.writeText(join(state.dir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks, state.run.context));
 }
 function ticketPath(runDir, tasks, id) {
   const index = tasks.findIndex((t) => t.id === id);
@@ -7360,7 +7537,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.4.2";
+var VERSION = "0.5.0";
 
 class ToolError extends Error {
   code;
@@ -7389,7 +7566,8 @@ var BOOLEAN_FLAGS = new Set([
   "agent-ended",
   "fresh",
   "claims",
-  "unset"
+  "unset",
+  "set"
 ]);
 var OPTIONAL_VALUE = new Set(["fix"]);
 function parseArgs(argv) {
@@ -7869,7 +8047,7 @@ function protocolText(run, summary, spawn, notes = []) {
     `jtasks: bound run ${run} · ${summary}`,
     "Protocol:",
     "1. Call jtasks next.",
-    `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' + "run a long command (a test suite, a build) with jtasks exec --task <id> -- <command>, and before ending your turn to wait for a process " + "you left running in the background, declare it with jtasks wait <id> --pid <pid>; " + 'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
+    `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` + `The subagent starts with a fresh context and its ticket is its whole brief, so the prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` + '"read the ticket first, then the files its Context section lists; call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' + "run a long command (a test suite, a build) with jtasks exec --task <id> -- <command>, and before ending your turn to wait for a process " + "you left running in the background, declare it with jtasks wait <id> --pid <pid>; " + 'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',
     `3. When they finish, call jtasks status. "${finished}" → the goal is met, with that output as the evidence. "${paused}" → stop. Otherwise go back to step 1.`,
     "4. Never edit tasks.json, the tickets or git by hand; only through the jtasks tool.",
     "5. If something depends on the person (an account, a credential, a decision the plan does not cover), call jtasks pause, then ask them. " + 'While the run is not paused and has ready tasks, the host reopens the loop when your turn ends; answer its "run is idle" message with jtasks next, not with text.',
@@ -8190,6 +8368,8 @@ function toTask(p, profiles, source) {
     task.boundary = p.boundary;
   if (p.touchesShared?.length)
     task.touchesShared = [...p.touchesShared];
+  if (p.context)
+    task.context = JSON.parse(JSON.stringify(p.context));
   return task;
 }
 async function createRun(ctx, plan, options = {}) {
@@ -8233,6 +8413,7 @@ async function createRun(ctx, plan, options = {}) {
     keepalive: plan.keepalive !== false,
     ...plan.shared?.length ? { shared: plan.shared } : {},
     ...plan.sharedPolicy ? { sharedPolicy: plan.sharedPolicy } : {},
+    ...plan.context ? { context: plan.context } : {},
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : []
   };
   const tasks = {
@@ -8255,7 +8436,7 @@ async function createRun(ctx, plan, options = {}) {
       undo.push(() => removeExcludeLine(host, root, line));
     }
     await createSnapshots(host, dir, run, tasks);
-    const tickets = await writeTickets(host, dir, tasks);
+    const tickets = await writeTickets(host, dir, tasks, run.context);
     if (useRunBranch) {
       await gitOk(host, root, ["switch", "-q", "-c", branch]);
       undo.push(async () => {
@@ -8386,6 +8567,8 @@ function draftPlan(draft) {
     plan.shared = draft.shared;
   if (draft.sharedPolicy !== undefined)
     plan.sharedPolicy = draft.sharedPolicy;
+  if (draft.context !== undefined)
+    plan.context = draft.context;
   return plan;
 }
 async function saveDraft(ctx, dir, draft) {
@@ -8459,7 +8642,7 @@ async function draftAdd(ctx, args) {
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"])
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     await saveDraft(ctx2, dir, next);
@@ -9904,7 +10087,7 @@ async function markLost(ctx, first, id) {
     });
     if (!d.result)
       return false;
-    await writeTicket(ctx2.host, first.dir, d.state.tasks, id);
+    await writeTicket(ctx2.host, d.state, id);
     await log(ctx2, d.state, { action: "lost", task: id, from: "in_progress", to: d.result.to, ...keptLog(d.result.kept) });
     return true;
   });
@@ -10071,7 +10254,7 @@ defineAction("start", async (ctx, args) => {
       throw error;
     }
     const state = d.state;
-    await writeTicket(ctx2.host, state.dir, state.tasks, id);
+    await writeTicket(ctx2.host, state, id);
     if (resident)
       remember(ctx2, state, id, resident);
     await log(ctx2, state, { action: "start", task: id, from: "pending", to: "in_progress", keys });
@@ -10346,7 +10529,7 @@ async function transition(ctx, args, action, change, opts = {}) {
     });
     const { id: taskId, from, extra } = d.result;
     const task = d.state.tasks.tasks.find((t) => t.id === taskId);
-    await writeTicket(ctx2.host, d.state.dir, d.state.tasks, taskId);
+    await writeTicket(ctx2.host, d.state, taskId);
     await log(ctx2, d.state, { action: name(), task: taskId, from, to: task.status, ...extra });
     return { task, tasks: d.state.tasks, state: d.state };
   };
@@ -10514,7 +10697,7 @@ defineAction("claim", async (ctx, args) => {
         reapply = mergeReapply(reapply, await reapplyPatches(ctx2.host, state, t, patchesUnder(state, platform, keys)));
         return t;
       });
-      await writeTicket(ctx2.host, d.state.dir, d.state.tasks, task.id);
+      await writeTicket(ctx2.host, d.state, task.id);
       await log(ctx2, d.state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) });
       return { t: d.result, reapply };
     };
@@ -10599,7 +10782,7 @@ async function retakeYielded(ctx, first, only) {
         });
         if (!d.result)
           return;
-        await writeTicket(ctx2.host, d.state.dir, d.state.tasks, task.id);
+        await writeTicket(ctx2.host, d.state, task.id);
         await log(ctx2, d.state, { action: "reclaim", task: task.id, keys: granted, files, ...reapplyData(reapply) });
         return { task: task.id, files, reapply };
       });
@@ -10684,7 +10867,7 @@ defineAction("yield", async (ctx, args) => {
       return { given, yielded, report, untouched };
     });
     const r = d.result;
-    await writeTicket(ctx2.host, d.state.dir, d.state.tasks, task.id);
+    await writeTicket(ctx2.host, d.state, task.id);
     await log(ctx2, d.state, { action: "yield", task: task.id, keys: r.given, files: r.yielded.map((y) => y.path), saved: r.report.saved.map((p) => p.file), untouched: r.untouched, kept: r.report.kept });
     return r;
   });
@@ -10852,7 +11035,7 @@ defineAction("adopt", async (ctx, args) => {
       acc = mergeReapply(acc, report);
       return { task: task.id, from: source.id, report: acc };
     });
-    await writeTicket(ctx2.host, d.state.dir, d.state.tasks, d.result.from);
+    await writeTicket(ctx2.host, d.state, d.result.from);
     await log(ctx2, d.state, { action: "adopt", task: d.result.task, from: d.result.from, ...reapplyData(d.result.report) });
     return d.result;
   });
@@ -10902,7 +11085,7 @@ async function bringBackKept(ctx, args) {
     const { task: taskId, recovered, away } = d.result;
     const state = d.state;
     const task = { id: taskId };
-    await writeTicket(ctx2.host, state.dir, state.tasks, task.id);
+    await writeTicket(ctx2.host, state, task.id);
     await log(ctx2, state, {
       action: "reapply",
       task: task.id,
@@ -11106,7 +11289,7 @@ async function awaitBack(ctx, run, taskId, how) {
   });
   if (!d.result)
     return false;
-  await writeTicket(ctx.host, d.state.dir, d.state.tasks, taskId);
+  await writeTicket(ctx.host, d.state, taskId);
   await log(ctx, d.state, { action: "await-back", task: taskId, how });
   return true;
 }
@@ -11139,7 +11322,7 @@ async function sweepAwaiting(ctx, run, host, agentAlive) {
         });
         if (rewaited.result) {
           const t = rewaited.state.tasks.tasks.find((x) => x.id === task.id);
-          await writeTicket(ctx.host, rewaited.state.dir, rewaited.state.tasks, task.id);
+          await writeTicket(ctx.host, rewaited.state, task.id);
           await log(ctx, rewaited.state, { action: "await", task: task.id, from: "in_progress", to: "in_progress", pids: t.awaiting.pids, agent, how: "sweep" });
           first = await reload(ctx, first);
         }
@@ -11273,7 +11456,7 @@ defineAction("retry", async (ctx, args) => {
       return ids;
     });
     for (const id of d.result) {
-      await writeTicket(ctx.host, d.state.dir, d.state.tasks, id);
+      await writeTicket(ctx.host, d.state, id);
       await log(ctx, d.state, { action: "retry", task: id, from: "failed", to: "pending" });
     }
     const reopened = { ids: d.result, tasks: d.state.tasks };
@@ -11413,9 +11596,8 @@ defineAction("resume", async (ctx, args) => {
       return state3.run.status;
     });
     const state2 = d.state;
-    const tasks = state2.tasks;
     for (const r of released) {
-      await writeTicket(ctx2.host, state2.dir, tasks, r.id);
+      await writeTicket(ctx2.host, state2, r.id);
       await log(ctx2, state2, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) });
     }
     await log(ctx2, state2, { action: "resume", released: released.map((r) => r.id), kept });
@@ -11456,6 +11638,44 @@ defineAction("keepalive", async (ctx, args) => {
   await log(ctx, state, { action: "keepalive", from: from ? "on" : "off", to: wanted });
   return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on });
 }, "help.keepalive");
+defineAction("context", async (ctx, args) => {
+  const set = args.options.set === true;
+  const unset = args.options.unset === true;
+  if (set && unset)
+    throw new ToolError(tr("context.usage"), 2);
+  const first = await resolveRun(ctx, args);
+  if (!set && !unset) {
+    const section = renderContext(first.run.context, undefined);
+    const text = section.length ? section.join(`
+`).trimEnd() : tr("context.none", { run: first.run.id });
+    return ok(text, { run: first.run.id, context: first.run.context ?? null });
+  }
+  let context;
+  if (set) {
+    const read = readContext(await readJsonArg(ctx, args.positionals[0], "json.context"));
+    if (read.errors.length)
+      return { ok: false, code: 1, text: `${tr("errors.count", { n: read.errors.length })}
+${read.errors.map((e) => `- ${e}`).join(`
+`)}`, data: { errors: read.errors } };
+    context = read.context;
+  }
+  const d = await decide(ctx, first, "context", (_state, draft) => {
+    if (context)
+      draft.run.context = context;
+    else
+      delete draft.run.context;
+  });
+  const state = d.state;
+  const open = state.tasks.tasks.filter((t) => t.status !== "done" && t.status !== "skipped");
+  for (const t of open)
+    await writeTicket(ctx.host, state, t.id);
+  await log(ctx, state, { action: "context", set: !!context, tickets: open.length });
+  return ok(tr("context.updated", { run: state.run.id, n: open.length }), {
+    run: state.run.id,
+    context: context ?? null,
+    tickets: open.map((t) => ticketPath(state.dir, state.tasks.tasks, t.id))
+  });
+}, "help.context");
 function serializeEntry(serialize2, command) {
   const norm = command.trim().replace(/\s+/g, " ");
   return serialize2.find((e) => {
@@ -13405,6 +13625,7 @@ export {
   renewRun,
   renewMargin,
   renderTicket,
+  renderContext,
   removeExcludeLine,
   remember,
   reload,
@@ -13425,6 +13646,7 @@ export {
   readJsonArg,
   readJson,
   readEffects,
+  readContext,
   readConfig,
   readBrief,
   readAlerts,

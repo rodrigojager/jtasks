@@ -3,7 +3,7 @@
 import { slugify, ticketNumber } from "./ids.ts"
 import type { Host } from "./host.ts"
 import { join } from "./paths.ts"
-import type { PlanTask, Task, TasksFile } from "./schema.ts"
+import type { PlanTask, RunContext, RunFile, Task, TasksFile } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
 export function ticketFileName(task: Task, index: number): string {
@@ -15,7 +15,26 @@ function numbers(tasks: Task[]): Map<string, string> {
   return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]))
 }
 
-export function renderTicket(task: Task, index: number, all: Task[]): string {
+/**
+ * The `## Context` section of a ticket (0.5.0): the run's shared context followed by what the task adds, so the
+ * agent that runs the task, which starts with a fresh context, knows the problem, what to read first and the rules.
+ * Pure: the same run context and task give the same bytes. Empty (no section) when neither says anything.
+ */
+export function renderContext(run: RunContext | undefined, task: RunContext | undefined): string[] {
+  const summaries = [run?.summary, task?.summary].filter((s): s is string => !!s)
+  const read: string[] = []
+  for (const p of [...(run?.read ?? []), ...(task?.read ?? [])]) if (!read.includes(p)) read.push(p)
+  const constraints: string[] = []
+  for (const c of [...(run?.constraints ?? []), ...(task?.constraints ?? [])]) if (!constraints.includes(c)) constraints.push(c)
+  if (!summaries.length && !read.length && !constraints.length) return []
+  const lines = ["## Context", ""]
+  for (const s of summaries) lines.push(s, "")
+  if (read.length) lines.push("**Read first:**", "", ...read.map((p) => `- \`${p}\``), "")
+  if (constraints.length) lines.push("**Constraints:**", "", ...constraints.map((c) => `- ${c}`), "")
+  return lines
+}
+
+export function renderTicket(task: Task, index: number, all: Task[], context?: RunContext): string {
   const nums = numbers(all)
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)"
   const files = task.exclusive
@@ -46,27 +65,36 @@ export function renderTicket(task: Task, index: number, all: Task[]): string {
   if (task.reason) lines.push(`**Reason:** ${task.reason}`, "")
   if (task.error) lines.push(`**Error:** ${task.error}`, "")
   if (task.boundary) lines.push(`**Scope boundary:** ${task.boundary}`, "")
+  lines.push(...renderContext(context, task.context))
   return lines.join("\n")
 }
 
 /** Writes every ticket of the run (and removes tickets of tasks that no longer exist). */
-export async function writeTickets(host: Host, runDir: string, tasks: TasksFile): Promise<string[]> {
+export async function writeTickets(host: Host, runDir: string, tasks: TasksFile, context?: RunContext): Promise<string[]> {
   const dir = join(runDir, "tickets")
   const names = tasks.tasks.map((t, i) => ticketFileName(t, i))
   await host.mkdir(dir)
   for (let i = 0; i < tasks.tasks.length; i++)
-    await host.writeText(join(dir, names[i]!), renderTicket(tasks.tasks[i]!, i, tasks.tasks))
+    await host.writeText(join(dir, names[i]!), renderTicket(tasks.tasks[i]!, i, tasks.tasks, context))
   for (const entry of await host.list(dir))
     if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name)) await host.remove(join(dir, entry.name))
   return names.map((n) => join(dir, n))
 }
 
+/** What a ticket is rendered from: the run's folder, its run.json (for the context) and its tasks. */
+export interface TicketState {
+  dir: string
+  run: Pick<RunFile, "context">
+  tasks: TasksFile
+}
+
 /** Rewrites one task's ticket after a transition. */
-export async function writeTicket(host: Host, runDir: string, tasks: TasksFile, id: string): Promise<void> {
+export async function writeTicket(host: Host, state: TicketState, id: string): Promise<void> {
+  const { tasks } = state
   const index = tasks.tasks.findIndex((t) => t.id === id)
   if (index < 0) return
   const task = tasks.tasks[index]!
-  await host.writeText(join(runDir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks))
+  await host.writeText(join(state.dir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks, state.run.context))
 }
 
 export function ticketPath(runDir: string, tasks: Task[], id: string): string | undefined {

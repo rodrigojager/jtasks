@@ -77,6 +77,20 @@ export interface Task {
     awaiting?: Awaiting;
     /** Times its subagent ended without finishing (rev. 5.8): counted apart from `attempts`, up to `maxAgentEnded`. */
     agentEnded?: number;
+    /** What this task adds to the run's context in its ticket (0.5.0): its own notes, files to read and constraints. */
+    context?: RunContext;
+}
+/**
+ * The shared context of a run (0.5.0), written once in the plan and rendered by the tool into the `## Context`
+ * section of every ticket: the agent that runs a task starts with a fresh context, and the ticket is its whole brief.
+ */
+export interface RunContext {
+    /** A short paragraph: the problem, the goal and the decisions an executor must know. */
+    summary?: string;
+    /** Files to read before starting (the plan, its children, ADRs): absolute, or relative to the repository. */
+    read?: string[];
+    /** Standing rules every task follows (the user's rules, what never to touch). */
+    constraints?: string[];
 }
 /** A process a task runs (rev. 5.8): its subagent's loop may end while it runs, and the task then waits for it. */
 export interface TaskProcess {
@@ -203,6 +217,8 @@ export interface RunFile extends SnapshotStamp {
     awaitGrace?: string;
     /** Set while the run is paused because a person is needed (rev. 5.8): `unpause` or `resume` ends it. */
     needsPerson?: NeedsPerson;
+    /** The shared context every ticket shows (0.5.0); `jtasks context --set` replaces it. */
+    context?: RunContext;
 }
 /**
  * Why a provider call failed in a way that clears on its own: a rate limit, a usage limit or quota, an overloaded
@@ -250,6 +266,8 @@ export interface PlanTask {
     exclusive?: boolean;
     /** Files of the plan's `shared` this task touches without owning them (it claims them when it needs them). */
     touchesShared?: string[];
+    /** What this task adds to the run's context: notes, files to read and constraints of its own. */
+    context?: RunContext;
 }
 /** The whole plan, or one batch of it (`plan --add`). */
 export interface PlanInput {
@@ -272,6 +290,8 @@ export interface PlanInput {
     shared?: string[];
     /** `warn` (the default): only the warning; `serialize`: the frontier never runs two of them together. */
     sharedPolicy?: SharedPolicy;
+    /** The run's shared context, written once: every ticket renders it in its `## Context` section. */
+    context?: RunContext;
     tasks: PlanTask[];
 }
 export declare const DEFAULT_PROFILES: Record<string, Profile>;

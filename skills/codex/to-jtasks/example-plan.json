@@ -5,6 +5,11 @@
   "serialize": ["bun test"],
   "shared": ["src/session/types.ts"],
   "sharedPolicy": "serialize",
+  "context": {
+    "summary": "Login sem senha: o usuário pede um link por email e entra por ele. Decidido: token de uso único com 15 minutos de validade, guardado no servidor; nada de JWT.",
+    "read": ["/home/ana/acme/_work/30-plan/PLAN.md", "/home/ana/acme/_work/10-docs/adr/0002-token-no-servidor.md"],
+    "constraints": ["Código, nomes e mensagens de commit em inglês.", "Não mexer no login por senha."]
+  },
   "tasks": [
     {
       "id": "T01",
@@ -30,7 +35,8 @@
       "dependsOn": ["T01"],
       "files": ["src/mail/**", "tests/mail"],
       "touchesShared": ["src/session/types.ts"],
-      "acceptance": ["o email contém o link com o token", "falha do serviço vira erro 503"]
+      "acceptance": ["o email contém o link com o token", "falha do serviço vira erro 503"],
+      "context": { "read": ["/home/ana/acme/_work/30-plan/PLAN-email.md"] }
     },
     {
       "id": "T04",

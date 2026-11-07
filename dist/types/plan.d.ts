@@ -42,6 +42,7 @@ export interface Draft {
     branch?: "run" | "current";
     shared?: string[];
     sharedPolicy?: PlanInput["sharedPolicy"];
+    context?: PlanInput["context"];
     /** The repository the draft is for (a data folder several repositories share lists only its own). */
     repo?: string;
     tasks: PlanTask[];

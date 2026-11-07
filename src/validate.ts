@@ -3,12 +3,46 @@
 
 import { relConflicts } from "./keys.ts"
 import { caseInsensitive, isAbsolute, normalize, slash } from "./paths.ts"
-import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, DURATION } from "./schema.ts"
+import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, type RunContext, DURATION } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
-const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared"])
-const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "tasks"])
+const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared", "context"])
+const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"])
+const CONTEXT_FIELDS = ["summary", "read", "constraints"] as const
 const GLOB = /[*?[\]{}]/
+
+/**
+ * A context block (the run's, or a task's addition): an object with `summary` (text), `read` (paths) and
+ * `constraints` (texts), all optional. The result is normalized so the same meaning gives the same bytes: text
+ * trimmed with `\n` line ends, empty entries and repeated paths dropped, empty fields left out (undefined when
+ * nothing is left). `where` names the block in the errors (`context`, `T03: context`).
+ */
+export function readContext(raw: unknown, where = "context"): { context?: RunContext; errors: string[] } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { errors: [tr("plan.context_object", { where })] }
+  const obj = raw as Record<string, unknown>
+  const errors: string[] = []
+  for (const key of Object.keys(obj))
+    if (!(CONTEXT_FIELDS as readonly string[]).includes(key)) errors.push(tr("plan.context_unknown", { where, field: key }))
+  const text = (s: string) => s.replace(/\r\n?/g, "\n").trim()
+  const context: RunContext = {}
+  if (obj.summary !== undefined) {
+    if (typeof obj.summary !== "string") errors.push(tr("plan.context_summary", { where }))
+    else if (text(obj.summary)) context.summary = text(obj.summary)
+  }
+  for (const key of ["read", "constraints"] as const) {
+    const value = obj[key]
+    if (value === undefined) continue
+    if (!isStringList(value)) {
+      errors.push(tr("plan.context_list", { where, field: key }))
+      continue
+    }
+    const list: string[] = []
+    for (const v of value.map(text)) if (v && !list.includes(v)) list.push(v)
+    if (list.length) context[key] = list
+  }
+  if (errors.length) return { errors }
+  return Object.keys(context).length ? { context, errors } : { errors }
+}
 
 export interface ValidateOptions {
   platform?: string
@@ -122,6 +156,11 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (obj.sharedPolicy === "warn" || obj.sharedPolicy === "serialize") plan.sharedPolicy = obj.sharedPolicy
     else errors.push(tr("plan.shared_policy"))
   }
+  if (obj.context !== undefined) {
+    const read = readContext(obj.context)
+    errors.push(...read.errors)
+    if (read.context) plan.context = read.context
+  }
   if (!Array.isArray(obj.tasks)) {
     errors.push(tr("plan.no_tasks"))
     return { plan, errors }
@@ -154,7 +193,18 @@ export function readPlan(raw: unknown): ReadPlanResult {
         )
       if (!ok) errors.push(tr("plan.task_acceptance", { name }))
     }
-    if (errors.length === before) plan.tasks.push(t as unknown as PlanTask)
+    let context: RunContext | undefined
+    if (t.context !== undefined) {
+      const read = readContext(t.context, `${name}: context`)
+      errors.push(...read.errors)
+      context = read.context
+    }
+    if (errors.length === before) {
+      const task = { ...t } as unknown as PlanTask
+      if (context) task.context = context
+      else delete task.context
+      plan.tasks.push(task)
+    }
   })
   return { plan, errors }
 }

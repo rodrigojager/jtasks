@@ -3,10 +3,16 @@
 Two skills teach an AI coding agent to use jtasks:
 
 - **`to-jtasks`** turns a plan, a spec or the conversation into tasks, each with the tasks that block it and the
-  files it owns, and hands them to the `jtasks` tool in batches (the tool validates them and writes the run).
+  files it owns, and hands them to the `jtasks` tool in batches (the tool validates them and writes the run). It
+  writes the run's shared **context** once (a summary, the plan files and ADRs to read first, the standing
+  constraints); the tool renders it into the `## Context` section of every ticket, because the agent that runs a
+  task starts with a fresh context and the ticket is its whole brief.
 - **`jtasks`** carries a run out: `jtasks next`, one task per agent (in parallel when the host has subagents),
   `jtasks start`, work inside the ownership, `jtasks claim` for one more file, `jtasks done` with evidence, and
   `jtasks status` until nothing is left; what to do on a timeout, a deadlock or a lost lock; with or without `/goal`.
+  Each task agent starts fresh and is pointed at its ticket: in Claude Code the `Agent` tool (the `jtasks:execute`
+  agents), in OpenCode a new subagent session, in Codex `spawn_agent` with `fork_turns="none"` and a message whose
+  first line is exactly `jtasks-task: <run-id> <task-id>` (a local hook may key on that line, so the format is fixed).
 
 With the Claude Code mod or the OpenCode plugin installed, the execution protocol comes injected into the prompt and
 `jtasks` is a reference; without them (a terminal, Codex), it is the protocol. The three versions of each skill

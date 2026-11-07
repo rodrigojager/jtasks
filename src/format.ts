@@ -66,8 +66,8 @@ export function protocolText(run: string, summary: string, spawn: string, notes:
     "Protocol:",
     "1. Call jtasks next.",
     `2. For each task it returns, open a subagent (${spawn}) with the profile it names, all in the same response (in parallel). ` +
-      `The prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` +
-      '"call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' +
+      `The subagent starts with a fresh context and its ticket is its whole brief, so the prompt carries only: --run ${run} --task <id>, the title, the criteria, the ownership (the files it may touch), the ticket's path, and ` +
+      '"read the ticket first, then the files its Context section lists; call jtasks start <id> first; if you need another file, jtasks claim <id> <file>; do not run git; ' +
       "run a long command (a test suite, a build) with jtasks exec --task <id> -- <command>, and before ending your turn to wait for a process " +
       "you left running in the background, declare it with jtasks wait <id> --pid <pid>; " +
       'at the end, jtasks done <id> --evidence with the evidence, or jtasks fail <id> --error".',

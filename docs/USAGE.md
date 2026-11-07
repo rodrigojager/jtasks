@@ -135,6 +135,7 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
   "serialize": ["bun test"],
   "shared": ["src/session/types.ts"],
   "sharedPolicy": "serialize",
+  "context": { "summary": "Login sem senha por link mágico; token de uso único, 15 min.", "read": ["/home/ana/acme/_work/30-plan/PLAN.md"], "constraints": ["Código em inglês."] },
   "profiles": { "execute": { "claude": { "agent": "jtasks:execute", "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
@@ -146,6 +147,13 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
 
 - `source`: the spec, issue or document the plan came from (a path or a URL); every ticket shows it as `Source`, and
   a task may name its own. `what` is the behaviour the task delivers; `acceptance`, the criteria its `done` answers.
+- `context`: the run's shared context, written **once**: `summary` (a short paragraph: the problem, the goal, the
+  decisions), `read` (files to read before starting: the plan, its children, ADRs; absolute paths, or relative to
+  the repository) and `constraints` (standing rules every task follows). A task may carry its own `context` (same
+  shape) with only what is its own. The agent that runs a task starts with a fresh context, so the tool renders both,
+  deterministically, into a `## Context` section at the end of every ticket (the summaries, **Read first**, then
+  **Constraints**). `jtasks context` shows it; `jtasks context --set <json>` replaces it and rewrites the tickets of
+  every task not done or skipped; `--unset` removes it.
 - `files`: files and folders relative to the repository; a folder owns everything inside it; `dir/**` is the
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
@@ -191,6 +199,7 @@ run of the repository. `--json` prints `{ ok, code, text, data }`.
 | | `plan --commit` | complete validation; creates the run and removes the draft |
 | | `import <dir> [--check\|--yes]` | Markdown tickets → run (a ticket without Files becomes `exclusive`) |
 | run | `runs` | the runs of the repository, with status and progress |
+| | `context [--set <json\|@file\|-> \| --unset]` | the run's shared context; `--set` replaces it (validated like the plan's) and rewrites the `## Context` of every ticket not done or skipped |
 | | `status [--claims]` | `feitas F/T (P%) · … · restam N`, waits, ready and blocked tasks, active locks; `--claims` adds the run's most contested files, from its log (claims, timeouts, deadlocks and yields per file, with the tasks; `claims` in `--json`) |
 | | `pause` / `unpause` | paused: `start` refused, and the keepalive stays quiet; `unpause` of a [transient pause](#transient-failures) takes back expired locks and names the agent to resume |
 | | `keepalive on\|off` | the host reopens the loop when the orchestrator stops with ready tasks (default on; see [With `/goal`](#with-goal)) |
@@ -423,9 +432,14 @@ Retomar      em qualquer janela: jtasks resume <run> → /goal de novo
 ```
 
 While a run is bound, the mod and the plugin inject the execution protocol: `jtasks next`; one subagent per ready task
-(all in one response), whose prompt carries `--run <run> --task <id>`, and which calls `jtasks start`, `jtasks claim`
+(all in one response), which starts with a fresh context and whose prompt carries `--run <run> --task <id>` and the
+ticket's path (the ticket, with its `## Context`, is its whole brief), and which calls `jtasks start`, `jtasks claim`
 when it needs another file, never git, and `jtasks done` with evidence (or `jtasks fail`); then `jtasks status` until
 "restam 0". When something depends on the person, the orchestrator calls `jtasks pause` and asks.
+
+In Codex (no mod or plugin), the `jtasks` skill opens each task agent with `spawn_agent` and `fork_turns="none"`, and
+the message's first line is exactly `jtasks-task: <run-id> <task-id>` (then: run this task with the jtasks skill,
+read the ticket first). Keep that line exact: a local Codex hook may key on it to force the fresh context.
 
 **Keepalive.** The goal does not notice a turn that ends with a task ready and nothing running (after a compaction,
 say, the summary still thinks a finished task is running). So when the orchestrator's turn ends, the mod and the

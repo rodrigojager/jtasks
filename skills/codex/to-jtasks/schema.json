@@ -33,6 +33,7 @@
           "description": "Registry files, indexes, schemas and central types several tasks touch. jtasks validate warns about two tasks with no dependency between them touching one (in files or touchesShared)."
         },
         "sharedPolicy": { "enum": ["warn", "serialize"], "description": "warn (the default): only the warning; serialize: two tasks touching the same shared file never run at the same time (the frontier holds one back), without the file entering both ownerships." },
+        "context": { "$ref": "#/$defs/context", "description": "The run's shared context, written once: the tool renders it into the ## Context section of every ticket (jtasks context --set replaces it later)." },
         "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
       },
       "required": ["tasks"],
@@ -54,14 +55,24 @@
           "description": "Files and folders it owns, relative to the repository; a folder owns everything inside; dir/** is the folder; no other patterns."
         },
         "acceptance": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Acceptance criteria: each one observable, false at the commit the task starts from, and made true by this task alone." },
-        "profile": { "type": "string", "description": "Name of a profile (default execute)." },
+        "context": {
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string", "description": "A short paragraph: the problem, the goal and the decisions an executor must know." },
+        "read": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Files to read before starting (the plan, its children, ADRs): absolute paths, or relative to the repository." },
+        "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Standing rules every task follows." }
+      },
+      "additionalProperties": false
+    },
+    "profile": { "type": "string", "description": "Name of a profile (default execute)." },
         "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
         "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." },
         "touchesShared": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },
           "description": "Files of the plan's shared this task touches without owning them (it claims them when it needs them)."
-        }
+        },
+        "context": { "$ref": "#/$defs/context", "description": "Only what this task adds to the run's context (its own files to read, note or rules); never a copy of it." }
       },
       "required": ["id", "title", "what", "acceptance"],
       "additionalProperties": false

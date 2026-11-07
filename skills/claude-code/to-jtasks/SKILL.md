@@ -8,8 +8,10 @@ description: Break a plan, spec, issue or the current conversation into jtasks t
 Break a plan, spec, issue or conversation into **tasks**: tracer-bullet vertical slices, each declaring what it
 delivers, how to tell it works, the tasks that **block** it and the **files it owns**. The plan is delivered through
 the `jtasks` tool, never written by hand: the tool validates it, writes `tasks.json` and generates one ticket per
-task. Every task is picked up by a subagent that has never seen this conversation, so the task must carry
-everything it needs.
+task. Every task is picked up by a subagent that starts with a fresh context and has never seen this conversation,
+so its ticket must carry everything it needs. What all tasks share (the problem, the decisions, the plan files to
+read, the standing rules) goes **once** in the plan's run context (step 6), and the tool renders it into every
+ticket; each task carries only what is its own.
 
 ## Process
 
@@ -93,6 +95,9 @@ Each task becomes one ticket, the only thing its subagent reads before starting.
 - **`touchesShared`**, when the task will touch a file of the plan's `shared` it does not own (step 5).
 - **`boundary`**, when it helps: what this task does not do, so the subagent does not drift into the next one.
 - **`source`**, only when this task came from somewhere other than the plan's source.
+- **`context`**, only for what is this task's own and not in the run context: a plan child or document only it
+  needs to read (`read`), a short note (`summary`), a rule only it follows (`constraints`). Never repeat the run
+  context here: the tool already puts it in every ticket.
 
 ### 5. Quiz the user
 
@@ -145,13 +150,35 @@ In Claude Code with the jtasks mod, every `jtasks …` command below goes throug
 
 Turn the approved breakdown into JSON (schema in `schema.json` beside this file; a small example in
 `example-plan.json`) and deliver it through the tool, in batches of up to ~20 tasks, so no single answer has to hold
-the whole plan:
+the whole plan.
+
+First write the **run context**, once, in the plan's `context` (the first batch carries it):
+
+```json
+"context": {
+  "summary": "Two to five sentences: the problem, the goal and the decisions every executor must know.",
+  "read": ["<absolute path>/_work/30-plan/PLAN.md", "<absolute path>/_work/10-docs/adr/0002-token.md"],
+  "constraints": ["Everything in the code is in English.", "Never touch the legacy importer."]
+}
+```
+
+- `summary`: from the plan's problem, solution and decisions (its "context for executors" paragraph, when it has
+  one), short and factual; point to the plan rather than restating it.
+- `read`: the plan files and ADRs an executor reads before starting (the parent plan, the children most tasks need,
+  the ADRs that bind them), as paths: absolute, or relative to the repository. A plan outside the repository (a
+  jproject container's `_work/`) needs absolute paths.
+- `constraints`: the standing rules every task follows: the user's rules for the project (language, what never to
+  touch, how to test), and the plan's out-of-scope lines that a task could drift into.
+
+The tool renders this block, plus each task's own `context`, into the `## Context` section of every ticket,
+deterministically. `jtasks context --set` replaces it later and rewrites the tickets not finished yet.
 
 1. `jtasks plan --draft --name <feature-slug> --objective "<one line>" --source "<spec path or issue URL>"` opens a
    draft (not a run yet).
-2. `jtasks plan --add` with the first batch as `json` (a list of tasks, or `{ "tasks": [...], "profiles": ...,
-   "serialize": [...] }`). The tool validates what it can inside the batch (schema, repeated ids, profiles, patterns
-   in `files`) and refuses the whole batch on any error, listing every error.
+2. `jtasks plan --add` with the first batch as `json`: `{ "context": {...}, "tasks": [...] }` (it may also carry
+   `"profiles"`, `"serialize"`…; later batches can be a plain list of tasks). The tool validates what it can inside
+   the batch (schema, repeated ids, profiles, patterns in `files`, the context block) and refuses the whole batch on
+   any error, listing every error.
 3. Repeat `jtasks plan --add` for the next batches. A task may depend on a task of a later batch.
 4. `jtasks plan --show` prints ids, titles, dependencies and ownership: check it against the approved breakdown.
 5. `jtasks plan --commit` runs the complete validation (dependencies across batches, cycles, ownership shared by

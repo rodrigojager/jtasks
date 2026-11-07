@@ -32,11 +32,14 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
 
 1. `jtasks next` lists the ready tasks: id, title, profile, criteria, ownership and the path of each ticket. Ready
    tasks can always run in parallel: their ownerships never overlap.
-2. For each ready task, open a subagent with the Agent tool, all of them in the same response so they run in parallel. Its prompt starts with `--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to follow step 3. With the mod, the task's profile sets the subagent's model. Without subagents, do the tasks yourself, one at a time.
+2. For each ready task, open a subagent with the Agent tool, all of them in the same response so they run in parallel. Its prompt starts with `--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to read the ticket first and follow step 3. A subagent starts with a fresh context: the ticket is its whole brief (its `## Context` section names the plan files to read and the rules), so point to it instead of pasting the plan or the conversation. With the mod, the task's profile sets the subagent's model. Without subagents, do the tasks yourself, one at a time.
 3. Whoever works on a task:
    - calls `jtasks start <id>` first. The answer says the ownership is locked; if it says the task was not ready
      (a file is in use), pick another task;
-   - reads the ticket, then edits **only inside the ownership** (a folder covers everything in it);
+   - reads the ticket first: it is the whole brief of an agent that starts with a fresh context. Its `## Context`
+     section, written by the tool from the run's shared context, gives the problem in short, the files to read
+     before starting (**Read first**: the plan, the ADRs) and the rules every task follows (**Constraints**);
+   - then edits **only inside the ownership** (a folder covers everything in it);
    - needs one more file? `jtasks claim <id> <file>`. It waits in jlock's queue up to `--timeout` (60 s by default);
      refused for a deadlock? `jtasks yield <id>` (below);
    - runs the build and the tests as usual (commands the run serializes go through `jtasks exec -- <command>`); a
@@ -133,6 +136,9 @@ from the run's log, not from the conversation. Every notification of a subagent'
   as the evidence. Each turn, run one pass of the loop. The goal does not notice a turn that ends with a task ready
   and nothing running; the section above says who reopens the loop then.
 - **Resuming** in another window or session: `jtasks resume <run>`, then the loop again.
+- **The shared context**: `jtasks context` shows the run's block (summary, files to read first, constraints). If it
+  is wrong or stale (a plan file moved, a decision changed), `jtasks context --set` with the whole corrected block as
+  JSON replaces it, and the tool rewrites the `## Context` of every ticket not done or skipped; `--unset` removes it.
 
 ## Exit codes
 

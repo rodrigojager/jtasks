@@ -84,8 +84,10 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
     spawn:
       "open a subagent with the Agent tool, all of them in the same response so they run in parallel. Its prompt " +
       "starts with `--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and " +
-      "asks it to follow step 3. With the mod, the task's profile sets the subagent's model. Without subagents, do the " +
-      "tasks yourself, one at a time.",
+      "asks it to read the ticket first and follow step 3. A subagent starts with a fresh context: the ticket is its " +
+      "whole brief (its `## Context` section names the plan files to read and the rules), so point to it instead of " +
+      "pasting the plan or the conversation. With the mod, the task's profile sets the subagent's model. Without " +
+      "subagents, do the tasks yourself, one at a time.",
     after:
       "the protocol the mod injects into the prompt (`jtasks next`, one subagent per ready task, `jtasks status` until " +
       "nothing is left); without the mod, the `jtasks` skill.",
@@ -121,8 +123,11 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
     spawn:
       "call the `subagent` tool, all of them in the same response so they run in parallel. Its prompt starts with " +
       "`--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to " +
-      "follow step 3. With the plugin, the call gets the agent of the task's profile. Without subagents, do the tasks " +
-      "yourself, one at a time.",
+      "read the ticket first and follow step 3. Open a new session for each task, never one that carries this " +
+      "conversation (no `task_id` of an earlier session, except to resume that same task's subagent): the ticket is " +
+      "its whole brief (its `## Context` section names the plan files to read and the rules), so point to it instead " +
+      "of pasting the plan. With the plugin, the call gets the agent of the task's profile. Without subagents, do the " +
+      "tasks yourself, one at a time.",
     after:
       "the protocol the plugin injects into each request (`jtasks next`, one subagent per ready task, `jtasks status` " +
       "until nothing is left); without the plugin, the `jtasks` skill.",
@@ -153,8 +158,14 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "Run every `jtasks …` command below in the shell (`jtasks` is the jtasks CLI). JSON goes in a file you write " +
       "first (`jtasks plan --add @batch1.json`) or on standard input (`-`).",
     spawn:
-      "work on it yourself, one task at a time; if your setup runs several agents, give each one a task instead, with " +
-      "a first message that starts with `--run <run> --task <id>` and asks it to follow step 3.",
+      "if you can spawn agents, give it its own agent with `spawn_agent` (all of them before you wait for any), " +
+      'always with `fork_turns="none"`: a task agent starts with a fresh context, and its ticket is its whole brief ' +
+      "(the ticket's `## Context` section names the plan files to read and the rules). The message's **first line is " +
+      "exactly** `jtasks-task: <run-id> <task-id>` (for example `jtasks-task: login-251107-ab12 T03`: nothing before " +
+      "it, single spaces, nothing after the task id), because a local hook keys on that line to force " +
+      '`fork_turns="none"`. The next lines say: "Run this task with the jtasks skill (step 3), passing ' +
+      "`--run <run-id>` to every jtasks command. Read the ticket first: <ticket path>.\" Do not paste the plan or the " +
+      "conversation. Without agents, work on the tasks yourself, one at a time.",
     after: "the `jtasks` skill (`jtasks next`, the tasks, `jtasks status` until nothing is left).",
     keepalive:
       "Here there is no mod or plugin, so nothing reopens the loop when your turn ends: the loop depends on you alone. " +

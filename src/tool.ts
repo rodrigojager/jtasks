@@ -11,7 +11,7 @@ import { validatePlan } from "./validate.ts"
 import { select, systemLocale, tr } from "./i18n.ts"
 import { jlockNotice } from "./setup.ts"
 
-export const VERSION = "0.4.2"
+export const VERSION = "0.5.0"
 
 export interface ToolContext {
   host: Host
@@ -103,6 +103,7 @@ const BOOLEAN_FLAGS = new Set([
   "fresh",
   "claims",
   "unset",
+  "set",
 ])
 
 /** Flags that take a value when one follows, and are a plain flag otherwise. */

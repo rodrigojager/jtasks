@@ -66,13 +66,13 @@ import { effectLine, effectsOf, globalLedger, PATCH_MOVES, readEffects, recordEf
 import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
 import { actorOf } from "./plan.ts"
-import { DEFAULT_AWAIT_GRACE, DEFAULT_HOLD_TTL, DEFAULT_MAX_AGENT_ENDED, type Awaiting, type Hold, type RunFile, type Task, type TaskProcess, type TasksFile, type Yielded } from "./schema.ts"
+import { DEFAULT_AWAIT_GRACE, DEFAULT_HOLD_TTL, DEFAULT_MAX_AGENT_ENDED, type Awaiting, type Hold, type RunContext, type RunFile, type Task, type TaskProcess, type TasksFile, type Yielded } from "./schema.ts"
 import { appendLog, commit, jtasksHome, listRuns, readState, readTasks, runDir, runsDir, strip, type StateDraft } from "./store.ts"
 import { withTree } from "./serial.ts"
 import { dataInRepo, isDataPath, requirePaths, type RepoPaths } from "./workspace.ts"
-import { ticketPath, writeTicket } from "./tickets.ts"
-import { addUsage, defineAction, ok, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
-import { normalizeFileEntry } from "./validate.ts"
+import { renderContext, ticketPath, writeTicket } from "./tickets.ts"
+import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
+import { normalizeFileEntry, readContext } from "./validate.ts"
 import { tr } from "./i18n.ts"
 
 // ── The run of a command ──────────────────────────────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ export async function markLost(ctx: ToolContext, first: RunState, id: string): P
       return { kept, to }
     })
     if (!d.result) return false
-    await writeTicket(ctx.host, first.dir, d.state.tasks, id)
+    await writeTicket(ctx.host, d.state, id)
     await log(ctx, d.state, { action: "lost", task: id, from: "in_progress", to: d.result.to, ...keptLog(d.result.kept) })
     return true
   })
@@ -392,7 +392,7 @@ defineAction(
         throw error
       }
       const state = d.state
-      await writeTicket(ctx.host, state.dir, state.tasks, id!)
+      await writeTicket(ctx.host, state, id!)
       if (resident) remember(ctx, state, id!, resident)
       await log(ctx, state, { action: "start", task: id, from: "pending", to: "in_progress", keys })
       const extra: string[] = []
@@ -716,7 +716,7 @@ async function transition(
     })
     const { id: taskId, from, extra } = d.result
     const task = d.state.tasks.tasks.find((t) => t.id === taskId)!
-    await writeTicket(ctx.host, d.state.dir, d.state.tasks, taskId)
+    await writeTicket(ctx.host, d.state, taskId)
     await log(ctx, d.state, { action: name(), task: taskId, from, to: task.status, ...extra })
     return { task, tasks: d.state.tasks, state: d.state }
   }
@@ -920,7 +920,7 @@ defineAction(
           reapply = mergeReapply(reapply, await reapplyPatches(ctx.host, state, t, patchesUnder(state, platform, keys)))
           return t
         })
-        await writeTicket(ctx.host, d.state.dir, d.state.tasks, task.id)
+        await writeTicket(ctx.host, d.state, task.id)
         await log(ctx, d.state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply!) })
         return { t: d.result, reapply: reapply! }
       }
@@ -1014,7 +1014,7 @@ export async function retakeYielded(ctx: ToolContext, first: RunState, only?: (t
           return true
         })
         if (!d.result) return undefined
-        await writeTicket(ctx.host, d.state.dir, d.state.tasks, task.id)
+        await writeTicket(ctx.host, d.state, task.id)
         await log(ctx, d.state, { action: "reclaim", task: task.id, keys: granted, files, ...reapplyData(reapply!) })
         return { task: task.id, files, reapply: reapply! }
       })
@@ -1091,7 +1091,7 @@ defineAction(
         return { given, yielded, report, untouched }
       })
       const r = d.result
-      await writeTicket(ctx.host, d.state.dir, d.state.tasks, task.id)
+      await writeTicket(ctx.host, d.state, task.id)
       await log(ctx, d.state, { action: "yield", task: task.id, keys: r.given, files: r.yielded.map((y) => y.path), saved: r.report.saved.map((p) => p.file), untouched: r.untouched, kept: r.report.kept })
       return r
     })
@@ -1272,7 +1272,7 @@ defineAction(
         acc = mergeReapply(acc, report)
         return { task: task.id, from: source.id, report: acc }
       })
-      await writeTicket(ctx.host, d.state.dir, d.state.tasks, d.result.from)
+      await writeTicket(ctx.host, d.state, d.result.from)
       await log(ctx, d.state, { action: "adopt", task: d.result.task, from: d.result.from, ...reapplyData(d.result.report) })
       return d.result
     })
@@ -1326,7 +1326,7 @@ async function bringBackKept(ctx: ToolContext, args: ParsedArgs): Promise<Reappl
     const { task: taskId, recovered, away } = d.result
     const state = d.state
     const task = { id: taskId }
-    await writeTicket(ctx.host, state.dir, state.tasks, task.id)
+    await writeTicket(ctx.host, state, task.id)
     await log(ctx, state, {
       action: "reapply",
       task: task.id,
@@ -1570,7 +1570,7 @@ export async function awaitBack(ctx: ToolContext, run: string, taskId: string, h
     return true
   })
   if (!d.result) return false
-  await writeTicket(ctx.host, d.state.dir, d.state.tasks, taskId)
+  await writeTicket(ctx.host, d.state, taskId)
   await log(ctx, d.state, { action: "await-back", task: taskId, how })
   return true
 }
@@ -1625,7 +1625,7 @@ export async function sweepAwaiting(
       })
       if (rewaited.result) {
         const t = rewaited.state.tasks.tasks.find((x) => x.id === task.id)!
-        await writeTicket(ctx.host, rewaited.state.dir, rewaited.state.tasks, task.id)
+        await writeTicket(ctx.host, rewaited.state, task.id)
         await log(ctx, rewaited.state, { action: "await", task: task.id, from: "in_progress", to: "in_progress", pids: t.awaiting!.pids, agent, how: "sweep" })
         first = await reload(ctx, first)
       }
@@ -1770,7 +1770,7 @@ defineAction(
         return ids
       })
       for (const id of d.result) {
-        await writeTicket(ctx.host, d.state.dir, d.state.tasks, id)
+        await writeTicket(ctx.host, d.state, id)
         await log(ctx, d.state, { action: "retry", task: id, from: "failed", to: "pending" })
       }
       const reopened = { ids: d.result, tasks: d.state.tasks }
@@ -1930,9 +1930,8 @@ defineAction(
         return state.run.status
       })
       const state = d.state
-      const tasks = state.tasks
       for (const r of released) {
-        await writeTicket(ctx.host, state.dir, tasks, r.id)
+        await writeTicket(ctx.host, state, r.id)
         await log(ctx, state, { action: "resume-release", task: r.id, from: "in_progress", to: r.to, ...keptLog(r.kept) })
       }
       await log(ctx, state, { action: "resume", released: released.map((r) => r.id), kept })
@@ -1977,6 +1976,45 @@ defineAction(
     return ok(tr(on ? "keepalive.on" : "keepalive.off", { run: state.run.id }), { run: state.run.id, keepalive: on })
   },
   "help.keepalive",
+)
+
+// ── context (0.5.0) ───────────────────────────────────────────────────────────────────────────────────────────
+
+defineAction(
+  "context",
+  async (ctx, args) => {
+    const set = args.options.set === true
+    const unset = args.options.unset === true
+    if (set && unset) throw new ToolError(tr("context.usage"), 2)
+    const first = await resolveRun(ctx, args)
+    if (!set && !unset) {
+      const section = renderContext(first.run.context, undefined)
+      const text = section.length ? section.join("\n").trimEnd() : tr("context.none", { run: first.run.id })
+      return ok(text, { run: first.run.id, context: first.run.context ?? null })
+    }
+    let context: RunContext | undefined
+    if (set) {
+      const read = readContext(await readJsonArg(ctx, args.positionals[0], "json.context"))
+      if (read.errors.length)
+        return { ok: false, code: 1, text: `${tr("errors.count", { n: read.errors.length })}\n${read.errors.map((e) => `- ${e}`).join("\n")}`, data: { errors: read.errors } }
+      context = read.context
+    }
+    const d = await decide(ctx, first, "context", (_state, draft) => {
+      if (context) draft.run.context = context
+      else delete draft.run.context
+    })
+    const state = d.state
+    // Every ticket of a task still to be finished shows the new context; a finished one keeps what it was done with.
+    const open = state.tasks.tasks.filter((t) => t.status !== "done" && t.status !== "skipped")
+    for (const t of open) await writeTicket(ctx.host, state, t.id)
+    await log(ctx, state, { action: "context", set: !!context, tickets: open.length })
+    return ok(tr("context.updated", { run: state.run.id, n: open.length }), {
+      run: state.run.id,
+      context: context ?? null,
+      tickets: open.map((t) => ticketPath(state.dir, state.tasks.tasks, t.id)),
+    })
+  },
+  "help.context",
 )
 
 // ── exec (serialize) ──────────────────────────────────────────────────────────────────────────────────────────

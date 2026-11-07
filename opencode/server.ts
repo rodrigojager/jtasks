@@ -30,13 +30,13 @@ export const TOOL_NAME = "jtasks"
 export const TOOL_DESCRIPTION = `jtasks ${VERSION}: a deterministic task list with dependencies and file ownership (jlock). ` +
   `"command" is the jtasks CLI command line without the "jtasks" (e.g. "next", "start T04", "claim T04 src/x.ts", ` +
   `"done T04 --evidence \\"bun test: 12 passed\\"", "status", "plan --add"); "json" carries the plan or the batch in JSON ` +
-  `(plan, plan --add, plan --fix <id>). "help" lists the actions. Never edit tasks.json, the tickets or git by hand.`
+  `(plan, plan --add, plan --fix <id>, context --set). "help" lists the actions. Never edit tasks.json, the tickets or git by hand.`
 
 export const TOOL_INPUT = {
   type: "object",
   properties: {
     command: { type: "string", description: 'The jtasks command line, without the "jtasks": "next", "start T04", "status"…' },
-    json: { description: "A plan, batch or task in JSON, for plan, plan --add and plan --fix." },
+    json: { description: "A plan, batch, task or run context in JSON, for plan, plan --add, plan --fix and context --set." },
   },
   required: ["command"],
   additionalProperties: false,

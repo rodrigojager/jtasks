@@ -50,6 +50,7 @@ export function toTask(p: PlanTask, profiles: Record<string, Profile>, source?: 
   if (p.exclusive) task.exclusive = true
   if (p.boundary) task.boundary = p.boundary
   if (p.touchesShared?.length) task.touchesShared = [...p.touchesShared]
+  if (p.context) task.context = JSON.parse(JSON.stringify(p.context))
   return task
 }
 
@@ -109,6 +110,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     keepalive: plan.keepalive !== false,
     ...(plan.shared?.length ? { shared: plan.shared } : {}),
     ...(plan.sharedPolicy ? { sharedPolicy: plan.sharedPolicy } : {}),
+    ...(plan.context ? { context: plan.context } : {}),
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : [],
   }
   const tasks: TasksFile = {
@@ -133,7 +135,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
       undo.push(() => removeExcludeLine(host, root, line))
     }
     await createSnapshots(host, dir, run, tasks)
-    const tickets = await writeTickets(host, dir, tasks)
+    const tickets = await writeTickets(host, dir, tasks, run.context)
     if (useRunBranch) {
       await gitOk(host, root, ["switch", "-q", "-c", branch])
       undo.push(async () => {
@@ -216,6 +218,7 @@ export interface Draft {
   branch?: "run" | "current"
   shared?: string[]
   sharedPolicy?: PlanInput["sharedPolicy"]
+  context?: PlanInput["context"]
   /** The repository the draft is for (a data folder several repositories share lists only its own). */
   repo?: string
   tasks: PlanTask[]
@@ -274,6 +277,7 @@ function draftPlan(draft: Draft): PlanInput {
   if (draft.branch !== undefined) plan.branch = draft.branch
   if (draft.shared !== undefined) plan.shared = draft.shared
   if (draft.sharedPolicy !== undefined) plan.sharedPolicy = draft.sharedPolicy
+  if (draft.context !== undefined) plan.context = draft.context
   return plan
 }
 
@@ -351,7 +355,7 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     const errors = [...read.errors, ...batch.errors, ...earlier]
     if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
-    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy"] as const)
+    for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")
