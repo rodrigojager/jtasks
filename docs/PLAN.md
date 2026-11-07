@@ -1037,7 +1037,7 @@ Code: `claude` e o mod (informativo); (7) as skills nas pastas dos três agentes
 
 `jtasks doctor --fix` lista o que instalaria; `--fix --yes` age: o jlock pelo instalador oficial do release
 (`install.ps1`/`install.sh`), os três agentes em `~/.config/opencode/agents/`, as skills em `~/.claude/skills`,
-`~/.config/opencode/skills` e `~/.agents/skills`. Nunca sobrescreve um arquivo existente com conteúdo diferente
+`~/.config/opencode/skills` e `~/.codex/skills` (não `~/.agents/skills`, que o OpenCode também lê). Nunca sobrescreve um arquivo existente com conteúdo diferente
 (mantém e avisa), nunca mexe no `PATH`, nunca instala o mod no Claude Code nem o plugin no OpenCode (diz como).
 Cada arquivo criado é um efeito `install` no ledger global, e `jtasks undo --effect <id>` o remove.
 

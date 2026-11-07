@@ -16,10 +16,12 @@ say the same thing; each one calls the tool the way its host does.
 |---|---|---|---|
 | Claude Code | [`claude-code/to-jtasks`](claude-code/to-jtasks/SKILL.md), [`claude-code/jtasks`](claude-code/jtasks/SKILL.md) | `~/.claude/skills/<skill>/` | `.claude/skills/<skill>/` |
 | OpenCode | [`opencode/to-jtasks`](opencode/to-jtasks/SKILL.md), [`opencode/jtasks`](opencode/jtasks/SKILL.md) | `~/.config/opencode/skills/<skill>/` | `.opencode/skills/<skill>/` |
-| Codex | [`codex/to-jtasks`](codex/to-jtasks/SKILL.md), [`codex/jtasks`](codex/jtasks/SKILL.md) | `~/.agents/skills/<skill>/` | `.agents/skills/<skill>/` |
+| Codex | [`codex/to-jtasks`](codex/to-jtasks/SKILL.md), [`codex/jtasks`](codex/jtasks/SKILL.md) | `~/.codex/skills/<skill>/` | `.agents/skills/<skill>/` |
 
-The Claude Code mod already carries both skills (`claude/skills/`). jtasks itself and jlock have to be installed
-first (see [`docs/USAGE.md`](../docs/USAGE.md)).
+The Claude Code mod already carries both skills (`claude/skills/`), as `jtasks:jtasks` and `jtasks:to-jtasks`: with
+the mod installed, do not copy them to `~/.claude/skills` too. Codex gets `~/.codex/skills` rather than
+`~/.agents/skills` because OpenCode also reads `~/.agents/skills` and would see the Codex build next to its own.
+jtasks itself and jlock have to be installed first (see [`docs/USAGE.md`](../docs/USAGE.md)).
 
 ## Install with one command
 
@@ -32,7 +34,7 @@ for s in to-jtasks jtasks; do mkdir -p ~/.claude/skills/$s && for f in SKILL.md 
 # OpenCode
 for s in to-jtasks jtasks; do mkdir -p ~/.config/opencode/skills/$s && for f in SKILL.md schema.json example-plan.json; do curl -fsSL https://raw.githubusercontent.com/rodrigojager/jtasks/main/skills/opencode/$s/$f -o ~/.config/opencode/skills/$s/$f 2>/dev/null; done; done
 # Codex
-for s in to-jtasks jtasks; do mkdir -p ~/.agents/skills/$s && for f in SKILL.md schema.json example-plan.json; do curl -fsSL https://raw.githubusercontent.com/rodrigojager/jtasks/main/skills/codex/$s/$f -o ~/.agents/skills/$s/$f 2>/dev/null; done; done
+for s in to-jtasks jtasks; do mkdir -p ~/.codex/skills/$s && for f in SKILL.md schema.json example-plan.json; do curl -fsSL https://raw.githubusercontent.com/rodrigojager/jtasks/main/skills/codex/$s/$f -o ~/.codex/skills/$s/$f 2>/dev/null; done; done
 ```
 
 Windows (PowerShell):
@@ -43,7 +45,7 @@ foreach ($s in 'to-jtasks','jtasks') { New-Item -ItemType Directory -Force "$HOM
 # OpenCode
 foreach ($s in 'to-jtasks','jtasks') { New-Item -ItemType Directory -Force "$HOME\.config\opencode\skills\$s" | Out-Null; foreach ($f in 'SKILL.md','schema.json','example-plan.json') { try { irm "https://raw.githubusercontent.com/rodrigojager/jtasks/main/skills/opencode/$s/$f" -OutFile "$HOME\.config\opencode\skills\$s\$f" } catch {} } }
 # Codex
-foreach ($s in 'to-jtasks','jtasks') { New-Item -ItemType Directory -Force "$HOME\.agents\skills\$s" | Out-Null; foreach ($f in 'SKILL.md','schema.json','example-plan.json') { try { irm "https://raw.githubusercontent.com/rodrigojager/jtasks/main/skills/codex/$s/$f" -OutFile "$HOME\.agents\skills\$s\$f" } catch {} } }
+foreach ($s in 'to-jtasks','jtasks') { New-Item -ItemType Directory -Force "$HOME\.codex\skills\$s" | Out-Null; foreach ($f in 'SKILL.md','schema.json','example-plan.json') { try { irm "https://raw.githubusercontent.com/rodrigojager/jtasks/main/skills/codex/$s/$f" -OutFile "$HOME\.codex\skills\$s\$f" } catch {} } }
 ```
 
 (`jtasks` has only `SKILL.md`; the two JSON files belong to `to-jtasks`, which reads them beside it.)

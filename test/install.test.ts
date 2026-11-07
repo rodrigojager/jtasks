@@ -37,16 +37,18 @@ describe("jtasks doctor --fix", () => {
     const repo = makeRepo()
     const home = agentHome()
     // A skill file the user already has, with other content: kept.
-    mkdirSync(join(home, ".agents/skills/jtasks"), { recursive: true })
-    writeFileSync(join(home, ".agents/skills/jtasks/SKILL.md"), "mine\n")
+    mkdirSync(join(home, ".codex/skills/jtasks"), { recursive: true })
+    writeFileSync(join(home, ".codex/skills/jtasks/SKILL.md"), "mine\n")
     const ctx = { host: withEnv({ JTASKS_USER_HOME: home }), packageRoot: REPO_ROOT }
     const r = await tasksOk(repo, ["doctor", "--fix", "--yes"], ctx)
     const agent = join(home, ".config/opencode/agents/execute-deep.md")
     expect(readFileSync(agent, "utf8")).toBe(readFileSync(join(REPO_ROOT, "opencode/agents/execute-deep.md"), "utf8"))
-    for (const h of [".claude/skills", ".config/opencode/skills", ".agents/skills"]) expect(existsSync(join(home, h, "to-jtasks/schema.json"))).toBe(true)
+    for (const h of [".claude/skills", ".config/opencode/skills", ".codex/skills"]) expect(existsSync(join(home, h, "to-jtasks/schema.json"))).toBe(true)
     expect(readFileSync(join(home, ".claude/skills/jtasks/SKILL.md"), "utf8")).toBe(readFileSync(join(REPO_ROOT, "skills/claude-code/jtasks/SKILL.md"), "utf8"))
     // The user's own file stays, and the next check still sees a skill there.
-    expect(readFileSync(join(home, ".agents/skills/jtasks/SKILL.md"), "utf8")).toBe("mine\n")
+    expect(readFileSync(join(home, ".codex/skills/jtasks/SKILL.md"), "utf8")).toBe("mine\n")
+    // Nothing for Codex goes to ~/.agents/skills, which OpenCode reads as well.
+    expect(existsSync(join(home, ".agents/skills/jtasks"))).toBe(false)
     const after = (r.data as { after: { name: string; status: string }[] }).after
     expect(after.find((c) => c.name === "opencode")!.status).toBe("ok")
     expect(after.find((c) => c.name === "skills")!.status).toBe("ok")

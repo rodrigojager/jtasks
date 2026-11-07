@@ -32,13 +32,17 @@ export const OPENCODE_AGENTS = ["execute", "execute-deep", "review"]
 export const SKILLS = ["to-jtasks", "jtasks"]
 export const SKILL_FILES: Record<string, string[]> = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
 
-/** The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. */
+/**
+ * The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. Codex
+ * gets ~/.codex/skills, not ~/.agents/skills: OpenCode reads ~/.agents/skills too, and would then see the Codex build
+ * of each skill next to its own.
+ */
 export function skillHosts(host: Host): { host: string; present: string; dir: string }[] {
   const home = userHome(host)
   return [
     { host: "claude-code", present: join(home, ".claude"), dir: join(home, ".claude/skills") },
     { host: "opencode", present: join(home, ".config/opencode"), dir: join(home, ".config/opencode/skills") },
-    { host: "codex", present: join(home, ".codex"), dir: join(home, ".agents/skills") },
+    { host: "codex", present: join(home, ".codex"), dir: join(home, ".codex/skills") },
   ]
 }
 

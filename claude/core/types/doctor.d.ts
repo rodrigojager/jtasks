@@ -14,7 +14,11 @@ export interface Check {
 export declare const OPENCODE_AGENTS: string[];
 export declare const SKILLS: string[];
 export declare const SKILL_FILES: Record<string, string[]>;
-/** The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. */
+/**
+ * The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. Codex
+ * gets ~/.codex/skills, not ~/.agents/skills: OpenCode reads ~/.agents/skills too, and would then see the Codex build
+ * of each skill next to its own.
+ */
 export declare function skillHosts(host: Host): {
     host: string;
     present: string;

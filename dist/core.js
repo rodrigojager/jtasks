@@ -7360,7 +7360,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.4.1";
+var VERSION = "0.4.2";
 
 class ToolError extends Error {
   code;
@@ -12986,7 +12986,7 @@ function skillHosts(host) {
   return [
     { host: "claude-code", present: join(home, ".claude"), dir: join(home, ".claude/skills") },
     { host: "opencode", present: join(home, ".config/opencode"), dir: join(home, ".config/opencode/skills") },
-    { host: "codex", present: join(home, ".codex"), dir: join(home, ".agents/skills") }
+    { host: "codex", present: join(home, ".codex"), dir: join(home, ".codex/skills") }
   ];
 }
 var isDir = async (host, path) => (await host.stat(path))?.kind === "dir";
