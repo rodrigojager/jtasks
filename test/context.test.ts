@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { toTask } from "../src/plan.ts"
+import { briefScratchPath, toTask } from "../src/plan.ts"
 import { DEFAULT_PROFILES, type RunFile } from "../src/schema.ts"
 import { normalizeBrief, renderContext, renderTicket } from "../src/tickets.ts"
 import { contextWarnings, readContext, validatePlan } from "../src/validate.ts"
@@ -333,14 +333,19 @@ describe("common brief and consult list", () => {
     expect(await ticketText(repo, id, "02-")).toContain("## Context\n\nComece por")
   })
 
-  test("in batches: the brief written in the draft's folder is the one copy and reaches the run", async () => {
+  test("in batches: the brief goes to the scratch path plan --draft prints, outside the data folder, and the run keeps the one copy", async () => {
     const repo = makeRepo()
     const opened = await tasksOk(repo, ["plan", "--draft", "--name", "lotes-brief"])
-    const { draft: id, brief } = opened.data as { draft: string; brief: string }
+    const { draft: id, brief, dir: draftDir } = opened.data as { draft: string; brief: string; dir: string }
     expect(opened.text).toContain(brief)
+    // 0.6.1: never inside the data folder, whose files the guard keeps for the tool.
+    expect(brief.replace(/\\/g, "/").toLowerCase().startsWith(draftDir.replace(/\\/g, "/").toLowerCase())).toBe(false)
+    expect(brief.endsWith(`jtasks-brief-${id}.md`)).toBe(true)
     writeFileSync(brief, BRIEF)
     const p = briefPlan(brief)
     await tasksOk(repo, ["plan", "--add"], { json: { context: p.context, tasks: [p.tasks[0]] } })
+    // Taken into the draft's folder, the scratch file is gone.
+    expect(existsSync(brief)).toBe(false)
     await tasksOk(repo, ["plan", "--add"], { json: [p.tasks[1]] })
     await tasksOk(repo, ["plan", "--commit"])
     const dir = await runPath(repo, id)
@@ -348,6 +353,25 @@ describe("common brief and consult list", () => {
     expect(readFileSync(join(dir, "brief.md"), "utf8")).toBe(`${BRIEF}\n`)
     expect(await ticketText(repo, id, "01-")).toContain(`## Context\n\n${BRIEF}\n\n`)
     expect(await ticketText(repo, id, "02-")).toContain(`## Context\n\n${BRIEF}\n\nComece por`)
+  })
+
+  test("a brief from any other path is copied and left where it was", async () => {
+    const repo = makeRepo()
+    const opened = await tasksOk(repo, ["plan", "--draft", "--name", "outro-brief"])
+    const { draft: id } = opened.data as { draft: string }
+    const other = join(tempDir("brief-other"), "mine.md").replace(/\\/g, "/")
+    writeFileSync(other, BRIEF)
+    const p = briefPlan(other)
+    await tasksOk(repo, ["plan", "--add"], { json: { context: p.context, tasks: p.tasks } })
+    expect(existsSync(other)).toBe(true)
+    await tasksOk(repo, ["plan", "--commit"])
+    expect(readFileSync(join(await runPath(repo, id), "brief.md"), "utf8")).toBe(`${BRIEF}\n`)
+  })
+
+  test("in a jproject container the scratch brief goes to <work>/00-tmp", () => {
+    const host = { env: () => undefined } as unknown as Parameters<typeof briefScratchPath>[0]
+    const container = { root: "C:/c", product: "C:/c/product", work: "C:/c/_work", workspace: "C:/c/_work/WORKSPACE.md" }
+    expect(briefScratchPath(host, { container }, "x-261108-ab12")).toBe("C:/c/_work/00-tmp/jtasks-brief-x-261108-ab12.md")
   })
 
   test("a 0.5 run context (summary, read, constraints) renders as before", () => {

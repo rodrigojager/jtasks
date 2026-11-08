@@ -6,7 +6,7 @@
   "shared": ["src/session/types.ts"],
   "sharedPolicy": "serialize",
   "context": {
-    "brief": "/home/ana/acme/_work/jtasks/runs/login-por-email-261108-k3f9/brief.md"
+    "brief": "/home/ana/acme/_work/00-tmp/jtasks-brief-login-por-email-261108-k3f9.md"
   },
   "tasks": [
     {

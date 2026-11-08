@@ -2,6 +2,7 @@
 
 import { formatRunsList } from "./format.ts"
 import { addExcludeLine, branchExists, currentBranch, git, gitOk, hasExcludeLine, removeExcludeLine } from "./git.ts"
+import type { Host } from "./host.ts"
 import { runId } from "./ids.ts"
 import { recordEffect } from "./ledger.ts"
 import { basename, caseInsensitive, isAbsolute, join, normalize } from "./paths.ts"
@@ -242,10 +243,30 @@ export interface Draft {
   context?: PlanInput["context"]
   /** The repository the draft is for (a data folder several repositories share lists only its own). */
   repo?: string
+  /** Where `plan --draft` told the planner to write the common brief (0.6.1); removed once a batch takes it in. */
+  briefScratch?: string
   tasks: PlanTask[]
 }
 
 const draftFile = (dir: string) => join(dir, "draft.json")
+
+/**
+ * Where the planner writes the common brief (0.6.1): outside the data folder, whose files only the tool writes (the
+ * guard refuses edits there). In a jproject container, `<work>/00-tmp/` (its scratch folder); elsewhere the system's
+ * temporary folder. The batch that names it copies its text into the run's folder and removes this file.
+ */
+export function briefScratchPath(host: Host, paths: Pick<RepoPaths, "container">, id: string): string {
+  const name = `jtasks-brief-${id}.md`
+  if (paths.container) return join(paths.container.work, "00-tmp", name)
+  const tmp = host.env("TEMP") ?? host.env("TMP") ?? host.env("TMPDIR") ?? "/tmp"
+  return join(normalize(tmp), name)
+}
+
+function samePath(a: string, b: string, platform: string): boolean {
+  const x = normalize(a)
+  const y = normalize(b)
+  return caseInsensitive(platform) ? x.toLowerCase() === y.toLowerCase() : x === y
+}
 
 /** Open drafts of the repository: run folders with a `draft.json` and no `run.json` yet. */
 export async function listDrafts(ctx: ToolContext, paths: RepoPaths): Promise<{ id: string; dir: string; draft: Draft }[]> {
@@ -337,6 +358,8 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
   if (name) draft.feature = name
   if (objective) draft.objective = objective
   if (source) draft.source = source
+  const brief = briefScratchPath(host, paths, id)
+  draft.briefScratch = brief
   const line = excludeLineOf(paths)
   const addedExclude = line !== undefined && (await addExcludeLine(host, root, line))
   await host.mkdir(dir)
@@ -352,7 +375,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
       undo: { kind: "remove-line" },
     })
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" })
-  return ok(tr("draft.opened", { id, brief: join(dir, BRIEF_FILE) }), { draft: id, dir, brief: join(dir, BRIEF_FILE) })
+  return ok(tr("draft.opened", { id, brief }), { draft: id, dir, brief })
 }
 
 async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
@@ -387,6 +410,9 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
       if (loaded) next.context = { ...read.plan.context, brief: BRIEF_FILE }
     }
     await saveDraft(ctx, dir, next)
+    // The scratch brief `plan --draft` suggested has been copied into the draft's folder: one copy only.
+    if (loaded && current.briefScratch && samePath(loaded.file, current.briefScratch, ctx.host.platform))
+      await ctx.host.remove(loaded.file).catch(() => undefined)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")
     return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
       draft: next.id,

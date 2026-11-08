@@ -129,8 +129,7 @@ embora cada tarefa precisasse de uma parte pequena. Agora: (1) o `context` da ex
 arquivo Markdown que o planejador escreve uma vez, só com o texto que toda tarefa precisa (problema, objetivo,
 decisões, interfaces e convenções compartilhadas), destilado do plano e não um ponteiro para ele. A ferramenta lê o
 arquivo ao receber o plano, o lote (`plan --add`) ou o `context --set` (arquivo que falta ou vazio é erro do plano,
-`plan.brief_missing`/`plan.brief_empty`), guarda o texto em `<dados>/runs/<run>/brief.md` (a única cópia; o
-`plan --draft` imprime esse caminho para o planejador escrever ali direto) e grava `"brief": "brief.md"` no
+`plan.brief_missing`/`plan.brief_empty`), guarda o texto em `<dados>/runs/<run>/brief.md` (a única cópia) e grava `"brief": "brief.md"` no
 `run.json`. Todo ticket abre o `## Context` com esse texto, palavra por palavra. (2) Depois dele, só o que é
 exclusivo da tarefa: o `summary` dela (os fatos de como fazer, escritos ali), **Read first** (só o que não dá para
 escrever no ticket, como código a portar; pode apontar uma seção) e o novo **If in doubt, consult** (`consult`: lista
@@ -145,6 +144,15 @@ uma vez, deixar o `read` da execução mínimo, decidir por tarefa o que é escr
 obrigatória e o que é consulta em caso de dúvida, e nunca repetir o texto comum. O `schema.json` tinha o `$defs/context`
 aninhado por engano dentro da tarefa; agora `context`, `taskContext` e `consult` estão em `$defs`. Marcado
 **[rev. 5.10]** nas seções 3 e 18.
+
+Revisão 5.11, 08/11/2026 (0.6.1): o brief nasce **fora** da pasta de dados. A 0.6.0 mandava o planejador escrever o
+brief em `<dados>/runs/<run>/brief.md`, mas a guarda recusa toda edição na pasta de dados (só a ferramenta escreve lá),
+e no Claude Code a escrita foi bloqueada. Abrir uma exceção na guarda enfraqueceria a proteção; em vez disso, o
+`plan --draft` imprime um caminho de rascunho (`briefScratchPath` em `src/plan.ts`): num container jproject,
+`<work_dir>/00-tmp/jtasks-brief-<run>.md`; fora dele, a pasta temporária do sistema. O lote que nomeia esse arquivo
+copia o texto para `brief.md` da execução e **apaga o rascunho** (`draft.briefScratch`), de modo que só resta uma
+cópia; um brief de qualquer outro caminho é copiado e deixado onde está. A skill `to-jtasks` diz isso. Marcado
+**[rev. 5.11]** nas seções 3 e 18.
 
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
@@ -279,7 +287,8 @@ README.md, README.<tag>.md   onze idiomas (seção 23)
   pontas). `consult` (execução ou tarefa) é uma lista de `{ path, why }`, os dois textos obrigatórios, sem outros
   campos; caminho repetido, ou já em **Read first**, sai. As chaves do bloco têm ordem fixa (`brief`, `summary`,
   `read`, `consult`, `constraints`). Avisos (não erros) quando o contexto de uma tarefa repete o `what` dela, um
-  caminho ou regra do contexto da execução, ou texto do brief.
+  caminho ou regra do contexto da execução, ou texto do brief. **[rev. 5.11]** O planejador escreve o brief no
+  caminho de rascunho que o `plan --draft` imprime, fora da pasta de dados; o lote que o recebe apaga esse rascunho.
 - **Em lotes [rev. 5.1].** Um plano grande não precisa caber numa resposta do modelo:
   `jtasks plan --draft` abre um rascunho (`draft.json`, ainda não é execução, não aparece no painel);
   `jtasks plan --add <json>` acrescenta um lote e valida só o que dá para validar dentro dele (esquema, ids, perfis,
@@ -1012,6 +1021,8 @@ motivo.
     `--set`/`--unset` trocando ou removendo o arquivo; skill `to-jtasks` (texto, `schema.json`, exemplos), agentes
     executores, `doctor` instalando `example-brief.md`; mensagens nos onze idiomas; `test/context.test.ts` e
     `test/skills.test.ts`.
+28. **[rev. 5.11] Brief fora da pasta de dados** (ticket 62, 0.6.1): `briefScratchPath`, `draft.briefScratch`, o
+    rascunho apagado pelo lote que o recebe, a skill `to-jtasks` e os exemplos; `test/context.test.ts`.
 
 ---
 

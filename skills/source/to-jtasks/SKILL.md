@@ -179,21 +179,22 @@ Inline the facts, short and precise, rather than sending executors to read docum
 brief, so every line in it must matter to most tasks. What only some tasks need goes in those tasks' `context`. No
 research history, alternatives considered or per-task detail.
 
-Write it straight to the path `jtasks plan --draft` prints (`<run folder>/brief.md`): that is its one copy, kept with
-the run. The plan's `context` then names it; `read`, `consult` and `constraints` there are only for what truly applies
-to every task, usually nothing:
+Write it to the scratch path `jtasks plan --draft` prints (`jtasks-brief-<run>.md`, in a jproject container under
+`<work_dir>/00-tmp/`, elsewhere in the system's temporary folder). Never write it inside the run's data folder: only
+the tool writes there, and the guard refuses your edit. The plan's `context` then names it; `read`, `consult` and
+`constraints` there are only for what truly applies to every task, usually nothing:
 
 ```json
-"context": { "brief": "<the brief path plan --draft printed>" }
+"context": { "brief": "<the scratch path plan --draft printed>" }
 ```
 
-The tool reads the file (a missing or empty one refuses the batch), keeps its text as `brief.md` in the run's folder,
-and renders, deterministically, the brief at the top of the `## Context` section of every ticket, then each task's
+The tool reads the file (a missing or empty one refuses the batch), keeps its text as `brief.md` in the run's folder
+(its one copy) and removes the scratch file once the batch is accepted. It renders, deterministically, the brief at the top of the `## Context` section of every ticket, then each task's
 exclusive context (its `summary`, **Read first**, **If in doubt, consult**, **Constraints**). `jtasks context --set`
 with `{ "brief": "<file>" }` replaces it later and rewrites the tickets not finished yet.
 
 1. `jtasks plan --draft --name <feature-slug> --objective "<one line>" --source "<spec path or issue URL>"` opens a
-   draft (not a run yet) and prints where to write the brief. Write it there now.
+   draft (not a run yet) and prints the scratch path for the brief. Write it there now.
 2. `jtasks plan --add` with the first batch as `json`: `{ "context": { "brief": "<path>" }, "tasks": [...] }` (it
    may also carry `"profiles"`, `"serialize"`…; later batches can be a plain list of tasks). The tool validates what
    it can inside the batch (schema, repeated ids, profiles, patterns in `files`, the context block and the brief file)
@@ -208,8 +209,9 @@ When the tool returns errors, fix **only the task named**: `jtasks plan --fix <i
 Never resend the other tasks, and never work around a refusal by removing ownership: add the dependency or split the
 file, as the message says. Then `--commit` again.
 
-A small plan can also go in one call: `jtasks plan` with the whole plan as `json`. Its brief then has no run folder
-to go to yet: write it to a temporary file, and delete that file once the plan is accepted (the run keeps the copy).
+A small plan can also go in one call: `jtasks plan` with the whole plan as `json`. With no draft there is no
+printed path: write the brief to a scratch file (in a jproject container, `<work_dir>/00-tmp/`), and delete that file
+once the plan is accepted (the run keeps the copy).
 
 The plan may also say `"keepalive": false` (optional; the default is `true`): the run is created with the host's
 keepalive off, so nothing reopens the loop when the orchestrator stops with tasks ready. Leave it out unless the user

@@ -79,6 +79,9 @@ ferramenta lê (`loadBrief`) e guarda em `<run>/brief.md` (`storeBrief`, `readRu
 ticket abre o `## Context` com ele, palavra por palavra, e depois só o que é da tarefa (`summary`, **Read first**,
 **If in doubt, consult** de `consult: [{ path, why }]`, **Constraints**). `contextWarnings` (`src/validate.ts`) avisa
 de informação repetida; testes em `test/context.test.ts`.
+Revisão 5.11 (item 28, ticket 62, versão 0.6.1): o brief nasce fora da pasta de dados, que a guarda reserva à
+ferramenta. `plan --draft` imprime `briefScratchPath` (`<work_dir>/00-tmp/jtasks-brief-<run>.md` num container, a
+pasta temporária do sistema fora dele); o lote que o recebe copia para `brief.md` e apaga o rascunho.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node; `workspace.ts` resolve repositório e pasta de
 dados), `cli/jtasks.ts`, `dist/` e as cópias em

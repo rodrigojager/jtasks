@@ -138,7 +138,7 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
   "serialize": ["bun test"],
   "shared": ["src/session/types.ts"],
   "sharedPolicy": "serialize",
-  "context": { "brief": "/home/ana/acme/_work/jtasks/runs/login-por-email-261108-k3f9/brief.md" },
+  "context": { "brief": "/home/ana/acme/_work/00-tmp/jtasks-brief-login-por-email-261108-k3f9.md" },
   "profiles": { "execute": { "claude": { "agent": "jtasks:execute", "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
@@ -154,8 +154,7 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
 - `context`: the run's context, written **once**. `brief` (0.6.0) is the path of a Markdown file with the **common
   brief**: only the text every task needs (the problem, the goal, the decisions, the shared interfaces and
   conventions), distilled from the plan. The tool reads it when it takes the plan, the batch or `context --set` (a
-  missing or empty file is an error), keeps its text as `brief.md` in the run's folder (its one copy: `plan --draft`
-  prints that path, so the planner writes it there directly) and renders it **verbatim at the top** of every
+  missing or empty file is an error), keeps its text as `brief.md` in the run's folder (its one copy) and renders it **verbatim at the top** of every
   ticket's `## Context`. Then come `read` (files every task must read; keep it minimal), `consult` (documents to open
   only in case of doubt, each `{ "path", "why" }`) and `constraints`; `summary` is the 0.5 form, still accepted. A
   task's own `context` (`summary`, `read`, `consult`, `constraints`; no `brief`) adds only the HOW-relevant facts it

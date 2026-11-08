@@ -7806,7 +7806,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.6.0";
+var VERSION = "0.6.1";
 
 class ToolError extends Error {
   code;
@@ -8788,6 +8788,18 @@ function bindOf(created) {
   return { bind: created.run.id, bindPaths: { root: created.run.repo.root, data: created.data } };
 }
 var draftFile = (dir) => join(dir, "draft.json");
+function briefScratchPath(host, paths, id) {
+  const name = `jtasks-brief-${id}.md`;
+  if (paths.container)
+    return join(paths.container.work, "00-tmp", name);
+  const tmp = host.env("TEMP") ?? host.env("TMP") ?? host.env("TMPDIR") ?? "/tmp";
+  return join(normalize(tmp), name);
+}
+function samePath(a, b, platform) {
+  const x = normalize(a);
+  const y = normalize(b);
+  return caseInsensitive(platform) ? x.toLowerCase() === y.toLowerCase() : x === y;
+}
 async function listDrafts(ctx, paths) {
   const out = [];
   const insensitive = caseInsensitive(ctx.host.platform);
@@ -8899,6 +8911,8 @@ async function draftOpen(ctx, args) {
     draft.objective = objective;
   if (source)
     draft.source = source;
+  const brief = briefScratchPath(host, paths, id);
+  draft.briefScratch = brief;
   const line = excludeLineOf(paths);
   const addedExclude = line !== undefined && await addExcludeLine(host, root, line);
   await host.mkdir(dir);
@@ -8914,7 +8928,7 @@ async function draftOpen(ctx, args) {
       undo: { kind: "remove-line" }
     });
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" });
-  return ok(tr("draft.opened", { id, brief: join(dir, BRIEF_FILE) }), { draft: id, dir, brief: join(dir, BRIEF_FILE) });
+  return ok(tr("draft.opened", { id, brief }), { draft: id, dir, brief });
 }
 async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
@@ -8946,6 +8960,10 @@ async function draftAdd(ctx, args) {
         next.context = { ...read.plan.context, brief: BRIEF_FILE };
     }
     await saveDraft(ctx2, dir, next);
+    if (loaded && current2.briefScratch && samePath(loaded.file, current2.briefScratch, ctx2.host.platform))
+      await ctx2.host.remove(loaded.file).catch(() => {
+        return;
+      });
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks");
     return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
       draft: next.id,
@@ -14214,6 +14232,7 @@ export {
   bullet,
   buildView,
   briefStatus,
+  briefScratchPath,
   branchExists,
   boundData,
   blockerText,
