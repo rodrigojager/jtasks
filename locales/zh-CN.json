@@ -265,6 +265,7 @@
   "jlock.usage": "jlock（{what}）拒绝了该用法：{message}；这是 jtasks 的 bug，请报告",
   "json.batch": "批次",
   "json.invalid": "{what}不是有效的 JSON：{message}",
+  "json.invalid_at": "{what}不是有效的 JSON（第 {line} 行，第 {column} 列）：{message}\n  {excerpt}",
   "json.missing": "缺少{what}的 JSON（文本、@文件 或 -）",
   "json.no_file": "找不到文件：{file}",
   "json.no_stdin": "此处无法使用标准输入",

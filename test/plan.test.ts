@@ -135,6 +135,37 @@ describe("jtasks plan", () => {
   })
 })
 
+describe("invalid JSON reports where the error is", () => {
+  test("single line: an extra } after a task gives line 1, its column and an excerpt with a caret", async () => {
+    const repo = makeRepo()
+    const filler = `"objective":"${"x".repeat(80)}",`
+    const text = `{${filler}"tasks":[{"id":"T01","title":"A","files":["a"]}},{"id":"T02","title":"B","files":["b"]}]}`
+    const column = text.indexOf("}}") + 2
+    const r = await tasks(repo, ["plan", text, "--lang", "en"])
+    expect(r.ok).toBe(false)
+    const [first, excerpt, caret] = r.text.split("\n")
+    expect(first).toMatch(new RegExp(`^the plan is not valid JSON at line 1, column ${column}: `))
+    expect(excerpt).toBe(`  …${text.slice(column - 31, column - 1)}${text.slice(column - 1, column + 29)}…`)
+    expect(caret).toBe(`  ${" ".repeat(31)}^`)
+    expect(excerpt!.slice(caret!.indexOf("^"))).toStartWith('},{"id":"T02"')
+  })
+
+  test("multi-line: line and column count from the start of the line, also in pt-BR", async () => {
+    const repo = makeRepo()
+    const text = ["{", '  "tasks": [', '    {"id": "T01", "title": "A", "files": ["a"]}', '    {"id": "T02"}', "  ]", "}"].join("\n")
+    const r = await tasks(repo, ["plan", text, "--lang", "en"])
+    expect(r.text.split("\n")[0]).toMatch(/^the plan is not valid JSON at line 4, column 5: /)
+    expect(r.text.split("\n")[2]!.indexOf("^")).toBe(r.text.split("\n")[1]!.indexOf('{"id": "T02"}'))
+    const pt = await tasks(repo, ["plan", text])
+    expect(pt.text.split("\n")[0]).toMatch(/não é JSON válido na linha 4, coluna 5: /)
+  })
+
+  test("valid JSON still parses as before", async () => {
+    const repo = makeRepo()
+    await tasksOk(repo, ["plan", JSON.stringify(plan, null, 2)])
+  })
+})
+
 describe("atomic writes and the optimistic commit (ticket 60)", () => {
   test("a decision made on an old read is refused by the fold and made again; concurrent changes both land", async () => {
     const repo = makeRepo()

@@ -394,6 +394,8 @@ var en_default = {
   "jlock.usage": "jlock ({what}) refused the usage: {message}; a jtasks bug, please report it",
   "json.batch": "the batch",
   "json.invalid": "{what} is not valid JSON: {message}",
+  "json.invalid_at": `{what} is not valid JSON at line {line}, column {column}: {message}
+  {excerpt}`,
   "json.missing": "missing {what} in JSON (text, @file or -)",
   "json.no_file": "file not found: {file}",
   "json.no_stdin": "standard input is not available here",
@@ -968,6 +970,8 @@ var pt_BR_default = {
   "jlock.usage": "jlock ({what}) recusou o uso: {message} — é um bug do jtasks, registre-o",
   "json.batch": "o lote",
   "json.invalid": "{what} não é JSON válido: {message}",
+  "json.invalid_at": `{what} não é JSON válido na linha {line}, coluna {column}: {message}
+  {excerpt}`,
   "json.missing": "falta {what} em JSON (texto, @arquivo ou -)",
   "json.no_file": "arquivo não encontrado: {file}",
   "json.no_stdin": "entrada padrão indisponível aqui",
@@ -1542,6 +1546,8 @@ var es_default = {
   "jlock.usage": "jlock ({what}) rechazó el uso: {message}; es un bug de jtasks, repórtalo, por favor",
   "json.batch": "el lote",
   "json.invalid": "{what} no es JSON válido: {message}",
+  "json.invalid_at": `{what} no es JSON válido en la línea {line}, columna {column}: {message}
+  {excerpt}`,
   "json.missing": "falta {what} en JSON (texto, @archivo o -)",
   "json.no_file": "archivo no encontrado: {file}",
   "json.no_stdin": "la entrada estándar no está disponible aquí",
@@ -2116,6 +2122,8 @@ var fr_default = {
   "jlock.usage": "jlock ({what}) a refusé l'utilisation: {message}; un bug de jtasks, merci de le signaler",
   "json.batch": "le lot",
   "json.invalid": "{what} n'est pas du JSON valide: {message}",
+  "json.invalid_at": `{what} n'est pas du JSON valide à la ligne {line}, colonne {column}: {message}
+  {excerpt}`,
   "json.missing": "{what} manquant en JSON (texte, @fichier ou -)",
   "json.no_file": "fichier introuvable: {file}",
   "json.no_stdin": "l'entrée standard n'est pas disponible ici",
@@ -2690,6 +2698,8 @@ var de_default = {
   "jlock.usage": "jlock ({what}) lehnte den Aufruf ab: {message}; ein Fehler in jtasks, bitte melden",
   "json.batch": "der Batch",
   "json.invalid": "{what} ist kein gültiges JSON: {message}",
+  "json.invalid_at": `{what} ist kein gültiges JSON in Zeile {line}, Spalte {column}: {message}
+  {excerpt}`,
   "json.missing": "{what} fehlt als JSON (Text, @datei oder -)",
   "json.no_file": "Datei nicht gefunden: {file}",
   "json.no_stdin": "die Standardeingabe ist hier nicht verfügbar",
@@ -3264,6 +3274,8 @@ var it_default = {
   "jlock.usage": "jlock ({what}) ha rifiutato l'uso: {message}; è un bug di jtasks, segnalalo",
   "json.batch": "il lotto",
   "json.invalid": "{what} non è JSON valido: {message}",
+  "json.invalid_at": `{what} non è JSON valido alla riga {line}, colonna {column}: {message}
+  {excerpt}`,
   "json.missing": "manca {what} in JSON (testo, @file o -)",
   "json.no_file": "file non trovato: {file}",
   "json.no_stdin": "lo standard input non è disponibile qui",
@@ -3838,6 +3850,8 @@ var zh_CN_default = {
   "jlock.usage": "jlock（{what}）拒绝了该用法：{message}；这是 jtasks 的 bug，请报告",
   "json.batch": "批次",
   "json.invalid": "{what}不是有效的 JSON：{message}",
+  "json.invalid_at": `{what}不是有效的 JSON（第 {line} 行，第 {column} 列）：{message}
+  {excerpt}`,
   "json.missing": "缺少{what}的 JSON（文本、@文件 或 -）",
   "json.no_file": "找不到文件：{file}",
   "json.no_stdin": "此处无法使用标准输入",
@@ -4412,6 +4426,8 @@ var ja_default = {
   "jlock.usage": "jlock（{what}）が使い方を拒否: {message}。jtasks のバグなので報告してほしい",
   "json.batch": "バッチ",
   "json.invalid": "{what}は正しい JSON ではない: {message}",
+  "json.invalid_at": `{what}は正しい JSON ではない（{line} 行 {column} 列）: {message}
+  {excerpt}`,
   "json.missing": "{what}の JSON がない（テキスト、@ファイル、または -）",
   "json.no_file": "ファイルが見つからない: {file}",
   "json.no_stdin": "ここでは標準入力が使えない",
@@ -4986,6 +5002,8 @@ var ru_default = {
   "jlock.usage": "jlock ({what}) отклонил вызов: {message}; это ошибка jtasks, сообщите о ней",
   "json.batch": "пакет",
   "json.invalid": "{what} — некорректный JSON: {message}",
+  "json.invalid_at": `{what} — некорректный JSON (строка {line}, столбец {column}): {message}
+  {excerpt}`,
   "json.missing": "не хватает JSON: {what} (текст, @файл или -)",
   "json.no_file": "файл не найден: {file}",
   "json.no_stdin": "стандартный ввод здесь недоступен",
@@ -5560,6 +5578,8 @@ var ar_default = {
   "jlock.usage": "رفض jlock ({what}) طريقة الاستخدام: {message}؛ هذا خلل في jtasks، يُرجى الإبلاغ عنه",
   "json.batch": "الدفعة",
   "json.invalid": "{what} ليس JSON صالحًا: {message}",
+  "json.invalid_at": `{what} ليس JSON صالحًا (السطر {line}، العمود {column}): {message}
+  {excerpt}`,
   "json.missing": "ينقص {what} بصيغة JSON (نص، أو @file، أو -)",
   "json.no_file": "الملف غير موجود: {file}",
   "json.no_stdin": "المدخل القياسي غير متاح هنا",
@@ -6134,6 +6154,8 @@ var hi_default = {
   "jlock.usage": "jlock ({what}) ने उपयोग अस्वीकार किया: {message}; यह jtasks का बग है, कृपया रिपोर्ट करें",
   "json.batch": "बैच",
   "json.invalid": "{what} मान्य JSON नहीं है: {message}",
+  "json.invalid_at": `{what} मान्य JSON नहीं है (पंक्ति {line}, स्तंभ {column}): {message}
+  {excerpt}`,
   "json.missing": "JSON में {what} नहीं दिया (टेक्स्ट, @फ़ाइल या -)",
   "json.no_file": "फ़ाइल नहीं मिली: {file}",
   "json.no_stdin": "मानक इनपुट यहाँ उपलब्ध नहीं है",
@@ -7934,10 +7956,155 @@ async function readJsonArg(ctx, arg, what = "json.plan") {
   return parseJson(arg, what);
 }
 function parseJson(text, what) {
+  const clean = text.replace(/^﻿/, "");
   try {
-    return JSON.parse(text.replace(/^﻿/, ""));
+    return JSON.parse(clean);
   } catch (error) {
-    throw new ToolError(tr("json.invalid", { what: tr(what), message: error.message }));
+    const message = error.message;
+    const at = jsonErrorAt(clean);
+    if (at === undefined)
+      throw new ToolError(tr("json.invalid", { what: tr(what), message }));
+    throw new ToolError(tr("json.invalid_at", { what: tr(what), message, ...jsonPosition(clean, at) }));
+  }
+}
+function jsonPosition(text, at) {
+  const before = text.slice(0, at);
+  const line = before.split(`
+`).length;
+  const column = at - before.lastIndexOf(`
+`);
+  const from = Math.max(0, at - 30);
+  const to = Math.min(text.length, at + 30);
+  const flat2 = (s) => s.replace(/[\r\n\t]/g, " ");
+  const head = (from > 0 ? "…" : "") + flat2(text.slice(from, at));
+  const excerpt = `${head}${flat2(text.slice(at, to))}${to < text.length ? "…" : ""}
+  ${" ".repeat(head.length)}^`;
+  return { line, column, excerpt };
+}
+function jsonErrorAt(text) {
+  let i = 0;
+  const fail = () => {
+    throw i;
+  };
+  const ws = () => {
+    while (i < text.length && ` 	
+\r`.includes(text[i]))
+      i++;
+  };
+  const digits = () => {
+    const start = i;
+    while (i < text.length && text[i] >= "0" && text[i] <= "9")
+      i++;
+    if (i === start)
+      fail();
+  };
+  const value = () => {
+    ws();
+    const c = text[i];
+    if (c === "{") {
+      i++;
+      ws();
+      if (text[i] === "}")
+        return void i++;
+      for (;; ) {
+        ws();
+        if (text[i] !== '"')
+          fail();
+        string();
+        ws();
+        if (text[i] !== ":")
+          fail();
+        i++;
+        value();
+        ws();
+        if (text[i] === ",")
+          i++;
+        else if (text[i] === "}")
+          return void i++;
+        else
+          fail();
+      }
+    }
+    if (c === "[") {
+      i++;
+      ws();
+      if (text[i] === "]")
+        return void i++;
+      for (;; ) {
+        value();
+        ws();
+        if (text[i] === ",")
+          i++;
+        else if (text[i] === "]")
+          return void i++;
+        else
+          fail();
+      }
+    }
+    if (c === '"')
+      return string();
+    if (c === "-" || c !== undefined && c >= "0" && c <= "9") {
+      if (text[i] === "-")
+        i++;
+      if (text[i] === "0")
+        i++;
+      else
+        digits();
+      if (text[i] === ".") {
+        i++;
+        digits();
+      }
+      if (text[i] === "e" || text[i] === "E") {
+        i++;
+        if (text[i] === "+" || text[i] === "-")
+          i++;
+        digits();
+      }
+      return;
+    }
+    for (const word of ["true", "false", "null"])
+      if (text.startsWith(word, i)) {
+        i += word.length;
+        return;
+      }
+    fail();
+  };
+  const string = () => {
+    i++;
+    for (;; ) {
+      const c = text[i];
+      if (c === undefined || c < " ")
+        fail();
+      if (c === '"')
+        return void i++;
+      if (c === "\\") {
+        i++;
+        const e = text[i];
+        if (e === "u") {
+          for (let k = 1;k <= 4; k++)
+            if (!/[0-9a-fA-F]/.test(text[i + k] ?? "")) {
+              i += k;
+              fail();
+            }
+          i += 5;
+        } else if (e !== undefined && '"\\/bfnrt'.includes(e))
+          i++;
+        else
+          fail();
+      } else
+        i++;
+    }
+  };
+  try {
+    value();
+    ws();
+    if (i < text.length)
+      fail();
+    return;
+  } catch (at) {
+    if (typeof at === "number")
+      return at;
+    throw at;
   }
 }
 var actions = new Map;
@@ -14138,6 +14305,8 @@ export {
   keepaliveNotice,
   keepaliveDecision,
   jtasksHome,
+  jsonPosition,
+  jsonErrorAt,
   join,
   jlockVersion,
   jlockRenew,

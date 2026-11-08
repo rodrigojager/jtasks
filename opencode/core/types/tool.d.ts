@@ -74,6 +74,14 @@ export declare function splitCommand(line: string): string[];
 /** The JSON payload of a command: the structured `json`, `@file`, `-` (standard input) or inline JSON. */
 /** `what` is the catalog key of what is read (`json.plan`, `json.batch`, `json.task`). */
 export declare function readJsonArg(ctx: ToolContext, arg: string | undefined, what?: string): Promise<unknown>;
+/** Line, column (both from 1) and a short excerpt with a caret under the offset `at` of `text`. */
+export declare function jsonPosition(text: string, at: number): {
+    line: number;
+    column: number;
+    excerpt: string;
+};
+/** The offset of the first JSON syntax error in `text` (end of text when it ends early), or undefined if it is valid. */
+export declare function jsonErrorAt(text: string): number | undefined;
 type Action = (ctx: ToolContext, args: ParsedArgs) => Promise<ToolResult>;
 /** A line in `jtasks help` that belongs to no action of its own (variants of one): its catalog key. */
 export declare function addUsage(usage: string): void;

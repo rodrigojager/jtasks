@@ -198,10 +198,129 @@ export async function readJsonArg(ctx: ToolContext, arg: string | undefined, wha
 }
 
 function parseJson(text: string, what: string): unknown {
+  const clean = text.replace(/^﻿/, "")
   try {
-    return JSON.parse(text.replace(/^﻿/, ""))
+    return JSON.parse(clean)
   } catch (error) {
-    throw new ToolError(tr("json.invalid", { what: tr(what), message: (error as Error).message }))
+    const message = (error as Error).message
+    const at = jsonErrorAt(clean)
+    if (at === undefined) throw new ToolError(tr("json.invalid", { what: tr(what), message }))
+    throw new ToolError(tr("json.invalid_at", { what: tr(what), message, ...jsonPosition(clean, at) }))
+  }
+}
+
+/** Line, column (both from 1) and a short excerpt with a caret under the offset `at` of `text`. */
+export function jsonPosition(text: string, at: number): { line: number; column: number; excerpt: string } {
+  const before = text.slice(0, at)
+  const line = before.split("\n").length
+  const column = at - before.lastIndexOf("\n")
+  const from = Math.max(0, at - 30)
+  const to = Math.min(text.length, at + 30)
+  const flat = (s: string) => s.replace(/[\r\n\t]/g, " ")
+  const head = (from > 0 ? "…" : "") + flat(text.slice(from, at))
+  const excerpt = `${head}${flat(text.slice(at, to))}${to < text.length ? "…" : ""}\n  ${" ".repeat(head.length)}^`
+  return { line, column, excerpt }
+}
+
+/** The offset of the first JSON syntax error in `text` (end of text when it ends early), or undefined if it is valid. */
+export function jsonErrorAt(text: string): number | undefined {
+  let i = 0
+  const fail = (): never => {
+    throw i
+  }
+  const ws = () => {
+    while (i < text.length && " \t\n\r".includes(text[i]!)) i++
+  }
+  const digits = () => {
+    const start = i
+    while (i < text.length && text[i]! >= "0" && text[i]! <= "9") i++
+    if (i === start) fail()
+  }
+  const value = (): void => {
+    ws()
+    const c = text[i]
+    if (c === "{") {
+      i++
+      ws()
+      if (text[i] === "}") return void i++
+      for (;;) {
+        ws()
+        if (text[i] !== '"') fail()
+        string()
+        ws()
+        if (text[i] !== ":") fail()
+        i++
+        value()
+        ws()
+        if (text[i] === ",") i++
+        else if (text[i] === "}") return void i++
+        else fail()
+      }
+    }
+    if (c === "[") {
+      i++
+      ws()
+      if (text[i] === "]") return void i++
+      for (;;) {
+        value()
+        ws()
+        if (text[i] === ",") i++
+        else if (text[i] === "]") return void i++
+        else fail()
+      }
+    }
+    if (c === '"') return string()
+    if (c === "-" || (c !== undefined && c >= "0" && c <= "9")) {
+      if (text[i] === "-") i++
+      if (text[i] === "0") i++
+      else digits()
+      if (text[i] === ".") {
+        i++
+        digits()
+      }
+      if (text[i] === "e" || text[i] === "E") {
+        i++
+        if (text[i] === "+" || text[i] === "-") i++
+        digits()
+      }
+      return
+    }
+    for (const word of ["true", "false", "null"])
+      if (text.startsWith(word, i)) {
+        i += word.length
+        return
+      }
+    fail()
+  }
+  const string = () => {
+    i++
+    for (;;) {
+      const c = text[i]
+      if (c === undefined || c < " ") fail()
+      if (c === '"') return void i++
+      if (c === "\\") {
+        i++
+        const e = text[i]
+        if (e === "u") {
+          for (let k = 1; k <= 4; k++)
+            if (!/[0-9a-fA-F]/.test(text[i + k] ?? "")) {
+              i += k
+              fail()
+            }
+          i += 5
+        } else if (e !== undefined && '"\\/bfnrt'.includes(e)) i++
+        else fail()
+      } else i++
+    }
+  }
+  try {
+    value()
+    ws()
+    if (i < text.length) fail()
+    return undefined
+  } catch (at) {
+    if (typeof at === "number") return at
+    throw at
   }
 }
 

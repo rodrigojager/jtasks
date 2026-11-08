@@ -265,6 +265,7 @@
   "jlock.usage": "jlock ({what}) ने उपयोग अस्वीकार किया: {message}; यह jtasks का बग है, कृपया रिपोर्ट करें",
   "json.batch": "बैच",
   "json.invalid": "{what} मान्य JSON नहीं है: {message}",
+  "json.invalid_at": "{what} मान्य JSON नहीं है (पंक्ति {line}, स्तंभ {column}): {message}\n  {excerpt}",
   "json.missing": "JSON में {what} नहीं दिया (टेक्स्ट, @फ़ाइल या -)",
   "json.no_file": "फ़ाइल नहीं मिली: {file}",
   "json.no_stdin": "मानक इनपुट यहाँ उपलब्ध नहीं है",

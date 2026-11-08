@@ -265,6 +265,7 @@
   "jlock.usage": "jlock（{what}）が使い方を拒否: {message}。jtasks のバグなので報告してほしい",
   "json.batch": "バッチ",
   "json.invalid": "{what}は正しい JSON ではない: {message}",
+  "json.invalid_at": "{what}は正しい JSON ではない（{line} 行 {column} 列）: {message}\n  {excerpt}",
   "json.missing": "{what}の JSON がない（テキスト、@ファイル、または -）",
   "json.no_file": "ファイルが見つからない: {file}",
   "json.no_stdin": "ここでは標準入力が使えない",

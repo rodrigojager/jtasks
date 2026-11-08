@@ -265,6 +265,7 @@
   "jlock.usage": "jlock ({what}) отклонил вызов: {message}; это ошибка jtasks, сообщите о ней",
   "json.batch": "пакет",
   "json.invalid": "{what} — некорректный JSON: {message}",
+  "json.invalid_at": "{what} — некорректный JSON (строка {line}, столбец {column}): {message}\n  {excerpt}",
   "json.missing": "не хватает JSON: {what} (текст, @файл или -)",
   "json.no_file": "файл не найден: {file}",
   "json.no_stdin": "стандартный ввод здесь недоступен",

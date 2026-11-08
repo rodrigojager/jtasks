@@ -265,6 +265,7 @@
   "jlock.usage": "jlock ({what}) lehnte den Aufruf ab: {message}; ein Fehler in jtasks, bitte melden",
   "json.batch": "der Batch",
   "json.invalid": "{what} ist kein gültiges JSON: {message}",
+  "json.invalid_at": "{what} ist kein gültiges JSON in Zeile {line}, Spalte {column}: {message}\n  {excerpt}",
   "json.missing": "{what} fehlt als JSON (Text, @datei oder -)",
   "json.no_file": "Datei nicht gefunden: {file}",
   "json.no_stdin": "die Standardeingabe ist hier nicht verfügbar",

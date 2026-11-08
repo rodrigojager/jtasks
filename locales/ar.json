@@ -265,6 +265,7 @@
   "jlock.usage": "رفض jlock ({what}) طريقة الاستخدام: {message}؛ هذا خلل في jtasks، يُرجى الإبلاغ عنه",
   "json.batch": "الدفعة",
   "json.invalid": "{what} ليس JSON صالحًا: {message}",
+  "json.invalid_at": "{what} ليس JSON صالحًا (السطر {line}، العمود {column}): {message}\n  {excerpt}",
   "json.missing": "ينقص {what} بصيغة JSON (نص، أو @file، أو -)",
   "json.no_file": "الملف غير موجود: {file}",
   "json.no_stdin": "المدخل القياسي غير متاح هنا",
