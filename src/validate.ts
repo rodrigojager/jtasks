@@ -8,16 +8,17 @@ import { tr } from "./i18n.ts"
 
 const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared", "context"])
 const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"])
-const CONTEXT_FIELDS = ["summary", "read", "constraints"] as const
+const CONTEXT_FIELDS = ["brief", "summary", "read", "consult", "constraints"] as const
 const GLOB = /[*?[\]{}]/
 
 /**
- * A context block (the run's, or a task's addition): an object with `summary` (text), `read` (paths) and
- * `constraints` (texts), all optional. The result is normalized so the same meaning gives the same bytes: text
- * trimmed with `\n` line ends, empty entries and repeated paths dropped, empty fields left out (undefined when
- * nothing is left). `where` names the block in the errors (`context`, `T03: context`).
+ * A context block (the run's, or a task's addition): an object with `brief` (the path of the run's common brief, run
+ * level only), `summary` (text), `read` (paths), `consult` (`{ path, why }` objects) and `constraints` (texts), all
+ * optional. The result is normalized so the same meaning gives the same bytes: text trimmed with `\n` line ends,
+ * empty entries and repeated paths dropped, empty fields left out (undefined when nothing is left). `where` names the
+ * block in the errors (`context`, `T03: context`). The brief file itself is read by `loadBrief` (tickets.ts).
  */
-export function readContext(raw: unknown, where = "context"): { context?: RunContext; errors: string[] } {
+export function readContext(raw: unknown, where = "context", options: { task?: boolean } = {}): { context?: RunContext; errors: string[] } {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { errors: [tr("plan.context_object", { where })] }
   const obj = raw as Record<string, unknown>
   const errors: string[] = []
@@ -25,6 +26,29 @@ export function readContext(raw: unknown, where = "context"): { context?: RunCon
     if (!(CONTEXT_FIELDS as readonly string[]).includes(key)) errors.push(tr("plan.context_unknown", { where, field: key }))
   const text = (s: string) => s.replace(/\r\n?/g, "\n").trim()
   const context: RunContext = {}
+  if (obj.brief !== undefined) {
+    if (options.task) errors.push(tr("plan.context_brief_task", { where }))
+    else if (typeof obj.brief !== "string" || !obj.brief.trim()) errors.push(tr("plan.context_brief", { where }))
+    else context.brief = obj.brief.trim()
+  }
+  if (obj.consult !== undefined) {
+    const ok =
+      Array.isArray(obj.consult) &&
+      obj.consult.every((c) => {
+        if (!c || typeof c !== "object" || Array.isArray(c)) return false
+        const r = c as Record<string, unknown>
+        return Object.keys(r).every((k) => k === "path" || k === "why") && typeof r.path === "string" && !!r.path.trim() && typeof r.why === "string" && !!r.why.trim()
+      })
+    if (!ok) errors.push(tr("plan.context_consult", { where }))
+    else {
+      const list: { path: string; why: string }[] = []
+      for (const c of obj.consult as { path: string; why: string }[]) {
+        const path = text(c.path)
+        if (!list.some((k) => k.path === path)) list.push({ path, why: text(c.why).replace(/\s*\n\s*/g, " ") })
+      }
+      if (list.length) context.consult = list
+    }
+  }
   if (obj.summary !== undefined) {
     if (typeof obj.summary !== "string") errors.push(tr("plan.context_summary", { where }))
     else if (text(obj.summary)) context.summary = text(obj.summary)
@@ -41,11 +65,51 @@ export function readContext(raw: unknown, where = "context"): { context?: RunCon
     if (list.length) context[key] = list
   }
   if (errors.length) return { errors }
-  return Object.keys(context).length ? { context, errors } : { errors }
+  // One key order whatever the input's, so the same meaning gives the same bytes in run.json.
+  const ordered: RunContext = {}
+  for (const key of CONTEXT_FIELDS) if (context[key] !== undefined) (ordered as Record<string, unknown>)[key] = context[key]
+  return Object.keys(ordered).length ? { context: ordered, errors } : { errors }
+}
+
+const flat = (s: string) => s.toLowerCase().replace(/[\s`*_>#-]+/g, " ").trim()
+
+/**
+ * Warnings for repeated information (0.6.0): a ticket says each thing once. A task's context that restates its own
+ * `what`, a path or rule the run's context already gives every ticket, or text of the common brief, is flagged so the
+ * planner removes it. `brief` is the brief's text when it is known (plan, commit, validate).
+ */
+export function contextWarnings(plan: Pick<PlanInput, "context" | "tasks">, brief?: string): string[] {
+  const out: string[] = []
+  const run = plan.context
+  const briefFlat = brief ? flat(brief) : ""
+  const repeats = (a: string, b: string) => {
+    const x = flat(a)
+    const y = flat(b)
+    const short = x.length <= y.length ? x : y
+    return short.length >= 20 && (x.includes(y) || y.includes(x))
+  }
+  if (run?.summary && briefFlat && flat(run.summary).length >= 20 && briefFlat.includes(flat(run.summary)))
+    out.push(tr("plan.context_repeats_brief", { where: "context.summary" }))
+  for (const t of plan.tasks) {
+    const c = t.context
+    if (!c) continue
+    if (c.summary && t.what && repeats(c.summary, t.what)) out.push(tr("plan.context_repeats_what", { id: t.id }))
+    if (c.summary && briefFlat && flat(c.summary).length >= 20 && briefFlat.includes(flat(c.summary)))
+      out.push(tr("plan.context_repeats_brief", { where: `${t.id}: context.summary` }))
+    const again = [
+      ...(c.read ?? []).filter((p) => run?.read?.includes(p)),
+      ...(c.consult ?? []).map((k) => k.path).filter((p) => run?.read?.includes(p) || c.read?.includes(p) || run?.consult?.some((k) => k.path === p)),
+      ...(c.constraints ?? []).filter((k) => run?.constraints?.includes(k)),
+    ]
+    for (const item of again) out.push(tr("plan.context_repeats_run", { id: t.id, item }))
+  }
+  return out
 }
 
 export interface ValidateOptions {
   platform?: string
+  /** The run's common brief text, when known, for the repeated-information warnings (0.6.0). */
+  brief?: string
 }
 
 export interface FileEntry {
@@ -195,7 +259,7 @@ export function readPlan(raw: unknown): ReadPlanResult {
     }
     let context: RunContext | undefined
     if (t.context !== undefined) {
-      const read = readContext(t.context, `${name}: context`)
+      const read = readContext(t.context, `${name}: context`, { task: true })
       errors.push(...read.errors)
       context = read.context
     }
@@ -325,7 +389,7 @@ export function validatePlan(raw: unknown, options: ValidateOptions = {}): FullR
   for (const t of plan.tasks)
     for (const p of t.touchesShared ?? [])
       if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive))) errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }))
-  return { plan, errors, warnings: sharedWarnings(plan, options) }
+  return { plan, errors, warnings: [...sharedWarnings(plan, options), ...contextWarnings(plan, options.brief)] }
 }
 
 function relCovers(outer: string, inner: string, insensitive: boolean): boolean {

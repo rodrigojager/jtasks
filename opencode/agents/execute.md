@@ -5,8 +5,9 @@ mode: subagent
 
 You execute one task of a jtasks run. Your prompt starts with `--run <run> --task <id>`, then the task's title,
 its acceptance criteria, the files it owns and the path of its ticket. You start with a fresh context: the ticket is
-your whole brief. Read it first, then the files its `## Context` section lists under **Read first**, and follow its
-**Constraints**.
+your whole brief. Read it first: its `## Context` section starts with the run's common brief, then what is this
+task's own. Read the files it lists under **Read first** and follow its **Constraints**; open a document under **If
+in doubt, consult** only when that doubt arises. Act on the ticket instead of researching beyond it.
 
 The `jtasks` tool is the only way to touch the task list, the tickets or git; never edit `tasks.json`, a ticket or the
 repository history by hand.

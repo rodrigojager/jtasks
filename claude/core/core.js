@@ -277,7 +277,7 @@ var en_default = {
   "draft.no_tasks": "none",
   "draft.none": "no open draft: start one with jtasks plan --draft",
   "draft.not_found": "no open draft with the id {id}",
-  "draft.opened": "draft {id} open: add batches with jtasks plan --add <json> (up to ~20 tasks per batch)",
+  "draft.opened": 'draft {id} open: if the tasks share a common brief, write it to {brief} and put "context": { "brief": "{brief}" } in a batch; add batches with jtasks plan --add <json> (up to ~20 tasks per batch)',
   "draft.summary": "draft {id}: {n} task(s)",
   "duration.bad": "invalid duration: {value} (use 30s, 2m, 500ms)",
   "effects.checked": "{n} active effect(s) checked against the disk and git",
@@ -436,6 +436,7 @@ var en_default = {
   "context.usage": "use: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "run {run} has no shared context (jtasks context --set <json>)",
   "context.updated": "run {run}: context updated; tickets rewritten: {n}",
+  "context.brief_file": 'brief: {file} (to replace it: jtasks context --set with "brief" pointing to the new file)',
   "keepalive.on": "run {run}: keepalive on (the host reopens the loop when the orchestrator stops with ready tasks and nothing running)",
   "keepalive.off": "run {run}: keepalive off (only the model keeps the loop going)",
   "keepalive.stalled": "run {run} is stopped with {what} and nothing running; {tries} message(s) without progress, the host gave up (jtasks keepalive on watches it again)",
@@ -460,10 +461,18 @@ var en_default = {
   "plan.empty_path": 'empty path in "files"',
   "plan.hold_ttl": '"holdTtl" must be a duration such as 30m, 2h or 1d',
   "plan.keepalive": '"keepalive" must be true or false',
-  "plan.context_object": "{where} must be an object with summary (text), read (list of paths) and constraints (list of texts)",
-  "plan.context_unknown": '{where}: unknown field "{field}" (use summary, read, constraints)',
+  "plan.context_object": "{where} must be an object with brief (path of the common brief, plan only), summary (text), read (list of paths), consult (list of { path, why }) and constraints (list of texts)",
+  "plan.context_unknown": '{where}: unknown field "{field}" (use brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary must be text",
   "plan.context_list": "{where}.{field} must be a list of texts",
+  "plan.context_brief": "{where}.brief must be the path of a Markdown file (text)",
+  "plan.context_brief_task": "{where}.brief is only for the plan's context (the run's common brief); a task adds only its own summary, read, consult and constraints",
+  "plan.context_consult": '{where}.consult must be a list of { "path": text, "why": text }: a document to open only in case of doubt, and the reason',
+  "plan.brief_missing": "context.brief: cannot read {file} (write the common brief there first, or fix the path)",
+  "plan.brief_empty": "context.brief: {file} is empty (write the text every task shares)",
+  "plan.context_repeats_what": "{id}: context.summary repeats the task's what; the context adds only what the executor needs to know how (decisions, interfaces, pitfalls, the code to start from)",
+  "plan.context_repeats_brief": "{where} repeats text of the common brief, which every ticket already shows; remove it",
+  "plan.context_repeats_run": "{id}: context repeats {item}, which the run's context already gives every ticket; remove it",
   "plan.max_agent_ended": '"maxAgentEnded" must be an integer above zero',
   "plan.max_attempts": '"maxAttempts" must be an integer above zero',
   "plan.missing_dependency": "{id} depends on {dep}, which does not exist",
@@ -842,7 +851,7 @@ var pt_BR_default = {
   "draft.no_tasks": "nenhuma",
   "draft.none": "não há rascunho aberto: comece com jtasks plan --draft",
   "draft.not_found": "não há rascunho aberto com o id {id}",
-  "draft.opened": "rascunho {id} aberto: acrescente lotes com jtasks plan --add <json> (até ~20 tarefas por lote)",
+  "draft.opened": 'rascunho {id} aberto: se as tarefas compartilham um resumo comum, escreva-o em {brief} e ponha "context": { "brief": "{brief}" } num lote; acrescente lotes com jtasks plan --add <json> (até ~20 tarefas por lote)',
   "draft.summary": "rascunho {id}: {n} tarefa(s)",
   "duration.bad": "duração inválida: {value} (use 30s, 2m, 500ms)",
   "effects.checked": "{n} efeito(s) ativo(s) conferido(s) com o disco e o git",
@@ -1001,6 +1010,7 @@ var pt_BR_default = {
   "context.usage": "uso: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "execução {run} sem contexto comum (jtasks context --set <json>)",
   "context.updated": "execução {run}: contexto atualizado; tickets reescritos: {n}",
+  "context.brief_file": 'resumo comum: {file} (para trocar: jtasks context --set com "brief" apontando para o novo arquivo)',
   "keepalive.on": "execução {run}: retomada ligada (o host reabre o laço quando o orquestrador para com tarefas prontas e nada rodando)",
   "keepalive.off": "execução {run}: retomada desligada (só o modelo mantém o laço andando)",
   "keepalive.stalled": "a execução {run} está parada com {what} e nada rodando; {tries} mensagem(ns) sem progresso, o host desistiu (jtasks keepalive on volta a vigiar)",
@@ -1025,10 +1035,18 @@ var pt_BR_default = {
   "plan.empty_path": 'caminho vazio em "files"',
   "plan.hold_ttl": '"holdTtl" deve ser uma duração como 30m, 2h ou 1d',
   "plan.keepalive": '"keepalive" deve ser true ou false',
-  "plan.context_object": "{where} deve ser um objeto com summary (texto), read (lista de caminhos) e constraints (lista de textos)",
-  "plan.context_unknown": '{where}: campo desconhecido "{field}" (use summary, read, constraints)',
+  "plan.context_object": "{where} deve ser um objeto com brief (caminho do resumo comum, só no plano), summary (texto), read (lista de caminhos), consult (lista de { path, why }) e constraints (lista de textos)",
+  "plan.context_unknown": '{where}: campo desconhecido "{field}" (use brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary deve ser texto",
   "plan.context_list": "{where}.{field} deve ser uma lista de textos",
+  "plan.context_brief": "{where}.brief deve ser o caminho de um arquivo Markdown (texto)",
+  "plan.context_brief_task": "{where}.brief é só do contexto do plano (o resumo comum da execução); uma tarefa acrescenta só o seu summary, read, consult e constraints",
+  "plan.context_consult": '{where}.consult deve ser uma lista de { "path": texto, "why": texto }: um documento a abrir só em caso de dúvida, e o motivo',
+  "plan.brief_missing": "context.brief: não foi possível ler {file} (escreva o resumo comum lá primeiro, ou corrija o caminho)",
+  "plan.brief_empty": "context.brief: {file} está vazio (escreva o texto que todas as tarefas compartilham)",
+  "plan.context_repeats_what": "{id}: context.summary repete o what da tarefa; o contexto acrescenta só o que o executor precisa saber de como fazer (decisões, interfaces, armadilhas, o código de onde partir)",
+  "plan.context_repeats_brief": "{where} repete texto do resumo comum, que todo ticket já mostra; remova",
+  "plan.context_repeats_run": "{id}: o contexto repete {item}, que o contexto da execução já dá a todo ticket; remova",
   "plan.max_agent_ended": '"maxAgentEnded" deve ser um inteiro maior que zero',
   "plan.max_attempts": '"maxAttempts" deve ser um inteiro maior que zero',
   "plan.missing_dependency": "{id} depende de {dep}, que não existe",
@@ -1407,7 +1425,7 @@ var es_default = {
   "draft.no_tasks": "ninguna",
   "draft.none": "no hay borrador abierto: empieza uno con jtasks plan --draft",
   "draft.not_found": "no hay borrador abierto con el id {id}",
-  "draft.opened": "borrador {id} abierto: añade lotes con jtasks plan --add <json> (hasta ~20 tareas por lote)",
+  "draft.opened": 'borrador {id} abierto: si las tareas comparten un resumen común, escríbelo en {brief} y pon "context": { "brief": "{brief}" } en un lote; añade lotes con jtasks plan --add <json> (hasta ~20 tareas por lote)',
   "draft.summary": "borrador {id}: {n} tarea(s)",
   "duration.bad": "duración no válida: {value} (usa 30s, 2m, 500ms)",
   "effects.checked": "{n} efecto(s) activo(s) comprobado(s) contra el disco y git",
@@ -1566,6 +1584,7 @@ var es_default = {
   "context.usage": "uso: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "ejecución {run} sin contexto común (jtasks context --set <json>)",
   "context.updated": "ejecución {run}: contexto actualizado; tickets reescritos: {n}",
+  "context.brief_file": 'resumen común: {file} (para cambiarlo: jtasks context --set con "brief" apuntando al nuevo archivo)',
   "keepalive.on": "ejecución {run}: reanudación activada (el host reabre el ciclo cuando el orquestador se detiene con tareas listas y nada en marcha)",
   "keepalive.off": "ejecución {run}: reanudación desactivada (solo el modelo mantiene el ciclo en marcha)",
   "keepalive.stalled": "la ejecución {run} está detenida con {what} y nada en marcha; {tries} mensaje(s) sin progreso, el host se rindió (jtasks keepalive on vuelve a vigilarla)",
@@ -1590,10 +1609,18 @@ var es_default = {
   "plan.empty_path": 'ruta vacía en "files"',
   "plan.hold_ttl": '"holdTtl" debe ser una duración como 30m, 2h o 1d',
   "plan.keepalive": '"keepalive" debe ser true o false',
-  "plan.context_object": "{where} debe ser un objeto con summary (texto), read (lista de rutas) y constraints (lista de textos)",
-  "plan.context_unknown": '{where}: campo desconocido "{field}" (use summary, read, constraints)',
+  "plan.context_object": "{where} debe ser un objeto con brief (ruta del resumen común, solo en el plan), summary (texto), read (lista de rutas), consult (lista de { path, why }) y constraints (lista de textos)",
+  "plan.context_unknown": '{where}: campo desconocido "{field}" (use brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary debe ser texto",
   "plan.context_list": "{where}.{field} debe ser una lista de textos",
+  "plan.context_brief": "{where}.brief debe ser la ruta de un archivo Markdown (texto)",
+  "plan.context_brief_task": "{where}.brief es solo del contexto del plan (el resumen común de la ejecución); una tarea añade solo su summary, read, consult y constraints",
+  "plan.context_consult": '{where}.consult debe ser una lista de { "path": texto, "why": texto }: un documento que abrir solo en caso de duda, y el motivo',
+  "plan.brief_missing": "context.brief: no se puede leer {file} (escribe primero allí el resumen común, o corrige la ruta)",
+  "plan.brief_empty": "context.brief: {file} está vacío (escribe el texto que comparten todas las tareas)",
+  "plan.context_repeats_what": "{id}: context.summary repite el what de la tarea; el contexto añade solo lo que el ejecutor necesita saber del cómo (decisiones, interfaces, trampas, el código del que partir)",
+  "plan.context_repeats_brief": "{where} repite texto del resumen común, que todos los tickets ya muestran; elimínalo",
+  "plan.context_repeats_run": "{id}: el contexto repite {item}, que el contexto de la ejecución ya da a todos los tickets; elimínalo",
   "plan.max_agent_ended": '"maxAgentEnded" debe ser un entero mayor que cero',
   "plan.max_attempts": '"maxAttempts" debe ser un entero mayor que cero',
   "plan.missing_dependency": "{id} depende de {dep}, que no existe",
@@ -1972,7 +1999,7 @@ var fr_default = {
   "draft.no_tasks": "aucune",
   "draft.none": "aucun brouillon ouvert: commencez-en un avec jtasks plan --draft",
   "draft.not_found": "aucun brouillon ouvert avec l'id {id}",
-  "draft.opened": "brouillon {id} ouvert: ajoutez des lots avec jtasks plan --add <json> (jusqu'à ~20 tâches par lot)",
+  "draft.opened": `brouillon {id} ouvert : si les tâches partagent un résumé commun, écrivez-le dans {brief} et mettez "context": { "brief": "{brief}" } dans un lot ; ajoutez des lots avec jtasks plan --add <json> (jusqu'à ~20 tâches par lot)`,
   "draft.summary": "brouillon {id}: {n} tâche(s)",
   "duration.bad": "durée invalide: {value} (utilisez 30s, 2m, 500ms)",
   "effects.checked": "{n} effet(s) actif(s) comparé(s) au disque et à git",
@@ -2131,6 +2158,7 @@ var fr_default = {
   "context.usage": "usage : jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "exécution {run} sans contexte commun (jtasks context --set <json>)",
   "context.updated": "exécution {run} : contexte mis à jour ; tickets réécrits : {n}",
+  "context.brief_file": 'résumé commun : {file} (pour le remplacer : jtasks context --set avec "brief" pointant vers le nouveau fichier)',
   "keepalive.on": "exécution {run} : relance activée (l'hôte relance la boucle quand l'orchestrateur s'arrête avec des tâches prêtes et rien en cours)",
   "keepalive.off": "exécution {run} : relance désactivée (seul le modèle fait avancer la boucle)",
   "keepalive.stalled": "l'exécution {run} est arrêtée avec {what} et rien en cours ; {tries} message(s) sans progrès, l'hôte abandonne (jtasks keepalive on la surveille à nouveau)",
@@ -2155,10 +2183,18 @@ var fr_default = {
   "plan.empty_path": 'chemin vide dans "files"',
   "plan.hold_ttl": '"holdTtl" doit être une durée comme 30m, 2h ou 1d',
   "plan.keepalive": '"keepalive" doit valoir true ou false',
-  "plan.context_object": "{where} doit être un objet avec summary (texte), read (liste de chemins) et constraints (liste de textes)",
-  "plan.context_unknown": '{where} : champ inconnu "{field}" (utilisez summary, read, constraints)',
+  "plan.context_object": "{where} doit être un objet avec brief (chemin du résumé commun, plan seulement), summary (texte), read (liste de chemins), consult (liste de { path, why }) et constraints (liste de textes)",
+  "plan.context_unknown": '{where} : champ inconnu "{field}" (utilisez brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary doit être du texte",
   "plan.context_list": "{where}.{field} doit être une liste de textes",
+  "plan.context_brief": "{where}.brief doit être le chemin d'un fichier Markdown (texte)",
+  "plan.context_brief_task": "{where}.brief n'existe que dans le contexte du plan (le résumé commun de l'exécution) ; une tâche n'ajoute que ses propres summary, read, consult et constraints",
+  "plan.context_consult": '{where}.consult doit être une liste de { "path": texte, "why": texte } : un document à ouvrir seulement en cas de doute, et la raison',
+  "plan.brief_missing": "context.brief : impossible de lire {file} (écrivez-y d'abord le résumé commun, ou corrigez le chemin)",
+  "plan.brief_empty": "context.brief : {file} est vide (écrivez le texte que toutes les tâches partagent)",
+  "plan.context_repeats_what": "{id} : context.summary répète le what de la tâche ; le contexte n'ajoute que ce que l'exécutant doit savoir du comment (décisions, interfaces, pièges, le code de départ)",
+  "plan.context_repeats_brief": "{where} répète du texte du résumé commun, que chaque ticket montre déjà ; supprimez-le",
+  "plan.context_repeats_run": "{id} : le contexte répète {item}, que le contexte de l'exécution donne déjà à chaque ticket ; supprimez-le",
   "plan.max_agent_ended": '"maxAgentEnded" doit être un entier supérieur à zéro',
   "plan.max_attempts": '"maxAttempts" doit être un entier supérieur à zéro',
   "plan.missing_dependency": "{id} dépend de {dep}, qui n'existe pas",
@@ -2537,7 +2573,7 @@ var de_default = {
   "draft.no_tasks": "keine",
   "draft.none": "kein offener Entwurf: beginne einen mit jtasks plan --draft",
   "draft.not_found": "kein offener Entwurf mit der id {id}",
-  "draft.opened": "Entwurf {id} offen: füge Batches mit jtasks plan --add <json> hinzu (bis ~20 Aufgaben pro Batch)",
+  "draft.opened": 'Entwurf {id} geöffnet: teilen die Aufgaben eine gemeinsame Kurzbeschreibung, schreibe sie nach {brief} und setze "context": { "brief": "{brief}" } in einen Stapel; Stapel mit jtasks plan --add <json> hinzufügen (bis ~20 Aufgaben pro Stapel)',
   "draft.summary": "Entwurf {id}: {n} Aufgabe(n)",
   "duration.bad": "ungültige Dauer: {value} (nutze 30s, 2m, 500ms)",
   "effects.checked": "{n} aktive(r) Effekt(e) mit Festplatte und git abgeglichen",
@@ -2696,6 +2732,7 @@ var de_default = {
   "context.usage": "Aufruf: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "Lauf {run} hat keinen gemeinsamen Kontext (jtasks context --set <json>)",
   "context.updated": "Lauf {run}: Kontext aktualisiert; neu geschriebene Tickets: {n}",
+  "context.brief_file": 'Kurzbeschreibung: {file} (zum Ersetzen: jtasks context --set mit "brief" auf die neue Datei)',
   "keepalive.on": "Lauf {run}: Wiederaufnahme an (der Host öffnet die Schleife wieder, wenn der Orchestrator mit bereiten Aufgaben stoppt und nichts läuft)",
   "keepalive.off": "Lauf {run}: Wiederaufnahme aus (nur das Modell hält die Schleife in Gang)",
   "keepalive.stalled": "Lauf {run} steht mit {what} und nichts läuft; {tries} Nachricht(en) ohne Fortschritt, der Host gibt auf (jtasks keepalive on beobachtet ihn wieder)",
@@ -2720,10 +2757,18 @@ var de_default = {
   "plan.empty_path": 'leerer Pfad in "files"',
   "plan.hold_ttl": '"holdTtl" muss eine Dauer wie 30m, 2h oder 1d sein',
   "plan.keepalive": '"keepalive" muss true oder false sein',
-  "plan.context_object": "{where} muss ein Objekt mit summary (Text), read (Liste von Pfaden) und constraints (Liste von Texten) sein",
-  "plan.context_unknown": '{where}: unbekanntes Feld "{field}" (erlaubt: summary, read, constraints)',
+  "plan.context_object": "{where} muss ein Objekt mit brief (Pfad der gemeinsamen Kurzbeschreibung, nur im Plan), summary (Text), read (Liste von Pfaden), consult (Liste von { path, why }) und constraints (Liste von Texten) sein",
+  "plan.context_unknown": '{where}: unbekanntes Feld "{field}" (verwende brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary muss Text sein",
   "plan.context_list": "{where}.{field} muss eine Liste von Texten sein",
+  "plan.context_brief": "{where}.brief muss der Pfad einer Markdown-Datei sein (Text)",
+  "plan.context_brief_task": "{where}.brief gibt es nur im Kontext des Plans (die gemeinsame Kurzbeschreibung des Laufs); eine Aufgabe ergänzt nur ihr eigenes summary, read, consult und constraints",
+  "plan.context_consult": '{where}.consult muss eine Liste von { "path": Text, "why": Text } sein: ein Dokument, das nur im Zweifel geöffnet wird, und der Grund',
+  "plan.brief_missing": "context.brief: {file} kann nicht gelesen werden (schreibe zuerst die gemeinsame Kurzbeschreibung dorthin oder korrigiere den Pfad)",
+  "plan.brief_empty": "context.brief: {file} ist leer (schreibe den Text, den alle Aufgaben teilen)",
+  "plan.context_repeats_what": "{id}: context.summary wiederholt das what der Aufgabe; der Kontext ergänzt nur, was der Ausführende über das Wie wissen muss (Entscheidungen, Schnittstellen, Fallstricke, der Code, von dem aus man startet)",
+  "plan.context_repeats_brief": "{where} wiederholt Text der gemeinsamen Kurzbeschreibung, die jedes Ticket schon zeigt; entferne ihn",
+  "plan.context_repeats_run": "{id}: der Kontext wiederholt {item}, das der Kontext des Laufs schon jedem Ticket gibt; entferne es",
   "plan.max_agent_ended": '"maxAgentEnded" muss eine ganze Zahl größer als null sein',
   "plan.max_attempts": '"maxAttempts" muss eine ganze Zahl größer als null sein',
   "plan.missing_dependency": "{id} hängt von {dep} ab, das nicht existiert",
@@ -3102,7 +3147,7 @@ var it_default = {
   "draft.no_tasks": "nessuna",
   "draft.none": "nessuna bozza aperta: iniziane una con jtasks plan --draft",
   "draft.not_found": "nessuna bozza aperta con l'id {id}",
-  "draft.opened": "bozza {id} aperta: aggiungi lotti con jtasks plan --add <json> (fino a ~20 attività per lotto)",
+  "draft.opened": 'bozza {id} aperta: se le attività condividono un riepilogo comune, scrivilo in {brief} e metti "context": { "brief": "{brief}" } in un lotto; aggiungi lotti con jtasks plan --add <json> (fino a ~20 attività per lotto)',
   "draft.summary": "bozza {id}: {n} attività",
   "duration.bad": "durata non valida: {value} (usa 30s, 2m, 500ms)",
   "effects.checked": "effetti attivi verificati con il disco e git: {n}",
@@ -3261,6 +3306,7 @@ var it_default = {
   "context.usage": "uso: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "esecuzione {run} senza contesto comune (jtasks context --set <json>)",
   "context.updated": "esecuzione {run}: contesto aggiornato; ticket riscritti: {n}",
+  "context.brief_file": 'riepilogo comune: {file} (per sostituirlo: jtasks context --set con "brief" che punta al nuovo file)',
   "keepalive.on": "esecuzione {run}: ripresa attiva (l'host riapre il ciclo quando l'orchestratore si ferma con attività pronte e niente in corso)",
   "keepalive.off": "esecuzione {run}: ripresa disattivata (solo il modello porta avanti il ciclo)",
   "keepalive.stalled": "l'esecuzione {run} è ferma con {what} e niente in corso; {tries} messaggio/i senza progressi, l'host rinuncia (jtasks keepalive on la sorveglia di nuovo)",
@@ -3285,10 +3331,18 @@ var it_default = {
   "plan.empty_path": 'percorso vuoto in "files"',
   "plan.hold_ttl": '"holdTtl" deve essere una durata come 30m, 2h o 1d',
   "plan.keepalive": '"keepalive" deve essere true o false',
-  "plan.context_object": "{where} deve essere un oggetto con summary (testo), read (elenco di percorsi) e constraints (elenco di testi)",
-  "plan.context_unknown": '{where}: campo sconosciuto "{field}" (usa summary, read, constraints)',
+  "plan.context_object": "{where} deve essere un oggetto con brief (percorso del riepilogo comune, solo nel piano), summary (testo), read (elenco di percorsi), consult (elenco di { path, why }) e constraints (elenco di testi)",
+  "plan.context_unknown": '{where}: campo sconosciuto "{field}" (usa brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary deve essere testo",
   "plan.context_list": "{where}.{field} deve essere un elenco di testi",
+  "plan.context_brief": "{where}.brief deve essere il percorso di un file Markdown (testo)",
+  "plan.context_brief_task": "{where}.brief esiste solo nel contesto del piano (il riepilogo comune dell'esecuzione); un'attività aggiunge solo i propri summary, read, consult e constraints",
+  "plan.context_consult": '{where}.consult deve essere un elenco di { "path": testo, "why": testo }: un documento da aprire solo in caso di dubbio, e il motivo',
+  "plan.brief_missing": "context.brief: impossibile leggere {file} (scrivi prima lì il riepilogo comune, o correggi il percorso)",
+  "plan.brief_empty": "context.brief: {file} è vuoto (scrivi il testo che tutte le attività condividono)",
+  "plan.context_repeats_what": "{id}: context.summary ripete il what dell'attività; il contesto aggiunge solo ciò che l'esecutore deve sapere del come (decisioni, interfacce, insidie, il codice da cui partire)",
+  "plan.context_repeats_brief": "{where} ripete testo del riepilogo comune, che ogni ticket mostra già; rimuovilo",
+  "plan.context_repeats_run": "{id}: il contesto ripete {item}, che il contesto dell'esecuzione dà già a ogni ticket; rimuovilo",
   "plan.max_agent_ended": '"maxAgentEnded" deve essere un intero maggiore di zero',
   "plan.max_attempts": '"maxAttempts" deve essere un intero maggiore di zero',
   "plan.missing_dependency": "{id} dipende da {dep}, che non esiste",
@@ -3667,7 +3721,7 @@ var zh_CN_default = {
   "draft.no_tasks": "无",
   "draft.none": "没有打开的草稿：用 jtasks plan --draft 开始",
   "draft.not_found": "没有 id 为 {id} 的打开草稿",
-  "draft.opened": "草稿 {id} 已打开：用 jtasks plan --add <json> 添加批次（每批最多约 20 个任务）",
+  "draft.opened": '草稿 {id} 已打开：如果任务共享公共简报，把它写到 {brief}，并在某个批次中放入 "context": { "brief": "{brief}" }；用 jtasks plan --add <json> 添加批次（每批约 20 个任务以内）',
   "draft.summary": "草稿 {id}：{n} 个任务",
   "duration.bad": "无效的时长：{value}（用 30s、2m、500ms）",
   "effects.checked": "已对照磁盘和 git 检查 {n} 个生效的副作用",
@@ -3826,6 +3880,7 @@ var zh_CN_default = {
   "context.usage": "用法：jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "运行 {run} 没有共享上下文(jtasks context --set <json>)",
   "context.updated": "运行 {run}：上下文已更新；重写的工单：{n}",
+  "context.brief_file": '公共简报：{file}（替换方法：jtasks context --set，让 "brief" 指向新文件）',
   "keepalive.on": "运行 {run}：自动续跑已开启(编排者在有就绪任务且无任何运行时停下，宿主会重新开启循环)",
   "keepalive.off": "运行 {run}：自动续跑已关闭(只有模型推动循环)",
   "keepalive.stalled": "运行 {run} 已停下，{what}，且无任何运行；{tries} 条消息没有进展，宿主已放弃(jtasks keepalive on 重新监视)",
@@ -3850,10 +3905,18 @@ var zh_CN_default = {
   "plan.empty_path": '"files" 中有空路径',
   "plan.hold_ttl": '"holdTtl" 必须是时长，如 30m、2h 或 1d',
   "plan.keepalive": '"keepalive" 必须是 true 或 false',
-  "plan.context_object": "{where} 必须是对象，含 summary（文本）、read（路径列表）和 constraints（文本列表）",
-  "plan.context_unknown": '{where}：未知字段 "{field}"（可用 summary、read、constraints）',
+  "plan.context_object": "{where} 必须是对象，包含 brief（公共简报的路径，仅限计划）、summary（文本）、read（路径列表）、consult（{ path, why } 列表）和 constraints（文本列表）",
+  "plan.context_unknown": '{where}：未知字段 "{field}"（使用 brief、summary、read、consult、constraints）',
   "plan.context_summary": "{where}.summary 必须是文本",
   "plan.context_list": "{where}.{field} 必须是文本列表",
+  "plan.context_brief": "{where}.brief 必须是一个 Markdown 文件的路径（文本）",
+  "plan.context_brief_task": "{where}.brief 只属于计划的 context（执行的公共简报）；任务只添加自己的 summary、read、consult 和 constraints",
+  "plan.context_consult": '{where}.consult 必须是 { "path": 文本, "why": 文本 } 的列表：只在有疑问时才打开的文档，以及原因',
+  "plan.brief_missing": "context.brief：无法读取 {file}（先在那里写好公共简报，或修正路径）",
+  "plan.brief_empty": "context.brief：{file} 是空的（写下所有任务共享的文本）",
+  "plan.context_repeats_what": "{id}：context.summary 重复了任务的 what；context 只补充执行者需要知道的“怎么做”（决定、接口、陷阱、从哪段代码开始）",
+  "plan.context_repeats_brief": "{where} 重复了公共简报中的文字，而每张工单都已显示简报；请删除",
+  "plan.context_repeats_run": "{id}：context 重复了 {item}，执行的 context 已经把它给了每张工单；请删除",
   "plan.max_agent_ended": '"maxAgentEnded" 必须是大于零的整数',
   "plan.max_attempts": '"maxAttempts" 必须是大于零的整数',
   "plan.missing_dependency": "{id} 依赖不存在的 {dep}",
@@ -4232,7 +4295,7 @@ var ja_default = {
   "draft.no_tasks": "なし",
   "draft.none": "開いている下書きはない: jtasks plan --draft で始める",
   "draft.not_found": "id {id} の開いている下書きはない",
-  "draft.opened": "下書き {id} を開いた: jtasks plan --add <json> でバッチを追加（1 バッチ約 20 タスクまで）",
+  "draft.opened": '下書き {id} を開いた: タスクが共通ブリーフを共有するなら {brief} に書き、バッチに "context": { "brief": "{brief}" } を入れる。jtasks plan --add <json> でバッチを追加（1 バッチ約 20 タスクまで）',
   "draft.summary": "下書き {id}: タスク {n} 件",
   "duration.bad": "不正な時間: {value}（30s, 2m, 500ms のように指定）",
   "effects.checked": "有効な副作用 {n} 件をディスクと git で確認した",
@@ -4391,6 +4454,7 @@ var ja_default = {
   "context.usage": "使い方: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "実行 {run} に共有コンテキストなし(jtasks context --set <json>)",
   "context.updated": "実行 {run}: コンテキストを更新。再生成したチケット: {n}",
+  "context.brief_file": '共通ブリーフ: {file}(置き換えるには jtasks context --set で "brief" を新しいファイルに向ける)',
   "keepalive.on": "実行 {run}: 自動再開オン(準備済みタスクがあり何も動いていない状態でオーケストレーターが止まると、ホストがループを再開する)",
   "keepalive.off": "実行 {run}: 自動再開オフ(ループを進めるのはモデルだけ)",
   "keepalive.stalled": "実行 {run} は停止しています: {what}、何も動いていません。進捗のないメッセージ {tries} 件でホストは断念しました(jtasks keepalive on で再び監視)",
@@ -4415,10 +4479,18 @@ var ja_default = {
   "plan.empty_path": '"files" に空のパス',
   "plan.hold_ttl": '"holdTtl" は 30m、2h、1d のような時間でなければならない',
   "plan.keepalive": '"keepalive" は true か false',
-  "plan.context_object": "{where} は summary(テキスト)、read(パスのリスト)、constraints(テキストのリスト)を持つオブジェクト",
-  "plan.context_unknown": '{where}: 不明なフィールド "{field}"(summary、read、constraints を使用)',
+  "plan.context_object": "{where} は brief(共通ブリーフのパス、計画のみ)、summary(テキスト)、read(パスのリスト)、consult({ path, why } のリスト)、constraints(テキストのリスト)を持つオブジェクト",
+  "plan.context_unknown": '{where}: 不明なフィールド "{field}"(brief、summary、read、consult、constraints を使用)',
   "plan.context_summary": "{where}.summary はテキスト",
   "plan.context_list": "{where}.{field} はテキストのリスト",
+  "plan.context_brief": "{where}.brief は Markdown ファイルのパス(テキスト)",
+  "plan.context_brief_task": "{where}.brief は計画の context だけのもの(実行の共通ブリーフ)。タスクは自分の summary、read、consult、constraints だけを追加する",
+  "plan.context_consult": '{where}.consult は { "path": テキスト, "why": テキスト } のリスト: 迷ったときだけ開く文書とその理由',
+  "plan.brief_missing": "context.brief: {file} を読めない(先にそこへ共通ブリーフを書くか、パスを直す)",
+  "plan.brief_empty": "context.brief: {file} が空(すべてのタスクが共有するテキストを書く)",
+  "plan.context_repeats_what": "{id}: context.summary がタスクの what を繰り返している。context は実行者が「どうやるか」に必要なことだけを足す(決定、インターフェース、落とし穴、出発点のコード)",
+  "plan.context_repeats_brief": "{where} は共通ブリーフの文を繰り返している。ブリーフはすべてのチケットに表示済みなので削除する",
+  "plan.context_repeats_run": "{id}: context が {item} を繰り返している。実行の context がすでに全チケットに渡しているので削除する",
   "plan.max_agent_ended": '"maxAgentEnded" は 0 より大きい整数でなければならない',
   "plan.max_attempts": '"maxAttempts" は 0 より大きい整数でなければならない',
   "plan.missing_dependency": "{id} は存在しない {dep} に依存している",
@@ -4797,7 +4869,7 @@ var ru_default = {
   "draft.no_tasks": "нет",
   "draft.none": "нет открытого черновика: начните через jtasks plan --draft",
   "draft.not_found": "нет открытого черновика с id {id}",
-  "draft.opened": "черновик {id} открыт: добавляйте пакеты через jtasks plan --add <json> (до ~20 задач в пакете)",
+  "draft.opened": 'черновик {id} открыт: если у задач есть общая сводка, запишите её в {brief} и добавьте "context": { "brief": "{brief}" } в пакет; добавляйте пакеты через jtasks plan --add <json> (до ~20 задач в пакете)',
   "draft.summary": "черновик {id}, задач: {n}",
   "duration.bad": "неверная длительность: {value} (используйте 30s, 2m, 500ms)",
   "effects.checked": "активных эффектов сверено с диском и git: {n}",
@@ -4956,6 +5028,7 @@ var ru_default = {
   "context.usage": "использование: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "у прогона {run} нет общего контекста (jtasks context --set <json>)",
   "context.updated": "прогон {run}: контекст обновлён; переписано тикетов: {n}",
+  "context.brief_file": 'общая сводка: {file} (чтобы заменить: jtasks context --set с "brief", указывающим на новый файл)',
   "keepalive.on": "прогон {run}: автовозобновление включено (хост снова запускает цикл, когда оркестратор останавливается при готовых задачах и ничего не выполняется)",
   "keepalive.off": "прогон {run}: автовозобновление выключено (цикл держит только модель)",
   "keepalive.stalled": "прогон {run} стоит, {what}, ничего не выполняется; {tries} сообщ. без прогресса, хост сдался (jtasks keepalive on снова следит за ним)",
@@ -4980,10 +5053,18 @@ var ru_default = {
   "plan.empty_path": 'пустой путь в "files"',
   "plan.hold_ttl": '"holdTtl" должен быть длительностью, например 30m, 2h или 1d',
   "plan.keepalive": '"keepalive" должно быть true или false',
-  "plan.context_object": "{where} должен быть объектом с summary (текст), read (список путей) и constraints (список текстов)",
-  "plan.context_unknown": '{where}: неизвестное поле "{field}" (используйте summary, read, constraints)',
+  "plan.context_object": "{where} должен быть объектом с brief (путь к общей сводке, только в плане), summary (текст), read (список путей), consult (список { path, why }) и constraints (список текстов)",
+  "plan.context_unknown": '{where}: неизвестное поле "{field}" (используйте brief, summary, read, consult, constraints)',
   "plan.context_summary": "{where}.summary должно быть текстом",
   "plan.context_list": "{where}.{field} должно быть списком текстов",
+  "plan.context_brief": "{where}.brief должен быть путём к файлу Markdown (текст)",
+  "plan.context_brief_task": "{where}.brief бывает только в context плана (общая сводка выполнения); задача добавляет только свои summary, read, consult и constraints",
+  "plan.context_consult": '{where}.consult должен быть списком { "path": текст, "why": текст }: документ, который открывают только при сомнении, и причина',
+  "plan.brief_missing": "context.brief: не удаётся прочитать {file} (сначала запишите туда общую сводку или исправьте путь)",
+  "plan.brief_empty": "context.brief: {file} пуст (напишите текст, общий для всех задач)",
+  "plan.context_repeats_what": "{id}: context.summary повторяет what задачи; context добавляет только то, что исполнителю нужно знать о том, как делать (решения, интерфейсы, подводные камни, код, с которого начать)",
+  "plan.context_repeats_brief": "{where} повторяет текст общей сводки, которую уже показывает каждый тикет; удалите его",
+  "plan.context_repeats_run": "{id}: context повторяет {item}, что context выполнения уже даёт каждому тикету; удалите",
   "plan.max_agent_ended": '"maxAgentEnded" должен быть целым числом больше нуля',
   "plan.max_attempts": '"maxAttempts" должен быть целым числом больше нуля',
   "plan.missing_dependency": "{id} зависит от {dep}, которой нет",
@@ -5362,7 +5443,7 @@ var ar_default = {
   "draft.no_tasks": "لا شيء",
   "draft.none": "لا مسودة مفتوحة: ابدأ واحدة بالأمر jtasks plan --draft",
   "draft.not_found": "لا مسودة مفتوحة بالمعرّف {id}",
-  "draft.opened": "فُتحت المسودة {id}: أضف دفعات بالأمر jtasks plan --add <json> (حتى ~20 مهمة لكل دفعة)",
+  "draft.opened": 'فُتحت المسودة {id}: إذا كانت المهام تتشارك ملخصًا مشتركًا فاكتبه في {brief} وضع "context": { "brief": "{brief}" } في دفعة؛ أضف الدفعات بـ jtasks plan --add <json> (حتى ~20 مهمة في الدفعة)',
   "draft.summary": "المسودة {id}، المهام: {n}",
   "duration.bad": "مدة غير صالحة: {value} (استخدم 30s أو 2m أو 500ms)",
   "effects.checked": "آثار نشطة فُحصت مقابل القرص و git: {n}",
@@ -5521,6 +5602,7 @@ var ar_default = {
   "context.usage": "الاستخدام: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "التشغيل {run} بلا سياق مشترك (jtasks context --set <json>)",
   "context.updated": "التشغيل {run}: حُدّث السياق؛ التذاكر المعاد كتابتها: {n}",
+  "context.brief_file": 'الملخص المشترك: {file} (لاستبداله: jtasks context --set مع "brief" يشير إلى الملف الجديد)',
   "keepalive.on": "التشغيل {run}: الاستئناف التلقائي مفعّل (يعيد المضيف فتح الحلقة عندما يتوقف المنسّق ومهام جاهزة باقية ولا شيء يعمل)",
   "keepalive.off": "التشغيل {run}: الاستئناف التلقائي معطّل (النموذج وحده يُبقي الحلقة دائرة)",
   "keepalive.stalled": "التشغيل {run} متوقف و{what} ولا شيء يعمل؛ {tries} رسالة بلا تقدّم، وتوقّف المضيف عن المحاولة (jtasks keepalive on يعيد المراقبة)",
@@ -5545,10 +5627,18 @@ var ar_default = {
   "plan.empty_path": 'مسار فارغ في "files"',
   "plan.hold_ttl": 'يجب أن يكون "holdTtl" مدة مثل 30m أو 2h أو 1d',
   "plan.keepalive": 'يجب أن تكون "keepalive" true أو false',
-  "plan.context_object": "يجب أن يكون {where} كائنًا فيه summary (نص) و read (قائمة مسارات) و constraints (قائمة نصوص)",
-  "plan.context_unknown": '{where}: حقل غير معروف "{field}" (استخدم summary و read و constraints)',
+  "plan.context_object": "يجب أن يكون {where} كائنًا فيه brief (مسار الملخص المشترك، في الخطة فقط) وsummary (نص) وread (قائمة مسارات) وconsult (قائمة { path, why }) وconstraints (قائمة نصوص)",
+  "plan.context_unknown": '{where}: حقل غير معروف "{field}" (استخدم brief وsummary وread وconsult وconstraints)',
   "plan.context_summary": "يجب أن يكون {where}.summary نصًا",
   "plan.context_list": "يجب أن يكون {where}.{field} قائمة نصوص",
+  "plan.context_brief": "يجب أن يكون {where}.brief مسار ملف Markdown (نص)",
+  "plan.context_brief_task": "{where}.brief خاص بسياق الخطة فقط (الملخص المشترك للتنفيذ)؛ تضيف المهمة فقط summary وread وconsult وconstraints الخاصة بها",
+  "plan.context_consult": 'يجب أن يكون {where}.consult قائمة { "path": نص, "why": نص }: مستند يُفتح فقط عند الشك، والسبب',
+  "plan.brief_missing": "context.brief: تعذّرت قراءة {file} (اكتب الملخص المشترك هناك أولًا، أو صحّح المسار)",
+  "plan.brief_empty": "context.brief: الملف {file} فارغ (اكتب النص الذي تتشاركه كل المهام)",
+  "plan.context_repeats_what": "{id}: يكرر context.summary حقل what للمهمة؛ السياق يضيف فقط ما يحتاج المنفّذ معرفته عن الكيفية (القرارات، الواجهات، المزالق، الكود الذي يبدأ منه)",
+  "plan.context_repeats_brief": "{where} يكرر نصًا من الملخص المشترك الذي تعرضه كل تذكرة أصلًا؛ احذفه",
+  "plan.context_repeats_run": "{id}: يكرر السياق {item}، الذي يعطيه سياق التنفيذ لكل تذكرة أصلًا؛ احذفه",
   "plan.max_agent_ended": 'يجب أن يكون "maxAgentEnded" عددًا صحيحًا أكبر من صفر',
   "plan.max_attempts": 'يجب أن يكون "maxAttempts" عددًا صحيحًا أكبر من صفر',
   "plan.missing_dependency": "{id} تعتمد على {dep}، وهي غير موجودة",
@@ -5927,7 +6017,7 @@ var hi_default = {
   "draft.no_tasks": "कोई नहीं",
   "draft.none": "कोई ड्राफ़्ट खुला नहीं: jtasks plan --draft से शुरू करें",
   "draft.not_found": "id {id} वाला कोई खुला ड्राफ़्ट नहीं",
-  "draft.opened": "ड्राफ़्ट {id} खुला: jtasks plan --add <json> से बैच जोड़ें (प्रति बैच ~20 कार्य तक)",
+  "draft.opened": 'ड्राफ़्ट {id} खुला: यदि कार्य एक साझा सारांश साझा करते हैं, तो उसे {brief} में लिखें और किसी बैच में "context": { "brief": "{brief}" } रखें; jtasks plan --add <json> से बैच जोड़ें (प्रति बैच ~20 कार्य तक)',
   "draft.summary": "ड्राफ़्ट {id}: {n} कार्य",
   "duration.bad": "अमान्य अवधि: {value} (30s, 2m, 500ms जैसा लिखें)",
   "effects.checked": "{n} सक्रिय प्रभाव डिस्क और git से जाँचे गए",
@@ -6086,6 +6176,7 @@ var hi_default = {
   "context.usage": "उपयोग: jtasks context [--set <json|@file|-> | --unset] [--run <id>]",
   "context.none": "रन {run} का कोई साझा संदर्भ नहीं (jtasks context --set <json>)",
   "context.updated": "रन {run}: संदर्भ अपडेट हुआ; फिर लिखे गए टिकट: {n}",
+  "context.brief_file": 'साझा सारांश: {file} (बदलने के लिए: jtasks context --set, जिसमें "brief" नई फ़ाइल की ओर इशारा करे)',
   "keepalive.on": "रन {run}: स्वतः पुनरारंभ चालू (तैयार कार्य हों और कुछ न चल रहा हो तब ऑर्केस्ट्रेटर रुके तो होस्ट लूप फिर खोलता है)",
   "keepalive.off": "रन {run}: स्वतः पुनरारंभ बंद (लूप को केवल मॉडल आगे बढ़ाता है)",
   "keepalive.stalled": "रन {run} रुका है, {what} और कुछ नहीं चल रहा; {tries} संदेश बिना प्रगति के, होस्ट ने हार मानी (jtasks keepalive on फिर निगरानी करता है)",
@@ -6110,10 +6201,18 @@ var hi_default = {
   "plan.empty_path": '"files" में खाली पथ',
   "plan.hold_ttl": '"holdTtl" 30m, 2h या 1d जैसी अवधि होनी चाहिए',
   "plan.keepalive": '"keepalive" true या false होना चाहिए',
-  "plan.context_object": "{where} एक ऑब्जेक्ट होना चाहिए: summary (पाठ), read (पथों की सूची) और constraints (पाठों की सूची)",
-  "plan.context_unknown": '{where}: अज्ञात फ़ील्ड "{field}" (summary, read, constraints इस्तेमाल करें)',
+  "plan.context_object": "{where} एक ऑब्जेक्ट होना चाहिए जिसमें brief (साझा सारांश का पथ, केवल योजना में), summary (टेक्स्ट), read (पथों की सूची), consult ({ path, why } की सूची) और constraints (टेक्स्ट की सूची) हों",
+  "plan.context_unknown": '{where}: अज्ञात फ़ील्ड "{field}" (brief, summary, read, consult, constraints का उपयोग करें)',
   "plan.context_summary": "{where}.summary पाठ होना चाहिए",
   "plan.context_list": "{where}.{field} पाठों की सूची होनी चाहिए",
+  "plan.context_brief": "{where}.brief एक Markdown फ़ाइल का पथ (टेक्स्ट) होना चाहिए",
+  "plan.context_brief_task": "{where}.brief केवल योजना के context में होता है (रन का साझा सारांश); कार्य केवल अपना summary, read, consult और constraints जोड़ता है",
+  "plan.context_consult": '{where}.consult { "path": टेक्स्ट, "why": टेक्स्ट } की सूची होनी चाहिए: केवल संदेह होने पर खोलने वाला दस्तावेज़, और कारण',
+  "plan.brief_missing": "context.brief: {file} पढ़ा नहीं जा सका (पहले वहाँ साझा सारांश लिखें, या पथ ठीक करें)",
+  "plan.brief_empty": "context.brief: {file} खाली है (वह टेक्स्ट लिखें जो सभी कार्य साझा करते हैं)",
+  "plan.context_repeats_what": "{id}: context.summary कार्य का what दोहराता है; context केवल वही जोड़ता है जो निष्पादक को कैसे करना है यह जानने के लिए चाहिए (निर्णय, इंटरफ़ेस, जोखिम, शुरुआती कोड)",
+  "plan.context_repeats_brief": "{where} साझा सारांश का टेक्स्ट दोहराता है, जिसे हर टिकट पहले से दिखाता है; इसे हटाएँ",
+  "plan.context_repeats_run": "{id}: context {item} दोहराता है, जो रन का context पहले से हर टिकट को देता है; इसे हटाएँ",
   "plan.max_agent_ended": '"maxAgentEnded" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.max_attempts": '"maxAttempts" शून्य से बड़ा पूर्णांक होना चाहिए',
   "plan.missing_dependency": "{id} {dep} पर निर्भर है, जो मौजूद नहीं है",
@@ -6431,9 +6530,9 @@ function width(text) {
 // src/validate.ts
 var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared", "context"]);
 var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"]);
-var CONTEXT_FIELDS = ["summary", "read", "constraints"];
+var CONTEXT_FIELDS = ["brief", "summary", "read", "consult", "constraints"];
 var GLOB = /[*?[\]{}]/;
-function readContext(raw, where = "context") {
+function readContext(raw, where = "context", options = {}) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw))
     return { errors: [tr("plan.context_object", { where })] };
   const obj = raw;
@@ -6444,6 +6543,34 @@ function readContext(raw, where = "context") {
   const text = (s) => s.replace(/\r\n?/g, `
 `).trim();
   const context = {};
+  if (obj.brief !== undefined) {
+    if (options.task)
+      errors.push(tr("plan.context_brief_task", { where }));
+    else if (typeof obj.brief !== "string" || !obj.brief.trim())
+      errors.push(tr("plan.context_brief", { where }));
+    else
+      context.brief = obj.brief.trim();
+  }
+  if (obj.consult !== undefined) {
+    const ok = Array.isArray(obj.consult) && obj.consult.every((c) => {
+      if (!c || typeof c !== "object" || Array.isArray(c))
+        return false;
+      const r = c;
+      return Object.keys(r).every((k) => k === "path" || k === "why") && typeof r.path === "string" && !!r.path.trim() && typeof r.why === "string" && !!r.why.trim();
+    });
+    if (!ok)
+      errors.push(tr("plan.context_consult", { where }));
+    else {
+      const list = [];
+      for (const c of obj.consult) {
+        const path = text(c.path);
+        if (!list.some((k) => k.path === path))
+          list.push({ path, why: text(c.why).replace(/\s*\n\s*/g, " ") });
+      }
+      if (list.length)
+        context.consult = list;
+    }
+  }
   if (obj.summary !== undefined) {
     if (typeof obj.summary !== "string")
       errors.push(tr("plan.context_summary", { where }));
@@ -6467,7 +6594,42 @@ function readContext(raw, where = "context") {
   }
   if (errors.length)
     return { errors };
-  return Object.keys(context).length ? { context, errors } : { errors };
+  const ordered = {};
+  for (const key of CONTEXT_FIELDS)
+    if (context[key] !== undefined)
+      ordered[key] = context[key];
+  return Object.keys(ordered).length ? { context: ordered, errors } : { errors };
+}
+var flat = (s) => s.toLowerCase().replace(/[\s`*_>#-]+/g, " ").trim();
+function contextWarnings(plan, brief) {
+  const out = [];
+  const run = plan.context;
+  const briefFlat = brief ? flat(brief) : "";
+  const repeats = (a, b) => {
+    const x = flat(a);
+    const y = flat(b);
+    const short = x.length <= y.length ? x : y;
+    return short.length >= 20 && (x.includes(y) || y.includes(x));
+  };
+  if (run?.summary && briefFlat && flat(run.summary).length >= 20 && briefFlat.includes(flat(run.summary)))
+    out.push(tr("plan.context_repeats_brief", { where: "context.summary" }));
+  for (const t of plan.tasks) {
+    const c = t.context;
+    if (!c)
+      continue;
+    if (c.summary && t.what && repeats(c.summary, t.what))
+      out.push(tr("plan.context_repeats_what", { id: t.id }));
+    if (c.summary && briefFlat && flat(c.summary).length >= 20 && briefFlat.includes(flat(c.summary)))
+      out.push(tr("plan.context_repeats_brief", { where: `${t.id}: context.summary` }));
+    const again = [
+      ...(c.read ?? []).filter((p) => run?.read?.includes(p)),
+      ...(c.consult ?? []).map((k) => k.path).filter((p) => run?.read?.includes(p) || c.read?.includes(p) || run?.consult?.some((k) => k.path === p)),
+      ...(c.constraints ?? []).filter((k) => run?.constraints?.includes(k))
+    ];
+    for (const item of again)
+      out.push(tr("plan.context_repeats_run", { id: t.id, item }));
+  }
+  return out;
 }
 function normalizeFileEntry(raw) {
   let p = slash(raw.trim());
@@ -6644,7 +6806,7 @@ function readPlan(raw) {
     }
     let context;
     if (t.context !== undefined) {
-      const read = readContext(t.context, `${name}: context`);
+      const read = readContext(t.context, `${name}: context`, { task: true });
       errors.push(...read.errors);
       context = read.context;
     }
@@ -6771,7 +6933,7 @@ function validatePlan(raw, options = {}) {
     for (const p of t.touchesShared ?? [])
       if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive)))
         errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }));
-  return { plan, errors, warnings: sharedWarnings(plan, options) };
+  return { plan, errors, warnings: [...sharedWarnings(plan, options), ...contextWarnings(plan, options.brief)] };
 }
 function relCovers(outer, inner, insensitive) {
   const o = insensitive ? outer.toLowerCase() : outer;
@@ -6885,28 +7047,78 @@ function ticketFileName(task, index) {
 function numbers(tasks) {
   return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]));
 }
-function renderContext(run, task) {
+var BRIEF_FILE = "brief.md";
+function normalizeBrief(text) {
+  return text.replace(/^﻿/, "").replace(/\r\n?/g, `
+`).replace(/^(?:[ \t]*\n)+/, "").trimEnd();
+}
+async function loadBrief(host, cwd, path) {
+  const file = isAbsolute(path) ? normalize(path) : join(cwd, path);
+  let raw;
+  try {
+    raw = (await host.stat(file))?.kind === "file" ? await host.readText(file) : undefined;
+  } catch {
+    raw = undefined;
+  }
+  if (raw === undefined)
+    return { file, error: tr("plan.brief_missing", { file }) };
+  const text = normalizeBrief(raw);
+  if (!text)
+    return { file, error: tr("plan.brief_empty", { file }) };
+  return { text, file };
+}
+async function storeBrief(host, runDir, text) {
+  const file = join(runDir, BRIEF_FILE);
+  if (text === undefined) {
+    if (await host.stat(file))
+      await host.remove(file);
+    return;
+  }
+  if (await host.readText(file) !== `${text}
+`)
+    await host.writeText(file, `${text}
+`);
+}
+async function readRunBrief(host, runDir, context) {
+  if (!context?.brief)
+    return;
+  const raw = await host.readText(join(runDir, BRIEF_FILE));
+  return raw === undefined ? null : normalizeBrief(raw);
+}
+function renderContext(run, task, brief) {
   const summaries = [run?.summary, task?.summary].filter((s) => !!s);
   const read = [];
   for (const p of [...run?.read ?? [], ...task?.read ?? []])
     if (!read.includes(p))
       read.push(p);
+  const consult = [];
+  for (const c of [...run?.consult ?? [], ...task?.consult ?? []])
+    if (!read.includes(c.path) && !consult.some((k) => k.path === c.path))
+      consult.push(c);
   const constraints = [];
   for (const c of [...run?.constraints ?? [], ...task?.constraints ?? []])
     if (!constraints.includes(c))
       constraints.push(c);
-  if (!summaries.length && !read.length && !constraints.length)
+  if (brief === undefined || brief === "")
+    brief = undefined;
+  if (brief === undefined && !summaries.length && !read.length && !consult.length && !constraints.length)
     return [];
   const lines = ["## Context", ""];
+  if (brief === null)
+    lines.push(`**Brief:** missing (\`${BRIEF_FILE}\` in the run's folder; see \`jtasks context\`)`, "");
+  else if (brief !== undefined)
+    lines.push(brief, "");
   for (const s of summaries)
     lines.push(s, "");
   if (read.length)
     lines.push("**Read first:**", "", ...read.map((p) => `- \`${p}\``), "");
+  if (consult.length)
+    lines.push("**If in doubt, consult:**", "", ...consult.map((c) => `- \`${c.path}\`: ${c.why}`), "");
   if (constraints.length)
     lines.push("**Constraints:**", "", ...constraints.map((c) => `- ${c}`), "");
   return lines;
 }
-function renderTicket(task, index, all, context) {
+function renderTicket(task, index, all, context, brief) {
   const nums = numbers(all);
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
   const files = task.exclusive ? tr("ticket.exclusive") : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : tr("ticket.none");
@@ -6942,16 +7154,17 @@ function renderTicket(task, index, all, context) {
     lines.push(`**Error:** ${task.error}`, "");
   if (task.boundary)
     lines.push(`**Scope boundary:** ${task.boundary}`, "");
-  lines.push(...renderContext(context, task.context));
+  lines.push(...renderContext(context, task.context, brief));
   return lines.join(`
 `);
 }
 async function writeTickets(host, runDir, tasks, context) {
   const dir = join(runDir, "tickets");
   const names = tasks.tasks.map((t, i) => ticketFileName(t, i));
+  const brief = await readRunBrief(host, runDir, context);
   await host.mkdir(dir);
   for (let i = 0;i < tasks.tasks.length; i++)
-    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks, context));
+    await host.writeText(join(dir, names[i]), renderTicket(tasks.tasks[i], i, tasks.tasks, context, brief));
   for (const entry of await host.list(dir))
     if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name))
       await host.remove(join(dir, entry.name));
@@ -6963,7 +7176,8 @@ async function writeTicket(host, state, id) {
   if (index < 0)
     return;
   const task = tasks.tasks[index];
-  await host.writeText(join(state.dir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks, state.run.context));
+  const brief = await readRunBrief(host, state.dir, state.run.context);
+  await host.writeText(join(state.dir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks, state.run.context, brief));
 }
 function ticketPath(runDir, tasks, id) {
   const index = tasks.findIndex((t) => t.id === id);
@@ -7592,7 +7806,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.5.1";
+var VERSION = "0.6.0";
 
 class ToolError extends Error {
   code;
@@ -7757,7 +7971,14 @@ defineAction("validate", async (ctx, args) => {
   const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? isAbsolute(arg) ? arg : join(ctx.cwd, arg) : undefined;
   const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir";
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir)).map((t) => t.task) } : await readJsonArg(ctx, arg);
-  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform });
+  let { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform });
+  if (plan.context?.brief) {
+    const loaded = await loadBrief(ctx.host, ctx.cwd, plan.context.brief);
+    if (loaded.error)
+      errors = [...errors, loaded.error];
+    else
+      warnings = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text }).warnings;
+  }
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}
 ${errors.map((e) => `- ${e}`).join(`
@@ -8450,6 +8671,8 @@ async function createRun(ctx, plan, options = {}) {
   const branch = useRunBranch ? `gt/${id}` : base;
   if (useRunBranch && await branchExists(host, root, branch))
     throw new ToolError(tr("plan.branch_exists", { branch }));
+  if (plan.context?.brief && options.brief === undefined)
+    throw new ToolError(tr("plan.brief_missing", { file: plan.context.brief }));
   const profiles = plan.profiles ?? DEFAULT_PROFILES;
   const run = {
     version: 1,
@@ -8468,7 +8691,7 @@ async function createRun(ctx, plan, options = {}) {
     keepalive: plan.keepalive !== false,
     ...plan.shared?.length ? { shared: plan.shared } : {},
     ...plan.sharedPolicy ? { sharedPolicy: plan.sharedPolicy } : {},
-    ...plan.context ? { context: plan.context } : {},
+    ...plan.context ? { context: plan.context.brief ? { ...plan.context, brief: BRIEF_FILE } : plan.context } : {},
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : []
   };
   const tasks = {
@@ -8490,6 +8713,7 @@ async function createRun(ctx, plan, options = {}) {
       await addExcludeLine(host, root, line);
       undo.push(() => removeExcludeLine(host, root, line));
     }
+    await storeBrief(host, dir, run.context?.brief ? options.brief : undefined);
     await createSnapshots(host, dir, run, tasks);
     const tickets = await writeTickets(host, dir, tasks, run.context);
     if (useRunBranch) {
@@ -8534,8 +8758,20 @@ function createdText(created, warnings = []) {
 function warningLines(warnings) {
   return warnings.length ? [tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`)] : [];
 }
+async function validateWithBrief(ctx, raw) {
+  const first = validatePlan(raw, { platform: ctx.host.platform });
+  const path = first.plan.context?.brief;
+  if (!path)
+    return first;
+  const loaded = await loadBrief(ctx.host, ctx.cwd, path);
+  if (loaded.error)
+    return { ...first, errors: [...first.errors, loaded.error] };
+  const full = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text });
+  return { ...full, brief: loaded.text };
+}
 async function planFromJson(ctx, raw, options = {}) {
-  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform });
+  const checked = await validateWithBrief(ctx, raw);
+  const { plan, errors, warnings } = checked;
   if (errors.length > 0)
     return {
       ok: false,
@@ -8545,7 +8781,7 @@ ${errors.map((e) => `- ${e}`).join(`
 `)}`,
       data: { errors }
     };
-  const created = await createRun(ctx, plan, options);
+  const created = await createRun(ctx, plan, { ...options, ...checked.brief !== undefined ? { brief: checked.brief } : {} });
   return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created));
 }
 function bindOf(created) {
@@ -8678,7 +8914,7 @@ async function draftOpen(ctx, args) {
       undo: { kind: "remove-line" }
     });
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" });
-  return ok(tr("draft.opened", { id }), { draft: id, dir });
+  return ok(tr("draft.opened", { id, brief: join(dir, BRIEF_FILE) }), { draft: id, dir, brief: join(dir, BRIEF_FILE) });
 }
 async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
@@ -8694,12 +8930,21 @@ async function draftAdd(ctx, args) {
     });
     const earlier = read.plan.profiles ? current2.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
     const errors = [...read.errors, ...batch.errors, ...earlier];
+    const briefPath = read.plan.context?.brief;
+    const loaded = briefPath ? await loadBrief(ctx2.host, ctx2.cwd, briefPath) : undefined;
+    if (loaded?.error)
+      errors.push(loaded.error);
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
     for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context"])
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
+    if (read.plan.context) {
+      await storeBrief(ctx2.host, dir, loaded?.text);
+      if (loaded)
+        next.context = { ...read.plan.context, brief: BRIEF_FILE };
+    }
     await saveDraft(ctx2, dir, next);
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks");
     return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
@@ -8759,10 +9004,13 @@ async function draftCommit(ctx, args) {
     const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     if (current2.tasks.length === 0)
       throw new ToolError(tr("draft.empty"));
-    const { plan, errors, warnings } = validatePlan(draftPlan(current2), { platform: ctx2.host.platform });
+    const brief = await readRunBrief(ctx2.host, dir, current2.context);
+    const checked = validatePlan(draftPlan(current2), { platform: ctx2.host.platform, ...brief ? { brief } : {} });
+    const { plan, warnings } = checked;
+    const errors = brief === null ? [...checked.errors, tr("plan.brief_missing", { file: join(dir, BRIEF_FILE) })] : checked.errors;
     if (errors.length > 0)
       return refused(tr("draft.commit_refused"), errors);
-    const created = await createRun(ctx2, plan, { id: current2.id });
+    const created = await createRun(ctx2, plan, { id: current2.id, ...brief ? { brief } : {} });
     await ctx2.host.remove(draftFile(dir));
     return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created));
   });
@@ -9068,8 +9316,8 @@ function detailOf(failure2, want, max = 240) {
   const candidates = all.flatMap((t) => [...inner(t), t]);
   const any = [...TRANSIENT, ...PERMANENT];
   const pick = (want && candidates.find((t) => want.test(t) && !/^\s*[{[]/.test(t))) ?? candidates.find((t) => any.some((p) => p.re.test(t)) && !/^\s*[{[]/.test(t)) ?? candidates.find((t) => !/^\s*[{[]/.test(t)) ?? all[0] ?? failure2.kind ?? "";
-  const flat = pick.replace(/\s+/g, " ").trim();
-  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+  const flat2 = pick.replace(/\s+/g, " ").trim();
+  return flat2.length > max ? `${flat2.slice(0, max - 1)}…` : flat2;
 }
 function classifyFailure(failure2, now) {
   const all = texts(failure2);
@@ -11700,19 +11948,36 @@ defineAction("context", async (ctx, args) => {
     throw new ToolError(tr("context.usage"), 2);
   const first = await resolveRun(ctx, args);
   if (!set && !unset) {
-    const section = renderContext(first.run.context, undefined);
+    const briefText2 = await readRunBrief(ctx.host, first.dir, first.run.context);
+    const section = renderContext(first.run.context, undefined, briefText2);
     const text = section.length ? section.join(`
 `).trimEnd() : tr("context.none", { run: first.run.id });
-    return ok(text, { run: first.run.id, context: first.run.context ?? null });
+    const briefFile = first.run.context?.brief ? join(first.dir, BRIEF_FILE) : null;
+    return ok(briefFile ? `${text}
+
+${tr("context.brief_file", { file: briefFile })}` : text, {
+      run: first.run.id,
+      context: first.run.context ?? null,
+      brief: briefFile
+    });
   }
   let context;
+  let briefText;
   if (set) {
     const read = readContext(await readJsonArg(ctx, args.positionals[0], "json.context"));
-    if (read.errors.length)
-      return { ok: false, code: 1, text: `${tr("errors.count", { n: read.errors.length })}
-${read.errors.map((e) => `- ${e}`).join(`
-`)}`, data: { errors: read.errors } };
-    context = read.context;
+    const errors = [...read.errors];
+    if (!errors.length && read.context?.brief) {
+      const loaded = await loadBrief(ctx.host, ctx.cwd, read.context.brief);
+      if (loaded.error)
+        errors.push(loaded.error);
+      else
+        briefText = loaded.text;
+    }
+    if (errors.length)
+      return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}
+${errors.map((e) => `- ${e}`).join(`
+`)}`, data: { errors } };
+    context = read.context?.brief ? { ...read.context, brief: BRIEF_FILE } : read.context;
   }
   const d = await decide(ctx, first, "context", (_state, draft) => {
     if (context)
@@ -11721,6 +11986,7 @@ ${read.errors.map((e) => `- ${e}`).join(`
       delete draft.run.context;
   });
   const state = d.state;
+  await storeBrief(ctx.host, state.dir, briefText);
   const open = state.tasks.tasks.filter((t) => t.status !== "done" && t.status !== "skipped");
   for (const t of open)
     await writeTicket(ctx.host, state, t.id);
@@ -13264,7 +13530,7 @@ async function loadRunsView(host, paths) {
 // src/doctor.ts
 var OPENCODE_AGENTS = ["execute", "execute-deep", "review"];
 var SKILLS = ["to-jtasks", "jtasks"];
-var SKILL_FILES = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], jtasks: ["SKILL.md"] };
+var SKILL_FILES = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json", "example-brief.md"], jtasks: ["SKILL.md"] };
 function skillHosts(host) {
   const home = userHome(host);
   return [
@@ -13698,6 +13964,7 @@ export {
   waitingOf,
   viewLines,
   versionAtLeast,
+  validateWithBrief,
   validatePlan,
   validateGraph,
   validateBatch,
@@ -13725,6 +13992,7 @@ export {
   summaryTail,
   strip,
   stringify,
+  storeBrief,
   statusOf,
   status,
   startHold,
@@ -13792,6 +14060,7 @@ export {
   readTicketsDir,
   readTasks,
   readState,
+  readRunBrief,
   readRun,
   readPlan,
   readKeepalive,
@@ -13826,6 +14095,7 @@ export {
   nudgeText,
   normalizeKey,
   normalizeFileEntry,
+  normalizeBrief,
   normalize,
   mutateTasks,
   moveDir,
@@ -13835,6 +14105,7 @@ export {
   log,
   loadView,
   loadRunsView,
+  loadBrief,
   liveProcs,
   listRuns,
   listDrafts,
@@ -13918,6 +14189,7 @@ export {
   covers,
   counts,
   copyGens,
+  contextWarnings,
   containerWithoutGit,
   conflicts,
   configFile,
@@ -14007,6 +14279,7 @@ export {
   CommitConflictError,
   COMMIT_ATTEMPTS,
   CATALOGS,
+  BRIEF_FILE,
   BAR_CELLS,
   BACKOFF_MS,
   ALL

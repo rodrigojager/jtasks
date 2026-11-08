@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test, setDefaultTimeout } from "bun:test"
-import { readdirSync, readFileSync } from "node:fs"
+import { readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { validatePlan } from "../src/validate.ts"
 import { REPO_ROOT, cleanupTemp, makeRepo, tasksOk } from "./helpers.ts"
@@ -16,15 +16,32 @@ const read = (host: string, skill: string, name = "SKILL.md") => readFileSync(jo
 const example = JSON.parse(read("claude-code", "to-jtasks", "example-plan.json"))
 
 describe("to-jtasks skill", () => {
-  test("the example plan passes the core's validation", () => {
-    expect(validatePlan(example, { platform: "win32" }).errors).toEqual([])
+  test("the example plan passes the core's validation, with no repeated-information warning", () => {
+    const checked = validatePlan(example, { platform: "win32" })
+    expect(checked.errors).toEqual([])
+    expect(checked.warnings.filter((w) => w.includes("context"))).toEqual([])
+    expect(example.context.brief).toBeString()
+    expect(example.tasks.some((t: { context?: { consult?: unknown[] } }) => t.context?.consult?.length)).toBe(true)
+  })
+
+  test("schema.json: every $ref resolves, and the context fields are the core's", () => {
+    const schema = JSON.parse(read("claude-code", "to-jtasks", "schema.json"))
+    const refs = [...JSON.stringify(schema).matchAll(/"\$ref":"#\/\$defs\/([A-Za-z]+)"/g)].map((m) => m[1]!)
+    expect(refs.length).toBeGreaterThan(0)
+    for (const ref of refs) expect(schema.$defs[ref], ref).toBeObject()
+    expect(Object.keys(schema.$defs.context.properties)).toEqual(["brief", "summary", "read", "consult", "constraints"])
+    expect(Object.keys(schema.$defs.taskContext.properties)).toEqual(["summary", "read", "consult", "constraints"])
+    expect(schema.$defs.consult.required).toEqual(["path", "why"])
   })
 
   test("the example, in two batches as the skill says, goes through --draft, --add, --show and --commit", async () => {
     const repo = makeRepo()
-    await tasksOk(repo, ["plan", "--draft", "--name", example.feature, "--objective", example.objective])
+    const opened = await tasksOk(repo, ["plan", "--draft", "--name", example.feature, "--objective", example.objective])
+    // The skill writes the common brief straight to the path the draft prints, its one copy.
+    const brief = (opened.data as { brief: string }).brief
+    writeFileSync(brief, "# Login por link mágico\n\nDecidido: token de uso único, 15 minutos.\n")
     const { tasks, ...rest } = example
-    await tasksOk(repo, ["plan", "--add"], { json: { ...rest, tasks: tasks.slice(0, 3) } })
+    await tasksOk(repo, ["plan", "--add"], { json: { ...rest, context: { ...rest.context, brief }, tasks: tasks.slice(0, 3) } })
     await tasksOk(repo, ["plan", "--add"], { json: tasks.slice(3) })
     expect((await tasksOk(repo, ["plan", "--show"])).text.split("\n")[0]).toMatch(/: 5 tarefa\(s\)$/)
     const committed = await tasksOk(repo, ["plan", "--commit"])

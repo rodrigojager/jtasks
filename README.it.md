@@ -58,6 +58,13 @@ sessione, il mod e il plugin mettono il protocollo nel prompt del modello: `jtas
 attività pronta, `jtasks status` finché non resta nulla. Una guardia rifiuta le modifiche fuori dal possesso
 dell'attività e i comandi git dei subagenti.
 
+Ogni ticket è il brief completo di un subagente che parte con un contesto pulito, e dice ogni cosa una volta sola:
+cosa costruire, i criteri, i file che possiede, poi una sezione `## Context` che si apre con il **riepilogo comune**
+dell'esecuzione (un file Markdown che il pianificatore scrive una volta: il problema, le decisioni, le interfacce e
+le convenzioni condivise; lo strumento lo conserva nella cartella dell'esecuzione e lo copia alla lettera in ogni
+ticket), seguito solo da ciò che è proprio dell'attività: i fatti che le servono, scritti lì, i file che deve
+leggere, e cosa consultare solo in caso di dubbio.
+
 ## Installazione
 
 Servono [bun](https://bun.sh) e `git`. Da un clone di questo repository:

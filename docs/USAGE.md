@@ -138,11 +138,12 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
   "serialize": ["bun test"],
   "shared": ["src/session/types.ts"],
   "sharedPolicy": "serialize",
-  "context": { "summary": "Login sem senha por link mágico; token de uso único, 15 min.", "read": ["/home/ana/acme/_work/30-plan/PLAN.md"], "constraints": ["Código em inglês."] },
+  "context": { "brief": "/home/ana/acme/_work/jtasks/runs/login-por-email-261108-k3f9/brief.md" },
   "profiles": { "execute": { "claude": { "agent": "jtasks:execute", "model": "sonnet", "effort": "medium", "role": "backend-developer" }, "opencode": { "agent": "execute" } } },
   "tasks": [
     { "id": "T01", "title": "Tipos de sessão", "files": ["src/session/types.ts"], "acceptance": ["bun test passa"] },
-    { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"], "touchesShared": ["src/session/types.ts"] },
+    { "id": "T02", "title": "Token", "dependsOn": ["T01"], "files": ["src/session/token.ts", "tests/session/**"], "touchesShared": ["src/session/types.ts"],
+      "context": { "summary": "Use crypto.randomBytes(32) em base64url; guarde só o sha256.", "consult": [{ "path": "/home/ana/acme/_work/10-docs/adr/0002-token.md", "why": "se a regra de expiração parecer ambígua" }] } },
     { "id": "T03", "title": "Integração", "dependsOn": ["T02"], "exclusive": true, "profile": "execute" }
   ]
 }
@@ -150,13 +151,20 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
 
 - `source`: the spec, issue or document the plan came from (a path or a URL); every ticket shows it as `Source`, and
   a task may name its own. `what` is the behaviour the task delivers; `acceptance`, the criteria its `done` answers.
-- `context`: the run's shared context, written **once**: `summary` (a short paragraph: the problem, the goal, the
-  decisions), `read` (files to read before starting: the plan, its children, ADRs; absolute paths, or relative to
-  the repository) and `constraints` (standing rules every task follows). A task may carry its own `context` (same
-  shape) with only what is its own. The agent that runs a task starts with a fresh context, so the tool renders both,
-  deterministically, into a `## Context` section at the end of every ticket (the summaries, **Read first**, then
-  **Constraints**). `jtasks context` shows it; `jtasks context --set <json>` replaces it and rewrites the tickets of
-  every task not done or skipped; `--unset` removes it.
+- `context`: the run's context, written **once**. `brief` (0.6.0) is the path of a Markdown file with the **common
+  brief**: only the text every task needs (the problem, the goal, the decisions, the shared interfaces and
+  conventions), distilled from the plan. The tool reads it when it takes the plan, the batch or `context --set` (a
+  missing or empty file is an error), keeps its text as `brief.md` in the run's folder (its one copy: `plan --draft`
+  prints that path, so the planner writes it there directly) and renders it **verbatim at the top** of every
+  ticket's `## Context`. Then come `read` (files every task must read; keep it minimal), `consult` (documents to open
+  only in case of doubt, each `{ "path", "why" }`) and `constraints`; `summary` is the 0.5 form, still accepted. A
+  task's own `context` (`summary`, `read`, `consult`, `constraints`; no `brief`) adds only the HOW-relevant facts it
+  alone needs, inlined, and follows the brief in its ticket (its summary, **Read first**, **If in doubt, consult**
+  with the reason for each document, **Constraints**). Each piece of information appears once in a ticket: `plan`,
+  `--commit` and `validate` warn when a task's context repeats its `what`, a path or rule of the run's context, or
+  text of the brief. Rendering is pure: the same `run.json`, task and `brief.md` give the same bytes. `jtasks
+  context` shows the block and where the brief is; `jtasks context --set <json>` replaces it (with a new `brief`,
+  `brief.md` too) and rewrites the tickets of every task not done or skipped; `--unset` removes it and `brief.md`.
 - `files`: files and folders relative to the repository; a folder owns everything inside it; `dir/**` is the
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above

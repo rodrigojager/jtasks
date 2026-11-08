@@ -9,9 +9,10 @@ Break a plan, spec, issue or conversation into **tasks**: tracer-bullet vertical
 delivers, how to tell it works, the tasks that **block** it and the **files it owns**. The plan is delivered through
 the `jtasks` tool, never written by hand: the tool validates it, writes `tasks.json` and generates one ticket per
 task. Every task is picked up by a subagent that starts with a fresh context and has never seen this conversation,
-so its ticket must carry everything it needs. What all tasks share (the problem, the decisions, the plan files to
-read, the standing rules) goes **once** in the plan's run context (step 6), and the tool renders it into every
-ticket; each task carries only what is its own.
+so its ticket must carry everything it needs. What all tasks share (the problem, the decisions, the shared
+interfaces and conventions, the standing rules) goes **once** in the run's **common brief**, a Markdown file you write
+(step 6); the tool copies its text, verbatim, to the top of every ticket's `## Context`. Each task then carries only
+what is its own, and every piece of information appears in a ticket exactly once.
 
 ## Process
 
@@ -95,9 +96,22 @@ Each task becomes one ticket, the only thing its subagent reads before starting.
 - **`touchesShared`**, when the task will touch a file of the plan's `shared` it does not own (step 5).
 - **`boundary`**, when it helps: what this task does not do, so the subagent does not drift into the next one.
 - **`source`**, only when this task came from somewhere other than the plan's source.
-- **`context`**, only for what is this task's own and not in the run context: a plan child or document only it
-  needs to read (`read`), a short note (`summary`), a rule only it follows (`constraints`). Never repeat the run
-  context here: the tool already puts it in every ticket.
+- **`context`**, the task's **exclusive** context: only the HOW-relevant knowledge this task needs and the brief does
+  not give. Decide per task what goes where:
+  - **inline it** in `summary` (the default): the decisions, interfaces, signatures, pitfalls and the existing code
+    to start from (`src/x.ts:fnName`), short and precise. The executor should be able to act without researching
+    and, ideally, without opening anything else;
+  - **`read`** (required reading) only when the material cannot reasonably be inlined, such as source code to port
+    or a long fixture; point to a section (`PLAN.md#tokens`, `src/x.ts:120-180`) rather than a whole document;
+  - **`consult`** for documents to open only in case of doubt, each with the doubt it settles:
+    `{ "path": "<abs>/_work/30-plan/PLAN-email.md#template", "why": "if the email's layout seems ambiguous" }`;
+  - **`constraints`** for a rule only this task follows.
+
+**Each piece of information appears once in a ticket.** The ticket already shows `what`, the criteria, `files`,
+`boundary` and the common brief, so the task's `context` never restates them: `what` says WHAT the task delivers;
+`context` says only how-relevant facts. Never copy text of the brief, a path or rule the run already gives every
+ticket, or the task's own `what` into its `context` (`jtasks plan`, `--commit` and `validate` warn when they see it).
+A task with nothing of its own leaves `context` out.
 
 ### 5. Quiz the user
 
@@ -152,33 +166,38 @@ Turn the approved breakdown into JSON (schema in `schema.json` beside this file;
 `example-plan.json`) and deliver it through the tool, in batches of up to ~20 tasks, so no single answer has to hold
 the whole plan.
 
-First write the **run context**, once, in the plan's `context` (the first batch carries it):
+First write the **common brief**, once: a Markdown file with only the text every task needs (an example in
+`example-brief.md` beside this file). Distill it from the plan; never point the executors at the whole plan:
+
+- the problem and the goal, in a few sentences;
+- the decisions every task must respect (and that are not to be reopened);
+- the shared interfaces, types, names and paths several tasks build on or against;
+- the conventions and standing rules: the user's rules for the project (language, how to test, what never to
+  touch) and the plan's out-of-scope lines a task could drift into.
+
+Inline the facts, short and precise, rather than sending executors to read documents: every executor reads the
+brief, so every line in it must matter to most tasks. What only some tasks need goes in those tasks' `context`. No
+research history, alternatives considered or per-task detail.
+
+Write it straight to the path `jtasks plan --draft` prints (`<run folder>/brief.md`): that is its one copy, kept with
+the run. The plan's `context` then names it; `read`, `consult` and `constraints` there are only for what truly applies
+to every task, usually nothing:
 
 ```json
-"context": {
-  "summary": "Two to five sentences: the problem, the goal and the decisions every executor must know.",
-  "read": ["<absolute path>/_work/30-plan/PLAN.md", "<absolute path>/_work/10-docs/adr/0002-token.md"],
-  "constraints": ["Everything in the code is in English.", "Never touch the legacy importer."]
-}
+"context": { "brief": "<the brief path plan --draft printed>" }
 ```
 
-- `summary`: from the plan's problem, solution and decisions (its "context for executors" paragraph, when it has
-  one), short and factual; point to the plan rather than restating it.
-- `read`: the plan files and ADRs an executor reads before starting (the parent plan, the children most tasks need,
-  the ADRs that bind them), as paths: absolute, or relative to the repository. A plan outside the repository (a
-  jproject container's `_work/`) needs absolute paths.
-- `constraints`: the standing rules every task follows: the user's rules for the project (language, what never to
-  touch, how to test), and the plan's out-of-scope lines that a task could drift into.
-
-The tool renders this block, plus each task's own `context`, into the `## Context` section of every ticket,
-deterministically. `jtasks context --set` replaces it later and rewrites the tickets not finished yet.
+The tool reads the file (a missing or empty one refuses the batch), keeps its text as `brief.md` in the run's folder,
+and renders, deterministically, the brief at the top of the `## Context` section of every ticket, then each task's
+exclusive context (its `summary`, **Read first**, **If in doubt, consult**, **Constraints**). `jtasks context --set`
+with `{ "brief": "<file>" }` replaces it later and rewrites the tickets not finished yet.
 
 1. `jtasks plan --draft --name <feature-slug> --objective "<one line>" --source "<spec path or issue URL>"` opens a
-   draft (not a run yet).
-2. `jtasks plan --add` with the first batch as `json`: `{ "context": {...}, "tasks": [...] }` (it may also carry
-   `"profiles"`, `"serialize"`…; later batches can be a plain list of tasks). The tool validates what it can inside
-   the batch (schema, repeated ids, profiles, patterns in `files`, the context block) and refuses the whole batch on
-   any error, listing every error.
+   draft (not a run yet) and prints where to write the brief. Write it there now.
+2. `jtasks plan --add` with the first batch as `json`: `{ "context": { "brief": "<path>" }, "tasks": [...] }` (it
+   may also carry `"profiles"`, `"serialize"`…; later batches can be a plain list of tasks). The tool validates what
+   it can inside the batch (schema, repeated ids, profiles, patterns in `files`, the context block and the brief file)
+   and refuses the whole batch on any error, listing every error.
 3. Repeat `jtasks plan --add` for the next batches. A task may depend on a task of a later batch.
 4. `jtasks plan --show` prints ids, titles, dependencies and ownership: check it against the approved breakdown.
 5. `jtasks plan --commit` runs the complete validation (dependencies across batches, cycles, ownership shared by
@@ -189,7 +208,8 @@ When the tool returns errors, fix **only the task named**: `jtasks plan --fix <i
 Never resend the other tasks, and never work around a refusal by removing ownership: add the dependency or split the
 file, as the message says. Then `--commit` again.
 
-A small plan can also go in one call: `jtasks plan` with the whole plan as `json`.
+A small plan can also go in one call: `jtasks plan` with the whole plan as `json`. Its brief then has no run folder
+to go to yet: write it to a temporary file, and delete that file once the plan is accepted (the run keeps the copy).
 
 The plan may also say `"keepalive": false` (optional; the default is `true`): the run is created with the host's
 keepalive off, so nothing reopens the loop when the orchestrator stops with tasks ready. Leave it out unless the user

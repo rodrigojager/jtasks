@@ -60,6 +60,13 @@ est liée à une session, le mod et le plugin placent le protocole dans le promp
 sous-agent par tâche prête, `jtasks status` jusqu'à ce qu'il ne reste rien. Une garde refuse les modifications hors
 de la possession de la tâche et les commandes git lancées par des sous-agents.
 
+Chaque ticket est le brief complet d'un sous-agent qui démarre avec un contexte vierge, et dit chaque chose une seule
+fois : quoi construire, les critères, les fichiers qu'il possède, puis une section `## Context` qui s'ouvre sur le
+**résumé commun** de l'exécution (un fichier Markdown que le planificateur écrit une fois : le problème, les
+décisions, les interfaces et conventions partagées ; l'outil le garde dans le dossier de l'exécution et le recopie
+tel quel dans chaque ticket), suivi seulement de ce qui est propre à la tâche : les faits dont elle a besoin, écrits
+sur place, les fichiers à lire, et ce qu'il faut consulter seulement en cas de doute.
+
 ## Installation
 
 Il vous faut [bun](https://bun.sh) et `git`. Depuis un clone de ce dépôt :

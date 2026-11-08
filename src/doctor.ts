@@ -33,7 +33,7 @@ export interface Check {
 
 export const OPENCODE_AGENTS = ["execute", "execute-deep", "review"]
 export const SKILLS = ["to-jtasks", "jtasks"]
-export const SKILL_FILES: Record<string, string[]> = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json"], "jtasks": ["SKILL.md"] }
+export const SKILL_FILES: Record<string, string[]> = { "to-jtasks": ["SKILL.md", "schema.json", "example-plan.json", "example-brief.md"], "jtasks": ["SKILL.md"] }
 
 /**
  * The three agents, where each keeps its skills, and the folder whose presence says the agent is installed. Codex

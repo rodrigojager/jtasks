@@ -60,6 +60,13 @@ Sitzung gebunden ist, legen Mod und Plugin das Protokoll in den Prompt des Model
 bereiter Aufgabe, `jtasks status`, bis nichts mehr offen ist. Ein Wächter lehnt Änderungen außerhalb des Besitzes
 der Aufgabe und git-Befehle von Subagenten ab.
 
+Jedes Ticket ist das vollständige Briefing eines Subagenten, der mit frischem Kontext startet, und sagt jede Sache
+nur einmal: was zu bauen ist, die Kriterien, die Dateien, die ihm gehören, dann ein `## Context`, der mit der
+**gemeinsamen Kurzbeschreibung** des Laufs beginnt (eine Markdown-Datei, die der Planer einmal schreibt: das Problem,
+die Entscheidungen, die gemeinsamen Schnittstellen und Konventionen; das Werkzeug bewahrt sie im Ordner des Laufs auf
+und kopiert sie wörtlich in jedes Ticket), gefolgt nur von dem, was der Aufgabe gehört: die Fakten, die sie braucht,
+direkt dort, die Dateien, die sie lesen muss, und was nur im Zweifel nachzuschlagen ist.
+
 ## Installation
 
 Du brauchst [bun](https://bun.sh) und `git`. Aus einem Klon dieses Repositorys:

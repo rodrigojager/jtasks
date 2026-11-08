@@ -74,6 +74,11 @@ leu sem mudar), e `decide`/`transition` em `src/actions.ts` o usam. `tasks.json`
 `Jtasks-Task: <run>/<task> gen <n>` no commit do `done`, patches recuperados do ledger). O `appendText` do mod é um
 `bun -e` que escreve de uma vez. Desvios em `docs/DEVIATIONS.md` (18); testes de corrida em `test/race.test.ts` (host
 simulado em `test/race-host.ts`), dobra em `test/events.test.ts`, processos reais em `test/multiprocess.test.ts`.
+Revisão 5.10 (item 27, ticket 61, versão 0.6.0): o resumo comum. `context.brief` é o caminho de um Markdown que a
+ferramenta lê (`loadBrief`) e guarda em `<run>/brief.md` (`storeBrief`, `readRunBrief` em `src/tickets.ts`); todo
+ticket abre o `## Context` com ele, palavra por palavra, e depois só o que é da tarefa (`summary`, **Read first**,
+**If in doubt, consult** de `consult: [{ path, why }]`, **Constraints**). `contextWarnings` (`src/validate.ts`) avisa
+de informação repetida; testes em `test/context.test.ts`.
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node; `workspace.ts` resolve repositório e pasta de
 dados), `cli/jtasks.ts`, `dist/` e as cópias em

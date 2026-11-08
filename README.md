@@ -52,6 +52,12 @@ for a terminal or any other agent. While a run is bound to a session, the mod an
 model's prompt: `jtasks next`, one subagent per ready task, `jtasks status` until nothing is left. A guard refuses an
 edit outside the task's ownership and git commands from subagents.
 
+Every ticket is the whole brief of a subagent that starts with a fresh context, and says each thing once: what to
+build, the criteria, the files it owns, then a `## Context` that opens with the run's **common brief** (a Markdown
+file the planner writes once: the problem, the decisions, the shared interfaces and conventions; the tool keeps it in
+the run's folder and copies it verbatim into every ticket) followed only by what is the task's own: the facts it
+needs, inlined, the files it must read, and what to consult only if in doubt.
+
 ## Install
 
 You need [bun](https://bun.sh) and `git`. From a clone of this repository:

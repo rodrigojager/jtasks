@@ -37,8 +37,11 @@ repository (`commit`, `checkout`, `reset`, `stash`, `add`, `switch`, `merge`, `r
    - calls `jtasks start <id>` first. The answer says the ownership is locked; if it says the task was not ready
      (a file is in use), pick another task;
    - reads the ticket first: it is the whole brief of an agent that starts with a fresh context. Its `## Context`
-     section, written by the tool from the run's shared context, gives the problem in short, the files to read
-     before starting (**Read first**: the plan, the ADRs) and the rules every task follows (**Constraints**);
+     section, written by the tool, starts with the run's common brief (the problem, the decisions, the shared
+     interfaces and conventions), then what is this task's own: the facts it needs, the files it must read
+     (**Read first**, only what could not be inlined), documents to open only if in doubt (**If in doubt,
+     consult**, each with its reason) and the rules (**Constraints**). Act on the ticket; do not research beyond it
+     unless a real doubt arises;
    - then edits **only inside the ownership** (a folder covers everything in it);
    - needs one more file? `jtasks claim <id> <file>`. It waits in jlock's queue up to `--timeout` (60 s by default);
      refused for a deadlock? `jtasks yield <id>` (below);
@@ -136,9 +139,11 @@ from the run's log, not from the conversation. Every notification of a subagent'
   as the evidence. Each turn, run one pass of the loop. The goal does not notice a turn that ends with a task ready
   and nothing running; the section above says who reopens the loop then.
 - **Resuming** in another window or session: `jtasks resume <run>`, then the loop again.
-- **The shared context**: `jtasks context` shows the run's block (summary, files to read first, constraints). If it
-  is wrong or stale (a plan file moved, a decision changed), `jtasks context --set` with the whole corrected block as
-  JSON replaces it, and the tool rewrites the `## Context` of every ticket not done or skipped; `--unset` removes it.
+- **The shared context**: `jtasks context` shows the run's block (the common brief and where its one copy is, then
+  any run-wide read, consult and constraints). If it is wrong or stale (a decision changed, a file moved), write the
+  corrected brief to a file and call `jtasks context --set` with the whole corrected block as JSON
+  (`{ "brief": "<file>", ... }`; to keep the brief, point `brief` at the copy `jtasks context` names): the tool
+  replaces it and rewrites the `## Context` of every ticket not done or skipped; `--unset` removes it.
 
 ## Exit codes
 

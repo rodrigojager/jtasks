@@ -33,7 +33,7 @@
           "description": "Registry files, indexes, schemas and central types several tasks touch. jtasks validate warns about two tasks with no dependency between them touching one (in files or touchesShared)."
         },
         "sharedPolicy": { "enum": ["warn", "serialize"], "description": "warn (the default): only the warning; serialize: two tasks touching the same shared file never run at the same time (the frontier holds one back), without the file entering both ownerships." },
-        "context": { "$ref": "#/$defs/context", "description": "The run's shared context, written once: the tool renders it into the ## Context section of every ticket (jtasks context --set replaces it later)." },
+        "context": { "$ref": "#/$defs/context", "description": "The run's context, written once (brief first): the tool renders it at the top of the ## Context section of every ticket (jtasks context --set replaces it later)." },
         "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
       },
       "required": ["tasks"],
@@ -55,16 +55,7 @@
           "description": "Files and folders it owns, relative to the repository; a folder owns everything inside; dir/** is the folder; no other patterns."
         },
         "acceptance": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Acceptance criteria: each one observable, false at the commit the task starts from, and made true by this task alone." },
-        "context": {
-      "type": "object",
-      "properties": {
-        "summary": { "type": "string", "description": "A short paragraph: the problem, the goal and the decisions an executor must know." },
-        "read": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Files to read before starting (the plan, its children, ADRs): absolute paths, or relative to the repository." },
-        "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Standing rules every task follows." }
-      },
-      "additionalProperties": false
-    },
-    "profile": { "type": "string", "description": "Name of a profile (default execute)." },
+        "profile": { "type": "string", "description": "Name of a profile (default execute)." },
         "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
         "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." },
         "touchesShared": {
@@ -72,9 +63,41 @@
           "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },
           "description": "Files of the plan's shared this task touches without owning them (it claims them when it needs them)."
         },
-        "context": { "$ref": "#/$defs/context", "description": "Only what this task adds to the run's context (its own files to read, note or rules); never a copy of it." }
+        "context": { "$ref": "#/$defs/taskContext", "description": "Only the HOW-relevant knowledge this task alone needs (decisions, interfaces, pitfalls, the code to start from), inlined; never a repeat of what, acceptance, files, boundary, the common brief or the run's context." }
       },
       "required": ["id", "title", "what", "acceptance"],
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "object",
+      "description": "The run's context. Each piece of information appears once in a ticket: the brief holds what every task shares; read, consult and constraints here are only for what truly applies to every task.",
+      "properties": {
+        "brief": { "type": "string", "minLength": 1, "description": "Path of the Markdown file with the common brief (absolute, or relative to the cwd): the problem, the goal, the decisions and the shared conventions and interfaces every task needs, distilled from the plan, inlined. The tool keeps its text as brief.md in the run's folder (write it there directly: the path plan --draft prints) and puts it verbatim at the top of every ticket's ## Context. A missing or empty file is a plan error." },
+        "summary": { "type": "string", "description": "0.5 form, kept for old plans: a short paragraph every ticket shows. Prefer brief." },
+        "read": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Files every task must read before starting (keep it minimal, usually empty): absolute paths, or relative to the repository; may name a section (file.md#heading)." },
+        "consult": { "type": "array", "items": { "$ref": "#/$defs/consult" }, "description": "Documents every task may open only in case of doubt." },
+        "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Standing rules every task follows, when they are not already in the brief." }
+      },
+      "additionalProperties": false
+    },
+    "taskContext": {
+      "type": "object",
+      "description": "A task's exclusive context, rendered after the common brief.",
+      "properties": {
+        "summary": { "type": "string", "description": "The facts this task needs to act without researching, short and precise: decisions, interfaces, pitfalls, which existing code to start from. Not a restatement of what." },
+        "read": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Required reading only when it cannot reasonably be inlined (e.g. source code to port); may name a section (file.md#heading)." },
+        "consult": { "type": "array", "items": { "$ref": "#/$defs/consult" }, "description": "Documents to open only in case of doubt, each with the reason; rendered as If in doubt, consult." },
+        "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "A rule only this task follows." }
+      },
+      "additionalProperties": false
+    },
+    "consult": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "description": "Absolute, or relative to the repository; may name a section (file.md#heading)." },
+        "why": { "type": "string", "minLength": 1, "description": "Short reason: in which doubt to open it." }
+      },
+      "required": ["path", "why"],
       "additionalProperties": false
     },
     "profile": {

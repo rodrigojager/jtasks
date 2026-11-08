@@ -70,7 +70,7 @@ import { DEFAULT_AWAIT_GRACE, DEFAULT_HOLD_TTL, DEFAULT_MAX_AGENT_ENDED, type Aw
 import { appendLog, commit, jtasksHome, listRuns, readState, readTasks, runDir, runsDir, strip, type StateDraft } from "./store.ts"
 import { withTree } from "./serial.ts"
 import { dataInRepo, isDataPath, requirePaths, type RepoPaths } from "./workspace.ts"
-import { renderContext, ticketPath, writeTicket } from "./tickets.ts"
+import { BRIEF_FILE, loadBrief, readRunBrief, renderContext, storeBrief, ticketPath, writeTicket } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { normalizeFileEntry, readContext } from "./validate.ts"
 import { tr } from "./i18n.ts"
@@ -1988,22 +1988,37 @@ defineAction(
     if (set && unset) throw new ToolError(tr("context.usage"), 2)
     const first = await resolveRun(ctx, args)
     if (!set && !unset) {
-      const section = renderContext(first.run.context, undefined)
+      const briefText = await readRunBrief(ctx.host, first.dir, first.run.context)
+      const section = renderContext(first.run.context, undefined, briefText)
       const text = section.length ? section.join("\n").trimEnd() : tr("context.none", { run: first.run.id })
-      return ok(text, { run: first.run.id, context: first.run.context ?? null })
+      const briefFile = first.run.context?.brief ? join(first.dir, BRIEF_FILE) : null
+      return ok(briefFile ? `${text}\n\n${tr("context.brief_file", { file: briefFile })}` : text, {
+        run: first.run.id,
+        context: first.run.context ?? null,
+        brief: briefFile,
+      })
     }
     let context: RunContext | undefined
+    let briefText: string | undefined
     if (set) {
       const read = readContext(await readJsonArg(ctx, args.positionals[0], "json.context"))
-      if (read.errors.length)
-        return { ok: false, code: 1, text: `${tr("errors.count", { n: read.errors.length })}\n${read.errors.map((e) => `- ${e}`).join("\n")}`, data: { errors: read.errors } }
-      context = read.context
+      const errors = [...read.errors]
+      if (!errors.length && read.context?.brief) {
+        const loaded = await loadBrief(ctx.host, ctx.cwd, read.context.brief)
+        if (loaded.error) errors.push(loaded.error)
+        else briefText = loaded.text
+      }
+      if (errors.length)
+        return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors } }
+      context = read.context?.brief ? { ...read.context, brief: BRIEF_FILE } : read.context
     }
     const d = await decide(ctx, first, "context", (_state, draft) => {
       if (context) draft.run.context = context
       else delete draft.run.context
     })
     const state = d.state
+    // The brief's one copy, in the run's folder: replaced, or removed when the new context has none.
+    await storeBrief(ctx.host, state.dir, briefText)
     // Every ticket of a task still to be finished shows the new context; a finished one keeps what it was done with.
     const open = state.tasks.tasks.filter((t) => t.status !== "done" && t.status !== "skipped")
     for (const t of open) await writeTicket(ctx.host, state, t.id)

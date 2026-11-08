@@ -58,6 +58,13 @@ Mientras una ejecución está ligada a una sesión, el mod y el plugin ponen el 
 `jtasks next`, un subagente por tarea lista, `jtasks status` hasta que no quede nada. Una guarda rechaza las
 ediciones fuera de la posesión de la tarea y los comandos git de los subagentes.
 
+Cada ticket es el brief completo de un subagente que empieza con el contexto limpio, y dice cada cosa una sola vez:
+qué construir, los criterios, los archivos que le pertenecen, y un `## Context` que abre con el **resumen común** de
+la ejecución (un archivo Markdown que el planificador escribe una vez: el problema, las decisiones, las interfaces y
+convenciones compartidas; la herramienta lo guarda en la carpeta de la ejecución y lo copia, literal, en cada
+ticket), seguido solo de lo que es propio de la tarea: los datos que necesita, escritos ahí, los archivos que debe
+leer, y qué consultar solo en caso de duda.
+
 ## Instalación
 
 Necesitas [bun](https://bun.sh) y `git`. Desde un clon de este repositorio:

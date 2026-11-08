@@ -93,12 +93,26 @@ export interface Task {
  * section of every ticket: the agent that runs a task starts with a fresh context, and the ticket is its whole brief.
  */
 export interface RunContext {
+  /**
+   * The run's common brief (0.6.0, run level only). In a plan, batch or `context --set`: the path of the Markdown
+   * file the planner wrote with the text every task shares. The tool keeps that text in the run's folder as
+   * `brief.md` and stores `"brief.md"` here; every ticket's `## Context` starts with it, verbatim.
+   */
+  brief?: string
   /** A short paragraph: the problem, the goal and the decisions an executor must know. */
   summary?: string
-  /** Files to read before starting (the plan, its children, ADRs): absolute, or relative to the repository. */
+  /** Files to read before starting (only what is truly needed; may name a section): absolute, or relative to the repository. */
   read?: string[]
+  /** Documents to open only in case of doubt (0.6.0), each with the reason to open it. */
+  consult?: ConsultRef[]
   /** Standing rules every task follows (the user's rules, what never to touch). */
   constraints?: string[]
+}
+
+/** A document to consult only in case of doubt (0.6.0): its path (may name a section) and why it would help. */
+export interface ConsultRef {
+  path: string
+  why: string
 }
 
 /** A process a task runs (rev. 5.8): its subagent's loop may end while it runs, and the task then waits for it. */

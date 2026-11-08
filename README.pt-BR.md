@@ -56,6 +56,13 @@ uma sessão, o mod e o plugin põem o protocolo no prompt do modelo: `jtasks nex
 `jtasks status` até não restar nada. Uma guarda recusa edições fora da posse da tarefa e comandos git vindos de
 subagentes.
 
+Cada ticket é o brief inteiro de um subagente que começa com o contexto limpo, e diz cada coisa uma vez só: o que
+construir, os critérios, os arquivos que são dele, e um `## Context` que abre com o **resumo comum** da execução (um
+arquivo Markdown que o planejador escreve uma vez: o problema, as decisões, as interfaces e convenções
+compartilhadas; a ferramenta o guarda na pasta da execução e o copia, palavra por palavra, em todo ticket), seguido
+só do que é da tarefa: os fatos de que ela precisa, escritos ali, os arquivos que precisa ler, e o que consultar só
+em caso de dúvida.
+
 ## Instalação
 
 Você precisa do [bun](https://bun.sh) e do `git`. A partir de um clone deste repositório:

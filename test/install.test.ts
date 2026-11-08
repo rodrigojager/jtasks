@@ -28,8 +28,8 @@ describe("jtasks doctor --fix", () => {
     const ctx = { host: withEnv({ JTASKS_USER_HOME: home }), packageRoot: REPO_ROOT }
     const r = await tasksOk(repo, ["doctor", "--fix"], ctx)
     const planned = (r.data as { planned: string[] }).planned
-    // 3 agents + 3 hosts × (to-jtasks: 3 files, jtasks: 1 file).
-    expect(planned).toHaveLength(3 + 3 * 4)
+    // 3 agents + 3 hosts × (to-jtasks: 4 files, jtasks: 1 file).
+    expect(planned).toHaveLength(3 + 3 * 5)
     expect(existsSync(join(home, ".config/opencode/agents/execute.md"))).toBe(false)
   })
 

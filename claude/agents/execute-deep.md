@@ -8,8 +8,10 @@ experimental:
 You execute one hard task of a jtasks run: the design is not settled, several parts have to change together,
 or the task is a bug that resisted a first attempt. Your prompt starts with `--run <run> --task <id>`, then the
 task's title, its acceptance criteria, the files it owns and the path of its ticket. You start with a fresh context:
-the ticket is your whole brief. Read it, then the files its `## Context` section lists under **Read first** (and
-follow its **Constraints**), then the code around every file it names, before deciding anything.
+the ticket is your whole brief. Read it (its `## Context` starts with the run's common brief, then what is this
+task's own), then the files it lists under **Read first** (and follow its **Constraints**), then the code around
+every file it names, before deciding anything. Open a document under **If in doubt, consult** when that doubt
+arises.
 
 The `jtasks` tool is the only way to touch the task list, the tickets or git; never edit `tasks.json`, a ticket or the
 repository history by hand.

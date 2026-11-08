@@ -21,7 +21,7 @@ import {
 } from "./schema.ts"
 import { appendLog, atomicWrite, createSnapshots, listRuns, readJson, runDir, runsDir, stringify } from "./store.ts"
 import { draftKey, withKey } from "./serial.ts"
-import { readTicketsDir, ticketReadLine, writeTickets } from "./tickets.ts"
+import { BRIEF_FILE, loadBrief, readRunBrief, readTicketsDir, storeBrief, ticketReadLine, writeTickets } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
 import { excludeLineOf, requirePaths, type RepoPaths } from "./workspace.ts"
@@ -58,6 +58,8 @@ export interface CreateRunOptions {
   /** Reuse the id of a draft (`plan --commit`). */
   id?: string
   name?: string
+  /** The common brief's text (0.6.0), already read and normalized, when the plan's context names one. */
+  brief?: string
 }
 
 export interface CreatedRun {
@@ -92,6 +94,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
   const branch = useRunBranch ? `gt/${id}` : base
   if (useRunBranch && (await branchExists(host, root, branch))) throw new ToolError(tr("plan.branch_exists", { branch }))
 
+  if (plan.context?.brief && options.brief === undefined) throw new ToolError(tr("plan.brief_missing", { file: plan.context.brief }))
   const profiles = plan.profiles ?? DEFAULT_PROFILES
   const run: RunFile = {
     version: 1,
@@ -110,7 +113,7 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
     keepalive: plan.keepalive !== false,
     ...(plan.shared?.length ? { shared: plan.shared } : {}),
     ...(plan.sharedPolicy ? { sharedPolicy: plan.sharedPolicy } : {}),
-    ...(plan.context ? { context: plan.context } : {}),
+    ...(plan.context ? { context: plan.context.brief ? { ...plan.context, brief: BRIEF_FILE } : plan.context } : {}),
     sessions: ctx.session ? [{ tool: ctx.tool, id: ctx.session, boundAt: now.toISOString() }] : [],
   }
   const tasks: TasksFile = {
@@ -134,6 +137,8 @@ export async function createRun(ctx: ToolContext, plan: PlanInput, options: Crea
       await addExcludeLine(host, root, line)
       undo.push(() => removeExcludeLine(host, root, line))
     }
+    // The brief's one copy lives in the run's folder; a draft's leftover goes when the plan has none.
+    await storeBrief(host, dir, run.context?.brief ? options.brief : undefined)
     await createSnapshots(host, dir, run, tasks)
     const tickets = await writeTickets(host, dir, tasks, run.context)
     if (useRunBranch) {
@@ -181,8 +186,24 @@ export function warningLines(warnings: string[]): string[] {
   return warnings.length ? [tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`)] : []
 }
 
+/**
+ * The complete validation of a plan plus its common brief (0.6.0): the file `context.brief` names is read (relative
+ * paths from the cwd); a missing or empty one is one more error. The brief's text feeds the repeated-information
+ * warnings and is what the run keeps.
+ */
+export async function validateWithBrief(ctx: ToolContext, raw: unknown): Promise<ReturnType<typeof validatePlan> & { brief?: string }> {
+  const first = validatePlan(raw, { platform: ctx.host.platform })
+  const path = first.plan.context?.brief
+  if (!path) return first
+  const loaded = await loadBrief(ctx.host, ctx.cwd, path)
+  if (loaded.error) return { ...first, errors: [...first.errors, loaded.error] }
+  const full = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text })
+  return { ...full, brief: loaded.text! }
+}
+
 export async function planFromJson(ctx: ToolContext, raw: unknown, options: CreateRunOptions = {}): Promise<ToolResult> {
-  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform })
+  const checked = await validateWithBrief(ctx, raw)
+  const { plan, errors, warnings } = checked
   if (errors.length > 0)
     return {
       ok: false,
@@ -190,7 +211,7 @@ export async function planFromJson(ctx: ToolContext, raw: unknown, options: Crea
       text: `${tr("plan.refused")} ${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`,
       data: { errors },
     }
-  const created = await createRun(ctx, plan, options)
+  const created = await createRun(ctx, plan, { ...options, ...(checked.brief !== undefined ? { brief: checked.brief } : {}) })
   return ok(createdText(created, warnings), { run: created.run.id, dir: created.dir, tickets: created.tickets, branch: created.run.repo.branch, warnings }, bindOf(created))
 }
 
@@ -331,7 +352,7 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
       undo: { kind: "remove-line" },
     })
   await appendLog(host, dir, { at: now.toISOString(), actor: actorOf(ctx), action: "draft" })
-  return ok(tr("draft.opened", { id }), { draft: id, dir })
+  return ok(tr("draft.opened", { id, brief: join(dir, BRIEF_FILE) }), { draft: id, dir, brief: join(dir, BRIEF_FILE) })
 }
 
 async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
@@ -353,10 +374,18 @@ async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
           .map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile!, profiles: Object.keys(profiles).join(", ") }))
       : []
     const errors = [...read.errors, ...batch.errors, ...earlier]
+    // A batch that names the common brief: its text is read now and kept in the draft's folder, its one copy.
+    const briefPath = read.plan.context?.brief
+    const loaded = briefPath ? await loadBrief(ctx.host, ctx.cwd, briefPath) : undefined
+    if (loaded?.error) errors.push(loaded.error)
     if (errors.length > 0) return refused(tr("draft.batch_refused"), errors)
     const next: Draft = { ...current, tasks: [...current.tasks, ...batch.tasks] }
     for (const key of ["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context"] as const)
       if (read.plan[key] !== undefined) (next as unknown as Record<string, unknown>)[key] = read.plan[key]
+    if (read.plan.context) {
+      await storeBrief(ctx.host, dir, loaded?.text)
+      if (loaded) next.context = { ...read.plan.context, brief: BRIEF_FILE }
+    }
     await saveDraft(ctx, dir, next)
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks")
     return ok(tr("draft.batch_accepted", { n: batch.tasks.length, ids: added, total: next.tasks.length }), {
@@ -412,9 +441,13 @@ async function draftCommit(ctx: ToolContext, args: ParsedArgs): Promise<ToolResu
   return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     if (current.tasks.length === 0) throw new ToolError(tr("draft.empty"))
-    const { plan, errors, warnings } = validatePlan(draftPlan(current), { platform: ctx.host.platform })
+    // The brief arrived with a batch and is already in the draft's folder (which becomes the run's).
+    const brief = await readRunBrief(ctx.host, dir, current.context)
+    const checked = validatePlan(draftPlan(current), { platform: ctx.host.platform, ...(brief ? { brief } : {}) })
+    const { plan, warnings } = checked
+    const errors = brief === null ? [...checked.errors, tr("plan.brief_missing", { file: join(dir, BRIEF_FILE) })] : checked.errors
     if (errors.length > 0) return refused(tr("draft.commit_refused"), errors)
-    const created = await createRun(ctx, plan, { id: current.id })
+    const created = await createRun(ctx, plan, { id: current.id, ...(brief ? { brief } : {}) })
     await ctx.host.remove(draftFile(dir))
     return ok(
       createdText(created, warnings),

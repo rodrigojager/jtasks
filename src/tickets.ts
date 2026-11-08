@@ -2,7 +2,7 @@
 
 import { slugify, ticketNumber } from "./ids.ts"
 import type { Host } from "./host.ts"
-import { join } from "./paths.ts"
+import { isAbsolute, join, normalize } from "./paths.ts"
 import type { PlanTask, RunContext, RunFile, Task, TasksFile } from "./schema.ts"
 import { tr } from "./i18n.ts"
 
@@ -15,26 +15,86 @@ function numbers(tasks: Task[]): Map<string, string> {
   return new Map(tasks.map((t, i) => [t.id, ticketNumber(t.id, i)]))
 }
 
+// ── The run's common brief (0.6.0) ────────────────────────────────────────────────────────────────────────────
+
+/** The one file, in the run's folder, that holds the run's common brief. */
+export const BRIEF_FILE = "brief.md"
+
 /**
- * The `## Context` section of a ticket (0.5.0): the run's shared context followed by what the task adds, so the
- * agent that runs the task, which starts with a fresh context, knows the problem, what to read first and the rules.
- * Pure: the same run context and task give the same bytes. Empty (no section) when neither says anything.
+ * The brief's text as the tool keeps it: no BOM, `\n` line ends, no blank lines before the text, no trailing
+ * whitespace after it. Everything in between is kept verbatim.
  */
-export function renderContext(run: RunContext | undefined, task: RunContext | undefined): string[] {
+export function normalizeBrief(text: string): string {
+  return text.replace(/^﻿/, "").replace(/\r\n?/g, "\n").replace(/^(?:[ \t]*\n)+/, "").trimEnd()
+}
+
+/**
+ * Reads the brief a plan, batch or `context --set` points to (absolute, or relative to `cwd`). A file that cannot be
+ * read, or holds only whitespace, is an error the planner can act on.
+ */
+export async function loadBrief(host: Host, cwd: string, path: string): Promise<{ text?: string; file: string; error?: string }> {
+  const file = isAbsolute(path) ? normalize(path) : join(cwd, path)
+  let raw: string | undefined
+  try {
+    raw = (await host.stat(file))?.kind === "file" ? await host.readText(file) : undefined
+  } catch {
+    raw = undefined
+  }
+  if (raw === undefined) return { file, error: tr("plan.brief_missing", { file }) }
+  const text = normalizeBrief(raw)
+  if (!text) return { file, error: tr("plan.brief_empty", { file }) }
+  return { text, file }
+}
+
+/** Keeps the brief in the run's folder (`brief.md`), or removes it when the run has none. */
+export async function storeBrief(host: Host, runDir: string, text: string | undefined): Promise<void> {
+  const file = join(runDir, BRIEF_FILE)
+  if (text === undefined) {
+    if (await host.stat(file)) await host.remove(file)
+    return
+  }
+  if ((await host.readText(file)) !== `${text}\n`) await host.writeText(file, `${text}\n`)
+}
+
+/**
+ * The run's brief, read from its folder when the context has one. `null` when the context names a brief but the file
+ * is gone (the ticket then says so instead of silently leaving it out).
+ */
+export async function readRunBrief(host: Host, runDir: string, context: RunContext | undefined): Promise<string | null | undefined> {
+  if (!context?.brief) return undefined
+  const raw = await host.readText(join(runDir, BRIEF_FILE))
+  return raw === undefined ? null : normalizeBrief(raw)
+}
+
+/**
+ * The `## Context` section of a ticket (0.5.0, brief and consult in 0.6.0): first the run's common brief, verbatim;
+ * then what is this task's own after the run's (the summaries, **Read first**, **If in doubt, consult** with the
+ * reason for each document, **Constraints**), so the agent that runs the task, which starts with a fresh context,
+ * has everything it needs and nothing it does not. Pure: the same context, task and brief give the same bytes. Empty
+ * (no section) when nothing is said. `brief` is the brief's text (`null`: named but missing).
+ */
+export function renderContext(run: RunContext | undefined, task: RunContext | undefined, brief?: string | null): string[] {
   const summaries = [run?.summary, task?.summary].filter((s): s is string => !!s)
   const read: string[] = []
   for (const p of [...(run?.read ?? []), ...(task?.read ?? [])]) if (!read.includes(p)) read.push(p)
+  const consult: { path: string; why: string }[] = []
+  for (const c of [...(run?.consult ?? []), ...(task?.consult ?? [])])
+    if (!read.includes(c.path) && !consult.some((k) => k.path === c.path)) consult.push(c)
   const constraints: string[] = []
   for (const c of [...(run?.constraints ?? []), ...(task?.constraints ?? [])]) if (!constraints.includes(c)) constraints.push(c)
-  if (!summaries.length && !read.length && !constraints.length) return []
+  if (brief === undefined || brief === "") brief = undefined
+  if (brief === undefined && !summaries.length && !read.length && !consult.length && !constraints.length) return []
   const lines = ["## Context", ""]
+  if (brief === null) lines.push(`**Brief:** missing (\`${BRIEF_FILE}\` in the run's folder; see \`jtasks context\`)`, "")
+  else if (brief !== undefined) lines.push(brief, "")
   for (const s of summaries) lines.push(s, "")
   if (read.length) lines.push("**Read first:**", "", ...read.map((p) => `- \`${p}\``), "")
+  if (consult.length) lines.push("**If in doubt, consult:**", "", ...consult.map((c) => `- \`${c.path}\`: ${c.why}`), "")
   if (constraints.length) lines.push("**Constraints:**", "", ...constraints.map((c) => `- ${c}`), "")
   return lines
 }
 
-export function renderTicket(task: Task, index: number, all: Task[], context?: RunContext): string {
+export function renderTicket(task: Task, index: number, all: Task[], context?: RunContext, brief?: string | null): string {
   const nums = numbers(all)
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)"
   const files = task.exclusive
@@ -65,7 +125,7 @@ export function renderTicket(task: Task, index: number, all: Task[], context?: R
   if (task.reason) lines.push(`**Reason:** ${task.reason}`, "")
   if (task.error) lines.push(`**Error:** ${task.error}`, "")
   if (task.boundary) lines.push(`**Scope boundary:** ${task.boundary}`, "")
-  lines.push(...renderContext(context, task.context))
+  lines.push(...renderContext(context, task.context, brief))
   return lines.join("\n")
 }
 
@@ -73,9 +133,10 @@ export function renderTicket(task: Task, index: number, all: Task[], context?: R
 export async function writeTickets(host: Host, runDir: string, tasks: TasksFile, context?: RunContext): Promise<string[]> {
   const dir = join(runDir, "tickets")
   const names = tasks.tasks.map((t, i) => ticketFileName(t, i))
+  const brief = await readRunBrief(host, runDir, context)
   await host.mkdir(dir)
   for (let i = 0; i < tasks.tasks.length; i++)
-    await host.writeText(join(dir, names[i]!), renderTicket(tasks.tasks[i]!, i, tasks.tasks, context))
+    await host.writeText(join(dir, names[i]!), renderTicket(tasks.tasks[i]!, i, tasks.tasks, context, brief))
   for (const entry of await host.list(dir))
     if (entry.kind === "file" && entry.name.endsWith(".md") && !names.includes(entry.name)) await host.remove(join(dir, entry.name))
   return names.map((n) => join(dir, n))
@@ -94,7 +155,8 @@ export async function writeTicket(host: Host, state: TicketState, id: string): P
   const index = tasks.tasks.findIndex((t) => t.id === id)
   if (index < 0) return
   const task = tasks.tasks[index]!
-  await host.writeText(join(state.dir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks, state.run.context))
+  const brief = await readRunBrief(host, state.dir, state.run.context)
+  await host.writeText(join(state.dir, "tickets", ticketFileName(task, index)), renderTicket(task, index, tasks.tasks, state.run.context, brief))
 }
 
 export function ticketPath(runDir: string, tasks: Task[], id: string): string | undefined {

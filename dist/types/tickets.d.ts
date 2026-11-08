@@ -2,13 +2,38 @@
 import type { Host } from "./host.js";
 import type { PlanTask, RunContext, RunFile, Task, TasksFile } from "./schema.js";
 export declare function ticketFileName(task: Task, index: number): string;
+/** The one file, in the run's folder, that holds the run's common brief. */
+export declare const BRIEF_FILE = "brief.md";
 /**
- * The `## Context` section of a ticket (0.5.0): the run's shared context followed by what the task adds, so the
- * agent that runs the task, which starts with a fresh context, knows the problem, what to read first and the rules.
- * Pure: the same run context and task give the same bytes. Empty (no section) when neither says anything.
+ * The brief's text as the tool keeps it: no BOM, `\n` line ends, no blank lines before the text, no trailing
+ * whitespace after it. Everything in between is kept verbatim.
  */
-export declare function renderContext(run: RunContext | undefined, task: RunContext | undefined): string[];
-export declare function renderTicket(task: Task, index: number, all: Task[], context?: RunContext): string;
+export declare function normalizeBrief(text: string): string;
+/**
+ * Reads the brief a plan, batch or `context --set` points to (absolute, or relative to `cwd`). A file that cannot be
+ * read, or holds only whitespace, is an error the planner can act on.
+ */
+export declare function loadBrief(host: Host, cwd: string, path: string): Promise<{
+    text?: string;
+    file: string;
+    error?: string;
+}>;
+/** Keeps the brief in the run's folder (`brief.md`), or removes it when the run has none. */
+export declare function storeBrief(host: Host, runDir: string, text: string | undefined): Promise<void>;
+/**
+ * The run's brief, read from its folder when the context has one. `null` when the context names a brief but the file
+ * is gone (the ticket then says so instead of silently leaving it out).
+ */
+export declare function readRunBrief(host: Host, runDir: string, context: RunContext | undefined): Promise<string | null | undefined>;
+/**
+ * The `## Context` section of a ticket (0.5.0, brief and consult in 0.6.0): first the run's common brief, verbatim;
+ * then what is this task's own after the run's (the summaries, **Read first**, **If in doubt, consult** with the
+ * reason for each document, **Constraints**), so the agent that runs the task, which starts with a fresh context,
+ * has everything it needs and nothing it does not. Pure: the same context, task and brief give the same bytes. Empty
+ * (no section) when nothing is said. `brief` is the brief's text (`null`: named but missing).
+ */
+export declare function renderContext(run: RunContext | undefined, task: RunContext | undefined, brief?: string | null): string[];
+export declare function renderTicket(task: Task, index: number, all: Task[], context?: RunContext, brief?: string | null): string;
 /** Writes every ticket of the run (and removes tickets of tasks that no longer exist). */
 export declare function writeTickets(host: Host, runDir: string, tasks: TasksFile, context?: RunContext): Promise<string[]>;
 /** What a ticket is rendered from: the run's folder, its run.json (for the context) and its tasks. */

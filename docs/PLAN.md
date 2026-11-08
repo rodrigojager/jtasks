@@ -122,6 +122,30 @@ executors read the ticket first, then its Read first files. In Codex, a task age
 `fork_turns="none"`, and a first line exactly `jtasks-task: <run-id> <task-id>` (a local hook forces the fresh
 context from that line). Marked **[rev. 5.9]** in sections 3, 18 and 23.
 
+Revisão 5.10, 08/11/2026 (0.6.0): o **resumo comum** (brief) e tickets sem repetição. Num plano de 18 tarefas, cada
+ticket mandava ler ~44 KB de documentos do plano (o PLAN.md, a arquitetura e um filho de verificação de 17 KB com o
+histórico da pesquisa), porque o `read` da execução levava "o plano, os filhos que a maioria precisa e as ADRs",
+embora cada tarefa precisasse de uma parte pequena. Agora: (1) o `context` da execução ganha `brief`, o caminho de um
+arquivo Markdown que o planejador escreve uma vez, só com o texto que toda tarefa precisa (problema, objetivo,
+decisões, interfaces e convenções compartilhadas), destilado do plano e não um ponteiro para ele. A ferramenta lê o
+arquivo ao receber o plano, o lote (`plan --add`) ou o `context --set` (arquivo que falta ou vazio é erro do plano,
+`plan.brief_missing`/`plan.brief_empty`), guarda o texto em `<dados>/runs/<run>/brief.md` (a única cópia; o
+`plan --draft` imprime esse caminho para o planejador escrever ali direto) e grava `"brief": "brief.md"` no
+`run.json`. Todo ticket abre o `## Context` com esse texto, palavra por palavra. (2) Depois dele, só o que é
+exclusivo da tarefa: o `summary` dela (os fatos de como fazer, escritos ali), **Read first** (só o que não dá para
+escrever no ticket, como código a portar; pode apontar uma seção) e o novo **If in doubt, consult** (`consult`: lista
+de `{ path, why }`, documentos a abrir só em caso de dúvida, cada um com o motivo), e **Constraints**. O `read` da
+execução fica para os poucos arquivos que toda tarefa precisa mesmo ler; `summary` da execução continua aceito
+(forma 0.5). (3) Cada informação aparece uma vez no ticket: `what` diz o que a tarefa entrega; o contexto da tarefa
+não repete `what`, critérios, `files`, `boundary`, o brief nem o contexto da execução, e `plan`, `--commit` e
+`validate` avisam quando veem isso (`contextWarnings` em `src/validate.ts`). (4) A renderização é pura (o mesmo
+`run.json`, tarefa e `brief.md` dão os mesmos bytes; `renderContext(run, task, brief)`). (5) A skill `to-jtasks`
+(fonte e as três versões, `schema.json`, `example-plan.json` e o novo `example-brief.md`) ensina a escrever o brief
+uma vez, deixar o `read` da execução mínimo, decidir por tarefa o que é escrito no ticket, o que é leitura
+obrigatória e o que é consulta em caso de dúvida, e nunca repetir o texto comum. O `schema.json` tinha o `$defs/context`
+aninhado por engano dentro da tarefa; agora `context`, `taskContext` e `consult` estão em `$defs`. Marcado
+**[rev. 5.10]** nas seções 3 e 18.
+
 > Este arquivo foi convertido em 24/10/2026 de `docs/reference/plano.html` (revisão 4), sem mudança de conteúdo.
 > O HTML fica como referência histórica; a partir daqui, a fonte de verdade é este Markdown.
 
@@ -249,6 +273,13 @@ README.md, README.<tag>.md   onze idiomas (seção 23)
   ends with `## Context`, rendered by `renderContext` (`src/tickets.ts`) from `run.json`'s block plus the task's;
   no block anywhere, no section. `jtasks context --set` (an event on `run.json`) re-renders the tickets of the tasks
   not done or skipped; a finished ticket keeps the context it was done with.
+- **Resumo comum e consulta [rev. 5.10].** `context.brief` (só no contexto da execução; numa tarefa é erro) é o
+  caminho de um Markdown lido pela ferramenta (absoluto, ou relativo ao cwd); o texto vai para `brief.md` na pasta da
+  execução e abre o `## Context` de todo ticket, palavra por palavra (sem BOM, finais `\n`, sem linhas em branco nas
+  pontas). `consult` (execução ou tarefa) é uma lista de `{ path, why }`, os dois textos obrigatórios, sem outros
+  campos; caminho repetido, ou já em **Read first**, sai. As chaves do bloco têm ordem fixa (`brief`, `summary`,
+  `read`, `consult`, `constraints`). Avisos (não erros) quando o contexto de uma tarefa repete o `what` dela, um
+  caminho ou regra do contexto da execução, ou texto do brief.
 - **Em lotes [rev. 5.1].** Um plano grande não precisa caber numa resposta do modelo:
   `jtasks plan --draft` abre um rascunho (`draft.json`, ainda não é execução, não aparece no painel);
   `jtasks plan --add <json>` acrescenta um lote e valida só o que dá para validar dentro dele (esquema, ids, perfis,
@@ -975,6 +1006,12 @@ motivo.
     `src/validate.ts`), `run.json`'s `context`, the `## Context` section (`renderContext`), `jtasks context
     [--set|--unset]`, `to-jtasks`/`to-plan`, the executors' brief, and the Codex marker line
     `jtasks-task: <run-id> <task-id>` with `fork_turns="none"` (`test/context.test.ts`).
+27. **[rev. 5.10] Resumo comum e tickets sem repetição** (ticket 61, 0.6.0): `context.brief` lido por `loadBrief` e
+    guardado em `brief.md` (`storeBrief`, `readRunBrief` em `src/tickets.ts`), `consult` com **If in doubt,
+    consult**, `contextWarnings`, `plan --draft` dizendo onde escrever o brief, `context` mostrando o brief e
+    `--set`/`--unset` trocando ou removendo o arquivo; skill `to-jtasks` (texto, `schema.json`, exemplos), agentes
+    executores, `doctor` instalando `example-brief.md`; mensagens nos onze idiomas; `test/context.test.ts` e
+    `test/skills.test.ts`.
 
 ---
 

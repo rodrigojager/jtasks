@@ -6,9 +6,7 @@
   "shared": ["src/session/types.ts"],
   "sharedPolicy": "serialize",
   "context": {
-    "summary": "Login sem senha: o usuário pede um link por email e entra por ele. Decidido: token de uso único com 15 minutos de validade, guardado no servidor; nada de JWT.",
-    "read": ["/home/ana/acme/_work/30-plan/PLAN.md", "/home/ana/acme/_work/10-docs/adr/0002-token-no-servidor.md"],
-    "constraints": ["Código, nomes e mensagens de commit em inglês.", "Não mexer no login por senha."]
+    "brief": "/home/ana/acme/_work/jtasks/runs/login-por-email-261108-k3f9/brief.md"
   },
   "tasks": [
     {
@@ -36,7 +34,10 @@
       "files": ["src/mail/**", "tests/mail"],
       "touchesShared": ["src/session/types.ts"],
       "acceptance": ["o email contém o link com o token", "falha do serviço vira erro 503"],
-      "context": { "read": ["/home/ana/acme/_work/30-plan/PLAN-email.md"] }
+      "context": {
+        "summary": "Use o cliente que já existe em src/mail/client.ts (sendTemplate(name, to, vars)); o modelo novo se chama magic-link e recebe { url }. O serviço responde 429 sob carga: trate 429 e 5xx como falha do serviço.",
+        "consult": [{ "path": "/home/ana/acme/_work/30-plan/PLAN-email.md#modelo-do-email", "why": "se o texto ou o layout do email parecer ambíguo" }]
+      }
     },
     {
       "id": "T04",
@@ -45,7 +46,10 @@
       "dependsOn": ["T02", "T03"],
       "files": ["src/routes/login-callback.ts", "tests/routes/login-callback.test.ts"],
       "acceptance": ["link válido abre a sessão", "link vencido mostra a página de erro"],
-      "profile": "execute-deep"
+      "profile": "execute-deep",
+      "context": {
+        "summary": "A sessão nasce por createSession(userId) em src/session/store.ts; o token é consumido com consumeToken(token), que devolve null se vencido ou já usado (T02). A página de erro já existe: views/error.html com { reason }."
+      }
     },
     {
       "id": "T05",

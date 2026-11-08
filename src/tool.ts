@@ -6,12 +6,12 @@ import type { Host, Resident } from "./host.ts"
 import type { HoldMode } from "./jlock.ts"
 import { isAbsolute, join } from "./paths.ts"
 import type { ToolName } from "./schema.ts"
-import { readTicketsDir } from "./tickets.ts"
+import { loadBrief, readTicketsDir } from "./tickets.ts"
 import { validatePlan } from "./validate.ts"
 import { select, systemLocale, tr } from "./i18n.ts"
 import { jlockNotice } from "./setup.ts"
 
-export const VERSION = "0.5.1"
+export const VERSION = "0.6.0"
 
 export interface ToolContext {
   host: Host
@@ -244,7 +244,12 @@ defineAction("validate", async (ctx, args) => {
   const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? (isAbsolute(arg) ? arg : join(ctx.cwd, arg)) : undefined
   const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir"
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir!)).map((t) => t.task) } : await readJsonArg(ctx, arg)
-  const { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform })
+  let { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform })
+  if (plan.context?.brief) {
+    const loaded = await loadBrief(ctx.host, ctx.cwd, plan.context.brief)
+    if (loaded.error) errors = [...errors, loaded.error]
+    else warnings = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text! }).warnings
+  }
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}\n${errors.map((e) => `- ${e}`).join("\n")}`, data: { errors, warnings } }
   const lines = [tr("validate.ok", { n: plan.tasks.length })]

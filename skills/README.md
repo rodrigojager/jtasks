@@ -4,9 +4,11 @@ Two skills teach an AI coding agent to use jtasks:
 
 - **`to-jtasks`** turns a plan, a spec or the conversation into tasks, each with the tasks that block it and the
   files it owns, and hands them to the `jtasks` tool in batches (the tool validates them and writes the run). It
-  writes the run's shared **context** once (a summary, the plan files and ADRs to read first, the standing
-  constraints); the tool renders it into the `## Context` section of every ticket, because the agent that runs a
-  task starts with a fresh context and the ticket is its whole brief.
+  writes the run's **common brief** once, a Markdown file with only what every task needs (the problem, the
+  decisions, the shared interfaces and conventions); the tool keeps it in the run's folder and copies it verbatim to
+  the top of every ticket's `## Context`, followed by each task's own context (the facts it needs, inlined; what it
+  must read; what to consult only if in doubt), because the agent that runs a task starts with a fresh context and
+  the ticket is its whole brief. Each piece of information appears in a ticket once.
 - **`jtasks`** carries a run out: `jtasks next`, one task per agent (in parallel when the host has subagents),
   `jtasks start`, work inside the ownership, `jtasks claim` for one more file, `jtasks done` with evidence, and
   `jtasks status` until nothing is left; what to do on a timeout, a deadlock or a lost lock; with or without `/goal`.
