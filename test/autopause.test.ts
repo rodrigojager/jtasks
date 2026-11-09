@@ -32,7 +32,8 @@ async function newRun() {
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
 const runFile = (dir: string) => JSON.parse(readFileSync(join(dir, "run.json"), "utf8")) as RunFile
-const held = (run: string) => jlockListJson("--group", run).filter((l) => l.holder?.owner === `gt:${run}/T01`).length
+// The task's file holds (its resource:machine hold, shared by every task on the machine, is left out).
+const held = (run: string) => jlockListJson("--group", run).filter((l) => !l.key.startsWith("resource:") && l.holder?.owner === `gt:${run}/T01`).length
 
 const limit = () => {
   const c = classifyFailure({ kind: "rate_limit", texts: ["API Error: You've hit your session limit · resets in 20 minutes"] }, new Date())

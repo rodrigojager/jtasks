@@ -125,6 +125,10 @@ from the run's log, not from the conversation. Every notification of a subagent'
 - **`start` refused for a shared file** (`🔗` in `next` and `status`): the plan's `sharedPolicy` is `serialize` and
   another task in progress touches the same shared file; take another ready task. After the run,
   `jtasks status --claims` lists the most contested files, for the next plan's `shared`.
+- **A task waits for a resource** (`🔒 <owner>: resource:desktop (held exclusive: …)` in `next` and `status`): it
+  declared `uses` (the desktop, the clipboard, a port…) and a task of some run on this machine holds it; an
+  `"exclusive": "machine"` task waits for `resource:machine`, which every running task holds shared. Nothing to do
+  but take another ready task: it becomes ready when the holder finishes. Never break the lock.
 - **A task failed**: the tasks that depend on it stay blocked; the rest goes on. `jtasks retry <id>` reopens it.
 - **A provider failure that clears by itself** (the host paused the run; `jtasks status` names the failure and when it resumes):
   Here nothing pauses the run for you. If you (or an agent you started) hit a usage or rate limit, an overloaded API or a dropped connection, do not release or fail the task: call `jtasks pause`, wait, and after `jtasks unpause` go on with the same task where it stopped (it is still in progress, with its locks). If that subagent no longer exists, continue the task yourself, or `jtasks release <id>` and open a

@@ -144,7 +144,21 @@ The ownership is what lets tasks run in parallel in the same checkout, so get it
   shared file never run at the same time. `jtasks validate` (and `plan`) warns about two parallel tasks touching one
   shared file without any of this. After a run, `jtasks status --claims` lists the files that were most contested:
   they are the next plan's `shared`.
-- A task that touches too much or unknown files is `"exclusive": true`: it runs alone.
+- A task that touches too much or unknown files is exclusive. `"exclusive": "project"` (or `true`) holds the whole
+  repository: it runs alone in this repository and never touches another project's locks. `"exclusive": "machine"`
+  also takes the whole machine: it waits until every jtasks task running on this machine (any run, any project) has
+  finished, and no new one starts while it runs. Use `"machine"` only when the numbers depend on a quiet machine
+  (benchmarks, timing or load tests); everything else that must run alone is `"project"`.
+- **What a task uses besides files** goes in **`uses`**, so tasks of every run that need the same thing wait for
+  each other instead of colliding: `"uses": ["desktop"]` (the real mouse, keyboard and windows: UI automation,
+  computer use, screenshots of the real screen), `"clipboard"`, `"browser"` (the user's own logged-in browser
+  profile), `"audio"`, `"gpu"`, `"network"` (big transfers, network-sensitive tests), `"port:8080"` (a fixed port a
+  server listens on), `"machine"`. Each is exclusive by default; `{ "resource": "gpu", "mode": "shared" }` lets tasks
+  that can share it run together. `jlock resources` lists the names (the user's own ones too); an unknown name is
+  refused with the closest one. Every task already holds `machine` shared: declare `machine` only through
+  `"exclusive": "machine"`. `validate` warns when a task's text talks about the mouse or keyboard, the clipboard, a
+  fixed port or measurements and `uses` does not say so; and when two independent tasks use one resource
+  exclusively (they will run one at a time).
 
 Ask the user:
 

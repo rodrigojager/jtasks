@@ -9,19 +9,19 @@ export declare const SERIAL_WAIT_SEC = 300;
 /** The ttl of a detached hold of the key (the mod): the net under a host that died holding it. */
 export declare const SERIAL_DETACH_TTL = "10m";
 /**
- * Runs `fn` holding `key`. Reentrant through the context: a caller that already holds it (`ctx.serialKeys`) runs `fn`
- * at once. `fn` gets the context to pass on to whatever it calls.
- *
- * `*` covers every key, `name:` ones included, and jlock grants a key to the owner that already holds a conflicting
- * one. So while a task of the run that is `exclusive` holds `*`, the key is held under that task's owner (`as`, or
- * found when the first try is refused by it): the only way it can be granted at all (docs/DEVIATIONS.md).
+ * Runs `fn` holding `key` under `owner` (always a fresh one: two helpers never share an owner, or both would be
+ * granted at once). Reentrant through the context: a caller that already holds it (`ctx.serialKeys`) runs `fn` at
+ * once. `fn` gets the context to pass on to whatever it calls.
  */
-export declare function withKey<R>(ctx: ToolContext, key: string, intent: string, fn: (ctx: ToolContext) => Promise<R>, opts?: {
-    as?: string;
-    run?: string;
-}): Promise<R>;
+export declare function withKey<R>(ctx: ToolContext, key: string, intent: string, fn: (ctx: ToolContext) => Promise<R>, owner: string): Promise<R>;
 /**
- * Runs `fn` holding the run's tree key (`treeKey`). `as`: the owner to hold it under, the starting exclusive task's
- * (its `*` comes next, and would be refused by a key some other owner holds).
+ * Runs `fn` holding the run's tree key (`treeKey`). On behalf of `task`, the key is held by a child of the task's
+ * owner (`gt:<run>/<task>/tree-<id>`, jlock 0.3 families): nothing the task holds can ever stand in its way, and two
+ * transitions (of this task or another) still exclude each other. Without a task: `gt:<run>/~tree-<id>`.
  */
-export declare function withTree<R>(ctx: ToolContext, run: string, fn: (ctx: ToolContext) => Promise<R>, as?: string): Promise<R>;
+export declare function withTree<R>(ctx: ToolContext, at: string | {
+    run: string;
+    task?: string;
+}, fn: (ctx: ToolContext) => Promise<R>, task?: string): Promise<R>;
+/** Runs `fn` holding a draft's key (plan --add, --fix, --commit), under a fresh owner of the draft. */
+export declare function withDraft<R>(ctx: ToolContext, id: string, fn: (ctx: ToolContext) => Promise<R>): Promise<R>;

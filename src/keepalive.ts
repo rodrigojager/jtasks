@@ -39,7 +39,7 @@ export interface KeepaliveMemory {
 
 export interface KeepaliveInput {
   state: RunState
-  /** `jlock list` under the repository (the whole machine with `*` in play): "ready" is the frontier of `next`. */
+  /** The whole machine's `jlock list` (resources are machine-wide): "ready" is the frontier of `next`. */
   locks: JlockLock[]
   platform: string
   /** The subagents of this session that are alive, as the host counts them. */
@@ -251,8 +251,8 @@ export async function checkKeepalive(host: Host, check: KeepaliveCheck): Promise
   // lock free (locks only take ready tasks away).
   const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 })
   if (quick.action === "none") return quick
-  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
-  const locks = await (star ? jlockList(host) : jlockList(host, { under: check.root })).catch(() => [])
+  // The whole machine: every task holds resource:machine, and resources are machine-wide (0.7.0).
+  const locks = await jlockList(host).catch(() => [])
   let last = check.fresh ? undefined : await readKeepalive(host, dir)
   // Work went on since the last message (a subagent claimed, waited, came back, finished…) though the signature did
   // not move: the count starts over. A hold (the person's Esc) is theirs to lift, never the log's.

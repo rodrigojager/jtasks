@@ -29,6 +29,7 @@ esos archivos quedan bloqueados mientras se ejecuta.
   [jlock](https://github.com/rodrigojager/jlock), una herramienta de bloqueos para toda la máquina. Otra tarea que
   necesite uno de ellos espera en la cola (`claim`) o hace otra cosa; una espera que cerraría un ciclo se rechaza. La tarea rechazada cede con `jtasks yield`: devuelve solo los archivos disputados, con sus ediciones guardadas
   en un patch que vuelve con ellos, y sigue adelante.
+- **Qué más usa una tarea.** Además de archivos, una tarea puede declarar lo que usa (`"uses": ["desktop"]`, `"clipboard"`, `"port:8080"`…): recursos de jlock bloqueados mientras se ejecuta, para que las tareas de cualquier ejecución en la máquina que necesitan lo mismo se turnen. `"exclusive": "project"` ejecuta la tarea sola en su repositorio; `"exclusive": "machine"` espera a todas las tareas de jtasks de la máquina y no deja empezar ninguna nueva (benchmarks, pruebas de tiempo). Ninguno detiene nunca los bloqueos de otro proyecto.
 - **Pruebas, no promesas.** Una tarea se termina con `done` y su evidencia; la herramienta comprueba que solo
   cambiaron sus archivos y hace el commit (`T04: título`). Un commit por tarea: revertir una tarea es revertir un
   commit.
@@ -123,7 +124,7 @@ T02 · Docs · perfil execute · posesión: docs/sum.md
 bloqueadas: T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 en curso (intento 1): posesión bloqueada en jlock (1 clave(s), dueño gt:a-sum-its-docs-and-the-e-261024-zrqc/T01)
+T01 en curso (intento 1): posesión bloqueada en jlock (2 clave(s), dueño gt:a-sum-its-docs-and-the-e-261024-zrqc/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-zrqc/tickets/01-sum.md
 otro archivo: jtasks claim T01 <archivo>; al final: jtasks done T01 --evidence "…" (o jtasks fail T01 --error "…")
 

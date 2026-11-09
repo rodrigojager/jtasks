@@ -5,7 +5,7 @@ import { afterAll, describe, expect, test } from "bun:test"
 import { appendFileSync, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { TasksFile } from "../src/schema.ts"
-import { cleanupTemp, foreignHold, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
+import { JLOCK, cleanupTemp, foreignHold, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
 import { setDefaultTimeout } from "bun:test"
 
 // Real git and jlock processes: the preload's default reaches only the first file of a run.
@@ -107,7 +107,7 @@ describe("releasing keeps the edits", () => {
     writeFiles(repo, { "src/a.ts": "T01's edit\n" })
     // T01's lock is gone (expired, say) and another program took the folder.
     const key = join(repo, "src").replace(/\\/g, "/")
-    sh(repo, "jlock", "release", key, "--owner", `gt:${run}/T01`, "--json")
+    sh(repo, JLOCK, "release", key, "--owner", `gt:${run}/T01`, "--json")
     const other = await foreignHold([key], "outro-programa")
     try {
       const r = await tasksOk(repo, ["release", "T01"])

@@ -125,6 +125,10 @@ from the run's log, not from the conversation. Every notification of a subagent'
 - **`start` refused for a shared file** (`🔗` in `next` and `status`): the plan's `sharedPolicy` is `serialize` and
   another task in progress touches the same shared file; take another ready task. After the run,
   `jtasks status --claims` lists the most contested files, for the next plan's `shared`.
+- **A task waits for a resource** (`🔒 <owner>: resource:desktop (held exclusive: …)` in `next` and `status`): it
+  declared `uses` (the desktop, the clipboard, a port…) and a task of some run on this machine holds it; an
+  `"exclusive": "machine"` task waits for `resource:machine`, which every running task holds shared. Nothing to do
+  but take another ready task: it becomes ready when the holder finishes. Never break the lock.
 - **A task failed**: the tasks that depend on it stay blocked; the rest goes on. `jtasks retry <id>` reopens it.
 - **A provider failure that clears by itself** (the host paused the run; `jtasks status` names the failure and when it resumes):
   With the plugin, a subagent session (or yours) failing on a provider failure that clears by itself (a usage or rate limit, a quota, an overloaded API, the network, a timeout, the retries running out) pauses the run by itself: the task stays in progress with its locks and claims, and `jtasks status` says why and when it resumes. Do not release it, do not open another subagent for it (the plugin refuses one), and do not call `next` or `start` meanwhile. When the run is active again (at the reset, or after `jtasks unpause`), the plugin sends you a message naming the session of each kept task: resume that same session (the subagent tool's `task_id`) and tell it to go on where it stopped, without calling `start` or `claim` again for what it holds. If that subagent no longer exists, continue the task yourself, or `jtasks release <id>` and open a

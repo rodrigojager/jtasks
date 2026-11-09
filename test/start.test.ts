@@ -43,25 +43,27 @@ describe("next / start / status with the real jlock", () => {
     // The CLI form: `jlock hold --detach`, so jlock's keeper outlives the command and carries the run's ttl.
     const p = Bun.spawnSync(["bun", CLI, "start", "T01"], { cwd: repo, env: process.env })
     expect(p.exitCode).toBe(0)
-    expect(p.stdout.toString()).toContain(`T01 em andamento (tentativa 1): posse travada no jlock (1 chave(s), dono gt:${run}/T01)`)
+    expect(p.stdout.toString()).toContain(`T01 em andamento (tentativa 1): posse travada no jlock (2 chave(s), dono gt:${run}/T01)`)
     await tasksOk(repo, ["start", "T02"])
 
     const locks = jlockListJson("--group", run)
-    expect(locks.map((l) => [l.key.replace(/^.*\/(src\/.*)$/, "$1"), l.holder?.owner])).toEqual([
-      ["src/a.ts", `gt:${run}/T01`],
-      ["src/types", `gt:${run}/T02`],
+    // Every task also holds resource:machine shared (0.7.0): one key, both tasks among its holders.
+    expect(locks.map((l) => [l.key.replace(/^.*\/(src\/.*)$/, "$1"), l.holders.filter((h) => h.owner.startsWith(`gt:${run}/`)).map((h) => `${h.owner} ${h.mode}`).join(", ")])).toEqual([
+      ["src/a.ts", `gt:${run}/T01 exclusive`],
+      ["src/types", `gt:${run}/T02 exclusive`],
+      ["resource:machine", `gt:${run}/T01 shared, gt:${run}/T02 shared`],
     ])
     const t = readTasksFile(dir)
     const t1 = t.tasks[0]!
     expect(t1).toMatchObject({ status: "in_progress", attempts: 1, owner: "cli" })
     expect(t1.holds).toHaveLength(1)
-    expect(t1.holds![0]).toMatchObject({ kind: "start", keys: [expect.stringMatching(/src\/a\.ts$/)] })
-    expect(locks.map((l) => (l.holder as { ttl_secs?: number } | null)?.ttl_secs)).toEqual([7200, 7200])
+    expect(t1.holds![0]).toMatchObject({ kind: "start", keys: [expect.stringMatching(/src\/a\.ts$/), "resource:machine"] })
+    expect(locks.filter((l) => !l.key.startsWith("resource:")).map((l) => (l.holder as { ttl_secs?: number } | null)?.ttl_secs)).toEqual([7200, 7200])
     expect(readFileSync(join(dir, "tickets/01-base.md"), "utf8")).toContain("**Status:** in_progress")
 
     const status = await tasksOk(repo, ["status"])
     expect(status.text.split("\n")[0]).toBe("feitas 0/4 (0%) · 2 em andamento · restam 4")
-    expect(status.text).toContain(`travas ativas (jlock --group ${run}): src/a.ts → T01 · src/types → T02`)
+    expect(status.text).toContain(`travas ativas (jlock --group ${run}): src/a.ts → T01 · src/types → T02 · resource:machine → T01 (compartilhada), T02 (compartilhada)`)
   })
 
   test("a second start of the same task is refused", async () => {
@@ -89,10 +91,8 @@ describe("next / start / status with the real jlock", () => {
     expect(await other.exited).toBe(0)
   })
 
-  test("dependencies and pause are checked by start; an exclusive task holds *", async () => {
-    // `*` conflicts with every lock on the machine: give back what the earlier tests still hold.
-    for (const r of runs) releaseGroup(r)
-    for (const r of residents) await r.stop()
+  test("dependencies and pause are checked by start; an exclusive task holds the repository root, never *", async () => {
+    // Earlier tests' locks are still held (other repositories, resource:machine shared): they do not stand in its way.
     const { repo, run, dir } = await newRun()
     const early = await tasks(repo, ["start", "T03"])
     expect(early.text).toBe("T03 não está pronta: depende de T01, T02")
@@ -101,9 +101,13 @@ describe("next / start / status with the real jlock", () => {
     for (const x of t.tasks.slice(0, 3)) x.status = "done"
     await Bun.write(join(dir, "tasks.json"), JSON.stringify(t))
     const next = await tasksOk(repo, ["next"])
-    expect((next.data as { ready: { id: string; exclusive: boolean }[] }).ready).toMatchObject([{ id: "T04", exclusive: true }])
+    expect((next.data as { ready: { id: string; exclusive: string }[] }).ready).toMatchObject([{ id: "T04", exclusive: "project" }])
     await tasksOk(repo, ["start", "T04"])
-    expect(jlockListJson("--group", run).map((l) => l.key)).toEqual(["*"])
+    const root = repo.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase()
+    expect(jlockListJson("--group", run).map((l) => [l.key, l.holders.find((h) => h.owner === `gt:${run}/T04`)?.mode])).toEqual([
+      [process.platform === "win32" || process.platform === "darwin" ? root : repo.replace(/\\/g, "/"), "exclusive"],
+      ["resource:machine", "shared"],
+    ])
     releaseGroup(run)
   })
 
@@ -114,7 +118,7 @@ describe("next / start / status with the real jlock", () => {
     const mine = residentsMap.get(`${run}/T01`)!
     expect(mine).toHaveLength(1)
     residents.push(...mine)
-    expect(jlockListJson("--group", run)).toHaveLength(1)
+    expect(jlockListJson("--group", run).map((l) => l.key.replace(/^.*\/(src\/.*)$/, "$1"))).toEqual(["src/a.ts", "resource:machine"])
     expect(await mine[0]!.send("release\n")).toBe(true)
     expect(await mine[0]!.exited).toBe(0)
     expect(jlockListJson("--group", run)).toEqual([])

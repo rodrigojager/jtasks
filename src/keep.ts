@@ -4,11 +4,11 @@
 // nothing blocks another task's `done`. The patch comes back when the file is the task's again (a claim, the yielded
 // key retaken, or the next start). Everything goes through the ledger, with undo.
 
-import { ownerOf, taskKeys, type RunState } from "./frontier.ts"
+import { ownerOf, pathKeys, type RunState } from "./frontier.ts"
 import { status as gitStatus } from "./git.ts"
 import type { Host } from "./host.ts"
-import { jlockList } from "./jlock.ts"
-import { ALL, conflicts, covers, normalizeKey } from "./keys.ts"
+import { jlockList, liveHolders } from "./jlock.ts"
+import { conflicts, covers, normalizeKey, sameFamily } from "./keys.ts"
 import { readEffects, recordEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, nextPatchNumber, patchRel, restoreFile, writePatch } from "./patches.ts"
 import { basename, caseInsensitive, join, slash } from "./paths.ts"
@@ -59,9 +59,9 @@ export async function takenSince(host: Host, dir: string, task: string, keys: st
   return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))))
 }
 
-/** The task's keys as paths: `*` (an exclusive task) is the repository root. */
+/** The task's keys as paths: its files and claims, or the repository root for an exclusive task. */
 export function ownKeys(state: RunState, task: Task, platform: string): string[] {
-  return task.exclusive ? [normalizeKey(state.root, state.root, platform)] : taskKeys(state.root, task, platform)
+  return pathKeys(state.root, task, platform)
 }
 
 /** The task's changed files (relative), from `git status`, inside the given keys; the run's own folder never counts. */
@@ -83,15 +83,14 @@ export async function changedUnder(host: Host, state: RunState, keys: string[]):
 export async function ownFiles(host: Host, state: RunState, task: Task, files: string[]): Promise<{ mine: string[]; untouched: string[] }> {
   const keys = ownKeys(state, task, host.platform)
   const owner = ownerOf(state.run.id, task.id)
-  const locks = files.length ? await jlockList(host, task.exclusive ? {} : { under: state.root }) : []
-  const live = locks.filter((l) => l.holder && l.holder.stale !== true)
-  const held = (key: string, l: { key: string }) => l.key === key || (l.key === ALL && task.exclusive)
+  const locks = files.length ? await jlockList(host, { under: state.root }) : []
   const out = { mine: [] as string[], untouched: [] as string[] }
   for (const file of files) {
     const fileKey = normalizeKey(file, state.root, host.platform)
     const key = keys.find((k) => covers(k, fileKey))
-    const foreign = live.some((l) => l.holder!.owner !== owner && conflicts(l.key, fileKey))
-    const ours = key && live.some((l) => held(key, l) && l.holder!.owner === owner)
+    // Someone outside the task's family (its own execs are not foreign) holds the file or a folder around it.
+    const foreign = locks.some((l) => conflicts(l.key, fileKey) && liveHolders(l).some((h) => !sameFamily(h.owner, owner)))
+    const ours = key && locks.some((l) => l.key === key && liveHolders(l).some((h) => h.owner === owner))
     if (!key || foreign || (!ours && (await takenSince(host, state.dir, task.id, [key])).length)) out.untouched.push(file)
     else out.mine.push(file)
   }

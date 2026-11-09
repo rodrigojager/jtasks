@@ -57,7 +57,25 @@
         "acceptance": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Acceptance criteria: each one observable, false at the commit the task starts from, and made true by this task alone." },
         "profile": { "type": "string", "description": "Name of a profile (default execute)." },
         "boundary": { "type": "string", "description": "Scope boundary: what this task does not do." },
-        "exclusive": { "type": "boolean", "description": "Touches too much or unknown files: runs alone." },
+        "exclusive": {
+          "oneOf": [{ "type": "boolean" }, { "enum": ["project", "machine"] }],
+          "description": "Runs alone. \"project\" (or true): holds the whole repository. \"machine\": also waits for every jtasks task on the machine and keeps new ones out (benchmarks, timing tests)."
+        },
+        "uses": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string", "description": "A jlock resource: desktop, clipboard, browser, audio, gpu, network, machine, port:<n>, or one of the user's (jlock resources lists them)." },
+              {
+                "type": "object",
+                "properties": { "resource": { "type": "string" }, "mode": { "enum": ["shared", "exclusive"] } },
+                "required": ["resource"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "description": "What the task uses besides files, held while it runs so tasks of every run that use it wait for each other; exclusive by default."
+        },
         "touchesShared": {
           "type": "array",
           "items": { "type": "string", "pattern": "^[^*?\\[\\]{}]*(/\\*\\*)?$" },

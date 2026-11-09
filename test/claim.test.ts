@@ -52,7 +52,7 @@ describe("claim", () => {
     const t = tasksFile(dir).tasks[1]!
     expect(t.claimed).toEqual(["README.md", "conf"])
     expect(t.holds!.map((h) => h.kind)).toEqual(["start", "claim"])
-    expect(jlockListJson("--group", run).filter((l) => l.holder?.owner === `gt:${run}/T02`)).toHaveLength(3)
+    expect(jlockListJson("--group", run).filter((l) => l.holder?.owner === `gt:${run}/T02`)).toHaveLength(4)
     writeFiles(repo, { "lib/a.ts": "a\n", "README.md": "novo\n", "conf/c.json": "{}\n" })
     const done = await tasksOk(repo, ["done", "T02", "--evidence", "ok"])
     expect(done.text).toContain("reclamados durante a tarefa: README.md, conf; atualize o plano")

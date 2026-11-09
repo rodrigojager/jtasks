@@ -68,7 +68,7 @@ export declare function viewLines(view: View, options: {
     collapsed: boolean;
     width: number;
 }): string[];
-/** The view of one run, read now: its files and `jlock list --under <repo>` (the whole machine with `*` in play). */
+/** The view of one run, read now: its files and `jlock list` (the whole machine: resources are machine-wide). */
 export declare function loadView(host: Host, root: string, data: string, run: string, tool: ToolName): Promise<RunView | undefined>;
 /** The repository's runs in its data folder (only its own when the folder is shared: see workspace.ts). */
 export declare function loadRunsView(host: Host, paths: {

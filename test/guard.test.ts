@@ -38,7 +38,7 @@ describe("edit guard", () => {
   test("the main agent and paths outside the repository are free; exclusive owns everything", () => {
     expect(checkEdit(main, "anything.ts").allow).toBe(true)
     expect(checkEdit(base, "C:/Users/me/notes.md").allow).toBe(true)
-    expect(checkEdit({ ...base, task: { id: "T09", files: [], exclusive: true } }, "x/y.ts").allow).toBe(true)
+    expect(checkEdit({ ...base, task: { id: "T09", files: [], exclusive: "project" } }, "x/y.ts").allow).toBe(true)
   })
 })
 

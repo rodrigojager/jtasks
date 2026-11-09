@@ -3,6 +3,7 @@ import { type RunState } from "./frontier.js";
 import type { Resident } from "./host.js";
 import { type HoldMode, type HoldOutcome, type Identity } from "./jlock.js";
 import { type ReapplyReport } from "./keep.js";
+import { type LockSpec } from "./keys.js";
 import { type Awaiting, type RunFile, type Task, type TasksFile } from "./schema.js";
 import { type StateDraft } from "./store.js";
 import { type RepoPaths } from "./workspace.js";
@@ -45,7 +46,7 @@ export declare function holdModeOf(ctx: ToolContext): HoldMode;
  * no resident) or `--release-on-eof` (a resident this host keeps alive with its standard input open). Refuses a
  * jlock older than the tool works with.
  */
-export declare function acquireHold(ctx: ToolContext, state: RunState, task: Task, keys: string[], wait: {
+export declare function acquireHold(ctx: ToolContext, state: RunState, task: Task, keys: LockSpec[], wait: {
     noWait: true;
 } | {
     timeoutSec: number;
@@ -80,7 +81,12 @@ export declare function statusOf(ctx: ToolContext, state: RunState): Promise<{
         }[];
         locks: {
             key: string;
-            holder: string | null;
+            holder: string;
+            holders: {
+                owner: string;
+                mode: import("./keys.ts").LockMode;
+                nested: boolean;
+            }[];
             queue: {
                 owner: string;
                 position: number;

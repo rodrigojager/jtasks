@@ -75,9 +75,28 @@ var ALL = "*";
 function isNameKey(key) {
   return key.startsWith("name:");
 }
+function isResourceKey(key) {
+  return key.startsWith("resource:");
+}
+function isPathKey(key) {
+  return key !== ALL && !isNameKey(key) && !isResourceKey(key);
+}
+function normalizeResourceKey(raw) {
+  const rest = raw.slice("resource:".length);
+  const colon = rest.indexOf(":");
+  const name = (colon < 0 ? rest : rest.slice(0, colon)).toLowerCase();
+  if (colon < 0)
+    return `resource:${name}`;
+  let arg = rest.slice(colon + 1);
+  if (name === "port" && /^\d+$/.test(arg))
+    arg = String(Number(arg));
+  return `resource:${name}:${arg}`;
+}
 function normalizeKey(raw, base, platform) {
   if (raw === ALL || isNameKey(raw))
     return raw;
+  if (isResourceKey(raw))
+    return normalizeResourceKey(raw);
   const abs = isAbsolute(raw) ? normalize(raw) : join(base, raw);
   let key = abs.replace(/\/+$/, "");
   if (/^[A-Za-z]:$/.test(key))
@@ -87,15 +106,32 @@ function normalizeKey(raw, base, platform) {
 function covers(outer, inner) {
   if (outer === inner)
     return true;
+  if (!isPathKey(outer) || !isPathKey(inner))
+    return false;
   const prefix = outer.endsWith("/") ? outer : `${outer}/`;
   return inner.startsWith(prefix);
 }
 function conflicts(a, b) {
   if (a === ALL || b === ALL)
     return true;
-  if (isNameKey(a) || isNameKey(b))
+  if (!isPathKey(a) || !isPathKey(b))
     return a === b;
   return covers(a, b) || covers(b, a);
+}
+function excludes(a, b) {
+  return (a.mode === "exclusive" || b.mode === "exclusive") && conflicts(a.key, b.key);
+}
+function sameFamily(a, b) {
+  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+}
+function specArg(spec) {
+  return `${spec.key}@${spec.mode}`;
+}
+function mergeSpecs(specs) {
+  const out = new Map;
+  for (const s of specs)
+    out.set(s.key, out.get(s.key) === "exclusive" || s.mode === "exclusive" ? "exclusive" : "shared");
+  return [...out.keys()].sort().map((key) => ({ key, mode: out.get(key) }));
 }
 function firstConflict(key, held) {
   for (const other of held)
@@ -220,7 +256,7 @@ var en_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof needs jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew needs jlock {minimum}: until then, long tasks renew their locks by giving them back and taking them again",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} is too old (at least {minimum})",
+  "doctor.jlock_old": "jlock {version} is too old: jtasks needs at least {minimum} (owner families, shared locks, resource: keys)",
   "doctor.nothing_to_fix": "nothing to install",
   "doctor.opencode_absent": "OpenCode not found (nothing to check)",
   "doctor.opencode_agents_missing": "agents missing: {agents}; {plugin}",
@@ -390,7 +426,7 @@ var en_default = {
   "jlock.missing": "jlock not found in PATH ({message}); install jlock or set JLOCK_BIN",
   "jlock.no_version": "jlock --version did not answer a version",
   "jlock.other_program": "another program: {owner}",
-  "jlock.too_old": "jlock {version} is too old (at least {minimum}): update it with jlock update",
+  "jlock.too_old": "jlock {version} is too old: jtasks needs at least {minimum}; update it with jlock update",
   "jlock.usage": "jlock ({what}) refused the usage: {message}; a jtasks bug, please report it",
   "json.batch": "the batch",
   "json.invalid": "{what} is not valid JSON: {message}",
@@ -498,7 +534,7 @@ var en_default = {
   "plan.shared_policy": 'sharedPolicy must be "warn" or "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" must be a list of criteria (text)',
   "plan.task_depends_list": '{name}: "dependsOn" must be a list of ids',
-  "plan.task_exclusive": '{name}: "exclusive" must be true or false',
+  "plan.task_exclusive": '{name}: "exclusive" must be "project", "machine", true (= "project") or false',
   "plan.task_files_list": '{name}: "files" must be a list of paths',
   "plan.task_missing": '{name}: missing "{field}"',
   "plan.task_object": "{name}: each task must be an object",
@@ -699,7 +735,23 @@ var en_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} (held {mode}: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} (held {mode})",
+  "next.exclusive_machine": "exclusive: machine (runs alone on the machine)",
+  "plan.resource_arg_extra": '{id}: resource "{name}" takes no argument',
+  "plan.resource_arg_missing": '{id}: resource "{name}" needs an argument: {name}:<{arg}> (for example port:8080)',
+  "plan.resource_list": "jlock resources lists the names (your own go in jlock's resources.json)",
+  "plan.resource_port": '{id}: "{value}" is not a port (1 to 65535)',
+  "plan.resource_suggest": 'did you mean "{name}"? (jlock resources lists them)',
+  "plan.task_uses": '{name}: "uses" must be a list of resource names ("desktop", "port:8080") or of { "resource": "<name>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id}: unknown resource "{name}"; {hint}',
+  "plan.uses_hint": '{id} mentions "{word}" but does not declare "uses": ["{resource}"]; add it if the task really needs it, so tasks of every run that use it wait for each other',
+  "plan.uses_hint_machine": '{id} mentions "{word}": if its numbers must not be disturbed, declare "exclusive": "machine" (it waits for every running task on the machine and no new one starts meanwhile)',
+  "plan.uses_parallel": "{a} and {b} both use {resource} exclusively and do not depend on each other: they will run one at a time",
+  "status.nested_hold": "(nested)",
+  "status.shared_hold": "(shared)",
+  "ticket.exclusive_machine": "(exclusive: machine — waits for every task on the machine and runs alone)"
 };
 // locales/pt-BR.json
 var pt_BR_default = {
@@ -796,7 +848,7 @@ var pt_BR_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof precisa do jlock {minimum}",
   "doctor.jlock_no_renew": "o jlock renew precisa do jlock {minimum}: até lá, tarefas longas renovam as travas devolvendo e pegando de novo",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} é antigo demais (mínimo {minimum})",
+  "doctor.jlock_old": "jlock {version} é antigo demais: o jtasks precisa de pelo menos {minimum} (famílias de donos, travas compartilhadas, chaves resource:)",
   "doctor.nothing_to_fix": "nada a instalar",
   "doctor.opencode_absent": "OpenCode não encontrado (nada a conferir)",
   "doctor.opencode_agents_missing": "faltam os agentes: {agents}; {plugin}",
@@ -966,7 +1018,7 @@ var pt_BR_default = {
   "jlock.missing": "jlock não encontrado no PATH ({message}); instale o jlock ou defina JLOCK_BIN",
   "jlock.no_version": "jlock --version não respondeu a versão",
   "jlock.other_program": "outro programa: {owner}",
-  "jlock.too_old": "jlock {version} é antigo demais (mínimo {minimum}): atualize com jlock update",
+  "jlock.too_old": "jlock {version} é antigo demais: o jtasks precisa de pelo menos {minimum}; atualize com jlock update",
   "jlock.usage": "jlock ({what}) recusou o uso: {message} — é um bug do jtasks, registre-o",
   "json.batch": "o lote",
   "json.invalid": "{what} não é JSON válido: {message}",
@@ -1074,7 +1126,7 @@ var pt_BR_default = {
   "plan.shared_policy": 'sharedPolicy deve ser "warn" ou "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" deve ser uma lista de critérios (texto)',
   "plan.task_depends_list": '{name}: "dependsOn" deve ser uma lista de ids',
-  "plan.task_exclusive": '{name}: "exclusive" deve ser true ou false',
+  "plan.task_exclusive": '{name}: "exclusive" deve ser "project", "machine", true (= "project") ou false',
   "plan.task_files_list": '{name}: "files" deve ser uma lista de caminhos',
   "plan.task_missing": '{name}: falta "{field}"',
   "plan.task_object": "{name}: cada tarefa deve ser um objeto",
@@ -1275,7 +1327,23 @@ var pt_BR_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} (travada {mode}: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} (travada {mode})",
+  "next.exclusive_machine": "exclusive: machine (roda sozinha na máquina)",
+  "plan.resource_arg_extra": '{id}: o recurso "{name}" não aceita argumento',
+  "plan.resource_arg_missing": '{id}: o recurso "{name}" precisa de um argumento: {name}:<{arg}> (por exemplo port:8080)',
+  "plan.resource_list": "jlock resources lista os nomes (os seus vão no resources.json do jlock)",
+  "plan.resource_port": '{id}: "{value}" não é uma porta (1 a 65535)',
+  "plan.resource_suggest": 'você quis dizer "{name}"? (jlock resources lista todos)',
+  "plan.task_uses": '{name}: "uses" deve ser uma lista de nomes de recursos ("desktop", "port:8080") ou de { "resource": "<nome>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id}: recurso desconhecido "{name}"; {hint}',
+  "plan.uses_hint": '{id} fala em "{word}" mas não declara "uses": ["{resource}"]; acrescente se a tarefa precisa mesmo, para que as tarefas de qualquer execução que o usam esperem umas pelas outras',
+  "plan.uses_hint_machine": '{id} fala em "{word}": se os números não podem ser perturbados, declare "exclusive": "machine" (ela espera todas as tarefas em andamento na máquina e nenhuma nova começa enquanto isso)',
+  "plan.uses_parallel": "{a} e {b} usam {resource} de forma exclusiva e não dependem uma da outra: vão rodar uma de cada vez",
+  "status.nested_hold": "(aninhada)",
+  "status.shared_hold": "(compartilhada)",
+  "ticket.exclusive_machine": "(exclusive: machine — espera todas as tarefas da máquina e roda sozinha)"
 };
 // locales/es.json
 var es_default = {
@@ -1372,7 +1440,7 @@ var es_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof necesita jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew necesita jlock {minimum}: hasta entonces, las tareas largas renuevan sus bloqueos devolviéndolos y tomándolos de nuevo",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} es demasiado antiguo (mínimo {minimum})",
+  "doctor.jlock_old": "jlock {version} es demasiado antiguo: jtasks necesita al menos {minimum} (familias de dueños, bloqueos compartidos, claves resource:)",
   "doctor.nothing_to_fix": "nada que instalar",
   "doctor.opencode_absent": "OpenCode no encontrado (nada que comprobar)",
   "doctor.opencode_agents_missing": "faltan los agentes: {agents}; {plugin}",
@@ -1542,7 +1610,7 @@ var es_default = {
   "jlock.missing": "jlock no encontrado en el PATH ({message}); instala jlock o define JLOCK_BIN",
   "jlock.no_version": "jlock --version no respondió una versión",
   "jlock.other_program": "otro programa: {owner}",
-  "jlock.too_old": "jlock {version} es demasiado antiguo (mínimo {minimum}): actualízalo con jlock update",
+  "jlock.too_old": "jlock {version} es demasiado antiguo: jtasks necesita al menos {minimum}; actualícelo con jlock update",
   "jlock.usage": "jlock ({what}) rechazó el uso: {message}; es un bug de jtasks, repórtalo, por favor",
   "json.batch": "el lote",
   "json.invalid": "{what} no es JSON válido: {message}",
@@ -1650,7 +1718,7 @@ var es_default = {
   "plan.shared_policy": 'sharedPolicy debe ser "warn" o "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" debe ser una lista de criterios (texto)',
   "plan.task_depends_list": '{name}: "dependsOn" debe ser una lista de ids',
-  "plan.task_exclusive": '{name}: "exclusive" debe ser true o false',
+  "plan.task_exclusive": '{name}: "exclusive" debe ser "project", "machine", true (= "project") o false',
   "plan.task_files_list": '{name}: "files" debe ser una lista de rutas',
   "plan.task_missing": '{name}: falta "{field}"',
   "plan.task_object": "{name}: cada tarea debe ser un objeto",
@@ -1851,7 +1919,23 @@ var es_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} (bloqueado {mode}: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} (bloqueado {mode})",
+  "next.exclusive_machine": "exclusive: machine (se ejecuta sola en la máquina)",
+  "plan.resource_arg_extra": '{id}: el recurso "{name}" no admite argumento',
+  "plan.resource_arg_missing": '{id}: el recurso "{name}" necesita un argumento: {name}:<{arg}> (por ejemplo port:8080)',
+  "plan.resource_list": "jlock resources lista los nombres (los suyos van en el resources.json de jlock)",
+  "plan.resource_port": '{id}: "{value}" no es un puerto (1 a 65535)',
+  "plan.resource_suggest": '¿quiso decir "{name}"? (jlock resources los lista)',
+  "plan.task_uses": '{name}: "uses" debe ser una lista de nombres de recursos ("desktop", "port:8080") o de { "resource": "<nombre>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id}: recurso desconocido "{name}"; {hint}',
+  "plan.uses_hint": '{id} menciona "{word}" pero no declara "uses": ["{resource}"]; añádalo si la tarea lo necesita de verdad, para que las tareas de cualquier ejecución que lo usan se esperen entre sí',
+  "plan.uses_hint_machine": '{id} menciona "{word}": si sus números no deben alterarse, declare "exclusive": "machine" (espera a todas las tareas en curso de la máquina y no empieza ninguna nueva mientras tanto)',
+  "plan.uses_parallel": "{a} y {b} usan {resource} en exclusiva y no dependen una de otra: se ejecutarán de una en una",
+  "status.nested_hold": "(anidado)",
+  "status.shared_hold": "(compartido)",
+  "ticket.exclusive_machine": "(exclusive: machine — espera a todas las tareas de la máquina y se ejecuta sola)"
 };
 // locales/fr.json
 var fr_default = {
@@ -1948,7 +2032,7 @@ var fr_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof demande jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew demande jlock {minimum}: d'ici là, les tâches longues renouvellent leurs verrous en les rendant puis en les reprenant",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} est trop ancien (au moins {minimum})",
+  "doctor.jlock_old": "jlock {version} est trop ancien : jtasks a besoin d'au moins {minimum} (familles de propriétaires, verrous partagés, clés resource:)",
   "doctor.nothing_to_fix": "rien à installer",
   "doctor.opencode_absent": "OpenCode introuvable (rien à vérifier)",
   "doctor.opencode_agents_missing": "agents manquants: {agents}; {plugin}",
@@ -2118,7 +2202,7 @@ var fr_default = {
   "jlock.missing": "jlock introuvable dans le PATH ({message}); installez jlock ou définissez JLOCK_BIN",
   "jlock.no_version": "jlock --version n'a pas répondu de version",
   "jlock.other_program": "un autre programme: {owner}",
-  "jlock.too_old": "jlock {version} est trop ancien (au moins {minimum}): mettez-le à jour avec jlock update",
+  "jlock.too_old": "jlock {version} est trop ancien : jtasks a besoin d'au moins {minimum} ; mettez-le à jour avec jlock update",
   "jlock.usage": "jlock ({what}) a refusé l'utilisation: {message}; un bug de jtasks, merci de le signaler",
   "json.batch": "le lot",
   "json.invalid": "{what} n'est pas du JSON valide: {message}",
@@ -2226,7 +2310,7 @@ var fr_default = {
   "plan.shared_policy": 'sharedPolicy doit être "warn" ou "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" doit être une liste de critères (texte)',
   "plan.task_depends_list": `{name}: "dependsOn" doit être une liste d'ids`,
-  "plan.task_exclusive": '{name}: "exclusive" doit valoir true ou false',
+  "plan.task_exclusive": '{name} : "exclusive" doit être "project", "machine", true (= "project") ou false',
   "plan.task_files_list": '{name}: "files" doit être une liste de chemins',
   "plan.task_missing": '{name}: "{field}" manquant',
   "plan.task_object": "{name}: chaque tâche doit être un objet",
@@ -2427,7 +2511,23 @@ var fr_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner} : {key} (verrou {mode} : {description})",
+  "frontier.resource_bare": "🔒 {owner} : {key} (verrou {mode})",
+  "next.exclusive_machine": "exclusive: machine (s'exécute seule sur la machine)",
+  "plan.resource_arg_extra": `{id} : la ressource "{name}" ne prend pas d'argument`,
+  "plan.resource_arg_missing": '{id} : la ressource "{name}" demande un argument : {name}:<{arg}> (par exemple port:8080)',
+  "plan.resource_list": "jlock resources liste les noms (les vôtres vont dans le resources.json de jlock)",
+  "plan.resource_port": `{id} : "{value}" n'est pas un port (1 à 65535)`,
+  "plan.resource_suggest": 'vouliez-vous dire "{name}" ? (jlock resources les liste)',
+  "plan.task_uses": '{name} : "uses" doit être une liste de noms de ressources ("desktop", "port:8080") ou de { "resource": "<nom>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id} : ressource inconnue "{name}" ; {hint}',
+  "plan.uses_hint": `{id} parle de "{word}" mais ne déclare pas "uses": ["{resource}"] ; ajoutez-le si la tâche en a vraiment besoin, pour que les tâches de toute exécution qui l'utilisent s'attendent`,
+  "plan.uses_hint_machine": '{id} parle de "{word}" : si ses mesures ne doivent pas être perturbées, déclarez "exclusive": "machine" (elle attend toutes les tâches en cours sur la machine et aucune nouvelle ne démarre entre-temps)',
+  "plan.uses_parallel": "{a} et {b} utilisent toutes deux {resource} en exclusif et ne dépendent pas l'une de l'autre : elles s'exécuteront l'une après l'autre",
+  "status.nested_hold": "(imbriqué)",
+  "status.shared_hold": "(partagé)",
+  "ticket.exclusive_machine": "(exclusive: machine — attend toutes les tâches de la machine et s'exécute seule)"
 };
 // locales/de.json
 var de_default = {
@@ -2524,7 +2624,7 @@ var de_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof braucht jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew braucht jlock {minimum}: bis dahin erneuern lange Aufgaben ihre Sperren, indem sie sie zurückgeben und neu nehmen",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} ist zu alt (mindestens {minimum})",
+  "doctor.jlock_old": "jlock {version} ist zu alt: jtasks braucht mindestens {minimum} (Besitzerfamilien, geteilte Sperren, resource:-Schlüssel)",
   "doctor.nothing_to_fix": "nichts zu installieren",
   "doctor.opencode_absent": "OpenCode nicht gefunden (nichts zu prüfen)",
   "doctor.opencode_agents_missing": "fehlende Agenten: {agents}; {plugin}",
@@ -2694,7 +2794,7 @@ var de_default = {
   "jlock.missing": "jlock nicht im PATH gefunden ({message}); installiere jlock oder setze JLOCK_BIN",
   "jlock.no_version": "jlock --version lieferte keine Version",
   "jlock.other_program": "ein anderes Programm: {owner}",
-  "jlock.too_old": "jlock {version} ist zu alt (mindestens {minimum}): aktualisiere es mit jlock update",
+  "jlock.too_old": "jlock {version} ist zu alt: jtasks braucht mindestens {minimum}; aktualisieren Sie es mit jlock update",
   "jlock.usage": "jlock ({what}) lehnte den Aufruf ab: {message}; ein Fehler in jtasks, bitte melden",
   "json.batch": "der Batch",
   "json.invalid": "{what} ist kein gültiges JSON: {message}",
@@ -2802,7 +2902,7 @@ var de_default = {
   "plan.shared_policy": 'sharedPolicy muss "warn" oder "serialize" sein',
   "plan.task_acceptance": '{name}: "acceptance" muss eine Liste von Kriterien (Text) sein',
   "plan.task_depends_list": '{name}: "dependsOn" muss eine Liste von ids sein',
-  "plan.task_exclusive": '{name}: "exclusive" muss true oder false sein',
+  "plan.task_exclusive": '{name}: "exclusive" muss "project", "machine", true (= "project") oder false sein',
   "plan.task_files_list": '{name}: "files" muss eine Liste von Pfaden sein',
   "plan.task_missing": '{name}: "{field}" fehlt',
   "plan.task_object": "{name}: jede Aufgabe muss ein Objekt sein",
@@ -3003,7 +3103,23 @@ var de_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} ({mode} gesperrt: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} ({mode} gesperrt)",
+  "next.exclusive_machine": "exclusive: machine (läuft allein auf der Maschine)",
+  "plan.resource_arg_extra": '{id}: die Ressource "{name}" nimmt kein Argument',
+  "plan.resource_arg_missing": '{id}: die Ressource "{name}" braucht ein Argument: {name}:<{arg}> (zum Beispiel port:8080)',
+  "plan.resource_list": "jlock resources listet die Namen auf (eigene kommen in jlocks resources.json)",
+  "plan.resource_port": '{id}: "{value}" ist kein Port (1 bis 65535)',
+  "plan.resource_suggest": 'meinten Sie "{name}"? (jlock resources listet sie auf)',
+  "plan.task_uses": '{name}: "uses" muss eine Liste von Ressourcennamen ("desktop", "port:8080") oder von { "resource": "<Name>", "mode": "shared" | "exclusive" } sein',
+  "plan.unknown_resource": '{id}: unbekannte Ressource "{name}"; {hint}',
+  "plan.uses_hint": '{id} erwähnt "{word}", deklariert aber nicht "uses": ["{resource}"]; ergänzen Sie es, wenn die Aufgabe es wirklich braucht, damit Aufgaben aller Läufe, die es nutzen, aufeinander warten',
+  "plan.uses_hint_machine": '{id} erwähnt "{word}": wenn die Zahlen nicht gestört werden dürfen, deklarieren Sie "exclusive": "machine" (sie wartet auf alle laufenden Aufgaben der Maschine, und solange startet keine neue)',
+  "plan.uses_parallel": "{a} und {b} nutzen beide {resource} exklusiv und hängen nicht voneinander ab: sie laufen nacheinander",
+  "status.nested_hold": "(verschachtelt)",
+  "status.shared_hold": "(geteilt)",
+  "ticket.exclusive_machine": "(exclusive: machine — wartet auf alle Aufgaben der Maschine und läuft allein)"
 };
 // locales/it.json
 var it_default = {
@@ -3100,7 +3216,7 @@ var it_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof richiede jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew richiede jlock {minimum}: fino ad allora, le attività lunghe rinnovano i blocchi rilasciandoli e riprendendoli",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} è troppo vecchio (minimo {minimum})",
+  "doctor.jlock_old": "jlock {version} è troppo vecchio: jtasks richiede almeno {minimum} (famiglie di proprietari, lock condivisi, chiavi resource:)",
   "doctor.nothing_to_fix": "niente da installare",
   "doctor.opencode_absent": "OpenCode non trovato (niente da verificare)",
   "doctor.opencode_agents_missing": "agenti mancanti: {agents}; {plugin}",
@@ -3270,7 +3386,7 @@ var it_default = {
   "jlock.missing": "jlock non trovato nel PATH ({message}); installa jlock o imposta JLOCK_BIN",
   "jlock.no_version": "jlock --version non ha risposto con una versione",
   "jlock.other_program": "un altro programma: {owner}",
-  "jlock.too_old": "jlock {version} è troppo vecchio (minimo {minimum}): aggiornalo con jlock update",
+  "jlock.too_old": "jlock {version} è troppo vecchio: jtasks richiede almeno {minimum}; aggiornalo con jlock update",
   "jlock.usage": "jlock ({what}) ha rifiutato l'uso: {message}; è un bug di jtasks, segnalalo",
   "json.batch": "il lotto",
   "json.invalid": "{what} non è JSON valido: {message}",
@@ -3378,7 +3494,7 @@ var it_default = {
   "plan.shared_policy": 'sharedPolicy deve essere "warn" o "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" deve essere una lista di criteri (testo)',
   "plan.task_depends_list": '{name}: "dependsOn" deve essere una lista di id',
-  "plan.task_exclusive": '{name}: "exclusive" deve essere true o false',
+  "plan.task_exclusive": '{name}: "exclusive" deve essere "project", "machine", true (= "project") o false',
   "plan.task_files_list": '{name}: "files" deve essere una lista di percorsi',
   "plan.task_missing": '{name}: manca "{field}"',
   "plan.task_object": "{name}: ogni attività deve essere un oggetto",
@@ -3579,7 +3695,23 @@ var it_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} (bloccato {mode}: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} (bloccato {mode})",
+  "next.exclusive_machine": "exclusive: machine (gira da sola sulla macchina)",
+  "plan.resource_arg_extra": '{id}: la risorsa "{name}" non accetta argomenti',
+  "plan.resource_arg_missing": '{id}: la risorsa "{name}" richiede un argomento: {name}:<{arg}> (per esempio port:8080)',
+  "plan.resource_list": "jlock resources elenca i nomi (i tuoi vanno nel resources.json di jlock)",
+  "plan.resource_port": '{id}: "{value}" non è una porta (da 1 a 65535)',
+  "plan.resource_suggest": 'intendevi "{name}"? (jlock resources le elenca)',
+  "plan.task_uses": '{name}: "uses" deve essere una lista di nomi di risorse ("desktop", "port:8080") o di { "resource": "<nome>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id}: risorsa sconosciuta "{name}"; {hint}',
+  "plan.uses_hint": '{id} parla di "{word}" ma non dichiara "uses": ["{resource}"]; aggiungilo se il task ne ha davvero bisogno, così i task di ogni esecuzione che lo usano si aspettano a vicenda',
+  "plan.uses_hint_machine": '{id} parla di "{word}": se i numeri non devono essere disturbati, dichiara "exclusive": "machine" (aspetta tutti i task in corso sulla macchina e nel frattempo non ne parte nessuno nuovo)',
+  "plan.uses_parallel": "{a} e {b} usano entrambi {resource} in esclusiva e non dipendono l'uno dall'altro: gireranno uno alla volta",
+  "status.nested_hold": "(annidato)",
+  "status.shared_hold": "(condiviso)",
+  "ticket.exclusive_machine": "(exclusive: machine — aspetta tutti i task della macchina e gira da sola)"
 };
 // locales/zh-CN.json
 var zh_CN_default = {
@@ -3676,7 +3808,7 @@ var zh_CN_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof 需要 jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew 需要 jlock {minimum}：在此之前，长任务通过归还再重新获取来续期锁",
   "doctor.jlock_ok": "jlock {version}；jlock doctor：{n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} 太旧（至少需要 {minimum}）",
+  "doctor.jlock_old": "jlock {version} 太旧：jtasks 至少需要 {minimum}（所有者家族、共享锁、resource: 键）",
   "doctor.nothing_to_fix": "无需安装",
   "doctor.opencode_absent": "未找到 OpenCode（无需检查）",
   "doctor.opencode_agents_missing": "缺少智能体：{agents}；{plugin}",
@@ -3846,7 +3978,7 @@ var zh_CN_default = {
   "jlock.missing": "PATH 中找不到 jlock（{message}）；请安装 jlock 或设置 JLOCK_BIN",
   "jlock.no_version": "jlock --version 没有回答版本号",
   "jlock.other_program": "其他程序：{owner}",
-  "jlock.too_old": "jlock {version} 太旧（至少需要 {minimum}）：用 jlock update 更新",
+  "jlock.too_old": "jlock {version} 太旧：jtasks 至少需要 {minimum}；请用 jlock update 更新",
   "jlock.usage": "jlock（{what}）拒绝了该用法：{message}；这是 jtasks 的 bug，请报告",
   "json.batch": "批次",
   "json.invalid": "{what}不是有效的 JSON：{message}",
@@ -3954,7 +4086,7 @@ var zh_CN_default = {
   "plan.shared_policy": 'sharedPolicy 必须是 "warn" 或 "serialize"',
   "plan.task_acceptance": '{name}："acceptance" 必须是验收标准（文本）的列表',
   "plan.task_depends_list": '{name}："dependsOn" 必须是 id 列表',
-  "plan.task_exclusive": '{name}："exclusive" 必须是 true 或 false',
+  "plan.task_exclusive": '{name}："exclusive" 必须是 "project"、"machine"、true（= "project"）或 false',
   "plan.task_files_list": '{name}："files" 必须是路径列表',
   "plan.task_missing": '{name}：缺少 "{field}"',
   "plan.task_object": "{name}：每个任务必须是对象",
@@ -4155,7 +4287,23 @@ var zh_CN_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}：{key}（{mode} 持有：{description}）",
+  "frontier.resource_bare": "🔒 {owner}：{key}（{mode} 持有）",
+  "next.exclusive_machine": "exclusive: machine（在整台机器上单独运行）",
+  "plan.resource_arg_extra": '{id}：资源 "{name}" 不接受参数',
+  "plan.resource_arg_missing": '{id}：资源 "{name}" 需要参数：{name}:<{arg}>（例如 port:8080）',
+  "plan.resource_list": "jlock resources 会列出名称（自定义的写在 jlock 的 resources.json 中）",
+  "plan.resource_port": '{id}："{value}" 不是端口（1 到 65535）',
+  "plan.resource_suggest": '是不是 "{name}"？（jlock resources 会列出全部）',
+  "plan.task_uses": '{name}："uses" 必须是资源名列表（"desktop"、"port:8080"）或 { "resource": "<名称>", "mode": "shared" | "exclusive" } 列表',
+  "plan.unknown_resource": '{id}：未知资源 "{name}"；{hint}',
+  "plan.uses_hint": '{id} 提到了 "{word}"，但没有声明 "uses": ["{resource}"]；如果任务确实需要，请加上，这样所有运行中使用它的任务会互相等待',
+  "plan.uses_hint_machine": '{id} 提到了 "{word}"：如果结果不能受干扰，请声明 "exclusive": "machine"（它会等待本机所有进行中的任务，期间不会有新任务开始）',
+  "plan.uses_parallel": "{a} 和 {b} 都独占使用 {resource}，且互不依赖：它们会依次运行",
+  "status.nested_hold": "（嵌套）",
+  "status.shared_hold": "（共享）",
+  "ticket.exclusive_machine": "（exclusive: machine — 等待本机所有任务结束后单独运行）"
 };
 // locales/ja.json
 var ja_default = {
@@ -4252,7 +4400,7 @@ var ja_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof には jlock {minimum} が必要",
   "doctor.jlock_no_renew": "jlock renew には jlock {minimum} が必要: それまでは、長いタスクはロックを返して取り直すことで更新する",
   "doctor.jlock_ok": "jlock {version}。jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} は古すぎる（{minimum} 以上が必要）",
+  "doctor.jlock_old": "jlock {version} は古すぎます: jtasks には {minimum} 以上が必要です（所有者のファミリー、共有ロック、resource: キー）",
   "doctor.nothing_to_fix": "インストールするものはない",
   "doctor.opencode_absent": "OpenCode が見つからない（確認対象なし）",
   "doctor.opencode_agents_missing": "足りないエージェント: {agents}。{plugin}",
@@ -4422,7 +4570,7 @@ var ja_default = {
   "jlock.missing": "PATH に jlock が見つからない（{message}）。jlock をインストールするか JLOCK_BIN を設定する",
   "jlock.no_version": "jlock --version がバージョンを返さなかった",
   "jlock.other_program": "別のプログラム: {owner}",
-  "jlock.too_old": "jlock {version} は古すぎる（{minimum} 以上が必要）: jlock update で更新する",
+  "jlock.too_old": "jlock {version} は古すぎます: jtasks には {minimum} 以上が必要です。jlock update で更新してください",
   "jlock.usage": "jlock（{what}）が使い方を拒否: {message}。jtasks のバグなので報告してほしい",
   "json.batch": "バッチ",
   "json.invalid": "{what}は正しい JSON ではない: {message}",
@@ -4530,7 +4678,7 @@ var ja_default = {
   "plan.shared_policy": 'sharedPolicy は "warn" か "serialize" でなければならない',
   "plan.task_acceptance": '{name}: "acceptance" は基準（テキスト）のリストでなければならない',
   "plan.task_depends_list": '{name}: "dependsOn" は id のリストでなければならない',
-  "plan.task_exclusive": '{name}: "exclusive" は true か false でなければならない',
+  "plan.task_exclusive": '{name}: "exclusive" は "project"、"machine"、true（= "project"）、false のいずれかです',
   "plan.task_files_list": '{name}: "files" はパスのリストでなければならない',
   "plan.task_missing": '{name}: "{field}" がない',
   "plan.task_object": "{name}: 各タスクはオブジェクトでなければならない",
@@ -4731,7 +4879,23 @@ var ja_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key}（{mode} で保持: {description}）",
+  "frontier.resource_bare": "🔒 {owner}: {key}（{mode} で保持）",
+  "next.exclusive_machine": "exclusive: machine（マシン上で単独で実行）",
+  "plan.resource_arg_extra": '{id}: リソース "{name}" は引数を取りません',
+  "plan.resource_arg_missing": '{id}: リソース "{name}" には引数が必要です: {name}:<{arg}>（例: port:8080）',
+  "plan.resource_list": "jlock resources で名前を一覧できます（独自のものは jlock の resources.json に書きます）",
+  "plan.resource_port": '{id}: "{value}" はポートではありません（1〜65535）',
+  "plan.resource_suggest": '"{name}" のことですか？（jlock resources で一覧できます）',
+  "plan.task_uses": '{name}: "uses" はリソース名のリスト（"desktop"、"port:8080"）か { "resource": "<名前>", "mode": "shared" | "exclusive" } のリストです',
+  "plan.unknown_resource": '{id}: 不明なリソース "{name}"。{hint}',
+  "plan.uses_hint": '{id} は "{word}" に触れていますが "uses": ["{resource}"] を宣言していません。本当に必要なら追加してください。それを使うすべての実行のタスクが互いに待つようになります',
+  "plan.uses_hint_machine": '{id} は "{word}" に触れています。数値を乱されたくないなら "exclusive": "machine" を宣言してください（マシン上の実行中タスクをすべて待ち、その間は新しいタスクが始まりません）',
+  "plan.uses_parallel": "{a} と {b} はどちらも {resource} を排他的に使い、互いに依存していません: 1 つずつ実行されます",
+  "status.nested_hold": "（入れ子）",
+  "status.shared_hold": "（共有）",
+  "ticket.exclusive_machine": "（exclusive: machine — マシン上のすべてのタスクを待ってから単独で実行）"
 };
 // locales/ru.json
 var ru_default = {
@@ -4828,7 +4992,7 @@ var ru_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof требует jlock {minimum}",
   "doctor.jlock_no_renew": "jlock renew требует jlock {minimum}: до тех пор долгие задачи продлевают блокировки, отдавая их и беря заново",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} слишком старый (нужен минимум {minimum})",
+  "doctor.jlock_old": "jlock {version} слишком старый: jtasks нужна версия не ниже {minimum} (семейства владельцев, общие блокировки, ключи resource:)",
   "doctor.nothing_to_fix": "устанавливать нечего",
   "doctor.opencode_absent": "OpenCode не найден (проверять нечего)",
   "doctor.opencode_agents_missing": "нет агентов: {agents}; {plugin}",
@@ -4998,7 +5162,7 @@ var ru_default = {
   "jlock.missing": "jlock не найден в PATH ({message}); установите jlock или задайте JLOCK_BIN",
   "jlock.no_version": "jlock --version не вернул версию",
   "jlock.other_program": "другая программа: {owner}",
-  "jlock.too_old": "jlock {version} слишком старый (нужен минимум {minimum}): обновите через jlock update",
+  "jlock.too_old": "jlock {version} слишком старый: jtasks нужна версия не ниже {minimum}; обновите его командой jlock update",
   "jlock.usage": "jlock ({what}) отклонил вызов: {message}; это ошибка jtasks, сообщите о ней",
   "json.batch": "пакет",
   "json.invalid": "{what} — некорректный JSON: {message}",
@@ -5106,7 +5270,7 @@ var ru_default = {
   "plan.shared_policy": 'sharedPolicy должен быть "warn" или "serialize"',
   "plan.task_acceptance": '{name}: "acceptance" должен быть списком критериев (текст)',
   "plan.task_depends_list": '{name}: "dependsOn" должен быть списком id',
-  "plan.task_exclusive": '{name}: "exclusive" должен быть true или false',
+  "plan.task_exclusive": '{name}: "exclusive" должно быть "project", "machine", true (= "project") или false',
   "plan.task_files_list": '{name}: "files" должен быть списком путей',
   "plan.task_missing": '{name}: нет "{field}"',
   "plan.task_object": "{name}: каждая задача должна быть объектом",
@@ -5307,7 +5471,23 @@ var ru_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} (удерживается {mode}: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} (удерживается {mode})",
+  "next.exclusive_machine": "exclusive: machine (выполняется одна на всей машине)",
+  "plan.resource_arg_extra": '{id}: ресурс "{name}" не принимает аргумент',
+  "plan.resource_arg_missing": '{id}: ресурсу "{name}" нужен аргумент: {name}:<{arg}> (например, port:8080)',
+  "plan.resource_list": "jlock resources выводит имена (свои добавляются в resources.json jlock)",
+  "plan.resource_port": '{id}: "{value}" — не порт (от 1 до 65535)',
+  "plan.resource_suggest": 'может быть, "{name}"? (jlock resources выводит список)',
+  "plan.task_uses": '{name}: "uses" должно быть списком имён ресурсов ("desktop", "port:8080") или { "resource": "<имя>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id}: неизвестный ресурс "{name}"; {hint}',
+  "plan.uses_hint": '{id} упоминает "{word}", но не объявляет "uses": ["{resource}"]; добавьте, если задаче это действительно нужно, чтобы задачи всех запусков, которые его используют, ждали друг друга',
+  "plan.uses_hint_machine": '{id} упоминает "{word}": если результатам нельзя мешать, объявите "exclusive": "machine" (задача ждёт все выполняющиеся задачи на машине, и пока она идёт, новые не начинаются)',
+  "plan.uses_parallel": "{a} и {b} обе используют {resource} монопольно и не зависят друг от друга: они будут выполняться по очереди",
+  "status.nested_hold": "(вложенная)",
+  "status.shared_hold": "(общая)",
+  "ticket.exclusive_machine": "(exclusive: machine — ждёт все задачи на машине и выполняется одна)"
 };
 // locales/ar.json
 var ar_default = {
@@ -5404,7 +5584,7 @@ var ar_default = {
   "doctor.jlock_no_eof": "يحتاج hold --release-on-eof إلى jlock {minimum}",
   "doctor.jlock_no_renew": "يحتاج jlock renew إلى jlock {minimum}: وحتى ذلك الحين، تجدد المهام الطويلة أقفالها بتحريرها ثم أخذها من جديد",
   "doctor.jlock_ok": "jlock {version}؛ jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} قديم جدًا (الحد الأدنى {minimum})",
+  "doctor.jlock_old": "jlock {version} قديم جدًا: يحتاج jtasks إلى {minimum} على الأقل (عائلات المالكين، الأقفال المشتركة، مفاتيح resource:)",
   "doctor.nothing_to_fix": "لا شيء لتثبيته",
   "doctor.opencode_absent": "لم يُعثر على OpenCode (لا شيء للفحص)",
   "doctor.opencode_agents_missing": "وكلاء ناقصون: {agents}؛ {plugin}",
@@ -5574,7 +5754,7 @@ var ar_default = {
   "jlock.missing": "لم يُعثر على jlock في PATH ({message})؛ ثبّت jlock أو اضبط JLOCK_BIN",
   "jlock.no_version": "لم يُجب jlock --version برقم إصدار",
   "jlock.other_program": "برنامج آخر: {owner}",
-  "jlock.too_old": "jlock {version} قديم جدًا (الحد الأدنى {minimum}): حدّثه بالأمر jlock update",
+  "jlock.too_old": "jlock {version} قديم جدًا: يحتاج jtasks إلى {minimum} على الأقل؛ حدّثه بالأمر jlock update",
   "jlock.usage": "رفض jlock ({what}) طريقة الاستخدام: {message}؛ هذا خلل في jtasks، يُرجى الإبلاغ عنه",
   "json.batch": "الدفعة",
   "json.invalid": "{what} ليس JSON صالحًا: {message}",
@@ -5682,7 +5862,7 @@ var ar_default = {
   "plan.shared_policy": 'يجب أن يكون sharedPolicy إما "warn" أو "serialize"',
   "plan.task_acceptance": '{name}: يجب أن يكون "acceptance" قائمة معايير (نص)',
   "plan.task_depends_list": '{name}: يجب أن يكون "dependsOn" قائمة معرّفات',
-  "plan.task_exclusive": '{name}: يجب أن يكون "exclusive" إما true أو false',
+  "plan.task_exclusive": '{name}: يجب أن تكون "exclusive" إما "project" أو "machine" أو true (= "project") أو false',
   "plan.task_files_list": '{name}: يجب أن يكون "files" قائمة مسارات',
   "plan.task_missing": '{name}: ينقص "{field}"',
   "plan.task_object": "{name}: يجب أن تكون كل مهمة كائنًا",
@@ -5883,7 +6063,23 @@ var ar_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} (مقفل {mode}: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} (مقفل {mode})",
+  "next.exclusive_machine": "exclusive: machine (تعمل وحدها على الجهاز)",
+  "plan.resource_arg_extra": '{id}: المورد "{name}" لا يقبل وسيطًا',
+  "plan.resource_arg_missing": '{id}: المورد "{name}" يحتاج إلى وسيط: {name}:<{arg}> (مثلًا port:8080)',
+  "plan.resource_list": "يعرض jlock resources الأسماء (وتُضاف مواردك في resources.json الخاص بـ jlock)",
+  "plan.resource_port": '{id}: "{value}" ليس منفذًا (من 1 إلى 65535)',
+  "plan.resource_suggest": 'هل تقصد "{name}"؟ (يعرضها jlock resources)',
+  "plan.task_uses": '{name}: يجب أن تكون "uses" قائمة بأسماء الموارد ("desktop" و"port:8080") أو بعناصر { "resource": "<الاسم>", "mode": "shared" | "exclusive" }',
+  "plan.unknown_resource": '{id}: مورد غير معروف "{name}"؛ {hint}',
+  "plan.uses_hint": '{id} تذكر "{word}" لكنها لا تعلن "uses": ["{resource}"]؛ أضفه إن كانت المهمة تحتاجه فعلًا، كي تنتظر مهام كل تشغيل تستخدمه بعضها بعضًا',
+  "plan.uses_hint_machine": '{id} تذكر "{word}": إن كان لا يجوز التشويش على أرقامها فأعلن "exclusive": "machine" (تنتظر كل المهام الجارية على الجهاز ولا تبدأ مهمة جديدة في أثنائها)',
+  "plan.uses_parallel": "{a} و{b} تستخدمان {resource} استخدامًا حصريًا ولا تعتمد إحداهما على الأخرى: ستعملان واحدة تلو الأخرى",
+  "status.nested_hold": "(متداخل)",
+  "status.shared_hold": "(مشترك)",
+  "ticket.exclusive_machine": "(exclusive: machine — تنتظر كل مهام الجهاز وتعمل وحدها)"
 };
 // locales/hi.json
 var hi_default = {
@@ -5980,7 +6176,7 @@ var hi_default = {
   "doctor.jlock_no_eof": "hold --release-on-eof को jlock {minimum} चाहिए",
   "doctor.jlock_no_renew": "jlock renew को jlock {minimum} चाहिए: तब तक लंबे कार्य अपने लॉक छोड़कर दोबारा लेकर नवीनीकृत करते हैं",
   "doctor.jlock_ok": "jlock {version}; jlock doctor: {n}/{total} ok",
-  "doctor.jlock_old": "jlock {version} बहुत पुराना है (कम से कम {minimum})",
+  "doctor.jlock_old": "jlock {version} बहुत पुराना है: jtasks को कम से कम {minimum} चाहिए (मालिक परिवार, साझा लॉक, resource: कुंजियाँ)",
   "doctor.nothing_to_fix": "इंस्टॉल करने को कुछ नहीं",
   "doctor.opencode_absent": "OpenCode नहीं मिला (जाँचने को कुछ नहीं)",
   "doctor.opencode_agents_missing": "एजेंट गायब: {agents}; {plugin}",
@@ -6150,7 +6346,7 @@ var hi_default = {
   "jlock.missing": "PATH में jlock नहीं मिला ({message}); jlock इंस्टॉल करें या JLOCK_BIN सेट करें",
   "jlock.no_version": "jlock --version ने संस्करण नहीं बताया",
   "jlock.other_program": "दूसरा प्रोग्राम: {owner}",
-  "jlock.too_old": "jlock {version} बहुत पुराना है (कम से कम {minimum}): jlock update से अपडेट करें",
+  "jlock.too_old": "jlock {version} बहुत पुराना है: jtasks को कम से कम {minimum} चाहिए; jlock update से अपडेट करें",
   "jlock.usage": "jlock ({what}) ने उपयोग अस्वीकार किया: {message}; यह jtasks का बग है, कृपया रिपोर्ट करें",
   "json.batch": "बैच",
   "json.invalid": "{what} मान्य JSON नहीं है: {message}",
@@ -6258,7 +6454,7 @@ var hi_default = {
   "plan.shared_policy": 'sharedPolicy "warn" या "serialize" होना चाहिए',
   "plan.task_acceptance": '{name}: "acceptance" मानदंडों (टेक्स्ट) की सूची होनी चाहिए',
   "plan.task_depends_list": '{name}: "dependsOn" id की सूची होनी चाहिए',
-  "plan.task_exclusive": '{name}: "exclusive" true या false होना चाहिए',
+  "plan.task_exclusive": '{name}: "exclusive" "project", "machine", true (= "project") या false होना चाहिए',
   "plan.task_files_list": '{name}: "files" पथों की सूची होनी चाहिए',
   "plan.task_missing": '{name}: "{field}" नहीं है',
   "plan.task_object": "{name}: हर कार्य एक ऑब्जेक्ट होना चाहिए",
@@ -6459,7 +6655,23 @@ var hi_default = {
   "doctor.step_git_init": "git init in {product} (asks first)",
   "doctor.git_init_skipped": "git init in {product} not done",
   "doctor.git_init_done": "git init done in {product} (undo: jtasks undo {id})",
-  "doctor.git_init_failed": "git init failed in {product}: {message}"
+  "doctor.git_init_failed": "git init failed in {product}: {message}",
+  "frontier.resource": "🔒 {owner}: {key} ({mode} लॉक: {description})",
+  "frontier.resource_bare": "🔒 {owner}: {key} ({mode} लॉक)",
+  "next.exclusive_machine": "exclusive: machine (मशीन पर अकेले चलती है)",
+  "plan.resource_arg_extra": '{id}: संसाधन "{name}" कोई तर्क नहीं लेता',
+  "plan.resource_arg_missing": '{id}: संसाधन "{name}" को एक तर्क चाहिए: {name}:<{arg}> (उदाहरण port:8080)',
+  "plan.resource_list": "jlock resources नाम दिखाता है (अपने नाम jlock की resources.json में जाते हैं)",
+  "plan.resource_port": '{id}: "{value}" पोर्ट नहीं है (1 से 65535)',
+  "plan.resource_suggest": 'क्या आपका मतलब "{name}" था? (jlock resources सूची दिखाता है)',
+  "plan.task_uses": '{name}: "uses" संसाधन नामों ("desktop", "port:8080") या { "resource": "<नाम>", "mode": "shared" | "exclusive" } की सूची होनी चाहिए',
+  "plan.unknown_resource": '{id}: अज्ञात संसाधन "{name}"; {hint}',
+  "plan.uses_hint": '{id} में "{word}" का ज़िक्र है पर "uses": ["{resource}"] घोषित नहीं है; अगर कार्य को सच में इसकी ज़रूरत है तो जोड़ें, ताकि इसे इस्तेमाल करने वाले हर रन के कार्य एक-दूसरे का इंतज़ार करें',
+  "plan.uses_hint_machine": '{id} में "{word}" का ज़िक्र है: अगर इसके आँकड़ों में खलल नहीं पड़ना चाहिए तो "exclusive": "machine" घोषित करें (यह मशीन के सभी चल रहे कार्यों का इंतज़ार करती है और इस बीच कोई नया शुरू नहीं होता)',
+  "plan.uses_parallel": "{a} और {b} दोनों {resource} को विशेष रूप से इस्तेमाल करती हैं और एक-दूसरे पर निर्भर नहीं: ये एक-एक करके चलेंगी",
+  "status.nested_hold": "(नेस्टेड)",
+  "status.shared_hold": "(साझा)",
+  "ticket.exclusive_machine": "(exclusive: machine — मशीन के सभी कार्यों का इंतज़ार करती है और अकेले चलती है)"
 };
 
 // src/i18n.ts
@@ -6549,483 +6761,6 @@ function width(text) {
   return w;
 }
 
-// src/validate.ts
-var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared", "context"]);
-var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"]);
-var CONTEXT_FIELDS = ["brief", "summary", "read", "consult", "constraints"];
-var GLOB = /[*?[\]{}]/;
-function readContext(raw, where = "context", options = {}) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw))
-    return { errors: [tr("plan.context_object", { where })] };
-  const obj = raw;
-  const errors = [];
-  for (const key of Object.keys(obj))
-    if (!CONTEXT_FIELDS.includes(key))
-      errors.push(tr("plan.context_unknown", { where, field: key }));
-  const text = (s) => s.replace(/\r\n?/g, `
-`).trim();
-  const context = {};
-  if (obj.brief !== undefined) {
-    if (options.task)
-      errors.push(tr("plan.context_brief_task", { where }));
-    else if (typeof obj.brief !== "string" || !obj.brief.trim())
-      errors.push(tr("plan.context_brief", { where }));
-    else
-      context.brief = obj.brief.trim();
-  }
-  if (obj.consult !== undefined) {
-    const ok = Array.isArray(obj.consult) && obj.consult.every((c) => {
-      if (!c || typeof c !== "object" || Array.isArray(c))
-        return false;
-      const r = c;
-      return Object.keys(r).every((k) => k === "path" || k === "why") && typeof r.path === "string" && !!r.path.trim() && typeof r.why === "string" && !!r.why.trim();
-    });
-    if (!ok)
-      errors.push(tr("plan.context_consult", { where }));
-    else {
-      const list = [];
-      for (const c of obj.consult) {
-        const path = text(c.path);
-        if (!list.some((k) => k.path === path))
-          list.push({ path, why: text(c.why).replace(/\s*\n\s*/g, " ") });
-      }
-      if (list.length)
-        context.consult = list;
-    }
-  }
-  if (obj.summary !== undefined) {
-    if (typeof obj.summary !== "string")
-      errors.push(tr("plan.context_summary", { where }));
-    else if (text(obj.summary))
-      context.summary = text(obj.summary);
-  }
-  for (const key of ["read", "constraints"]) {
-    const value = obj[key];
-    if (value === undefined)
-      continue;
-    if (!isStringList(value)) {
-      errors.push(tr("plan.context_list", { where, field: key }));
-      continue;
-    }
-    const list = [];
-    for (const v of value.map(text))
-      if (v && !list.includes(v))
-        list.push(v);
-    if (list.length)
-      context[key] = list;
-  }
-  if (errors.length)
-    return { errors };
-  const ordered = {};
-  for (const key of CONTEXT_FIELDS)
-    if (context[key] !== undefined)
-      ordered[key] = context[key];
-  return Object.keys(ordered).length ? { context: ordered, errors } : { errors };
-}
-var flat = (s) => s.toLowerCase().replace(/[\s`*_>#-]+/g, " ").trim();
-function contextWarnings(plan, brief) {
-  const out = [];
-  const run = plan.context;
-  const briefFlat = brief ? flat(brief) : "";
-  const repeats = (a, b) => {
-    const x = flat(a);
-    const y = flat(b);
-    const short = x.length <= y.length ? x : y;
-    return short.length >= 20 && (x.includes(y) || y.includes(x));
-  };
-  if (run?.summary && briefFlat && flat(run.summary).length >= 20 && briefFlat.includes(flat(run.summary)))
-    out.push(tr("plan.context_repeats_brief", { where: "context.summary" }));
-  for (const t of plan.tasks) {
-    const c = t.context;
-    if (!c)
-      continue;
-    if (c.summary && t.what && repeats(c.summary, t.what))
-      out.push(tr("plan.context_repeats_what", { id: t.id }));
-    if (c.summary && briefFlat && flat(c.summary).length >= 20 && briefFlat.includes(flat(c.summary)))
-      out.push(tr("plan.context_repeats_brief", { where: `${t.id}: context.summary` }));
-    const again = [
-      ...(c.read ?? []).filter((p) => run?.read?.includes(p)),
-      ...(c.consult ?? []).map((k) => k.path).filter((p) => run?.read?.includes(p) || c.read?.includes(p) || run?.consult?.some((k) => k.path === p)),
-      ...(c.constraints ?? []).filter((k) => run?.constraints?.includes(k))
-    ];
-    for (const item of again)
-      out.push(tr("plan.context_repeats_run", { id: t.id, item }));
-  }
-  return out;
-}
-function normalizeFileEntry(raw) {
-  let p = slash(raw.trim());
-  if (p === "")
-    return { error: tr("plan.empty_path") };
-  if (isAbsolute(p))
-    return { error: tr("plan.absolute_path", { path: raw }) };
-  while (p.startsWith("./"))
-    p = p.slice(2);
-  if (p.endsWith("/**"))
-    p = p.slice(0, -3) || ".";
-  if (GLOB.test(p)) {
-    const segments = p.split("/");
-    const firstGlob = segments.findIndex((s) => GLOB.test(s));
-    const folder = segments.slice(0, firstGlob).join("/");
-    const hint = folder ? tr("plan.pattern_hint_folder", { folder }) : tr("plan.pattern_hint");
-    return { error: tr("plan.pattern", { path: raw, hint }) };
-  }
-  const n = normalize(p).replace(/\/+$/, "");
-  if (n === ".." || n.startsWith("../"))
-    return { error: tr("plan.outside_repo", { path: raw }) };
-  return { path: n || "." };
-}
-function isStringList(value) {
-  return Array.isArray(value) && value.every((v) => typeof v === "string");
-}
-function label(task, index) {
-  const id = task?.id;
-  return typeof id === "string" && id.trim() ? id : `tarefa #${index + 1}`;
-}
-function readPlan(raw) {
-  const errors = [];
-  let obj;
-  if (Array.isArray(raw))
-    obj = { tasks: raw };
-  else if (raw && typeof raw === "object")
-    obj = raw;
-  else
-    return { plan: { tasks: [] }, errors: [tr("plan.shape")] };
-  for (const key of Object.keys(obj))
-    if (!PLAN_FIELDS.has(key))
-      errors.push(tr("plan.unknown_field", { field: key }));
-  const plan = { tasks: [] };
-  if (obj.feature !== undefined) {
-    if (typeof obj.feature === "string")
-      plan.feature = obj.feature;
-    else
-      errors.push(tr("plan.must_be_text", { field: "feature" }));
-  }
-  if (obj.objective !== undefined) {
-    if (typeof obj.objective === "string")
-      plan.objective = obj.objective;
-    else
-      errors.push(tr("plan.must_be_text", { field: "objective" }));
-  }
-  if (obj.source !== undefined) {
-    if (typeof obj.source === "string")
-      plan.source = obj.source;
-    else
-      errors.push(tr("plan.must_be_text", { field: "source" }));
-  }
-  if (obj.profiles !== undefined) {
-    if (obj.profiles && typeof obj.profiles === "object" && !Array.isArray(obj.profiles)) {
-      const profiles = {};
-      for (const [name, value] of Object.entries(obj.profiles)) {
-        if (value && typeof value === "object" && !Array.isArray(value))
-          profiles[name] = value;
-        else
-          errors.push(tr("plan.profile_object", { name }));
-      }
-      plan.profiles = profiles;
-    } else
-      errors.push(tr("plan.profiles_object"));
-  }
-  if (obj.serialize !== undefined) {
-    if (isStringList(obj.serialize))
-      plan.serialize = obj.serialize;
-    else
-      errors.push(tr("plan.serialize_list"));
-  }
-  if (obj.maxAttempts !== undefined) {
-    if (typeof obj.maxAttempts === "number" && Number.isInteger(obj.maxAttempts) && obj.maxAttempts >= 1)
-      plan.maxAttempts = obj.maxAttempts;
-    else
-      errors.push(tr("plan.max_attempts"));
-  }
-  if (obj.maxAgentEnded !== undefined) {
-    if (typeof obj.maxAgentEnded === "number" && Number.isInteger(obj.maxAgentEnded) && obj.maxAgentEnded >= 1)
-      plan.maxAgentEnded = obj.maxAgentEnded;
-    else
-      errors.push(tr("plan.max_agent_ended"));
-  }
-  if (obj.awaitGrace !== undefined) {
-    if (typeof obj.awaitGrace === "string" && DURATION.test(obj.awaitGrace))
-      plan.awaitGrace = obj.awaitGrace;
-    else
-      errors.push(tr("plan.await_grace"));
-  }
-  if (obj.holdTtl !== undefined) {
-    if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl))
-      plan.holdTtl = obj.holdTtl;
-    else
-      errors.push(tr("plan.hold_ttl"));
-  }
-  if (obj.keepalive !== undefined) {
-    if (typeof obj.keepalive === "boolean")
-      plan.keepalive = obj.keepalive;
-    else
-      errors.push(tr("plan.keepalive"));
-  }
-  if (obj.branch !== undefined) {
-    if (obj.branch === "run" || obj.branch === "current")
-      plan.branch = obj.branch;
-    else
-      errors.push(tr("plan.branch"));
-  }
-  if (obj.shared !== undefined) {
-    if (isStringList(obj.shared))
-      plan.shared = obj.shared;
-    else
-      errors.push(tr("plan.shared_list"));
-  }
-  if (obj.sharedPolicy !== undefined) {
-    if (obj.sharedPolicy === "warn" || obj.sharedPolicy === "serialize")
-      plan.sharedPolicy = obj.sharedPolicy;
-    else
-      errors.push(tr("plan.shared_policy"));
-  }
-  if (obj.context !== undefined) {
-    const read = readContext(obj.context);
-    errors.push(...read.errors);
-    if (read.context)
-      plan.context = read.context;
-  }
-  if (!Array.isArray(obj.tasks)) {
-    errors.push(tr("plan.no_tasks"));
-    return { plan, errors };
-  }
-  obj.tasks.forEach((raw2, index) => {
-    const name = label(raw2, index);
-    if (!raw2 || typeof raw2 !== "object" || Array.isArray(raw2)) {
-      errors.push(tr("plan.task_object", { name }));
-      return;
-    }
-    const t = raw2;
-    const before = errors.length;
-    for (const key of Object.keys(t))
-      if (!TASK_FIELDS.has(key))
-        errors.push(tr("plan.task_unknown_field", { name, field: key }));
-    if (typeof t.id !== "string" || !t.id.trim())
-      errors.push(tr("plan.task_missing", { name, field: "id" }));
-    if (typeof t.title !== "string" || !t.title.trim())
-      errors.push(tr("plan.task_missing", { name, field: "title" }));
-    if (t.what !== undefined && typeof t.what !== "string")
-      errors.push(tr("plan.task_text", { name, field: "what" }));
-    if (t.source !== undefined && typeof t.source !== "string")
-      errors.push(tr("plan.task_text", { name, field: "source" }));
-    if (t.dependsOn !== undefined && !isStringList(t.dependsOn))
-      errors.push(tr("plan.task_depends_list", { name }));
-    if (t.files !== undefined && !isStringList(t.files))
-      errors.push(tr("plan.task_files_list", { name }));
-    if (t.touchesShared !== undefined && !isStringList(t.touchesShared))
-      errors.push(tr("plan.task_touches_list", { name }));
-    if (t.profile !== undefined && typeof t.profile !== "string")
-      errors.push(tr("plan.task_text", { name, field: "profile" }));
-    if (t.boundary !== undefined && typeof t.boundary !== "string")
-      errors.push(tr("plan.task_text", { name, field: "boundary" }));
-    if (t.exclusive !== undefined && typeof t.exclusive !== "boolean")
-      errors.push(tr("plan.task_exclusive", { name }));
-    if (t.acceptance !== undefined) {
-      const ok = Array.isArray(t.acceptance) && t.acceptance.every((a) => typeof a === "string" || a && typeof a === "object" && typeof a.text === "string");
-      if (!ok)
-        errors.push(tr("plan.task_acceptance", { name }));
-    }
-    let context;
-    if (t.context !== undefined) {
-      const read = readContext(t.context, `${name}: context`, { task: true });
-      errors.push(...read.errors);
-      context = read.context;
-    }
-    if (errors.length === before) {
-      const task = { ...t };
-      if (context)
-        task.context = context;
-      else
-        delete task.context;
-      plan.tasks.push(task);
-    }
-  });
-  return { plan, errors };
-}
-function validateBatch(tasks, ctx = {}) {
-  const errors = [];
-  const profiles = ctx.profiles ?? DEFAULT_PROFILES;
-  const seen = new Set(ctx.existingIds ?? []);
-  const out = [];
-  for (const task of tasks) {
-    if (seen.has(task.id))
-      errors.push(tr("plan.duplicate_id", { id: task.id }));
-    seen.add(task.id);
-    if (task.profile !== undefined && !(task.profile in profiles))
-      errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }));
-    const paths = (list) => {
-      const out2 = [];
-      for (const raw of list) {
-        const entry = normalizeFileEntry(raw);
-        if (entry.error)
-          errors.push(`${task.id}: ${entry.error}`);
-        else if (entry.path && !out2.includes(entry.path))
-          out2.push(entry.path);
-      }
-      return out2;
-    };
-    const files = paths(task.files ?? []);
-    if (task.dependsOn?.includes(task.id))
-      errors.push(tr("plan.self_dependency", { id: task.id }));
-    const checked = { ...task, files };
-    if (task.touchesShared)
-      checked.touchesShared = paths(task.touchesShared);
-    out.push(checked);
-  }
-  return { tasks: out, errors };
-}
-function findCycles(tasks) {
-  const deps = new Map(tasks.map((t) => [t.id, (t.dependsOn ?? []).filter((d) => d !== t.id)]));
-  const state = new Map;
-  const stack = [];
-  const cycles = [];
-  const seenSets = new Set;
-  const visit = (id) => {
-    state.set(id, 1);
-    stack.push(id);
-    for (const dep of deps.get(id) ?? []) {
-      if (!deps.has(dep))
-        continue;
-      const s = state.get(dep) ?? 0;
-      if (s === 0)
-        visit(dep);
-      else if (s === 1) {
-        const cycle = stack.slice(stack.indexOf(dep));
-        const signature = [...cycle].sort().join(",");
-        if (!seenSets.has(signature)) {
-          seenSets.add(signature);
-          cycles.push([...cycle, dep]);
-        }
-      }
-    }
-    stack.pop();
-    state.set(id, 2);
-  };
-  for (const t of tasks)
-    if ((state.get(t.id) ?? 0) === 0)
-      visit(t.id);
-  return cycles;
-}
-function ancestors(tasks) {
-  const deps = new Map(tasks.map((t) => [t.id, t.dependsOn ?? []]));
-  const memo = new Map;
-  const walk = (id, path) => {
-    const cached = memo.get(id);
-    if (cached)
-      return cached;
-    const acc = new Set;
-    for (const dep of deps.get(id) ?? []) {
-      if (!deps.has(dep) || path.has(dep))
-        continue;
-      acc.add(dep);
-      path.add(dep);
-      for (const a of walk(dep, path))
-        acc.add(a);
-      path.delete(dep);
-    }
-    memo.set(id, acc);
-    return acc;
-  };
-  for (const id of deps.keys())
-    walk(id, new Set([id]));
-  return memo;
-}
-function validatePlan(raw, options = {}) {
-  const read = readPlan(raw);
-  const errors = [...read.errors];
-  const profiles = { ...read.plan.profiles ?? DEFAULT_PROFILES };
-  const batch = validateBatch(read.plan.tasks, { ...options, profiles });
-  errors.push(...batch.errors);
-  const plan = { ...read.plan, tasks: batch.tasks };
-  if (plan.shared) {
-    const shared = [];
-    for (const raw2 of plan.shared) {
-      const entry = normalizeFileEntry(raw2);
-      if (entry.error)
-        errors.push(`shared: ${entry.error}`);
-      else if (entry.path && !shared.includes(entry.path))
-        shared.push(entry.path);
-    }
-    plan.shared = shared;
-  }
-  errors.push(...validateGraph(plan.tasks, options));
-  const insensitive = caseInsensitive(options.platform ?? "win32");
-  for (const t of plan.tasks)
-    for (const p of t.touchesShared ?? [])
-      if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive)))
-        errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }));
-  return { plan, errors, warnings: [...sharedWarnings(plan, options), ...contextWarnings(plan, options.brief)] };
-}
-function relCovers(outer, inner, insensitive) {
-  const o = insensitive ? outer.toLowerCase() : outer;
-  const i = insensitive ? inner.toLowerCase() : inner;
-  return o === "." || o === i || i.startsWith(`${o}/`);
-}
-function sharedTouched(shared, task, insensitive) {
-  return shared.filter((s) => (task.touchesShared ?? []).some((p) => relConflicts(s, p, insensitive)) || [...task.files ?? [], ...task.claimed ?? []].some((f) => relConflicts(s, f, insensitive)));
-}
-function sharedWarnings(plan, options = {}) {
-  const shared = plan.shared ?? [];
-  if (!shared.length || plan.sharedPolicy === "serialize")
-    return [];
-  const insensitive = caseInsensitive(options.platform ?? "win32");
-  const anc = ancestors(plan.tasks);
-  const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
-  const out = [];
-  const touched = new Map(plan.tasks.map((t) => [t.id, t.exclusive ? [] : sharedTouched(shared, t, insensitive)]));
-  for (let i = 0;i < plan.tasks.length; i++)
-    for (let j = i + 1;j < plan.tasks.length; j++) {
-      const a = plan.tasks[i];
-      const b = plan.tasks[j];
-      if (related(a.id, b.id))
-        continue;
-      for (const s of touched.get(a.id).filter((x) => touched.get(b.id).includes(x))) {
-        if (sharedPath(a.files ?? [], b.files ?? [], insensitive))
-          continue;
-        out.push(tr("plan.shared_parallel", { a: a.id, b: b.id, path: s }));
-      }
-    }
-  return out;
-}
-function validateGraph(tasks, options = {}) {
-  const errors = [];
-  const ids = new Set(tasks.map((t) => t.id));
-  for (const t of tasks)
-    for (const dep of t.dependsOn ?? [])
-      if (!ids.has(dep))
-        errors.push(tr("plan.missing_dependency", { id: t.id, dep }));
-  for (const cycle of findCycles(tasks))
-    errors.push(tr("plan.cycle", { cycle: cycle.join(" → ") }));
-  const insensitive = caseInsensitive(options.platform ?? "win32");
-  const anc = ancestors(tasks);
-  const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
-  for (let i = 0;i < tasks.length; i++) {
-    const a = tasks[i];
-    if (a.exclusive)
-      continue;
-    for (let j = i + 1;j < tasks.length; j++) {
-      const b = tasks[j];
-      if (b.exclusive || a.id === b.id || related(a.id, b.id))
-        continue;
-      const hit = sharedPath(a.files ?? [], b.files ?? [], insensitive);
-      if (hit) {
-        const cover = hit.outer !== hit.inner ? ` ${tr("plan.covers", { outer: hit.outer, inner: hit.inner })}` : "";
-        errors.push(tr("plan.shared", { a: a.id, b: b.id, path: hit.inner, cover }));
-      }
-    }
-  }
-  return errors;
-}
-function sharedPath(a, b, insensitive) {
-  for (const x of a)
-    for (const y of b)
-      if (relConflicts(x, y, insensitive)) {
-        const xInY = x.length >= y.length;
-        return { inner: xInY ? x : y, outer: xInY ? y : x };
-      }
-  return;
-}
 // src/ids.ts
 function slugify(text, max = 24) {
   const s = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -7143,10 +6878,13 @@ function renderContext(run, task, brief) {
 function renderTicket(task, index, all, context, brief) {
   const nums = numbers(all);
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)";
-  const files = task.exclusive ? tr("ticket.exclusive") : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : tr("ticket.none");
+  const files = task.exclusive === "machine" ? tr("ticket.exclusive_machine") : task.exclusive ? tr("ticket.exclusive") : task.files.length ? task.files.map((f) => `\`${f}\``).join(", ") : tr("ticket.none");
   const claimed = task.claimed?.length ? `
 
 **Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : "";
+  const uses = task.uses?.length ? `
+
+**Uses:** ${task.uses.map((u) => `\`${u.resource}\`${u.mode === "shared" ? " (shared)" : ""}`).join(", ")}` : "";
   const lines = [
     `# ${ticketNumber(task.id, index)}: ${task.title}`,
     "",
@@ -7159,7 +6897,7 @@ function renderTicket(task, index, all, context, brief) {
     "",
     `**Profile:** ${task.profile}`,
     "",
-    `**Files:** ${files}${claimed}`,
+    `**Files:** ${files}${claimed}${uses}`,
     ""
   ];
   for (const a of task.acceptance)
@@ -7269,9 +7007,15 @@ function parseTicket(text, file, index) {
     task.exclusive = true;
     notes.push(tr("import.no_files"));
   } else if (/exclusive/i.test(files) && !files.includes("`"))
-    task.exclusive = true;
+    task.exclusive = /exclusive:\s*machine/i.test(files) ? "machine" : true;
   else
     task.files = [...files.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+  const uses = fields.get("uses");
+  if (uses) {
+    const list = [...uses.matchAll(/`([^`]+)`(\s*\(shared\))?/g)].map((m) => m[2] ? { resource: m[1], mode: "shared" } : m[1]);
+    if (list.length)
+      task.uses = list;
+  }
   const profile = fields.get("profile");
   if (profile)
     task.profile = profile;
@@ -7828,7 +7572,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.6.1";
+var VERSION = "0.7.0";
 
 class ToolError extends Error {
   code;
@@ -7975,9 +7719,9 @@ function jsonPosition(text, at) {
 `);
   const from = Math.max(0, at - 30);
   const to = Math.min(text.length, at + 30);
-  const flat2 = (s) => s.replace(/[\r\n\t]/g, " ");
-  const head = (from > 0 ? "…" : "") + flat2(text.slice(from, at));
-  const excerpt = `${head}${flat2(text.slice(at, to))}${to < text.length ? "…" : ""}
+  const flat = (s) => s.replace(/[\r\n\t]/g, " ");
+  const head = (from > 0 ? "…" : "") + flat(text.slice(from, at));
+  const excerpt = `${head}${flat(text.slice(at, to))}${to < text.length ? "…" : ""}
   ${" ".repeat(head.length)}^`;
   return { line, column, excerpt };
 }
@@ -8138,13 +7882,13 @@ defineAction("validate", async (ctx, args) => {
   const dir = arg && !arg.startsWith("@") && !arg.trim().startsWith("[") && !arg.trim().startsWith("{") ? isAbsolute(arg) ? arg : join(ctx.cwd, arg) : undefined;
   const isDir = dir !== undefined && ctx.json === undefined && (await ctx.host.stat(dir))?.kind === "dir";
   const raw = isDir ? { tasks: (await readTicketsDir(ctx.host, dir)).map((t) => t.task) } : await readJsonArg(ctx, arg);
-  let { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform });
+  let { plan, errors, warnings } = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host) });
   if (plan.context?.brief) {
     const loaded = await loadBrief(ctx.host, ctx.cwd, plan.context.brief);
     if (loaded.error)
       errors = [...errors, loaded.error];
     else
-      warnings = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text }).warnings;
+      warnings = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host), brief: loaded.text }).warnings;
   }
   if (errors.length > 0)
     return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}
@@ -8202,6 +7946,7 @@ async function dispatch(ctx, argv) {
 ${result.text}`;
   return result;
 }
+
 // src/jlock.ts
 var JLOCK = {
   OK: 0,
@@ -8213,6 +7958,15 @@ var JLOCK = {
   USAGE: 2,
   DISK: 20
 };
+function holdersOf(lock) {
+  return lock.holders ?? (lock.holder ? [lock.holder] : []);
+}
+function liveHolders(lock) {
+  return holdersOf(lock).filter((h) => h.stale !== true);
+}
+function heldBy(locks, owner) {
+  return locks.filter((l) => liveHolders(l).some((h) => h.owner === owner)).map((l) => l.key);
+}
 function jlockBin(host) {
   return host.env("JLOCK_BIN") || installedJlock() || "jlock";
 }
@@ -8277,7 +8031,7 @@ async function jlockRenew(host, group, owner, ttl) {
     throw failure(r.code, r.stdout, r.stderr, "renew");
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
 }
-var MIN_JLOCK = "0.1.0";
+var MIN_JLOCK = "0.3.0";
 var EOF_JLOCK = "0.1.1";
 var RENEW_JLOCK = "0.2.0";
 var versions = new Map;
@@ -8314,7 +8068,7 @@ async function holdModeFor(host) {
   return versionAtLeast(await jlockVersion(host), EOF_JLOCK) ? "eof" : "detach";
 }
 function holdArgv(host, keys, id, wait, hold) {
-  const argv = [jlockBin(host), "hold", ...keys, "--owner", id.owner, "--group", id.group, "--intent", id.intent];
+  const argv = [jlockBin(host), "hold", ...keys.map(specArg), "--owner", id.owner, "--group", id.group, "--intent", id.intent];
   for (const [k, v] of Object.entries(id.meta))
     argv.push("--meta", `${k}=${v}`);
   if ("noWait" in wait)
@@ -8367,7 +8121,7 @@ function describeOwner(owner, run) {
   if (!owner.startsWith("gt:"))
     return tr("jlock.other_program", { owner });
   const rest = owner.slice(3);
-  const slash2 = rest.lastIndexOf("/");
+  const slash2 = rest.indexOf("/");
   if (slash2 < 0)
     return rest;
   const ownerRun = rest.slice(0, slash2);
@@ -8375,12 +8129,893 @@ function describeOwner(owner, run) {
   return ownerRun === run ? task : `${ownerRun}/${task}`;
 }
 function describeKey(key, root, platform) {
-  if (key === "*" || key.startsWith("name:"))
+  if (key === "*" || key.startsWith("name:") || isResourceKey(key))
     return key;
   const rel = relativeInside(root, key, caseInsensitive(platform));
   if (rel === undefined)
     return key;
   return rel === "" ? "." : rel;
+}
+
+// src/resources.ts
+var BUILTIN_RESOURCES = [
+  { name: "audio", arg: null, mode: "exclusive", description: "the speakers and the microphone (playing or recording sound)", source: "builtin" },
+  { name: "browser", arg: null, mode: "exclusive", description: "the user's own browser profile and its logged-in sessions", source: "builtin" },
+  { name: "clipboard", arg: null, mode: "exclusive", description: "the system clipboard", source: "builtin" },
+  { name: "desktop", arg: null, mode: "exclusive", description: "the real mouse, keyboard and windows of the desktop session", source: "builtin" },
+  { name: "gpu", arg: null, mode: "exclusive", description: "the graphics card", source: "builtin" },
+  {
+    name: "machine",
+    arg: null,
+    mode: "exclusive",
+    description: "the whole machine: exclusive asks for it quiet (benchmarks, timing tests); shared says a job loads it",
+    source: "builtin"
+  },
+  { name: "network", arg: null, mode: "exclusive", description: "the network link (big transfers, network-sensitive tests)", source: "builtin" },
+  { name: "port", arg: "n", mode: "exclusive", description: "a TCP or UDP port of this machine, by number (resource:port:8080)", source: "builtin" }
+];
+var MACHINE = "resource:machine";
+var last = BUILTIN_RESOURCES;
+var loaded = new Map;
+function loadResources(host) {
+  const env = jlockEnv();
+  const id = `${jlockBin(host)}|${env.JLOCK_LANG}`;
+  let pending = loaded.get(id);
+  if (!pending) {
+    pending = host.run([jlockBin(host), "resources", "--json"], { env }).then((r) => {
+      if (r.code !== 0)
+        return BUILTIN_RESOURCES;
+      const parsed = JSON.parse(r.stdout);
+      const list = (parsed.resources ?? []).filter((d) => typeof d.name === "string").map((d) => ({
+        name: d.name,
+        arg: typeof d.arg === "string" ? d.arg : null,
+        mode: d.mode === "shared" ? "shared" : "exclusive",
+        description: typeof d.description === "string" ? d.description : "",
+        source: d.source === "user" ? "user" : "builtin"
+      }));
+      return list.length ? list : BUILTIN_RESOURCES;
+    }).catch(() => BUILTIN_RESOURCES).then((list) => {
+      last = list;
+      return list;
+    });
+    loaded.set(id, pending);
+  }
+  return pending.then((list) => {
+    last = list;
+    return list;
+  });
+}
+function knownResources() {
+  return last;
+}
+function describeResource(key, catalog2 = last) {
+  if (!key.startsWith("resource:"))
+    return;
+  const name = key.slice("resource:".length).split(":")[0];
+  return catalog2.find((d) => d.name === name)?.description || undefined;
+}
+function distance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1;i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1;j <= b.length; j++) {
+      const here = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = here;
+    }
+  }
+  return row[b.length];
+}
+function suggestResource(name, catalog2 = last) {
+  let best;
+  for (const def of catalog2) {
+    const d = def.name.startsWith(name) || name.startsWith(def.name) ? 1 : distance(name, def.name);
+    if (!best || d < best.d)
+      best = { name: def.name, d };
+  }
+  if (!best)
+    return;
+  return best.d <= Math.max(2, Math.floor(best.name.length / 3)) ? best.name : undefined;
+}
+function checkUse(id, entry, catalog2 = last) {
+  const raw = (typeof entry === "string" ? entry : entry.resource).trim().replace(/^resource:/i, "");
+  const colon = raw.indexOf(":");
+  const name = (colon < 0 ? raw : raw.slice(0, colon)).toLowerCase();
+  const arg = colon < 0 ? undefined : raw.slice(colon + 1);
+  const def = catalog2.find((d) => d.name === name);
+  if (!def) {
+    const near = suggestResource(name, catalog2);
+    const hint = near ? tr("plan.resource_suggest", { name: near }) : tr("plan.resource_list");
+    return { error: tr("plan.unknown_resource", { id, name: raw, hint }) };
+  }
+  if (def.arg && (arg === undefined || arg === ""))
+    return { error: tr("plan.resource_arg_missing", { id, name, arg: def.arg }) };
+  if (!def.arg && arg !== undefined)
+    return { error: tr("plan.resource_arg_extra", { id, name }) };
+  let value = arg;
+  if (name === "port" && arg !== undefined) {
+    const n = /^\d+$/.test(arg) ? Number(arg) : NaN;
+    if (!(n >= 1 && n <= 65535))
+      return { error: tr("plan.resource_port", { id, value: arg }) };
+    value = String(n);
+  }
+  const mode = typeof entry === "object" && entry.mode ? entry.mode : def.mode;
+  return { spec: { key: value === undefined ? `resource:${name}` : `resource:${name}:${value}`, mode } };
+}
+function usesText(uses) {
+  return (uses ?? []).map((u) => typeof u === "string" ? u : `${u.resource}${u.mode === "shared" ? " (shared)" : ""}`).join(", ");
+}
+function usesSuffix(uses) {
+  return uses?.length ? ` + uses: ${usesText(uses)}` : "";
+}
+function resourceName(key) {
+  return key.replace(/^resource:/, "");
+}
+
+// src/validate.ts
+var TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "uses", "touchesShared", "context"]);
+var PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"]);
+var CONTEXT_FIELDS = ["brief", "summary", "read", "consult", "constraints"];
+var GLOB = /[*?[\]{}]/;
+function readContext(raw, where = "context", options = {}) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw))
+    return { errors: [tr("plan.context_object", { where })] };
+  const obj = raw;
+  const errors = [];
+  for (const key of Object.keys(obj))
+    if (!CONTEXT_FIELDS.includes(key))
+      errors.push(tr("plan.context_unknown", { where, field: key }));
+  const text = (s) => s.replace(/\r\n?/g, `
+`).trim();
+  const context = {};
+  if (obj.brief !== undefined) {
+    if (options.task)
+      errors.push(tr("plan.context_brief_task", { where }));
+    else if (typeof obj.brief !== "string" || !obj.brief.trim())
+      errors.push(tr("plan.context_brief", { where }));
+    else
+      context.brief = obj.brief.trim();
+  }
+  if (obj.consult !== undefined) {
+    const ok2 = Array.isArray(obj.consult) && obj.consult.every((c) => {
+      if (!c || typeof c !== "object" || Array.isArray(c))
+        return false;
+      const r = c;
+      return Object.keys(r).every((k) => k === "path" || k === "why") && typeof r.path === "string" && !!r.path.trim() && typeof r.why === "string" && !!r.why.trim();
+    });
+    if (!ok2)
+      errors.push(tr("plan.context_consult", { where }));
+    else {
+      const list = [];
+      for (const c of obj.consult) {
+        const path = text(c.path);
+        if (!list.some((k) => k.path === path))
+          list.push({ path, why: text(c.why).replace(/\s*\n\s*/g, " ") });
+      }
+      if (list.length)
+        context.consult = list;
+    }
+  }
+  if (obj.summary !== undefined) {
+    if (typeof obj.summary !== "string")
+      errors.push(tr("plan.context_summary", { where }));
+    else if (text(obj.summary))
+      context.summary = text(obj.summary);
+  }
+  for (const key of ["read", "constraints"]) {
+    const value = obj[key];
+    if (value === undefined)
+      continue;
+    if (!isStringList(value)) {
+      errors.push(tr("plan.context_list", { where, field: key }));
+      continue;
+    }
+    const list = [];
+    for (const v of value.map(text))
+      if (v && !list.includes(v))
+        list.push(v);
+    if (list.length)
+      context[key] = list;
+  }
+  if (errors.length)
+    return { errors };
+  const ordered = {};
+  for (const key of CONTEXT_FIELDS)
+    if (context[key] !== undefined)
+      ordered[key] = context[key];
+  return Object.keys(ordered).length ? { context: ordered, errors } : { errors };
+}
+var flat = (s) => s.toLowerCase().replace(/[\s`*_>#-]+/g, " ").trim();
+function contextWarnings(plan, brief) {
+  const out = [];
+  const run = plan.context;
+  const briefFlat = brief ? flat(brief) : "";
+  const repeats = (a, b) => {
+    const x = flat(a);
+    const y = flat(b);
+    const short = x.length <= y.length ? x : y;
+    return short.length >= 20 && (x.includes(y) || y.includes(x));
+  };
+  if (run?.summary && briefFlat && flat(run.summary).length >= 20 && briefFlat.includes(flat(run.summary)))
+    out.push(tr("plan.context_repeats_brief", { where: "context.summary" }));
+  for (const t of plan.tasks) {
+    const c = t.context;
+    if (!c)
+      continue;
+    if (c.summary && t.what && repeats(c.summary, t.what))
+      out.push(tr("plan.context_repeats_what", { id: t.id }));
+    if (c.summary && briefFlat && flat(c.summary).length >= 20 && briefFlat.includes(flat(c.summary)))
+      out.push(tr("plan.context_repeats_brief", { where: `${t.id}: context.summary` }));
+    const again = [
+      ...(c.read ?? []).filter((p) => run?.read?.includes(p)),
+      ...(c.consult ?? []).map((k) => k.path).filter((p) => run?.read?.includes(p) || c.read?.includes(p) || run?.consult?.some((k) => k.path === p)),
+      ...(c.constraints ?? []).filter((k) => run?.constraints?.includes(k))
+    ];
+    for (const item of again)
+      out.push(tr("plan.context_repeats_run", { id: t.id, item }));
+  }
+  return out;
+}
+function normalizeFileEntry(raw) {
+  let p = slash(raw.trim());
+  if (p === "")
+    return { error: tr("plan.empty_path") };
+  if (isAbsolute(p))
+    return { error: tr("plan.absolute_path", { path: raw }) };
+  while (p.startsWith("./"))
+    p = p.slice(2);
+  if (p.endsWith("/**"))
+    p = p.slice(0, -3) || ".";
+  if (GLOB.test(p)) {
+    const segments = p.split("/");
+    const firstGlob = segments.findIndex((s) => GLOB.test(s));
+    const folder = segments.slice(0, firstGlob).join("/");
+    const hint = folder ? tr("plan.pattern_hint_folder", { folder }) : tr("plan.pattern_hint");
+    return { error: tr("plan.pattern", { path: raw, hint }) };
+  }
+  const n = normalize(p).replace(/\/+$/, "");
+  if (n === ".." || n.startsWith("../"))
+    return { error: tr("plan.outside_repo", { path: raw }) };
+  return { path: n || "." };
+}
+function isStringList(value) {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+function label(task, index) {
+  const id = task?.id;
+  return typeof id === "string" && id.trim() ? id : `tarefa #${index + 1}`;
+}
+function readPlan(raw) {
+  const errors = [];
+  let obj;
+  if (Array.isArray(raw))
+    obj = { tasks: raw };
+  else if (raw && typeof raw === "object")
+    obj = raw;
+  else
+    return { plan: { tasks: [] }, errors: [tr("plan.shape")] };
+  for (const key of Object.keys(obj))
+    if (!PLAN_FIELDS.has(key))
+      errors.push(tr("plan.unknown_field", { field: key }));
+  const plan = { tasks: [] };
+  if (obj.feature !== undefined) {
+    if (typeof obj.feature === "string")
+      plan.feature = obj.feature;
+    else
+      errors.push(tr("plan.must_be_text", { field: "feature" }));
+  }
+  if (obj.objective !== undefined) {
+    if (typeof obj.objective === "string")
+      plan.objective = obj.objective;
+    else
+      errors.push(tr("plan.must_be_text", { field: "objective" }));
+  }
+  if (obj.source !== undefined) {
+    if (typeof obj.source === "string")
+      plan.source = obj.source;
+    else
+      errors.push(tr("plan.must_be_text", { field: "source" }));
+  }
+  if (obj.profiles !== undefined) {
+    if (obj.profiles && typeof obj.profiles === "object" && !Array.isArray(obj.profiles)) {
+      const profiles = {};
+      for (const [name, value] of Object.entries(obj.profiles)) {
+        if (value && typeof value === "object" && !Array.isArray(value))
+          profiles[name] = value;
+        else
+          errors.push(tr("plan.profile_object", { name }));
+      }
+      plan.profiles = profiles;
+    } else
+      errors.push(tr("plan.profiles_object"));
+  }
+  if (obj.serialize !== undefined) {
+    if (isStringList(obj.serialize))
+      plan.serialize = obj.serialize;
+    else
+      errors.push(tr("plan.serialize_list"));
+  }
+  if (obj.maxAttempts !== undefined) {
+    if (typeof obj.maxAttempts === "number" && Number.isInteger(obj.maxAttempts) && obj.maxAttempts >= 1)
+      plan.maxAttempts = obj.maxAttempts;
+    else
+      errors.push(tr("plan.max_attempts"));
+  }
+  if (obj.maxAgentEnded !== undefined) {
+    if (typeof obj.maxAgentEnded === "number" && Number.isInteger(obj.maxAgentEnded) && obj.maxAgentEnded >= 1)
+      plan.maxAgentEnded = obj.maxAgentEnded;
+    else
+      errors.push(tr("plan.max_agent_ended"));
+  }
+  if (obj.awaitGrace !== undefined) {
+    if (typeof obj.awaitGrace === "string" && DURATION.test(obj.awaitGrace))
+      plan.awaitGrace = obj.awaitGrace;
+    else
+      errors.push(tr("plan.await_grace"));
+  }
+  if (obj.holdTtl !== undefined) {
+    if (typeof obj.holdTtl === "string" && DURATION.test(obj.holdTtl))
+      plan.holdTtl = obj.holdTtl;
+    else
+      errors.push(tr("plan.hold_ttl"));
+  }
+  if (obj.keepalive !== undefined) {
+    if (typeof obj.keepalive === "boolean")
+      plan.keepalive = obj.keepalive;
+    else
+      errors.push(tr("plan.keepalive"));
+  }
+  if (obj.branch !== undefined) {
+    if (obj.branch === "run" || obj.branch === "current")
+      plan.branch = obj.branch;
+    else
+      errors.push(tr("plan.branch"));
+  }
+  if (obj.shared !== undefined) {
+    if (isStringList(obj.shared))
+      plan.shared = obj.shared;
+    else
+      errors.push(tr("plan.shared_list"));
+  }
+  if (obj.sharedPolicy !== undefined) {
+    if (obj.sharedPolicy === "warn" || obj.sharedPolicy === "serialize")
+      plan.sharedPolicy = obj.sharedPolicy;
+    else
+      errors.push(tr("plan.shared_policy"));
+  }
+  if (obj.context !== undefined) {
+    const read = readContext(obj.context);
+    errors.push(...read.errors);
+    if (read.context)
+      plan.context = read.context;
+  }
+  if (!Array.isArray(obj.tasks)) {
+    errors.push(tr("plan.no_tasks"));
+    return { plan, errors };
+  }
+  obj.tasks.forEach((raw2, index) => {
+    const name = label(raw2, index);
+    if (!raw2 || typeof raw2 !== "object" || Array.isArray(raw2)) {
+      errors.push(tr("plan.task_object", { name }));
+      return;
+    }
+    const t = raw2;
+    const before = errors.length;
+    for (const key of Object.keys(t))
+      if (!TASK_FIELDS.has(key))
+        errors.push(tr("plan.task_unknown_field", { name, field: key }));
+    if (typeof t.id !== "string" || !t.id.trim())
+      errors.push(tr("plan.task_missing", { name, field: "id" }));
+    if (typeof t.title !== "string" || !t.title.trim())
+      errors.push(tr("plan.task_missing", { name, field: "title" }));
+    if (t.what !== undefined && typeof t.what !== "string")
+      errors.push(tr("plan.task_text", { name, field: "what" }));
+    if (t.source !== undefined && typeof t.source !== "string")
+      errors.push(tr("plan.task_text", { name, field: "source" }));
+    if (t.dependsOn !== undefined && !isStringList(t.dependsOn))
+      errors.push(tr("plan.task_depends_list", { name }));
+    if (t.files !== undefined && !isStringList(t.files))
+      errors.push(tr("plan.task_files_list", { name }));
+    if (t.touchesShared !== undefined && !isStringList(t.touchesShared))
+      errors.push(tr("plan.task_touches_list", { name }));
+    if (t.profile !== undefined && typeof t.profile !== "string")
+      errors.push(tr("plan.task_text", { name, field: "profile" }));
+    if (t.boundary !== undefined && typeof t.boundary !== "string")
+      errors.push(tr("plan.task_text", { name, field: "boundary" }));
+    if (t.exclusive !== undefined && typeof t.exclusive !== "boolean" && t.exclusive !== "project" && t.exclusive !== "machine")
+      errors.push(tr("plan.task_exclusive", { name }));
+    if (t.uses !== undefined) {
+      const ok2 = Array.isArray(t.uses) && t.uses.every((u) => {
+        if (typeof u === "string")
+          return !!u.trim();
+        if (!u || typeof u !== "object" || Array.isArray(u))
+          return false;
+        const r = u;
+        return Object.keys(r).every((k) => k === "resource" || k === "mode") && typeof r.resource === "string" && !!r.resource.trim() && (r.mode === undefined || r.mode === "shared" || r.mode === "exclusive");
+      });
+      if (!ok2)
+        errors.push(tr("plan.task_uses", { name }));
+    }
+    if (t.acceptance !== undefined) {
+      const ok2 = Array.isArray(t.acceptance) && t.acceptance.every((a) => typeof a === "string" || a && typeof a === "object" && typeof a.text === "string");
+      if (!ok2)
+        errors.push(tr("plan.task_acceptance", { name }));
+    }
+    let context;
+    if (t.context !== undefined) {
+      const read = readContext(t.context, `${name}: context`, { task: true });
+      errors.push(...read.errors);
+      context = read.context;
+    }
+    if (errors.length === before) {
+      const task = { ...t };
+      if (context)
+        task.context = context;
+      else
+        delete task.context;
+      plan.tasks.push(task);
+    }
+  });
+  return { plan, errors };
+}
+function validateBatch(tasks, ctx = {}) {
+  const errors = [];
+  const profiles = ctx.profiles ?? DEFAULT_PROFILES;
+  const seen = new Set(ctx.existingIds ?? []);
+  const out = [];
+  for (const task of tasks) {
+    if (seen.has(task.id))
+      errors.push(tr("plan.duplicate_id", { id: task.id }));
+    seen.add(task.id);
+    if (task.profile !== undefined && !(task.profile in profiles))
+      errors.push(tr("plan.unknown_profile", { id: task.id, profile: task.profile, profiles: Object.keys(profiles).join(", ") }));
+    const paths = (list) => {
+      const out2 = [];
+      for (const raw of list) {
+        const entry = normalizeFileEntry(raw);
+        if (entry.error)
+          errors.push(`${task.id}: ${entry.error}`);
+        else if (entry.path && !out2.includes(entry.path))
+          out2.push(entry.path);
+      }
+      return out2;
+    };
+    const files = paths(task.files ?? []);
+    if (task.dependsOn?.includes(task.id))
+      errors.push(tr("plan.self_dependency", { id: task.id }));
+    const checked = { ...task, files };
+    if (task.touchesShared)
+      checked.touchesShared = paths(task.touchesShared);
+    if (task.exclusive === true)
+      checked.exclusive = "project";
+    else if (task.exclusive === false)
+      delete checked.exclusive;
+    if (task.uses !== undefined) {
+      const uses = normalizeUses(task.id, task.uses, ctx.resources ?? knownResources());
+      errors.push(...uses.errors);
+      if (uses.uses.length)
+        checked.uses = uses.uses;
+      else
+        delete checked.uses;
+    }
+    out.push(checked);
+  }
+  return { tasks: out, errors };
+}
+function normalizeUses(id, raw, catalog2 = knownResources()) {
+  const errors = [];
+  const specs = [];
+  for (const entry of raw) {
+    const r = checkUse(id, entry, catalog2);
+    if (r.error)
+      errors.push(r.error);
+    else
+      specs.push(r.spec);
+  }
+  return { uses: mergeSpecs(specs).map((s) => ({ resource: resourceName(s.key), mode: s.mode })), errors };
+}
+var HINTS = [
+  {
+    resource: () => "desktop",
+    pattern: /(?<![\p{L}\p{N}])(mouse|keyboard|teclado|real windows|janelas reais|screenshots?|captura de tela|sendkeys|pyautogui|xdotool|autohotkey|computer[- ]use)(?![\p{L}\p{N}])/iu
+  },
+  {
+    resource: () => "clipboard",
+    pattern: /(?<![\p{L}\p{N}])(clipboard|\u00e1rea de transfer\u00eancia|area de transferencia|copy[- ]and[- ]paste|copiar e colar|ctrl\+[cv])(?![\p{L}\p{N}])/iu
+  },
+  {
+    resource: (m) => `port:${Number(m[2] ?? m[3])}`,
+    pattern: /(?<![\p{L}\p{N}])(?:(localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{2,5})|(?:port|porta)\s*:?\s*(\d{2,5}))(?![\p{L}\p{N}])/iu
+  },
+  {
+    resource: () => "machine",
+    machine: true,
+    pattern: /(?<![\p{L}\p{N}])(benchmarks?|latency|lat\u00eancia|latencia|throughput|timings?|response times?|tempo de resposta|medir o tempo|measure (?:the )?time|performance tests?|testes? de desempenho|flame ?graphs?|profiling)(?![\p{L}\p{N}])/iu
+  }
+];
+function usesWarnings(plan) {
+  const out = [];
+  for (const t of plan.tasks) {
+    const text = [t.title, t.what, t.boundary, ...(t.acceptance ?? []).map((a) => typeof a === "string" ? a : a.text), t.context?.summary, ...t.context?.constraints ?? []].filter((s) => typeof s === "string").join(`
+`);
+    const declared = (t.uses ?? []).map((u) => typeof u === "string" ? { resource: u.replace(/^resource:/i, "").toLowerCase(), mode: undefined } : { resource: u.resource.replace(/^resource:/i, "").toLowerCase(), mode: u.mode });
+    for (const hint of HINTS) {
+      const m = hint.pattern.exec(text);
+      if (!m)
+        continue;
+      const resource = hint.resource(m);
+      const word = m[0].trim();
+      if (hint.machine) {
+        const quiet = t.exclusive === "machine" || declared.some((u) => u.resource === "machine" && u.mode !== "shared");
+        if (!quiet)
+          out.push(tr("plan.uses_hint_machine", { id: t.id, word }));
+      } else if (!declared.some((u) => u.resource === resource || resource.startsWith("port:") && u.resource === `port:${Number(resource.slice(5))}`))
+        out.push(tr("plan.uses_hint", { id: t.id, word, resource }));
+    }
+  }
+  return out;
+}
+function usesParallelWarnings(plan) {
+  const anc = ancestors(plan.tasks);
+  const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
+  const exclusive = (t) => (t.uses ?? []).flatMap((u) => typeof u === "object" && ("mode" in u) && u.mode === "exclusive" ? [u.resource] : typeof u === "string" ? [u] : []);
+  const out = [];
+  for (let i = 0;i < plan.tasks.length; i++)
+    for (let j = i + 1;j < plan.tasks.length; j++) {
+      const a = plan.tasks[i];
+      const b = plan.tasks[j];
+      if (related(a.id, b.id))
+        continue;
+      const theirs = exclusive(b);
+      for (const r of exclusive(a))
+        if (theirs.includes(r))
+          out.push(tr("plan.uses_parallel", { a: a.id, b: b.id, resource: r }));
+    }
+  return out;
+}
+function findCycles(tasks) {
+  const deps = new Map(tasks.map((t) => [t.id, (t.dependsOn ?? []).filter((d) => d !== t.id)]));
+  const state = new Map;
+  const stack = [];
+  const cycles = [];
+  const seenSets = new Set;
+  const visit = (id) => {
+    state.set(id, 1);
+    stack.push(id);
+    for (const dep of deps.get(id) ?? []) {
+      if (!deps.has(dep))
+        continue;
+      const s = state.get(dep) ?? 0;
+      if (s === 0)
+        visit(dep);
+      else if (s === 1) {
+        const cycle = stack.slice(stack.indexOf(dep));
+        const signature = [...cycle].sort().join(",");
+        if (!seenSets.has(signature)) {
+          seenSets.add(signature);
+          cycles.push([...cycle, dep]);
+        }
+      }
+    }
+    stack.pop();
+    state.set(id, 2);
+  };
+  for (const t of tasks)
+    if ((state.get(t.id) ?? 0) === 0)
+      visit(t.id);
+  return cycles;
+}
+function ancestors(tasks) {
+  const deps = new Map(tasks.map((t) => [t.id, t.dependsOn ?? []]));
+  const memo = new Map;
+  const walk = (id, path) => {
+    const cached = memo.get(id);
+    if (cached)
+      return cached;
+    const acc = new Set;
+    for (const dep of deps.get(id) ?? []) {
+      if (!deps.has(dep) || path.has(dep))
+        continue;
+      acc.add(dep);
+      path.add(dep);
+      for (const a of walk(dep, path))
+        acc.add(a);
+      path.delete(dep);
+    }
+    memo.set(id, acc);
+    return acc;
+  };
+  for (const id of deps.keys())
+    walk(id, new Set([id]));
+  return memo;
+}
+function validatePlan(raw, options = {}) {
+  const read = readPlan(raw);
+  const errors = [...read.errors];
+  const profiles = { ...read.plan.profiles ?? DEFAULT_PROFILES };
+  const batch = validateBatch(read.plan.tasks, { ...options, profiles });
+  errors.push(...batch.errors);
+  const plan = { ...read.plan, tasks: batch.tasks };
+  if (plan.shared) {
+    const shared = [];
+    for (const raw2 of plan.shared) {
+      const entry = normalizeFileEntry(raw2);
+      if (entry.error)
+        errors.push(`shared: ${entry.error}`);
+      else if (entry.path && !shared.includes(entry.path))
+        shared.push(entry.path);
+    }
+    plan.shared = shared;
+  }
+  errors.push(...validateGraph(plan.tasks, options));
+  const insensitive = caseInsensitive(options.platform ?? "win32");
+  for (const t of plan.tasks)
+    for (const p of t.touchesShared ?? [])
+      if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive)))
+        errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }));
+  return {
+    plan,
+    errors,
+    warnings: [...sharedWarnings(plan, options), ...usesParallelWarnings(plan), ...usesWarnings(plan), ...contextWarnings(plan, options.brief)]
+  };
+}
+function relCovers(outer, inner, insensitive) {
+  const o = insensitive ? outer.toLowerCase() : outer;
+  const i = insensitive ? inner.toLowerCase() : inner;
+  return o === "." || o === i || i.startsWith(`${o}/`);
+}
+function sharedTouched(shared, task, insensitive) {
+  return shared.filter((s) => (task.touchesShared ?? []).some((p) => relConflicts(s, p, insensitive)) || [...task.files ?? [], ...task.claimed ?? []].some((f) => relConflicts(s, f, insensitive)));
+}
+function sharedWarnings(plan, options = {}) {
+  const shared = plan.shared ?? [];
+  if (!shared.length || plan.sharedPolicy === "serialize")
+    return [];
+  const insensitive = caseInsensitive(options.platform ?? "win32");
+  const anc = ancestors(plan.tasks);
+  const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
+  const out = [];
+  const touched = new Map(plan.tasks.map((t) => [t.id, t.exclusive ? [] : sharedTouched(shared, t, insensitive)]));
+  for (let i = 0;i < plan.tasks.length; i++)
+    for (let j = i + 1;j < plan.tasks.length; j++) {
+      const a = plan.tasks[i];
+      const b = plan.tasks[j];
+      if (related(a.id, b.id))
+        continue;
+      for (const s of touched.get(a.id).filter((x) => touched.get(b.id).includes(x))) {
+        if (sharedPath(a.files ?? [], b.files ?? [], insensitive))
+          continue;
+        out.push(tr("plan.shared_parallel", { a: a.id, b: b.id, path: s }));
+      }
+    }
+  return out;
+}
+function validateGraph(tasks, options = {}) {
+  const errors = [];
+  const ids = new Set(tasks.map((t) => t.id));
+  for (const t of tasks)
+    for (const dep of t.dependsOn ?? [])
+      if (!ids.has(dep))
+        errors.push(tr("plan.missing_dependency", { id: t.id, dep }));
+  for (const cycle of findCycles(tasks))
+    errors.push(tr("plan.cycle", { cycle: cycle.join(" → ") }));
+  const insensitive = caseInsensitive(options.platform ?? "win32");
+  const anc = ancestors(tasks);
+  const related = (a, b) => anc.get(a)?.has(b) || anc.get(b)?.has(a);
+  for (let i = 0;i < tasks.length; i++) {
+    const a = tasks[i];
+    if (a.exclusive)
+      continue;
+    for (let j = i + 1;j < tasks.length; j++) {
+      const b = tasks[j];
+      if (b.exclusive || a.id === b.id || related(a.id, b.id))
+        continue;
+      const hit = sharedPath(a.files ?? [], b.files ?? [], insensitive);
+      if (hit) {
+        const cover = hit.outer !== hit.inner ? ` ${tr("plan.covers", { outer: hit.outer, inner: hit.inner })}` : "";
+        errors.push(tr("plan.shared", { a: a.id, b: b.id, path: hit.inner, cover }));
+      }
+    }
+  }
+  return errors;
+}
+function sharedPath(a, b, insensitive) {
+  for (const x of a)
+    for (const y of b)
+      if (relConflicts(x, y, insensitive)) {
+        const xInY = x.length >= y.length;
+        return { inner: xInY ? x : y, outer: xInY ? y : x };
+      }
+  return;
+}
+// src/frontier.ts
+function ownerOf(run, task) {
+  return `gt:${run}/${task}`;
+}
+function childOwner(run, task, role, id) {
+  return task ? `${ownerOf(run, task)}/${role}-${id}` : `gt:${run}/~${role}-${id}`;
+}
+function exclusiveScope(task) {
+  const e = task.exclusive;
+  if (!e)
+    return;
+  return e === "machine" ? "machine" : "project";
+}
+function pathKeys(root, task, platform) {
+  if (exclusiveScope(task))
+    return [normalizeKey(root, root, platform)];
+  return canonical([...task.files, ...task.claimed ?? []].map((f) => normalizeKey(f, root, platform)));
+}
+function taskLocks(root, task, platform) {
+  const specs = pathKeys(root, task, platform).map((key) => ({ key, mode: "exclusive" }));
+  for (const u of task.uses ?? [])
+    specs.push({ key: normalizeResourceKey(`resource:${u.resource}`), mode: u.mode });
+  specs.push({ key: MACHINE, mode: exclusiveScope(task) === "machine" ? "exclusive" : "shared" });
+  return mergeSpecs(specs);
+}
+function taskKeys(root, task, platform) {
+  return taskLocks(root, task, platform).map((s) => s.key);
+}
+function specsOf(root, task, platform, keys) {
+  const all = taskLocks(root, task, platform);
+  return keys.map((key) => all.find((s) => s.key === key) ?? { key, mode: "exclusive" });
+}
+function blockingHold(spec, locks, owner) {
+  for (const l of locks) {
+    if (!conflicts(spec.key, l.key))
+      continue;
+    for (const h of liveHolders(l)) {
+      const mode = h.mode ?? "exclusive";
+      if (!sameFamily(h.owner, owner) && excludes(spec, { key: l.key, mode }))
+        return { key: l.key, owner: h.owner, mode };
+    }
+  }
+  return;
+}
+function assess(state, locks, platform) {
+  const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]));
+  const out = [];
+  for (const task of state.tasks.tasks) {
+    if (task.status !== "pending")
+      continue;
+    const blockers = [];
+    const failed = task.dependsOn.filter((d) => byId.get(d)?.status === "failed");
+    const open = task.dependsOn.filter((d) => {
+      const s = byId.get(d)?.status;
+      return s !== "done" && s !== "skipped" && s !== "failed";
+    });
+    if (failed.length)
+      blockers.push({ kind: "failed", ids: failed });
+    if (open.length)
+      blockers.push({ kind: "dependency", ids: open });
+    if (state.run.status === "paused")
+      blockers.push({ kind: "paused" });
+    const mutex = sharedBlocker(state, task, platform);
+    if (mutex)
+      blockers.push(mutex);
+    const own = ownerOf(state.run.id, task.id);
+    for (const spec of taskLocks(state.root, task, platform)) {
+      const hit = blockingHold(spec, locks, own);
+      if (hit) {
+        blockers.push({ kind: "ownership", key: spec.key, via: hit.key, owner: hit.owner, mode: hit.mode });
+        break;
+      }
+      const reserved = isPathKey(spec.key) ? yieldedKeys(state).find((y) => conflicts(spec.key, y.key)) : undefined;
+      if (reserved) {
+        blockers.push({ kind: "ownership", key: spec.key, via: reserved.key, owner: ownerOf(state.run.id, reserved.task) });
+        break;
+      }
+    }
+    out.push({ task, ready: blockers.length === 0, blockers });
+  }
+  return out;
+}
+function sharedOf(state, task, platform) {
+  return exclusiveScope(task) ? [] : sharedTouched(state.run.shared ?? [], task, caseInsensitive(platform));
+}
+function sharedBlocker(state, task, platform) {
+  if (state.run.sharedPolicy !== "serialize")
+    return;
+  const mine = sharedOf(state, task, platform);
+  if (!mine.length)
+    return;
+  for (const other of state.tasks.tasks) {
+    if (other.id === task.id || other.status !== "in_progress")
+      continue;
+    const hit = sharedOf(state, other, platform).find((s) => mine.includes(s));
+    if (hit)
+      return { kind: "shared", path: hit, task: other.id };
+  }
+  return;
+}
+function yieldedKeys(state) {
+  return state.tasks.tasks.flatMap((t) => t.status === "in_progress" ? (t.yielded ?? []).map((y) => ({ task: t.id, key: y.key, path: y.path })) : []);
+}
+function selectReady(state, assessments, platform, limit = Infinity) {
+  const chosen = [];
+  const taken = [];
+  const serialize2 = state.run.sharedPolicy === "serialize";
+  const sharedTaken = [];
+  for (const a of assessments) {
+    if (!a.ready || chosen.length >= limit)
+      continue;
+    const specs = taskLocks(state.root, a.task, platform);
+    if (specs.some((s) => taken.some((t) => excludes(s, t))))
+      continue;
+    const exclusive = !!exclusiveScope(a.task);
+    if (exclusive && chosen.length > 0)
+      continue;
+    const shared = serialize2 ? sharedOf(state, a.task, platform) : [];
+    if (shared.some((s) => sharedTaken.includes(s)))
+      continue;
+    chosen.push(a.task);
+    taken.push(...specs);
+    sharedTaken.push(...shared);
+    if (exclusive)
+      break;
+  }
+  return chosen;
+}
+function waitingOf(state, locks) {
+  const out = new Map;
+  for (const task of state.tasks.tasks) {
+    if (task.status !== "in_progress")
+      continue;
+    const owner = ownerOf(state.run.id, task.id);
+    for (const lock of locks) {
+      const entry = lock.queue.find((q) => q.owner === owner);
+      if (!entry)
+        continue;
+      const blocking = blockingHold({ key: lock.key, mode: entry.mode ?? "exclusive" }, locks, owner);
+      out.set(task.id, {
+        key: lock.key,
+        holder: blocking?.owner ?? "?",
+        position: entry.position,
+        via: blocking?.key ?? lock.key
+      });
+      break;
+    }
+    if (!out.has(task.id) && task.yielded?.length) {
+      const y = task.yielded[0];
+      const blocking = blockingHold({ key: y.key, mode: "exclusive" }, locks, owner);
+      out.set(task.id, { key: y.key, holder: blocking?.owner ?? "", position: 0, via: blocking?.key ?? y.key, yielded: task.yielded.map((x) => x.path) });
+    }
+  }
+  return out;
+}
+function waitingText(w, state, platform) {
+  if (w.yielded) {
+    const files = w.yielded.join(", ");
+    return w.holder ? tr("frontier.yielded_held", { files, owner: describeOwner(w.holder, state.run.id) }) : tr("frontier.yielded", { files });
+  }
+  const asked = describeKey(w.key, state.root, platform);
+  const via = describeKey(w.via, state.root, platform);
+  const shown2 = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
+  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown: shown2, position: w.position });
+}
+function blockerText(b, state, platform) {
+  switch (b.kind) {
+    case "failed":
+      return tr("frontier.failed_dependency", { ids: b.ids.join(", ") });
+    case "dependency":
+      return `⛔ ${b.ids.join(", ")}`;
+    case "paused":
+      return tr("view.paused");
+    case "shared":
+      return tr("frontier.shared", { id: b.task, path: b.path });
+    case "ownership": {
+      const key = describeKey(b.key, state.root, platform);
+      const owner = describeOwner(b.owner, state.run.id);
+      if (isResourceKey(b.key)) {
+        const description = describeResource(b.key);
+        const mode = b.mode ?? "exclusive";
+        return description ? tr("frontier.resource", { owner, key, mode, description }) : tr("frontier.resource_bare", { owner, key, mode });
+      }
+      const via = b.via !== b.key ? ` (via ${describeKey(b.via, state.root, platform)})` : "";
+      return `\uD83D\uDD12 ${owner}: ${key}${via}`;
+    }
+  }
 }
 
 // src/serial.ts
@@ -8392,15 +9027,13 @@ function draftKey(id) {
 }
 var SERIAL_WAIT_SEC = 300;
 var SERIAL_DETACH_TTL = "10m";
-function ownerOf(key, host) {
-  const rest = key.replace(/^name:jtasks:/, "").replace(/:(git|draft)$/, "");
-  return `gt:${rest}/~${key.endsWith(":draft") ? "draft" : "tree"}-${host.now().getTime().toString(36)}${Math.floor(host.random() * 1e6).toString(36)}`;
+function helperId(host) {
+  return `${host.now().getTime().toString(36)}${Math.floor(host.random() * 1e6).toString(36)}`;
 }
-async function withKey(ctx, key, intent, fn, opts = {}) {
+async function withKey(ctx, key, intent, fn, owner) {
   if (ctx.serialKeys?.has(key))
     return fn(ctx);
   const { host } = ctx;
-  let owner = opts.as ?? ownerOf(key, host);
   const eof = host.holdsInput === true;
   const hold = async (wait) => {
     const base = [jlockBin(host), "hold", key, "--owner", owner, "--intent", intent, ...wait];
@@ -8409,14 +9042,7 @@ async function withKey(ctx, key, intent, fn, opts = {}) {
     const resident = await host.spawn([...base, "--release-on-eof", "--json"], { env: jlockEnv() });
     return startHold(host, resident, (SERIAL_WAIT_SEC + 15) * 1000);
   };
-  let outcome = await hold(["--no-wait"]);
-  if (outcome.answer.result !== "granted") {
-    const a = outcome.answer;
-    const holder = typeof a.holder === "object" && a.holder ? a.holder.owner : undefined;
-    if (!opts.as && opts.run && holder?.startsWith(`gt:${opts.run}/`) && (a.via === "*" || a.failed === "*" || a.key === "*"))
-      owner = holder;
-    outcome = await hold(["--timeout", `${SERIAL_WAIT_SEC}s`]);
-  }
+  const outcome = await hold(["--timeout", `${SERIAL_WAIT_SEC}s`]);
   if (outcome.answer.result !== "granted") {
     const holder = typeof outcome.answer.holder === "object" && outcome.answer.holder ? outcome.answer.holder.owner : String(outcome.answer.holder ?? "?");
     throw new ToolError(tr("store.tree_busy", { key, holder, seconds: SERIAL_WAIT_SEC }), 1, { result: outcome.answer.result, key });
@@ -8437,8 +9063,13 @@ async function withKey(ctx, key, intent, fn, opts = {}) {
       await jlockReleaseKeys(host, [key], owner).catch(() => {});
   }
 }
-function withTree(ctx, run, fn, as) {
-  return withKey(ctx, treeKey(run), `jtasks ${run}: working tree`, fn, as ? { as, run } : { run });
+function withTree(ctx, at, fn, task) {
+  const run = typeof at === "string" ? at : at.run;
+  const who = task ?? (typeof at === "string" ? undefined : at.task);
+  return withKey(ctx, treeKey(run), `jtasks ${run}: working tree`, fn, childOwner(run, who, "tree", helperId(ctx.host)));
+}
+function withDraft(ctx, id, fn) {
+  return withKey(ctx, draftKey(id), `jtasks draft ${id}`, fn, childOwner(id, undefined, "draft", helperId(ctx.host)));
 }
 // src/format.ts
 function counts(tasks) {
@@ -8806,7 +9437,15 @@ function toTask(p, profiles, source) {
   if (p.source || source)
     task.source = p.source || source;
   if (p.exclusive)
-    task.exclusive = true;
+    task.exclusive = p.exclusive === "machine" ? "machine" : "project";
+  const uses = (p.uses ?? []).flatMap((u) => {
+    if (typeof u === "object" && u.mode)
+      return [{ resource: u.resource.replace(/^resource:/i, ""), mode: u.mode }];
+    const spec = checkUse(p.id, u).spec;
+    return spec ? [{ resource: resourceName(spec.key), mode: spec.mode }] : [];
+  });
+  if (uses.length)
+    task.uses = uses;
   if (p.boundary)
     task.boundary = p.boundary;
   if (p.touchesShared?.length)
@@ -8926,15 +9565,15 @@ function warningLines(warnings) {
   return warnings.length ? [tr("warnings.count", { n: warnings.length }), ...warnings.map((w) => `- ${w}`)] : [];
 }
 async function validateWithBrief(ctx, raw) {
-  const first = validatePlan(raw, { platform: ctx.host.platform });
+  const first = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host) });
   const path = first.plan.context?.brief;
   if (!path)
     return first;
-  const loaded = await loadBrief(ctx.host, ctx.cwd, path);
-  if (loaded.error)
-    return { ...first, errors: [...first.errors, loaded.error] };
-  const full = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text });
-  return { ...full, brief: loaded.text };
+  const loaded2 = await loadBrief(ctx.host, ctx.cwd, path);
+  if (loaded2.error)
+    return { ...first, errors: [...first.errors, loaded2.error] };
+  const full = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host), brief: loaded2.text });
+  return { ...full, brief: loaded2.text };
 }
 async function planFromJson(ctx, raw, options = {}) {
   const checked = await validateWithBrief(ctx, raw);
@@ -9049,7 +9688,7 @@ function draftSummary(draft) {
     return tr("draft.empty_summary", { id: draft.id });
   const lines = draft.tasks.map((t) => {
     const deps = t.dependsOn?.length ? t.dependsOn.join(", ") : "-";
-    const own = t.exclusive ? "exclusive" : t.files?.length ? t.files.join(", ") : "-";
+    const own = (t.exclusive ? `exclusive${t.exclusive === "machine" ? ":machine" : ""}` : t.files?.length ? t.files.join(", ") : "-") + usesSuffix(t.uses);
     return tr("draft.line", { id: t.id, title: t.title, deps, own });
   });
   return [tr("draft.summary", { id: draft.id, n: draft.tasks.length }), ...lines].join(`
@@ -9100,21 +9739,22 @@ async function draftOpen(ctx, args) {
 async function draftAdd(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
   const raw = await readJsonArg(ctx, args.positionals[0], "json.batch");
-  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx2) => {
+  return withDraft(ctx, draft.id, async (ctx2) => {
     const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     const read = readPlan(raw);
     const profiles = read.plan.profiles ?? current2.profiles ?? DEFAULT_PROFILES;
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx2.host.platform,
+      resources: await loadResources(ctx2.host),
       profiles,
       existingIds: current2.tasks.map((t) => t.id)
     });
     const earlier = read.plan.profiles ? current2.tasks.filter((t) => t.profile !== undefined && !(t.profile in profiles)).map((t) => tr("plan.unknown_profile", { id: t.id, profile: t.profile, profiles: Object.keys(profiles).join(", ") })) : [];
     const errors = [...read.errors, ...batch.errors, ...earlier];
     const briefPath = read.plan.context?.brief;
-    const loaded = briefPath ? await loadBrief(ctx2.host, ctx2.cwd, briefPath) : undefined;
-    if (loaded?.error)
-      errors.push(loaded.error);
+    const loaded2 = briefPath ? await loadBrief(ctx2.host, ctx2.cwd, briefPath) : undefined;
+    if (loaded2?.error)
+      errors.push(loaded2.error);
     if (errors.length > 0)
       return refused(tr("draft.batch_refused"), errors);
     const next = { ...current2, tasks: [...current2.tasks, ...batch.tasks] };
@@ -9122,13 +9762,13 @@ async function draftAdd(ctx, args) {
       if (read.plan[key] !== undefined)
         next[key] = read.plan[key];
     if (read.plan.context) {
-      await storeBrief(ctx2.host, dir, loaded?.text);
-      if (loaded)
+      await storeBrief(ctx2.host, dir, loaded2?.text);
+      if (loaded2)
         next.context = { ...read.plan.context, brief: BRIEF_FILE };
     }
     await saveDraft(ctx2, dir, next);
-    if (loaded && current2.briefScratch && samePath(loaded.file, current2.briefScratch, ctx2.host.platform))
-      await ctx2.host.remove(loaded.file).catch(() => {
+    if (loaded2 && current2.briefScratch && samePath(loaded2.file, current2.briefScratch, ctx2.host.platform))
+      await ctx2.host.remove(loaded2.file).catch(() => {
         return;
       });
     const added = batch.tasks.map((t) => t.id).join(", ") || tr("draft.no_tasks");
@@ -9152,7 +9792,7 @@ async function draftFix(ctx, args) {
   }
   if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.id === undefined)
     raw = { ...raw, id: fixId };
-  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx2) => {
+  return withDraft(ctx, draft.id, async (ctx2) => {
     const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     const index = current2.tasks.findIndex((t) => t.id === fixId);
     if (index < 0)
@@ -9164,6 +9804,7 @@ async function draftFix(ctx, args) {
       errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }));
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx2.host.platform,
+      resources: await loadResources(ctx2.host),
       profiles: current2.profiles ?? DEFAULT_PROFILES,
       existingIds: current2.tasks.filter((t) => t.id !== fixId).map((t) => t.id)
     });
@@ -9185,12 +9826,12 @@ async function draftShow(ctx, args) {
 }
 async function draftCommit(ctx, args) {
   const { dir, draft } = await resolveDraft(ctx, args);
-  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx2) => {
+  return withDraft(ctx, draft.id, async (ctx2) => {
     const current2 = await readJson(ctx2.host, draftFile(dir)) ?? draft;
     if (current2.tasks.length === 0)
       throw new ToolError(tr("draft.empty"));
     const brief = await readRunBrief(ctx2.host, dir, current2.context);
-    const checked = validatePlan(draftPlan(current2), { platform: ctx2.host.platform, ...brief ? { brief } : {} });
+    const checked = validatePlan(draftPlan(current2), { platform: ctx2.host.platform, resources: await loadResources(ctx2.host), ...brief ? { brief } : {} });
     const { plan, warnings } = checked;
     const errors = brief === null ? [...checked.errors, tr("plan.brief_missing", { file: join(dir, BRIEF_FILE) })] : checked.errors;
     if (errors.length > 0)
@@ -9234,7 +9875,7 @@ defineAction("import", async (ctx, args) => {
   if (!tickets.length)
     throw new ToolError(tr("import.no_tickets", { dir: arg }));
   const raw = { tasks: tickets.map((t) => t.task) };
-  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform });
+  const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host) });
   const read = [tr("import.read", { n: tickets.length, dir: arg }), ...tickets.map((t) => `  ${ticketReadLine(t)}`)];
   if (!args.options.yes) {
     const verdict = errors.length ? `${tr("import.has_errors", { n: errors.length })}
@@ -9257,154 +9898,6 @@ ${errors.map((e) => `- ${e}`).join(`
 `)}
 ${createdText(created)}`, { run: created.run.id, dir: created.dir, tickets: created.tickets }, bindOf(created));
 }, "help.import");
-// src/frontier.ts
-function ownerOf2(run, task) {
-  return `gt:${run}/${task}`;
-}
-function taskKeys(root, task, platform) {
-  if (task.exclusive)
-    return [ALL];
-  return canonical([...task.files, ...task.claimed ?? []].map((f) => normalizeKey(f, root, platform)));
-}
-function assess(state, locks, platform) {
-  const byId = new Map(state.tasks.tasks.map((t) => [t.id, t]));
-  const held = locks.filter((l) => l.holder && l.holder.stale !== true);
-  const out = [];
-  for (const task of state.tasks.tasks) {
-    if (task.status !== "pending")
-      continue;
-    const blockers = [];
-    const failed = task.dependsOn.filter((d) => byId.get(d)?.status === "failed");
-    const open = task.dependsOn.filter((d) => {
-      const s = byId.get(d)?.status;
-      return s !== "done" && s !== "skipped" && s !== "failed";
-    });
-    if (failed.length)
-      blockers.push({ kind: "failed", ids: failed });
-    if (open.length)
-      blockers.push({ kind: "dependency", ids: open });
-    if (state.run.status === "paused")
-      blockers.push({ kind: "paused" });
-    const mutex = sharedBlocker(state, task, platform);
-    if (mutex)
-      blockers.push(mutex);
-    const own = ownerOf2(state.run.id, task.id);
-    for (const key of taskKeys(state.root, task, platform)) {
-      const lock = held.find((l) => l.holder.owner !== own && conflicts(key, l.key));
-      if (lock) {
-        blockers.push({ kind: "ownership", key, via: lock.key, owner: lock.holder.owner });
-        break;
-      }
-      const reserved = yieldedKeys(state).find((y) => conflicts(key, y.key));
-      if (reserved) {
-        blockers.push({ kind: "ownership", key, via: reserved.key, owner: ownerOf2(state.run.id, reserved.task) });
-        break;
-      }
-    }
-    out.push({ task, ready: blockers.length === 0, blockers });
-  }
-  return out;
-}
-function sharedOf(state, task, platform) {
-  return task.exclusive ? [] : sharedTouched(state.run.shared ?? [], task, caseInsensitive(platform));
-}
-function sharedBlocker(state, task, platform) {
-  if (state.run.sharedPolicy !== "serialize")
-    return;
-  const mine = sharedOf(state, task, platform);
-  if (!mine.length)
-    return;
-  for (const other of state.tasks.tasks) {
-    if (other.id === task.id || other.status !== "in_progress")
-      continue;
-    const hit = sharedOf(state, other, platform).find((s) => mine.includes(s));
-    if (hit)
-      return { kind: "shared", path: hit, task: other.id };
-  }
-  return;
-}
-function yieldedKeys(state) {
-  return state.tasks.tasks.flatMap((t) => t.status === "in_progress" ? (t.yielded ?? []).map((y) => ({ task: t.id, key: y.key, path: y.path })) : []);
-}
-function selectReady(state, assessments, platform, limit = Infinity) {
-  const chosen = [];
-  const taken = [];
-  const serialize2 = state.run.sharedPolicy === "serialize";
-  const sharedTaken = [];
-  for (const a of assessments) {
-    if (!a.ready || chosen.length >= limit)
-      continue;
-    const keys = taskKeys(state.root, a.task, platform);
-    if (keys.some((k) => taken.some((t) => conflicts(k, t))))
-      continue;
-    if (a.task.exclusive && chosen.length > 0)
-      continue;
-    const shared = serialize2 ? sharedOf(state, a.task, platform) : [];
-    if (shared.some((s) => sharedTaken.includes(s)))
-      continue;
-    chosen.push(a.task);
-    taken.push(...keys);
-    sharedTaken.push(...shared);
-    if (a.task.exclusive)
-      break;
-  }
-  return chosen;
-}
-function waitingOf(state, locks) {
-  const out = new Map;
-  const held = locks.filter((l) => l.holder && l.holder.stale !== true);
-  for (const task of state.tasks.tasks) {
-    if (task.status !== "in_progress")
-      continue;
-    const owner = ownerOf2(state.run.id, task.id);
-    for (const lock of locks) {
-      const entry = lock.queue.find((q) => q.owner === owner);
-      if (!entry)
-        continue;
-      const blocking = lock.holder && lock.holder.owner !== owner ? lock : held.find((h) => h.holder.owner !== owner && conflicts(lock.key, h.key));
-      out.set(task.id, {
-        key: lock.key,
-        holder: blocking?.holder?.owner ?? "?",
-        position: entry.position,
-        via: blocking?.key ?? lock.key
-      });
-      break;
-    }
-    if (!out.has(task.id) && task.yielded?.length) {
-      const y = task.yielded[0];
-      const blocking = held.find((h) => h.holder.owner !== owner && conflicts(y.key, h.key));
-      out.set(task.id, { key: y.key, holder: blocking?.holder?.owner ?? "", position: 0, via: blocking?.key ?? y.key, yielded: task.yielded.map((x) => x.path) });
-    }
-  }
-  return out;
-}
-function waitingText(w, state, platform) {
-  if (w.yielded) {
-    const files = w.yielded.join(", ");
-    return w.holder ? tr("frontier.yielded_held", { files, owner: describeOwner(w.holder, state.run.id) }) : tr("frontier.yielded", { files });
-  }
-  const asked = describeKey(w.key, state.root, platform);
-  const via = describeKey(w.via, state.root, platform);
-  const shown2 = w.via === w.key ? asked : covers(w.via, w.key) ? `${via}/` : tr("frontier.inside", { via, asked });
-  return tr("frontier.waiting", { owner: describeOwner(w.holder, state.run.id), shown: shown2, position: w.position });
-}
-function blockerText(b, state, platform) {
-  switch (b.kind) {
-    case "failed":
-      return tr("frontier.failed_dependency", { ids: b.ids.join(", ") });
-    case "dependency":
-      return `⛔ ${b.ids.join(", ")}`;
-    case "paused":
-      return tr("view.paused");
-    case "shared":
-      return tr("frontier.shared", { id: b.task, path: b.path });
-    case "ownership": {
-      const key = describeKey(b.key, state.root, platform);
-      const via = b.via !== b.key ? ` (via ${describeKey(b.via, state.root, platform)})` : "";
-      return `\uD83D\uDD12 ${describeOwner(b.owner, state.run.id)}: ${key}${via}`;
-    }
-  }
-}
 // src/transient.ts
 var KIND_TABLE = {
   rate_limit: "rate_limit",
@@ -9768,15 +10261,15 @@ function keepaliveDecision(input) {
   }
   const tool = toolOf(input.actor);
   const signature = progressSignature(state.tasks);
-  const last = input.last?.signature === signature ? input.last : undefined;
-  if (last?.action === "held")
+  const last2 = input.last?.signature === signature ? input.last : undefined;
+  if (last2?.action === "held")
     return { action: "none", reason: "held" };
-  if (last?.action === "stalled")
+  if (last2?.action === "stalled")
     return { action: "none", reason: "stalled" };
   const what = keepaliveWhat(ready, orphans, agents, tool);
   if (input.cause === "error")
-    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last?.tries ?? 0, ready, orphans, agents, cause: "error" };
-  const tries = (last?.tries ?? 0) + 1;
+    return { action: "stalled", notice: tr("keepalive.error", { run: run.id, what }), signature, tries: last2?.tries ?? 0, ready, orphans, agents, cause: "error" };
+  const tries = (last2?.tries ?? 0) + 1;
   const max = input.maxTries ?? DEFAULT_KEEPALIVE_TRIES;
   if (tries > max) {
     return { action: "stalled", notice: tr("keepalive.stalled", { run: run.id, what, tries: max }), signature, tries, ready, orphans, agents };
@@ -9872,12 +10365,11 @@ async function checkKeepalive(host, check) {
   const quick = keepaliveDecision({ state, locks: [], platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, maxTries: 0 });
   if (quick.action === "none")
     return quick;
-  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
-  const locks = await (star ? jlockList(host) : jlockList(host, { under: check.root })).catch(() => []);
-  let last = check.fresh ? undefined : await readKeepalive(host, dir);
-  if (last && last.action !== "held" && hadActivity(await readLog(host, dir), last.at, check.actor))
-    last = undefined;
-  const decision = keepaliveDecision({ state, locks, platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, last, maxTries: keepaliveTries(host), cause: check.cause });
+  const locks = await jlockList(host).catch(() => []);
+  let last2 = check.fresh ? undefined : await readKeepalive(host, dir);
+  if (last2 && last2.action !== "held" && hadActivity(await readLog(host, dir), last2.at, check.actor))
+    last2 = undefined;
+  const decision = keepaliveDecision({ state, locks, platform: host.platform, liveAgents: check.liveAgents, actor: check.actor, last: last2, maxTries: keepaliveTries(host), cause: check.cause });
   if (check.commit && decision.action !== "none") {
     const at = host.now().toISOString();
     const memory = { signature: decision.signature, action: decision.action, tries: decision.tries, at, ready: decision.ready, orphans: decision.orphans };
@@ -10150,7 +10642,7 @@ async function takenSince(host, dir, task, keys) {
   return keys.filter((k) => others.some((o) => o.at >= since && o.keys.some((x) => conflicts(x, k))));
 }
 function ownKeys(state, task, platform) {
-  return task.exclusive ? [normalizeKey(state.root, state.root, platform)] : taskKeys(state.root, task, platform);
+  return pathKeys(state.root, task, platform);
 }
 async function changedUnder(host, state, keys) {
   const out = [];
@@ -10165,16 +10657,14 @@ async function changedUnder(host, state, keys) {
 }
 async function ownFiles(host, state, task, files) {
   const keys = ownKeys(state, task, host.platform);
-  const owner = ownerOf2(state.run.id, task.id);
-  const locks = files.length ? await jlockList(host, task.exclusive ? {} : { under: state.root }) : [];
-  const live = locks.filter((l) => l.holder && l.holder.stale !== true);
-  const held = (key, l) => l.key === key || l.key === ALL && task.exclusive;
+  const owner = ownerOf(state.run.id, task.id);
+  const locks = files.length ? await jlockList(host, { under: state.root }) : [];
   const out = { mine: [], untouched: [] };
   for (const file of files) {
     const fileKey = normalizeKey(file, state.root, host.platform);
     const key = keys.find((k) => covers(k, fileKey));
-    const foreign = live.some((l) => l.holder.owner !== owner && conflicts(l.key, fileKey));
-    const ours = key && live.some((l) => held(key, l) && l.holder.owner === owner);
+    const foreign = locks.some((l) => conflicts(l.key, fileKey) && liveHolders(l).some((h) => !sameFamily(h.owner, owner)));
+    const ours = key && locks.some((l) => l.key === key && liveHolders(l).some((h) => h.owner === owner));
     if (!key || foreign || !ours && (await takenSince(host, state.dir, task.id, [key])).length)
       out.untouched.push(file);
     else
@@ -10538,9 +11028,9 @@ function taskIdArg(args) {
 async function log(ctx, state, entry) {
   await appendLog(ctx.host, state.dir, { at: ctx.host.now().toISOString(), actor: actorOf(ctx), ...entry });
 }
-async function frontierLocks(ctx, state) {
-  const needsAll = state.tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
-  return needsAll ? jlockList(ctx.host) : jlockList(ctx.host, { under: state.root });
+async function frontierLocks(ctx, _state) {
+  const [locks] = await Promise.all([jlockList(ctx.host), loadResources(ctx.host)]);
+  return locks;
 }
 function residentKey(run, task) {
   return `${run}/${task}`;
@@ -10578,7 +11068,7 @@ async function markLost(ctx, first, id) {
     await writeTicket(ctx2.host, d.state, id);
     await log(ctx2, d.state, { action: "lost", task: id, from: "in_progress", to: d.result.to, ...keptLog(d.result.kept) });
     return true;
-  });
+  }, id);
   if (changed)
     await releaseHolds(ctx, first.run.id, id).catch(() => {});
   return changed;
@@ -10587,7 +11077,7 @@ function identity(ctx, state, task) {
   const meta = { task: task.id, run: state.run.id, tool: ctx.tool };
   if (ctx.session)
     meta.session = ctx.session;
-  return { owner: ownerOf2(state.run.id, task.id), group: state.run.id, intent: task.title, meta };
+  return { owner: ownerOf(state.run.id, task.id), group: state.run.id, intent: task.title, meta };
 }
 function holdModeOf(ctx) {
   return ctx.holdMode ?? (ctx.residents ? "eof" : "detach");
@@ -10611,7 +11101,7 @@ async function releaseHolds(ctx, run, task) {
     if (await r.send(`release
 `))
       await Promise.race([r.exited, ctx.host.sleep(5000)]);
-  const released = await jlockRelease(ctx.host, run, ownerOf2(run, task));
+  const released = await jlockRelease(ctx.host, run, ownerOf(run, task));
   for (const r of mine)
     await r.stop();
   return released.keys;
@@ -10637,14 +11127,15 @@ defineAction("next", async (ctx, args) => {
     acceptance: t.acceptance.map((a) => a.text),
     files: t.files,
     claimed: t.claimed ?? [],
-    exclusive: !!t.exclusive,
+    exclusive: exclusiveScope(t) ?? false,
+    uses: t.uses ?? [],
     ticket: ticketPath(state.dir, state.tasks.tasks, t.id)
   }));
   const lines = retakenLines(back);
   if (ready.length) {
     lines.push(tr("next.ready", { n: ready.length, run: state.run.id }));
     for (const t of items) {
-      const own = t.exclusive ? tr("next.exclusive") : t.files.join(", ") || tr("next.no_files");
+      const own = (t.exclusive === "machine" ? tr("next.exclusive_machine") : t.exclusive ? tr("next.exclusive") : t.files.join(", ") || tr("next.no_files")) + usesSuffix(t.uses);
       lines.push(tr("next.line", { id: t.id, title: t.title, profile: t.profile, own }));
       if (t.acceptance.length)
         lines.push(`  ${tr("next.criteria", { criteria: t.acceptance.join("; ") })}`);
@@ -10675,7 +11166,6 @@ defineAction("next", async (ctx, args) => {
 defineAction("start", async (ctx, args) => {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
-  const exclusive = first.tasks.tasks.find((t) => t.id === id)?.exclusive;
   return withTree(ctx, first.run.id, async (ctx2) => {
     let keys = [];
     let hold;
@@ -10702,14 +11192,15 @@ defineAction("start", async (ctx, args) => {
           throw new ToolError(tr("start.shared", { id: task.id, path: mutex.path, other: mutex.task }));
         const now = ctx2.host.now().toISOString();
         if (attempt === 1) {
-          keys = taskKeys(state2.root, task, ctx2.host.platform);
+          const specs = taskLocks(state2.root, task, ctx2.host.platform);
+          keys = specs.map((s) => s.key);
           if (keys.length) {
-            const outcome = await acquireHold(ctx2, state2, task, keys, { noWait: true }, 15000);
+            const outcome = await acquireHold(ctx2, state2, task, specs, { noWait: true }, 15000);
             if (outcome.answer.result !== "granted") {
               const a = outcome.answer;
-              const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state2.run.id) : tr("start.other_owner");
+              const holder = holderText(a, state2.run.id);
               const key = a.failed ?? a.key ?? keys[0];
-              const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state2.root, ctx2.host.platform)})` : "";
+              const via = await viaText(ctx2, a.via, key, state2.root);
               keys = [];
               throw new ToolError(tr("start.busy", { id: task.id, key: describeKey(key, state2.root, ctx2.host.platform), holder, via }), 1, { result: a.result, key, holder: a.holder, position: a.position, via: a.via });
             }
@@ -10755,11 +11246,25 @@ defineAction("start", async (ctx, args) => {
       await log(ctx2, state, { action: "reapply", task: id, ...reapplyData(reapply) });
     }
     const ticket = ticketPath(state.dir, state.tasks.tasks, id);
-    const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf2(state.run.id, id) }) : tr("start.no_files");
+    const own = keys.length ? tr("start.locked", { n: keys.length, owner: ownerOf(state.run.id, id) }) : tr("start.no_files");
     return ok([tr("start.started", { id, attempt: d.result.attempts, own }), ...extra, `ticket: ${ticket}`, tr("start.hint", { id })].join(`
 `), { run: state.run.id, task: id, keys, owner: d.result.owner, attempts: d.result.attempts, ticket, ...reapply ? reapplyData(reapply) : {} });
-  }, exclusive && id ? ownerOf2(first.run.id, id) : undefined);
+  }, id);
 }, "help.start");
+function holderText(a, run) {
+  const h = typeof a.holder === "object" && a.holder ? a.holder : a.holders?.[0];
+  if (h)
+    return describeOwner(h.owner, run);
+  return typeof a.holder === "string" ? describeOwner(a.holder, run) : tr("start.other_owner");
+}
+async function viaText(ctx, via, key, root) {
+  if (isResourceKey(key)) {
+    await loadResources(ctx.host);
+    const what = describeResource(key);
+    return what ? ` (${what})` : "";
+  }
+  return via && via !== key ? ` (via ${describeKey(via, root, ctx.host.platform)})` : "";
+}
 function doneTrailer(run, task) {
   return `Jtasks-Task: ${run}/${task}`;
 }
@@ -10778,13 +11283,13 @@ function mergeReapply(a, b) {
     return b;
   const files = (x) => new Set(x.map((y) => y.file));
   const applied = [...new Set([...a.applied, ...b.applied])];
-  const conflicts3 = [...a.conflicts.filter((c) => !files(b.conflicts).has(c.file)), ...b.conflicts];
-  return { applied, conflicts: conflicts3, failed: b.failed.filter((f) => !applied.includes(f.file)) };
+  const conflicts2 = [...a.conflicts.filter((c) => !files(b.conflicts).has(c.file)), ...b.conflicts];
+  return { applied, conflicts: conflicts2, failed: b.failed.filter((f) => !applied.includes(f.file)) };
 }
 async function releaseHoldsOf(ctx, run, task, resident, keys) {
   if (!resident || !await resident.send(`release
 `))
-    await jlockReleaseKeys(ctx.host, keys, ownerOf2(run, task)).catch(() => {});
+    await jlockReleaseKeys(ctx.host, keys, ownerOf(run, task)).catch(() => {});
   if (!resident)
     return;
   await Promise.race([resident.exited, ctx.host.sleep(3000)]);
@@ -10827,23 +11332,30 @@ async function statusOf(ctx, state) {
     lines.push(tr("status.failed", { list: failed.map((t) => `${t.id}: ${t.error ?? "?"}`).join(" | ") }));
   const lost = state.tasks.tasks.filter((t) => t.status === "pending" && t.lost).map((t) => t.id);
   for (const t of running) {
-    const owner = ownerOf2(state.run.id, t.id);
+    const owner = ownerOf(state.run.id, t.id);
     const keys = taskKeys(state.root, t, platform);
-    const held = groupLocks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key);
+    const held = heldBy(groupLocks, owner);
     if (keys.length && keys.some((k) => !held.includes(k)))
       lost.push(tr("status.lost_task", { id: t.id }));
   }
   if (lost.length)
     lines.push(tr("status.lost", { list: lost.join(", ") }));
-  const locks = groupLocks.map((l) => ({
-    key: describeKey(l.key, state.root, platform),
-    holder: l.holder ? describeOwner(l.holder.owner, state.run.id) : null,
-    queue: l.queue.map((q) => ({ owner: describeOwner(q.owner, state.run.id), position: q.position }))
-  }));
+  const ours = (owner) => owner.startsWith(`gt:${state.run.id}/`);
+  const locks = groupLocks.map((l) => {
+    const holds = liveHolders(l).filter((h) => ours(h.owner));
+    const holders = holds.map((h) => ({ owner: describeOwner(h.owner, state.run.id), mode: h.mode ?? "exclusive", nested: !!h.nested }));
+    return {
+      key: describeKey(l.key, state.root, platform),
+      holder: holders[0]?.owner ?? null,
+      holders,
+      queue: l.queue.filter((q) => ours(q.owner)).map((q) => ({ owner: describeOwner(q.owner, state.run.id), position: q.position }))
+    };
+  });
+  const holdText = (h) => `${h.owner}${h.mode === "shared" ? ` ${tr("status.shared_hold")}` : ""}${h.nested ? ` ${tr("status.nested_hold")}` : ""}`;
   if (locks.length)
     lines.push(tr("status.locks", {
       run: state.run.id,
-      list: locks.map((l) => `${l.key} → ${l.holder ?? tr("status.free")}${l.queue.length ? ` ${tr("status.queue", { n: l.queue.length, owners: l.queue.map((q) => q.owner).join(", ") })}` : ""}`).join(" · ")
+      list: locks.map((l) => `${l.key} → ${l.holders.length ? l.holders.map(holdText).join(", ") : tr("status.free")}${l.queue.length ? ` ${tr("status.queue", { n: l.queue.length, owners: l.queue.map((q) => q.owner).join(", ") })}` : ""}`).join(" · ")
     }));
   else
     lines.push(tr("status.no_locks"));
@@ -10900,7 +11412,7 @@ defineAction("status", async (ctx, args) => {
 addUsage("help.status.claims");
 addUsage("help.status.run");
 function possession(task) {
-  return task.exclusive ? ["."] : [...task.files, ...task.claimed ?? []];
+  return exclusiveScope(task) ? ["."] : [...task.files, ...task.claimed ?? []];
 }
 function inPossession(path, own, insensitive) {
   const p = insensitive ? path.toLowerCase() : path;
@@ -10918,9 +11430,9 @@ async function splitChanges(ctx, state, task, withOthers = true) {
     for (const t of state.tasks.tasks)
       if (t.id !== task.id && t.status === "in_progress")
         otherOwn.push(...possession(t));
-    const owner = ownerOf2(state.run.id, task.id);
+    const owner = ownerOf(state.run.id, task.id);
     for (const l of await jlockList(ctx.host, { under: state.root }))
-      if (l.holder && l.holder.owner !== owner && l.holder.stale !== true)
+      if (liveHolders(l).some((h) => !sameFamily(h.owner, owner)))
         otherKeys.push(l.key);
   }
   const out = { inside: [], others: [], outside: [], released: [] };
@@ -10954,16 +11466,16 @@ async function missingKeys(ctx, state, task) {
   const keys = taskKeys(state.root, task, ctx.host.platform);
   if (!keys.length)
     return [];
-  const owner = ownerOf2(state.run.id, task.id);
+  const owner = ownerOf(state.run.id, task.id);
   const locks = await jlockList(ctx.host, { group: state.run.id });
-  const held = new Set(locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key));
+  const held = new Set(heldBy(locks, owner));
   return keys.filter((k) => !held.has(k));
 }
 async function takeKeys(ctx, state, task, keys) {
   if (!keys.length)
     return [];
   const take = async (some) => {
-    const outcome = await acquireHold(ctx, state, task, some, { noWait: true }, 5000);
+    const outcome = await acquireHold(ctx, state, task, specsOf(state.root, task, ctx.host.platform, some), { noWait: true }, 5000);
     if (outcome.answer.result !== "granted")
       return false;
     if (outcome.resident)
@@ -11021,7 +11533,7 @@ async function transition(ctx, args, action, change, opts = {}) {
     await log(ctx2, d.state, { action: name(), task: taskId, from, to: task.status, ...extra });
     return { task, tasks: d.state.tasks, state: d.state };
   };
-  return opts.tree ? withTree(ctx, first.run.id, run) : run(ctx);
+  return opts.tree ? withTree(ctx, first.run.id, run, id) : run(ctx);
 }
 function closeTask(task, status2, now) {
   task.status = status2;
@@ -11062,7 +11574,7 @@ async function giveBack(ctx, run, task) {
     await releaseHolds(ctx, run, task);
     return tr("release.given_back");
   } catch (error) {
-    return tr("release.failed", { message: error.message, run, owner: ownerOf2(run, task) });
+    return tr("release.failed", { message: error.message, run, owner: ownerOf(run, task) });
   }
 }
 function parseDuration(raw) {
@@ -11126,7 +11638,7 @@ defineAction("claim", async (ctx, args) => {
   }
   if (errors.length)
     throw new ToolError(tr("claim.refused", { errors: errors.join("; ") }));
-  const current2 = taskKeys(first.root, task, platform);
+  const current2 = pathKeys(first.root, task, platform);
   const wanted = files.filter((f) => {
     const key = normalizeKey(f, first.root, platform);
     return !current2.some((k) => covers(k, key));
@@ -11140,10 +11652,11 @@ defineAction("claim", async (ctx, args) => {
   const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)));
   const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s");
   const began = ctx.host.now().getTime();
-  const outcome = await acquireHold(ctx, first, task, keys, { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) }, timeoutMs + 15000);
+  const specs = keys.map((key) => ({ key, mode: "exclusive" }));
+  const outcome = await acquireHold(ctx, first, task, specs, { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) }, timeoutMs + 15000);
   const waited = ((ctx.host.now().getTime() - began) / 1000).toFixed(1);
   const a = outcome.answer;
-  const holderOf = (h) => typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : "?";
+  const holderOf = (h) => typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : a.holders?.[0] ? describeOwner(a.holders[0].owner, first.run.id) : "?";
   if (a.result === "timeout") {
     const key = a.failed ?? a.key ?? keys[0];
     const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, first.root, platform)})` : "";
@@ -11189,7 +11702,7 @@ defineAction("claim", async (ctx, args) => {
       await log(ctx2, d.state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply) });
       return { t: d.result, reapply };
     };
-    const done = reapplies ? await withTree(ctx, first.run.id, record) : await record(ctx);
+    const done = reapplies ? await withTree(ctx, first.run.id, record, task.id) : await record(ctx);
     if (resident)
       remember(ctx, first, task.id, resident);
     const text = [tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done.t).join(", ") }), ...reapplyLines(done.reapply)];
@@ -11256,7 +11769,7 @@ async function retakeYielded(ctx, first, only) {
       const granted = keys.filter((k) => !refused2.includes(k));
       if (!granted.length)
         continue;
-      const back = await withTree(ctx, first.run.id, async (ctx2) => {
+      const back = await withTree(ctx, { run: first.run.id, task: task.id }, async (ctx2) => {
         let reapply;
         let files = [];
         const d = await decide(ctx2, first, "reclaim", async (state, draft) => {
@@ -11277,7 +11790,7 @@ async function retakeYielded(ctx, first, only) {
       if (back)
         out.push(back);
       else
-        await jlockReleaseKeys(ctx.host, granted, ownerOf2(state0.run.id, task.id)).catch(() => {});
+        await jlockReleaseKeys(ctx.host, granted, ownerOf(state0.run.id, task.id)).catch(() => {});
     } catch {}
   }
   return out;
@@ -11293,8 +11806,8 @@ defineAction("yield", async (ctx, args) => {
   if (task.exclusive)
     throw new ToolError(tr("yield.exclusive", { id: task.id }));
   const platform = ctx.host.platform;
-  const owner = ownerOf2(first.run.id, task.id);
-  const current2 = taskKeys(first.root, task, platform);
+  const owner = ownerOf(first.run.id, task.id);
+  const current2 = pathKeys(first.root, task, platform);
   const keys = [];
   const raw = args.positionals.slice(1);
   if (raw.length) {
@@ -11317,7 +11830,7 @@ defineAction("yield", async (ctx, args) => {
       throw new ToolError(tr("yield.nothing", { id: task.id }), 2);
   }
   const wanted = canonical(keys);
-  const done = await withTree(ctx, first.run.id, async (ctx2) => {
+  const done = await withTree(ctx, { run: first.run.id, task: task.id }, async (ctx2) => {
     const d = await decide(ctx2, first, "yield", async (state, draft) => {
       const t = draft.tasks.tasks.find((x) => x.id === task.id);
       if (t.status !== "in_progress")
@@ -11394,7 +11907,7 @@ defineAction("done", async (ctx, args) => {
   let leftByOthers = [];
   const first = await resolveRun(ctx, args);
   let broughtBack;
-  const t = await withTree(ctx, first.run.id, async (ctx2) => {
+  const t = await withTree(ctx, { run: first.run.id, task: taskIdArg(args) }, async (ctx2) => {
     broughtBack = evidence ? await bringBackKept(ctx2, args) : undefined;
     return transition(ctx2, args, "done", async (task, state, draft) => {
       commit2 = null;
@@ -11470,7 +11983,7 @@ defineAction("adopt", async (ctx, args) => {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
   const insensitive = caseInsensitive(ctx.host.platform);
-  const r = await withTree(ctx, first.run.id, async (ctx2) => {
+  const r = await withTree(ctx, { run: first.run.id, task: id }, async (ctx2) => {
     let acc;
     const d = await decide(ctx2, first, "adopt", async (state, draft) => {
       const task = findTask(state, id);
@@ -11538,7 +12051,7 @@ async function bringBackKept(ctx, args) {
   const first = await resolveRun(ctx, args);
   const id = taskIdArg(args);
   const insensitive = caseInsensitive(ctx.host.platform);
-  return withTree(ctx, first.run.id, async (ctx2) => {
+  return withTree(ctx, { run: first.run.id, task: id }, async (ctx2) => {
     let reapply;
     const d = await decide(ctx2, first, "reapply", async (state2, draft) => {
       const original = findTask(state2, id);
@@ -12094,7 +12607,7 @@ defineAction("resume", async (ctx, args) => {
     return state2;
   });
   for (const r of released)
-    await jlockRelease(ctx.host, state.run.id, ownerOf2(state.run.id, r.id)).catch(() => {});
+    await jlockRelease(ctx.host, state.run.id, ownerOf(state.run.id, r.id)).catch(() => {});
   const lines = [...back ? [back] : [], tr("resume.bound", { run: state.run.id })];
   for (const r of released)
     lines.push(`${tr("resume.released", { id: r.id, to: r.to })}${keptNote(r.kept)}`);
@@ -12152,11 +12665,11 @@ ${tr("context.brief_file", { file: briefFile })}` : text, {
     const read = readContext(await readJsonArg(ctx, args.positionals[0], "json.context"));
     const errors = [...read.errors];
     if (!errors.length && read.context?.brief) {
-      const loaded = await loadBrief(ctx.host, ctx.cwd, read.context.brief);
-      if (loaded.error)
-        errors.push(loaded.error);
+      const loaded2 = await loadBrief(ctx.host, ctx.cwd, read.context.brief);
+      if (loaded2.error)
+        errors.push(loaded2.error);
       else
-        briefText = loaded.text;
+        briefText = loaded2.text;
     }
     if (errors.length)
       return { ok: false, code: 1, text: `${tr("errors.count", { n: errors.length })}
@@ -12215,12 +12728,13 @@ defineAction("exec", async (ctx, args) => {
   const root = state?.root ?? (await requirePaths(ctx.host, ctx.cwd)).repoRoot;
   const command = argv.join(" ");
   const entry = state ? serializeEntry(state.run.serialize, command) : undefined;
+  const target = state ? execTask(ctx, state, args) : undefined;
   const full = entry ? [
     jlockBin(ctx.host),
     "run",
     serializeKey(root, entry),
     "--owner",
-    `gt:${state.run.id}/exec-${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 46656).toString(36)}`,
+    childOwner(state.run.id, target?.id, "exec", `${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 46656).toString(36)}`),
     "--group",
     state.run.id,
     "--intent",
@@ -12229,7 +12743,6 @@ defineAction("exec", async (ctx, args) => {
     "--",
     ...argv
   ] : [...argv];
-  const target = state ? execTask(ctx, state, args) : undefined;
   const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : 10 * 60000;
   const pids = [];
   let registering;
@@ -12613,10 +13126,10 @@ function ttlMs(ttl) {
 function renewMargin(ttl, every = RENEW_EVERY_MS) {
   return Math.min(RENEW_MARGIN_MS, Math.max(Math.floor(ttl / 2), 2 * every));
 }
-function earliestExpiry(locks) {
+function earliestExpiry(locks, owner) {
   let out;
   for (const l of locks) {
-    const h = l.holder;
+    const h = owner === undefined ? l.holder : holdersOf(l).find((x) => x.owner === owner) ?? null;
     if (!h)
       continue;
     let at;
@@ -12640,12 +13153,12 @@ function renewalNeed(state, task, locks, platform, now, every = RENEW_EVERY_MS) 
   const keys = taskKeys(state.root, task, platform);
   if (!keys.length)
     return "none";
-  const owner = ownerOf2(state.run.id, task.id);
-  const mine = locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true);
+  const owner = ownerOf(state.run.id, task.id);
+  const mine = locks.filter((l) => liveHolders(l).some((h) => h.owner === owner));
   const held = new Set(mine.map((l) => l.key));
   if (keys.some((k) => !held.has(k)))
     return "retake";
-  const expiry = earliestExpiry(mine);
+  const expiry = earliestExpiry(mine, owner);
   const margin = renewMargin(ttlMs(state.run.holdTtl ?? DEFAULT_HOLD_TTL), every);
   return expiry === undefined || expiry - now > margin ? "fresh" : "renew";
 }
@@ -12653,7 +13166,7 @@ async function renewTask(ctx, state, task) {
   const keys = taskKeys(state.root, task, ctx.host.platform);
   if (await canRenew(ctx.host)) {
     const ttl = state.run.holdTtl ?? DEFAULT_HOLD_TTL;
-    await jlockRenew(ctx.host, state.run.id, ownerOf2(state.run.id, task.id), ttl);
+    await jlockRenew(ctx.host, state.run.id, ownerOf(state.run.id, task.id), ttl);
     const refused3 = await retakeMissing(ctx, state, task);
     await log(ctx, state, refused3.length ? { action: "renew-lost", task: task.id, keys, refused: refused3 } : { action: "renew", task: task.id, keys, ttl });
     return refused3.length ? "lost" : "renewed";
@@ -13308,17 +13821,17 @@ function expand(parts, vars) {
         return stop();
       body = home + body.slice(1);
     }
-    let last = 0;
+    let last2 = 0;
     for (const m of body.matchAll(VAR)) {
-      text += body.slice(last, m.index);
-      last = m.index + m[0].length;
+      text += body.slice(last2, m.index);
+      last2 = m.index + m[0].length;
       const name = m[1] ?? m[2];
       const value = name ? vars.get(name) : undefined;
       if (value === undefined)
         return stop();
       text += value;
     }
-    const rest = body.slice(last);
+    const rest = body.slice(last2);
     const glob = p.quote === "" ? rest.search(/[*?[]/) : -1;
     if (glob >= 0) {
       text += rest.slice(0, glob);
@@ -13702,8 +14215,7 @@ async function loadView(host, root, data, run, tool) {
   })]);
   if (!runFile || !tasks)
     return;
-  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"));
-  const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => []);
+  const [locks] = await Promise.all([jlockList(host).catch(() => []), loadResources(host)]);
   const view = buildView({ root, data, dir, run: runFile, tasks }, locks, host.platform, tool);
   const needs = runFile.status === "paused" ? runFile.needsPerson : undefined;
   const notice = needs ? tr("view.needs_person", { id: needs.task, n: needs.count }) : runFile.status === "paused" && runFile.pause ? pauseViewNotice(runFile.pause, host.now()) : keepaliveNotice(runFile, tasks, await readKeepalive(host, dir));
@@ -14143,6 +14655,7 @@ export {
   writeConfig,
   withTree,
   withKey,
+  withDraft,
   width,
   warningLines,
   waitingText,
@@ -14154,6 +14667,8 @@ export {
   validateGraph,
   validateBatch,
   utf8Length,
+  usesWarnings,
+  usesParallelWarnings,
   userHome,
   unregisterProcs,
   unarchive,
@@ -14166,6 +14681,7 @@ export {
   ticketNumber,
   ticketFileName,
   taskOfPrompt,
+  taskLocks,
   taskKeys,
   taskIdArg,
   taskGen,
@@ -14184,6 +14700,8 @@ export {
   stalledNotice,
   splitCommand,
   splitChanges,
+  specsOf,
+  specArg,
   sourceText,
   slugify,
   slash,
@@ -14201,6 +14719,7 @@ export {
   selectReady,
   select,
   scan,
+  sameFamily,
   runsView,
   runsDir,
   runTool,
@@ -14269,15 +14788,18 @@ export {
   pauseProtocolLine,
   pauseNotice,
   pauseForFailure,
+  pathKeys,
   parseTicket,
   parseTasklist,
   parseLines,
   parseFrontMatter,
   parseDuration,
   parseArgs,
-  ownerOf2 as ownerOf,
+  ownerOf,
   ok,
   nudgeText,
+  normalizeUses,
+  normalizeResourceKey,
   normalizeKey,
   normalizeFileEntry,
   normalizeBrief,
@@ -14285,6 +14807,7 @@ export {
   mutateTasks,
   moveDir,
   missingKeys,
+  mergeSpecs,
   markLost,
   logEnd,
   log,
@@ -14292,6 +14815,7 @@ export {
   loadRunsView,
   loadBrief,
   liveProcs,
+  liveHolders,
   listRuns,
   listDrafts,
   lineText,
@@ -14318,6 +14842,8 @@ export {
   jlockInstallCommand,
   jlockEnv,
   jlockBin,
+  isResourceKey,
+  isPathKey,
   isNameKey,
   isMerged,
   isDataPath,
@@ -14327,10 +14853,12 @@ export {
   installJlock,
   identity,
   httpStatusOf,
+  holdersOf,
   holdModeOf,
   holdModeFor,
   holdKeepalive,
   holdArgv,
+  heldBy,
   headerText,
   hasExcludeLine,
   hadActivity,
@@ -14345,6 +14873,8 @@ export {
   findingLine,
   findTask,
   findContainer,
+  exclusiveScope,
+  excludes,
   excludeLineOf,
   excludeFile,
   ensureJlock,
@@ -14388,6 +14918,7 @@ export {
   classifyFailure,
   classify,
   choose,
+  childOwner,
   checksText,
   checkShell,
   checkKeepalive,
@@ -14404,6 +14935,7 @@ export {
   briefScratchPath,
   branchExists,
   boundData,
+  blockingHold,
   blockerText,
   bindOf,
   basename,

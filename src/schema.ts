@@ -9,6 +9,20 @@ export interface Acceptance {
   done: boolean
 }
 
+/**
+ * How far an exclusive task owns (0.7.0): `project` holds the repository root exclusively (it runs alone in its
+ * repository and never touches another project's locks); `machine` also holds `resource:machine` exclusively, so it
+ * waits for every task of every jtasks run on the machine and no new one starts while it runs.
+ */
+export type ExclusiveScope = "project" | "machine"
+
+/** A jlock resource a task uses while it runs (0.7.0): `desktop`, `clipboard`, `port:8080`, in a mode. */
+export interface TaskUse {
+  /** The resource without the `resource:` prefix, normalized (`port:8080`). */
+  resource: string
+  mode: "shared" | "exclusive"
+}
+
 export interface Hold {
   /** Informative only. */
   pid?: number
@@ -58,7 +72,9 @@ export interface Task {
   profile: string
   files: string[]
   claimed?: string[]
-  exclusive?: boolean
+  exclusive?: ExclusiveScope
+  /** Resources it holds while in progress besides its files (and `resource:machine` shared, which every task holds). */
+  uses?: TaskUse[]
   acceptance: Acceptance[]
   boundary?: string
   attempts: number
@@ -281,7 +297,10 @@ export interface PlanTask {
   acceptance?: (string | { text: string; done?: boolean })[]
   profile?: string
   boundary?: string
-  exclusive?: boolean
+  /** `true` is `"project"`. */
+  exclusive?: boolean | ExclusiveScope
+  /** Resources it uses (`"desktop"`, `"port:8080"`, `{ "resource": "machine", "mode": "shared" }`); validated into `TaskUse`. */
+  uses?: (string | { resource: string; mode?: "shared" | "exclusive" } | TaskUse)[]
   /** Files of the plan's `shared` this task touches without owning them (it claims them when it needs them). */
   touchesShared?: string[]
   /** What this task adds to the run's context: notes, files to read and constraints of its own. */

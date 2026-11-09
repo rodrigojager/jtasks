@@ -26,6 +26,7 @@ file only the tool writes; each task declares the files it owns, and those files
   a machine-wide lock tool. Another task that needs one of them waits in line (`claim`) or does something else; a
   wait that would close a cycle is refused. The task refused yields with `jtasks yield`: it gives back only the contested files, its edits kept as a patch
   that comes back with them, and goes on.
+- **What else a task needs.** Besides files, a task can declare what it uses (`"uses": ["desktop"]`, `"clipboard"`, `"port:8080"`…): jlock resources held while it runs, so tasks of any run on the machine that need the same thing take turns. `"exclusive": "project"` runs a task alone in its repository; `"exclusive": "machine"` waits for every jtasks task on the machine and keeps new ones out (benchmarks, timing tests). Neither ever stops another project's locks.
 - **Proof, not promises.** A task is finished with `done` and its evidence; the tool checks that only its files
   changed and makes the commit (`T04: title`). One commit per task: reverting a task is reverting one commit.
 - **Resuming.** Where the run stands is the state of the list, not the model's memory: `jtasks resume` in any
@@ -115,7 +116,7 @@ T02 · Docs · profile execute · ownership: docs/sum.md
 blocked: T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 in progress (attempt 1): ownership locked in jlock (1 key(s), owner gt:a-sum-its-docs-and-the-e-261024-gvus/T01)
+T01 in progress (attempt 1): ownership locked in jlock (2 key(s), owner gt:a-sum-its-docs-and-the-e-261024-gvus/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-gvus/tickets/01-sum.md
 another file: jtasks claim T01 <file>; at the end: jtasks done T01 --evidence "…" (or jtasks fail T01 --error "…")
 

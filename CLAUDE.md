@@ -82,6 +82,14 @@ de informação repetida; testes em `test/context.test.ts`.
 Revisão 5.11 (item 28, ticket 62, versão 0.6.1): o brief nasce fora da pasta de dados, que a guarda reserva à
 ferramenta. `plan --draft` imprime `briefScratchPath` (`<work_dir>/00-tmp/jtasks-brief-<run>.md` num container, a
 pasta temporária do sistema fora dele); o lote que o recebe copia para `brief.md` e apaga o rascunho.
+Desenho C (versão 0.7.0, exige jlock 0.3.0): donos em família (`childOwner` em `src/frontier.ts`: o `exec` e a chave
+da árvore seguram como filhos da tarefa, `gt:<run>/<tarefa>/exec-<id>` e `.../tree-<id>`; saiu o contorno do ticket 60
+em `src/serial.ts`); `exclusive: "project" | "machine"` (raiz do repositório exclusiva; `machine` também
+`resource:machine` exclusivo; nunca `*`); `uses` com recursos do jlock (`src/resources.ts`: catálogo de
+`jlock resources --json` com o embutido de reserva, `checkUse`, descrições nas razões); toda tarefa segura
+`resource:machine` compartilhado (`taskLocks`). A fronteira lê `jlock list` da máquina inteira e conta as travas pelos
+`holders`. Avisos de `uses` em `src/validate.ts` (`usesWarnings`, `usesParallelWarnings`); desvio 19; testes em
+`test/design-c.test.ts`. Os testes chamam o jlock por `JLOCK_BIN` (`JLOCK` em `test/helpers.ts`).
 
 Layout: `src/` (núcleo, sem dependências; `node-host.ts` é o host do Node; `workspace.ts` resolve repositório e pasta de
 dados), `cli/jtasks.ts`, `dist/` e as cópias em

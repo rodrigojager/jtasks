@@ -29,6 +29,7 @@ travados enquanto ela roda.
   [jlock](https://github.com/rodrigojager/jlock), uma ferramenta de travas para a máquina inteira. Outra tarefa que
   precise de um deles espera na fila (`claim`) ou faz outra coisa; uma espera que fecharia um ciclo é recusada. A tarefa recusada cede com `jtasks yield`: devolve só os arquivos disputados, com as edições guardadas num
   patch que volta com eles, e segue em frente.
+- **O que mais uma tarefa usa.** Além dos arquivos, uma tarefa pode declarar o que usa (`"uses": ["desktop"]`, `"clipboard"`, `"port:8080"`…): recursos do jlock, travados enquanto ela roda, para que tarefas de qualquer execução na máquina que precisam da mesma coisa se revezem. `"exclusive": "project"` roda a tarefa sozinha no repositório; `"exclusive": "machine"` espera todas as tarefas do jtasks na máquina e não deixa nenhuma nova começar (benchmarks, testes de tempo). Nenhum dos dois para as travas de outro projeto.
 - **Prova, não promessa.** Uma tarefa termina com `done` e sua evidência; a ferramenta confere que só os arquivos
   dela mudaram e faz o commit (`T04: título`). Um commit por tarefa: reverter uma tarefa é reverter um commit.
 - **Retomar.** Em que ponto a execução está é o estado da lista, não a memória do modelo: `jtasks resume` em
@@ -121,7 +122,7 @@ T02 · Docs · perfil execute · posse: docs/sum.md
 bloqueadas: T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 em andamento (tentativa 1): posse travada no jlock (1 chave(s), dono gt:a-sum-its-docs-and-the-e-261024-c0oa/T01)
+T01 em andamento (tentativa 1): posse travada no jlock (2 chave(s), dono gt:a-sum-its-docs-and-the-e-261024-c0oa/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-c0oa/tickets/01-sum.md
 outro arquivo: jtasks claim T01 <arquivo>; no fim: jtasks done T01 --evidence "…" (ou jtasks fail T01 --error "…")
 

@@ -29,6 +29,7 @@ restano bloccati mentre è in corso.
   [jlock](https://github.com/rodrigojager/jlock), uno strumento di blocchi per tutta la macchina. Un'altra attività
   che ne ha bisogno aspetta in coda (`claim`) o fa altro; un'attesa che chiuderebbe un ciclo viene rifiutata. L'attività rifiutata cede con `jtasks yield`: restituisce solo i file contesi, con le modifiche salvate in una
   patch che torna con loro, e va avanti.
+- **Cos'altro usa un'attività.** Oltre ai file, un'attività può dichiarare cosa usa (`"uses": ["desktop"]`, `"clipboard"`, `"port:8080"`…): risorse di jlock bloccate mentre gira, così le attività di qualsiasi esecuzione sulla macchina che hanno bisogno della stessa cosa fanno a turno. `"exclusive": "project"` fa girare l'attività da sola nel suo repository; `"exclusive": "machine"` aspetta tutte le attività di jtasks della macchina e non ne lascia partire di nuove (benchmark, test di tempo). Nessuno dei due ferma mai i lock di un altro progetto.
 - **Prove, non promesse.** Un'attività si chiude con `done` e la sua prova; lo strumento verifica che siano
   cambiati solo i suoi file e fa il commit (`T04: titolo`). Un commit per attività: annullare un'attività è
   annullare un commit.
@@ -123,7 +124,7 @@ T02 · Docs · profilo execute · possesso: docs/sum.md
 bloccate: T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 in corso (tentativo 1): possesso bloccato in jlock (chiavi: 1, proprietario gt:a-sum-its-docs-and-the-e-261024-1rn4/T01)
+T01 in corso (tentativo 1): possesso bloccato in jlock (chiavi: 2, proprietario gt:a-sum-its-docs-and-the-e-261024-1rn4/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-1rn4/tickets/01-sum.md
 un altro file: jtasks claim T01 <file>; alla fine: jtasks done T01 --evidence "…" (o jtasks fail T01 --error "…")
 

@@ -102,14 +102,17 @@ describe("the same command in two languages", () => {
     const recording: Host = {
       ...host,
       run: (argv, options) => {
-        if (argv[0] === "jlock") seen.push(`${argv[1]} ${options?.env?.JLOCK_LANG}`)
+        // `jlock` from PATH, or the one JLOCK_BIN names.
+        if (/(^|[\\/])jlock(\.exe)?$/i.test(argv[0] ?? "")) seen.push(`${argv[1]} ${options?.env?.JLOCK_LANG}`)
         return host.run(argv, options)
       },
     }
     await tasksOk(repo, ["status", "--lang", "en"], { host: recording })
     await tasksOk(repo, ["status"], { host: recording })
     expect(seen.length).toBeGreaterThan(1)
-    expect(new Set(seen)).toEqual(new Set(["list en", "list pt-BR"]))
+    expect(new Set(seen.filter((s) => s.startsWith("list ")))).toEqual(new Set(["list en", "list pt-BR"]))
+    // Whatever else it asks (`resources`, the catalogue that describes resources, once per process and language).
+    for (const s of seen) expect(s).toMatch(/^(list|resources) (en|pt-BR)$/)
   })
 
   test("help next in each of the eleven languages: exit 0, no raw key, within 100 columns (wide characters count two)", async () => {

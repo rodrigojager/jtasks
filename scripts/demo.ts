@@ -87,7 +87,7 @@ async function main() {
   tasks(["next"])
   tasks(["start", "T01"])
   tasks(["start", "T02"])
-  run(`jlock list --group ${runId} --json`, ["jlock", "list", "--group", runId, "--json"])
+  run(`jlock list --group ${runId} --json`, [process.env.JLOCK_BIN || "jlock", "list", "--group", runId, "--json"])
 
   // 3. T02 needs src/core.ts, which T01 owns: the claim waits in jlock's queue (position 1) until its timeout, and
   // gives up saying who holds the file. One flow, nothing in the background.
@@ -98,7 +98,7 @@ async function main() {
   file("src/core.ts", "export function soma(a: number, b: number) {\n  return a + b\n}\n")
   tasks(["done", "T01", "--evidence", "core.ts exporta soma"])
   tasks(["claim", "T02", "src/core.ts"])
-  run(`jlock list --group ${runId} --json`, ["jlock", "list", "--group", runId, "--json"])
+  run(`jlock list --group ${runId} --json`, [process.env.JLOCK_BIN || "jlock", "list", "--group", runId, "--json"])
 
   file("src/ui/view.ts", "import { soma } from '../core'\nexport const view = () => `2 + 2 = ${soma(2, 2)}`\n")
   file("src/core.ts", "export function soma(a: number, b: number) {\n  return a + b\n}\nexport const versao = 2\n")

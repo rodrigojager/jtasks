@@ -167,7 +167,22 @@ which then moves by one; otherwise the event is ignored. Every reader, in any pr
 - `files`: files and folders relative to the repository; a folder owns everything inside it; `dir/**` is the
   folder; any other pattern (`src/*.ts`) is refused.
 - Two tasks with no dependency between them may not share ownership (by jlock's rule: same path, or a folder above
-  the other). `exclusive: true` holds `*` and runs alone.
+  the other).
+- `exclusive` (0.7.0, jlock 0.3): `"project"` (or `true`) holds the repository root exclusively and runs alone in its
+  repository, never touching another project's locks; `"machine"` also holds `resource:machine` exclusively, so it
+  waits for every jtasks task on the machine (each one holds `resource:machine` shared) and no new one starts while it
+  runs. Never `*`.
+- `uses` (0.7.0): the jlock resources a task holds while in progress besides its files: `"desktop"`, `"clipboard"`,
+  `"browser"`, `"audio"`, `"gpu"`, `"network"`, `"machine"`, `"port:<n>"`, or the user's own from jlock's
+  `resources.json` (`jlock resources` lists them). A name is exclusive by default (the catalogue's mode);
+  `{ "resource": "gpu", "mode": "shared" }` sets the mode. An unknown name is an error with the closest name. Tasks of
+  any run on the machine wait for each other on an exclusive resource; `next` and `status` name the holder and jlock's
+  description of the resource (`🔒 other-run/T02: resource:desktop (held exclusive: the real mouse…)`). `validate`
+  warns when two independent tasks use one resource exclusively, and when a task's text mentions the mouse or
+  keyboard, the clipboard, a fixed port or measurements without declaring it (a keyword check).
+- Owners (jlock 0.3 families): a task holds its keys as `gt:<run>/<task>`; what runs on its behalf holds keys as a
+  child, `gt:<run>/<task>/exec-<id>` (`jtasks exec`) or `gt:<run>/<task>/tree-<id>` (the run's tree key around a
+  transition). Nothing the task holds stands in a child's way; two children (two execs) still exclude each other.
 - `shared`: the registry files, indexes, schemas and central types several tasks touch (the manifest every adapter
   adds a line to, say). A task that touches one without owning it lists it in `touchesShared` (it claims it when it
   needs it; an entry outside `shared` is an error). `validate` and `plan` **warn** when two tasks with no dependency

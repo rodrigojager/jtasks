@@ -202,8 +202,8 @@ describe("OpenCode plugin", () => {
     expect((await h.call("c1", "start T01")).ok).toBe(true)
     expect(seen).toHaveLength(1)
     expect(seen[0]!.lines()[0]).toContain('"result":"granted"')
-    const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks
-    expect(locks().map((l) => l.holder?.owner)).toEqual([`gt:${run}/T01`])
+    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks
+    expect(locks().filter((l) => !(l as { key?: string }).key?.startsWith("resource:")).map((l) => l.holder?.owner)).toEqual([`gt:${run}/T01`])
     // The host dies: its end of the pipe closes, the hold reads the end of its input and lets go.
     await seen[0]!.closeInput()
     expect(await seen[0]!.exited).toBe(0)
@@ -217,7 +217,7 @@ describe("OpenCode plugin", () => {
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
     const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
-    const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
     const until = async (check: () => boolean) => {
       for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
       expect(check()).toBe(true)
@@ -342,8 +342,8 @@ describe("OpenCode plugin", () => {
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
     const dir = await runPath(repo, run)
     const held = () =>
-      (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks.filter(
-        (l) => l.holder?.owner === `gt:${run}/T01`,
+      (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: { holder: { owner: string } | null }[] }).locks.filter(
+        (l) => !(l as { key?: string }).key?.startsWith("resource:") && l.holder?.owner === `gt:${run}/T01`,
       ).length
     h.addSession("c1", "s1")
     expect((await h.call("c1", "start T01")).ok).toBe(true)
@@ -368,7 +368,7 @@ describe("OpenCode plugin", () => {
     const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string; owner: string | null }[]
     const runOf = () => JSON.parse(readFileSync(join(dir, "run.json"), "utf8"))
-    const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
     const until = async (check: () => boolean) => {
       for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
       expect(check()).toBe(true)

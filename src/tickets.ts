@@ -97,12 +97,17 @@ export function renderContext(run: RunContext | undefined, task: RunContext | un
 export function renderTicket(task: Task, index: number, all: Task[], context?: RunContext, brief?: string | null): string {
   const nums = numbers(all)
   const blocked = task.dependsOn.length ? task.dependsOn.map((d) => nums.get(d) ?? d).join(", ") : "None (can start immediately)"
-  const files = task.exclusive
-    ? tr("ticket.exclusive")
-    : task.files.length
-      ? task.files.map((f) => `\`${f}\``).join(", ")
-      : tr("ticket.none")
+  const files =
+    task.exclusive === "machine"
+      ? tr("ticket.exclusive_machine")
+      : task.exclusive
+        ? tr("ticket.exclusive")
+        : task.files.length
+          ? task.files.map((f) => `\`${f}\``).join(", ")
+          : tr("ticket.none")
   const claimed = task.claimed?.length ? `\n\n**Claimed:** ${task.claimed.map((f) => `\`${f}\``).join(", ")}` : ""
+  // The resources it holds while in progress (0.7.0); `machine` shared, which every task holds, goes unsaid.
+  const uses = task.uses?.length ? `\n\n**Uses:** ${task.uses.map((u) => `\`${u.resource}\`${u.mode === "shared" ? " (shared)" : ""}`).join(", ")}` : ""
   const lines = [
     `# ${ticketNumber(task.id, index)}: ${task.title}`,
     "",
@@ -115,7 +120,7 @@ export function renderTicket(task: Task, index: number, all: Task[], context?: R
     "",
     `**Profile:** ${task.profile}`,
     "",
-    `**Files:** ${files}${claimed}`,
+    `**Files:** ${files}${claimed}${uses}`,
     "",
   ]
   for (const a of task.acceptance) lines.push(`- [${a.done ? "x" : " "}] ${a.text}`)
@@ -236,8 +241,13 @@ export function parseTicket(text: string, file: string, index: number): ParsedTi
   if (files === undefined) {
     task.exclusive = true
     notes.push(tr("import.no_files"))
-  } else if (/exclusive/i.test(files) && !files.includes("`")) task.exclusive = true
+  } else if (/exclusive/i.test(files) && !files.includes("`")) task.exclusive = /exclusive:\s*machine/i.test(files) ? "machine" : true
   else task.files = [...files.matchAll(/`([^`]+)`/g)].map((m) => m[1]!)
+  const uses = fields.get("uses")
+  if (uses) {
+    const list = [...uses.matchAll(/`([^`]+)`(\s*\(shared\))?/g)].map((m) => (m[2] ? { resource: m[1]!, mode: "shared" as const } : m[1]!))
+    if (list.length) task.uses = list
+  }
 
   const profile = fields.get("profile")
   if (profile) task.profile = profile

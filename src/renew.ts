@@ -8,7 +8,7 @@
 
 import { log, reload, releaseHolds, resolveRun, retakeMissing, retakeYielded, takeKeys } from "./actions.ts"
 import { ownerOf, taskKeys, type RunState } from "./frontier.ts"
-import { canRenew, jlockList, jlockRenew, type JlockLock } from "./jlock.ts"
+import { canRenew, holdersOf, jlockList, jlockRenew, liveHolders, type JlockLock } from "./jlock.ts"
 import type { Task } from "./schema.ts"
 import { DEFAULT_HOLD_TTL } from "./schema.ts"
 import { readTasks } from "./store.ts"
@@ -47,10 +47,11 @@ export type RenewResult = "fresh" | "renewed" | "retaken" | "lost" | "none"
  * When the earliest of these holds expires (epoch ms), or undefined when none has a deadline: jlock's `expires`
  * (which counts `jlock renew`) when it says, else `since + ttl_secs` (a jlock before 0.2.0).
  */
-export function earliestExpiry(locks: JlockLock[]): number | undefined {
+export function earliestExpiry(locks: JlockLock[], owner?: string): number | undefined {
   let out: number | undefined
   for (const l of locks) {
-    const h = l.holder
+    // The owner's own hold of the key (a shared key has others'; a nested hold is renewed with its parent's family).
+    const h = owner === undefined ? l.holder : (holdersOf(l).find((x) => x.owner === owner) ?? null)
     if (!h) continue
     let at: number
     if (h.expires !== undefined) {
@@ -72,10 +73,12 @@ export function renewalNeed(state: RunState, task: Task, locks: JlockLock[], pla
   const keys = taskKeys(state.root, task, platform)
   if (!keys.length) return "none"
   const owner = ownerOf(state.run.id, task.id)
-  const mine = locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true)
+  // Only the task's own holds: what its execs and tree helpers hold under child owners ends with them, or with the
+  // task's hold it is nested in (jlock 0.3), and is never renewed here.
+  const mine = locks.filter((l) => liveHolders(l).some((h) => h.owner === owner))
   const held = new Set(mine.map((l) => l.key))
   if (keys.some((k) => !held.has(k))) return "retake"
-  const expiry = earliestExpiry(mine)
+  const expiry = earliestExpiry(mine, owner)
   const margin = renewMargin(ttlMs(state.run.holdTtl ?? DEFAULT_HOLD_TTL), every)
   return expiry === undefined || expiry - now > margin ? "fresh" : "renew"
 }

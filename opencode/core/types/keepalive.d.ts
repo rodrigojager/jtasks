@@ -27,7 +27,7 @@ export interface KeepaliveMemory {
 }
 export interface KeepaliveInput {
     state: RunState;
-    /** `jlock list` under the repository (the whole machine with `*` in play): "ready" is the frontier of `next`. */
+    /** The whole machine's `jlock list` (resources are machine-wide): "ready" is the frontier of `next`. */
     locks: JlockLock[];
     platform: string;
     /** The subagents of this session that are alive, as the host counts them. */

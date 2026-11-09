@@ -1,6 +1,35 @@
 import { describe, expect, test } from "bun:test"
-import { canonical, conflicts, firstConflict, normalizeKey, relConflicts } from "../src/keys.ts"
+import { canonical, conflicts, excludes, firstConflict, mergeSpecs, normalizeKey, relConflicts, sameFamily } from "../src/keys.ts"
 import { join, normalize, relativeInside } from "../src/paths.ts"
+
+describe("jlock 0.3 keys: resources, modes, families", () => {
+  test("resource: keys are normalized like jlock and conflict only with the same resource and *", () => {
+    expect(normalizeKey("resource:Port:08080", "D:/p", "win32")).toBe("resource:port:8080")
+    expect(normalizeKey("resource:Desktop", "D:/p", "win32")).toBe("resource:desktop")
+    expect(conflicts("resource:desktop", "resource:desktop")).toBe(true)
+    expect(conflicts("resource:desktop", "resource:clipboard")).toBe(false)
+    expect(conflicts("resource:desktop", "d:/p")).toBe(false)
+    expect(conflicts("resource:desktop", "name:desktop")).toBe(false)
+    expect(conflicts("resource:desktop", "*")).toBe(true)
+  })
+
+  test("two shared holds coexist, an exclusive one excludes; the stronger mode wins when a key comes twice", () => {
+    expect(excludes({ key: "resource:machine", mode: "shared" }, { key: "resource:machine", mode: "shared" })).toBe(false)
+    expect(excludes({ key: "resource:machine", mode: "exclusive" }, { key: "resource:machine", mode: "shared" })).toBe(true)
+    expect(excludes({ key: "d:/p/src", mode: "shared" }, { key: "d:/p/src/a.ts", mode: "exclusive" })).toBe(true)
+    expect(mergeSpecs([{ key: "b", mode: "shared" }, { key: "a", mode: "shared" }, { key: "b", mode: "exclusive" }])).toEqual([
+      { key: "a", mode: "shared" },
+      { key: "b", mode: "exclusive" },
+    ])
+  })
+
+  test("an owner, its ancestors and descendants are one family; siblings are not", () => {
+    expect(sameFamily("gt:r/T1", "gt:r/T1/exec-2")).toBe(true)
+    expect(sameFamily("gt:r/T1/exec-2", "gt:r/T1")).toBe(true)
+    expect(sameFamily("gt:r/T1/exec-1", "gt:r/T1/exec-2")).toBe(false)
+    expect(sameFamily("gt:r/T1", "gt:r/T10")).toBe(false)
+  })
+})
 import { setDefaultTimeout } from "bun:test"
 
 // Real git and jlock processes: the preload's default reaches only the first file of a run.

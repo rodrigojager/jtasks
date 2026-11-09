@@ -6,6 +6,7 @@ import { relativeInside, caseInsensitive } from "./paths.ts"
 import { ToolError } from "./tool.ts"
 import { lang, tr } from "./i18n.ts"
 import { installedJlock } from "./setup.ts"
+import { isResourceKey, specArg, type LockMode, type LockSpec } from "./keys.ts"
 
 export const JLOCK = {
   OK: 0,
@@ -32,6 +33,12 @@ export interface JlockHolder {
   key?: string
   stale?: boolean
   late?: boolean
+  /** jlock 0.3: the mode of the hold. */
+  mode?: LockMode
+  grant?: string | null
+  /** jlock 0.3: granted inside a hold of an ancestor owner (`parent`), ends with it. */
+  nested?: boolean
+  parent?: { owner: string; key: string; grant: string } | null
 }
 
 export interface JlockQueueEntry {
@@ -40,12 +47,30 @@ export interface JlockQueueEntry {
   position: number
   since?: string
   stale?: boolean
+  mode?: LockMode
 }
 
 export interface JlockLock {
   key: string
+  /** The first hold (jlock 0.3 keeps every hold in `holders`: shared holds and families have several). */
   holder: JlockHolder | null
+  holders?: JlockHolder[]
   queue: JlockQueueEntry[]
+}
+
+/** Every hold of a lock (jlock 0.3's `holders`; `holder` alone in hand-made lists). */
+export function holdersOf(lock: JlockLock): JlockHolder[] {
+  return lock.holders ?? (lock.holder ? [lock.holder] : [])
+}
+
+/** The holds of a lock whose process is alive: a stale one is a dead process, broken by jlock's next request. */
+export function liveHolders(lock: JlockLock): JlockHolder[] {
+  return holdersOf(lock).filter((h) => h.stale !== true)
+}
+
+/** The keys `owner` itself holds (live) in `locks`: its own holds, not its descendants'. */
+export function heldBy(locks: JlockLock[], owner: string): string[] {
+  return locks.filter((l) => liveHolders(l).some((h) => h.owner === owner)).map((l) => l.key)
 }
 
 /** One JSON answer of jlock (`hold`, `release`, `acquire`). */
@@ -55,6 +80,9 @@ export interface JlockAnswer {
   keys?: string[]
   owner?: string
   holder?: JlockHolder | string | null
+  /** jlock 0.3: every hold in the way of a refused request. */
+  holders?: JlockHolder[]
+  mode?: LockMode
   position?: number
   via?: string
   chain?: string
@@ -154,8 +182,11 @@ export interface Identity {
  */
 export type HoldMode = "detach" | "eof"
 
-/** The oldest jlock the tool works with, the first one with `hold --release-on-eof`, and the first with `renew`. */
-export const MIN_JLOCK = "0.1.0"
+/**
+ * The oldest jlock the tool works with (0.3.0: hierarchical owners, shared/exclusive modes, `resource:` keys), the
+ * first one with `hold --release-on-eof`, and the first with `renew`.
+ */
+export const MIN_JLOCK = "0.3.0"
 export const EOF_JLOCK = "0.1.1"
 export const RENEW_JLOCK = "0.2.0"
 
@@ -200,12 +231,12 @@ export async function holdModeFor(host: Host): Promise<HoldMode> {
 
 export function holdArgv(
   host: Host,
-  keys: string[],
+  keys: LockSpec[],
   id: Identity,
   wait: { noWait: true } | { timeoutSec: number },
   hold: { mode: HoldMode; ttl: string },
 ): string[] {
-  const argv = [jlockBin(host), "hold", ...keys, "--owner", id.owner, "--group", id.group, "--intent", id.intent]
+  const argv = [jlockBin(host), "hold", ...keys.map(specArg), "--owner", id.owner, "--group", id.group, "--intent", id.intent]
   for (const [k, v] of Object.entries(id.meta)) argv.push("--meta", `${k}=${v}`)
   if ("noWait" in wait) argv.push("--no-wait")
   else argv.push("--timeout", `${wait.timeoutSec}s`)
@@ -263,11 +294,14 @@ export async function startHold(host: Host, resident: Resident, firstLineTimeout
   return { answer, code, resident }
 }
 
-/** How the panel and the answers name a lock's owner (section 4): `T05`, `auth-261024-p0q9/T03`, or another program. */
+/**
+ * How the panel and the answers name a lock's owner (section 4): `T05`, `T05/exec-k2` (something a task runs),
+ * `auth-261024-p0q9/T03`, or another program.
+ */
 export function describeOwner(owner: string, run: string): string {
   if (!owner.startsWith("gt:")) return tr("jlock.other_program", { owner })
   const rest = owner.slice(3)
-  const slash = rest.lastIndexOf("/")
+  const slash = rest.indexOf("/")
   if (slash < 0) return rest
   const ownerRun = rest.slice(0, slash)
   const task = rest.slice(slash + 1)
@@ -276,7 +310,7 @@ export function describeOwner(owner: string, run: string): string {
 
 /** A key as people read it: relative to the repository when inside it. */
 export function describeKey(key: string, root: string, platform: string): string {
-  if (key === "*" || key.startsWith("name:")) return key
+  if (key === "*" || key.startsWith("name:") || isResourceKey(key)) return key
   const rel = relativeInside(root, key, caseInsensitive(platform))
   if (rel === undefined) return key
   return rel === "" ? "." : rel

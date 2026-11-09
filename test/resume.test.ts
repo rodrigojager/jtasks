@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Resident } from "../src/host.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
-import { CLI, REPO_ROOT, cleanupTemp, tempDir, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
+import { CLI, JLOCK, REPO_ROOT, cleanupTemp, tempDir, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -79,7 +79,7 @@ describe("resume after a dead window", () => {
     const first = JSON.parse(new TextDecoder().decode((await reader.read()).value).split("\n")[0]!)
     reader.releaseLock()
     expect(first.ok).toBe(true)
-    expect(jlockListJson("--group", run).map((l) => l.holder?.owner).sort()).toEqual([`gt:${run}/T01`, `gt:${run}/T02`])
+    expect(jlockListJson("--group", run).filter((l) => !l.key.startsWith("resource:")).map((l) => l.holder?.owner).sort()).toEqual([`gt:${run}/T01`, `gt:${run}/T02`])
     writeFiles(repo, { "src/a.ts": "metade\n" })
 
     killTree(win.pid)
@@ -111,7 +111,7 @@ describe("resume after a dead window", () => {
   test("--keep-owners touches no task; resume takes the run out of pause", async () => {
     const { repo, run, dir } = await newRun()
     await tasksOk(repo, ["start", "T01"])
-    sh(repo, "jlock", "release", "--group", run, "--owner", `gt:${run}/T01`, "--json")
+    sh(repo, JLOCK, "release", "--group", run, "--owner", `gt:${run}/T01`, "--json")
     await tasksOk(repo, ["pause"])
     const r = await tasksOk(repo, ["resume", run, "--keep-owners"])
     expect(r.text).toContain("mantidas em andamento: T01 (--keep-owners)")
@@ -126,7 +126,7 @@ describe("lost ownership in a long-lived host", () => {
     const residents = new Map<string, Resident[]>()
     const exits: number[] = []
     await tasksOk(repo, ["start", "T01"], { residents, onHoldExit: (_r, _t, code) => exits.push(code) })
-    sh(repo, "jlock", "unlock", "--group", run, "--force", "--by", "test", "--reason", "simula unlock --force", "--json")
+    sh(repo, JLOCK, "unlock", "--group", run, "--force", "--by", "test", "--reason", "simula unlock --force", "--json")
     await until(() => (tasksFile(dir).tasks[0]!.status === "pending" && exits.length ? true : undefined))
     expect(exits).toEqual([14])
     const t = tasksFile(dir).tasks[0]!
@@ -172,7 +172,7 @@ describe("the ttl of the run's holds", () => {
   test("a hold whose ttl runs out is a lost ownership: status says so and resume gives the task back", async () => {
     const { repo, run, dir } = await newRun({ holdTtl: "1s" })
     await tasksOk(repo, ["start", "T01"])
-    expect(jlockListJson("--group", run).map((l) => (l.holder as { ttl_secs?: number } | null)?.ttl_secs)).toEqual([1])
+    expect(jlockListJson("--group", run).filter((l) => !l.key.startsWith("resource:")).map((l) => (l.holder as { ttl_secs?: number } | null)?.ttl_secs)).toEqual([1])
     await until(() => (jlockListJson("--group", run).some((l) => l.holder?.owner === `gt:${run}/T01` && !(l.holder as { stale?: boolean }).stale) ? undefined : true))
     expect((await tasksOk(repo, ["status"])).text).toContain("posse perdida: T01 (sem travas no jlock")
     const r = await tasksOk(repo, ["resume", run])

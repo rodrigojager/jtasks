@@ -31,7 +31,9 @@ async function newRun(holdTtl: string, extra: object = {}) {
 
 const tasksFile = (dir: string) => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")) as TasksFile
 const logActions = (dir: string) => readFileSync(join(dir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l).action as string)
-const mine = (run: string, task = "T01") => jlockListJson("--group", run).filter((l) => l.holder?.owner === `gt:${run}/${task}` && !(l.holder as { stale?: boolean }).stale)
+// The task's file holds (its resource:machine hold, shared with every task on the machine, is left out).
+const mine = (run: string, task = "T01") =>
+  jlockListJson("--group", run).filter((l) => !l.key.startsWith("resource:") && l.holder?.owner === `gt:${run}/${task}` && !(l.holder as { stale?: boolean }).stale)
 const since = (run: string) => (mine(run)[0]?.holder as { since?: string } | undefined)?.since
 async function until(check: () => boolean, ms = 10_000) {
   const end = Date.now() + ms

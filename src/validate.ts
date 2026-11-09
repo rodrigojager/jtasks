@@ -1,12 +1,13 @@
 // Plan validation (section 3). Every message is meant for the model that wrote the plan: it says what is wrong
 // and what to do. Same input, same errors, in the same order.
 
-import { relConflicts } from "./keys.ts"
+import { mergeSpecs, relConflicts } from "./keys.ts"
 import { caseInsensitive, isAbsolute, normalize, slash } from "./paths.ts"
-import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, type RunContext, DURATION } from "./schema.ts"
+import { DEFAULT_PROFILES, type PlanInput, type PlanTask, type Profile, type RunContext, type TaskUse, DURATION } from "./schema.ts"
 import { tr } from "./i18n.ts"
+import { checkUse, knownResources, resourceName, type ResourceDef } from "./resources.ts"
 
-const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "touchesShared", "context"])
+const TASK_FIELDS = new Set(["id", "title", "what", "source", "dependsOn", "files", "acceptance", "profile", "boundary", "exclusive", "uses", "touchesShared", "context"])
 const PLAN_FIELDS = new Set(["feature", "objective", "source", "profiles", "serialize", "maxAttempts", "maxAgentEnded", "awaitGrace", "holdTtl", "keepalive", "branch", "shared", "sharedPolicy", "context", "tasks"])
 const CONTEXT_FIELDS = ["brief", "summary", "read", "consult", "constraints"] as const
 const GLOB = /[*?[\]{}]/
@@ -110,6 +111,8 @@ export interface ValidateOptions {
   platform?: string
   /** The run's common brief text, when known, for the repeated-information warnings (0.6.0). */
   brief?: string
+  /** The resource catalogue `uses` is checked against (0.7.0; `loadResources`): the last one loaded by default. */
+  resources?: readonly ResourceDef[]
 }
 
 export interface FileEntry {
@@ -248,7 +251,24 @@ export function readPlan(raw: unknown): ReadPlanResult {
     if (t.touchesShared !== undefined && !isStringList(t.touchesShared)) errors.push(tr("plan.task_touches_list", { name }))
     if (t.profile !== undefined && typeof t.profile !== "string") errors.push(tr("plan.task_text", { name, field: "profile" }))
     if (t.boundary !== undefined && typeof t.boundary !== "string") errors.push(tr("plan.task_text", { name, field: "boundary" }))
-    if (t.exclusive !== undefined && typeof t.exclusive !== "boolean") errors.push(tr("plan.task_exclusive", { name }))
+    if (t.exclusive !== undefined && typeof t.exclusive !== "boolean" && t.exclusive !== "project" && t.exclusive !== "machine")
+      errors.push(tr("plan.task_exclusive", { name }))
+    if (t.uses !== undefined) {
+      const ok =
+        Array.isArray(t.uses) &&
+        t.uses.every((u) => {
+          if (typeof u === "string") return !!u.trim()
+          if (!u || typeof u !== "object" || Array.isArray(u)) return false
+          const r = u as Record<string, unknown>
+          return (
+            Object.keys(r).every((k) => k === "resource" || k === "mode") &&
+            typeof r.resource === "string" &&
+            !!r.resource.trim() &&
+            (r.mode === undefined || r.mode === "shared" || r.mode === "exclusive")
+          )
+        })
+      if (!ok) errors.push(tr("plan.task_uses", { name }))
+    }
     if (t.acceptance !== undefined) {
       const ok =
         Array.isArray(t.acceptance) &&
@@ -304,9 +324,104 @@ export function validateBatch(tasks: PlanTask[], ctx: BatchContext = {}): { task
     if (task.dependsOn?.includes(task.id)) errors.push(tr("plan.self_dependency", { id: task.id }))
     const checked: PlanTask = { ...task, files }
     if (task.touchesShared) checked.touchesShared = paths(task.touchesShared)
+    if (task.exclusive === true) checked.exclusive = "project"
+    else if (task.exclusive === false) delete checked.exclusive
+    if (task.uses !== undefined) {
+      const uses = normalizeUses(task.id, task.uses, ctx.resources ?? knownResources())
+      errors.push(...uses.errors)
+      if (uses.uses.length) checked.uses = uses.uses
+      else delete checked.uses
+    }
     out.push(checked)
   }
   return { tasks: out, errors }
+}
+
+/**
+ * A task's `uses` checked against the resource catalogue (0.7.0): each entry becomes `{ resource, mode }` with the
+ * resource normalized (`port:08080` → `port:8080`) and the mode the entry names or the resource's default; a resource
+ * named twice is kept once, in the stronger mode. Unknown names are refused with the closest one.
+ */
+export function normalizeUses(id: string, raw: NonNullable<PlanTask["uses"]>, catalog: readonly ResourceDef[] = knownResources()): { uses: TaskUse[]; errors: string[] } {
+  const errors: string[] = []
+  const specs = []
+  for (const entry of raw) {
+    const r = checkUse(id, entry, catalog)
+    if (r.error) errors.push(r.error)
+    else specs.push(r.spec!)
+  }
+  return { uses: mergeSpecs(specs).map((s) => ({ resource: resourceName(s.key), mode: s.mode })), errors }
+}
+
+/** Words that say a task drives something physical or measures time, and the resource it should then declare. */
+const HINTS: { resource: (m: RegExpExecArray) => string; pattern: RegExp; machine?: true }[] = [
+  {
+    resource: () => "desktop",
+    pattern:
+      /(?<![\p{L}\p{N}])(mouse|keyboard|teclado|real windows|janelas reais|screenshots?|captura de tela|sendkeys|pyautogui|xdotool|autohotkey|computer[- ]use)(?![\p{L}\p{N}])/iu,
+  },
+  {
+    resource: () => "clipboard",
+    pattern: /(?<![\p{L}\p{N}])(clipboard|\u00e1rea de transfer\u00eancia|area de transferencia|copy[- ]and[- ]paste|copiar e colar|ctrl\+[cv])(?![\p{L}\p{N}])/iu,
+  },
+  {
+    resource: (m) => `port:${Number(m[2] ?? m[3])}`,
+    pattern: /(?<![\p{L}\p{N}])(?:(localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{2,5})|(?:port|porta)\s*:?\s*(\d{2,5}))(?![\p{L}\p{N}])/iu,
+  },
+  {
+    resource: () => "machine",
+    machine: true,
+    pattern:
+      /(?<![\p{L}\p{N}])(benchmarks?|latency|lat\u00eancia|latencia|throughput|timings?|response times?|tempo de resposta|medir o tempo|measure (?:the )?time|performance tests?|testes? de desempenho|flame ?graphs?|profiling)(?![\p{L}\p{N}])/iu,
+  },
+]
+
+/**
+ * Warnings for a task whose text mentions the physical mouse or keyboard, the clipboard, a fixed port or
+ * measurements without declaring the resource in `uses` (0.7.0): a deterministic keyword check, never an error.
+ * Measurements ask for `exclusive: "machine"` (or `machine` exclusive in `uses`).
+ */
+export function usesWarnings(plan: Pick<PlanInput, "tasks">): string[] {
+  const out: string[] = []
+  for (const t of plan.tasks) {
+    const text = [t.title, t.what, t.boundary, ...(t.acceptance ?? []).map((a) => (typeof a === "string" ? a : a.text)), t.context?.summary, ...(t.context?.constraints ?? [])]
+      .filter((s): s is string => typeof s === "string")
+      .join("\n")
+    const declared = (t.uses ?? []).map((u) => (typeof u === "string" ? { resource: u.replace(/^resource:/i, "").toLowerCase(), mode: undefined } : { resource: u.resource.replace(/^resource:/i, "").toLowerCase(), mode: u.mode }))
+    for (const hint of HINTS) {
+      const m = hint.pattern.exec(text)
+      if (!m) continue
+      const resource = hint.resource(m)
+      const word = m[0].trim()
+      if (hint.machine) {
+        const quiet = t.exclusive === "machine" || declared.some((u) => u.resource === "machine" && u.mode !== "shared")
+        if (!quiet) out.push(tr("plan.uses_hint_machine", { id: t.id, word }))
+      } else if (!declared.some((u) => u.resource === resource || (resource.startsWith("port:") && u.resource === `port:${Number(resource.slice(5))}`)))
+        out.push(tr("plan.uses_hint", { id: t.id, word, resource }))
+    }
+  }
+  return out
+}
+
+/**
+ * Two tasks with no dependency path between them that both hold the same resource exclusively (0.7.0): a warning
+ * that they will run one at a time. The implicit shared `machine` of every task never counts.
+ */
+export function usesParallelWarnings(plan: Pick<PlanInput, "tasks">): string[] {
+  const anc = ancestors(plan.tasks)
+  const related = (a: string, b: string) => anc.get(a)?.has(b) || anc.get(b)?.has(a)
+  const exclusive = (t: PlanTask) =>
+    (t.uses ?? []).flatMap((u) => (typeof u === "object" && "mode" in u && u.mode === "exclusive" ? [u.resource] : typeof u === "string" ? [u] : []))
+  const out: string[] = []
+  for (let i = 0; i < plan.tasks.length; i++)
+    for (let j = i + 1; j < plan.tasks.length; j++) {
+      const a = plan.tasks[i]!
+      const b = plan.tasks[j]!
+      if (related(a.id, b.id)) continue
+      const theirs = exclusive(b)
+      for (const r of exclusive(a)) if (theirs.includes(r)) out.push(tr("plan.uses_parallel", { a: a.id, b: b.id, resource: r }))
+    }
+  return out
 }
 
 function findCycles(tasks: PlanTask[]): string[][] {
@@ -389,7 +504,11 @@ export function validatePlan(raw: unknown, options: ValidateOptions = {}): FullR
   for (const t of plan.tasks)
     for (const p of t.touchesShared ?? [])
       if (!(plan.shared ?? []).some((s) => relCovers(s, p, insensitive))) errors.push(tr("plan.touches_not_shared", { id: t.id, path: p }))
-  return { plan, errors, warnings: [...sharedWarnings(plan, options), ...contextWarnings(plan, options.brief)] }
+  return {
+    plan,
+    errors,
+    warnings: [...sharedWarnings(plan, options), ...usesParallelWarnings(plan), ...usesWarnings(plan), ...contextWarnings(plan, options.brief)],
+  }
 }
 
 function relCovers(outer: string, inner: string, insensitive: boolean): boolean {

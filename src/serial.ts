@@ -6,11 +6,15 @@
 // lock was broken under a slow holder after 10 s). Where it cannot (the mod: `$.process.spawn` closes standard input
 // at once), `jlock hold --detach` with a short ttl, given back in `finally`.
 //
+// The holder is always a fresh child owner (jlock 0.3 families): of the task the transition is for
+// (`gt:<run>/<task>/tree-<id>`), so nothing that task holds can stand in its way, or of the run (`gt:<run>/~tree-<id>`).
+//
 // State is not serialized here (events.ts and the optimistic commit in store.ts are), only effects.
 
 import type { Host } from "./host.ts"
 import { detachedHold, jlockBin, jlockEnv, jlockReleaseKeys, startHold, type HoldOutcome } from "./jlock.ts"
 import { ToolError, type ToolContext } from "./tool.ts"
+import { childOwner } from "./frontier.ts"
 import { tr } from "./i18n.ts"
 
 /** The key that serializes a run's working-tree effects. */
@@ -28,29 +32,19 @@ export const SERIAL_WAIT_SEC = 300
 /** The ttl of a detached hold of the key (the mod): the net under a host that died holding it. */
 export const SERIAL_DETACH_TTL = "10m"
 
-function ownerOf(key: string, host: Host): string {
-  const rest = key.replace(/^name:jtasks:/, "").replace(/:(git|draft)$/, "")
-  return `gt:${rest}/~${key.endsWith(":draft") ? "draft" : "tree"}-${host.now().getTime().toString(36)}${Math.floor(host.random() * 1e6).toString(36)}`
+/** A short id that tells two helpers of one process apart. */
+function helperId(host: Host): string {
+  return `${host.now().getTime().toString(36)}${Math.floor(host.random() * 1e6).toString(36)}`
 }
 
 /**
- * Runs `fn` holding `key`. Reentrant through the context: a caller that already holds it (`ctx.serialKeys`) runs `fn`
- * at once. `fn` gets the context to pass on to whatever it calls.
- *
- * `*` covers every key, `name:` ones included, and jlock grants a key to the owner that already holds a conflicting
- * one. So while a task of the run that is `exclusive` holds `*`, the key is held under that task's owner (`as`, or
- * found when the first try is refused by it): the only way it can be granted at all (docs/DEVIATIONS.md).
+ * Runs `fn` holding `key` under `owner` (always a fresh one: two helpers never share an owner, or both would be
+ * granted at once). Reentrant through the context: a caller that already holds it (`ctx.serialKeys`) runs `fn` at
+ * once. `fn` gets the context to pass on to whatever it calls.
  */
-export async function withKey<R>(
-  ctx: ToolContext,
-  key: string,
-  intent: string,
-  fn: (ctx: ToolContext) => Promise<R>,
-  opts: { as?: string; run?: string } = {},
-): Promise<R> {
+export async function withKey<R>(ctx: ToolContext, key: string, intent: string, fn: (ctx: ToolContext) => Promise<R>, owner: string): Promise<R> {
   if (ctx.serialKeys?.has(key)) return fn(ctx)
   const { host } = ctx
-  let owner = opts.as ?? ownerOf(key, host)
   const eof = host.holdsInput === true
   const hold = async (wait: string[]): Promise<HoldOutcome> => {
     const base = [jlockBin(host), "hold", key, "--owner", owner, "--intent", intent, ...wait]
@@ -58,14 +52,7 @@ export async function withKey<R>(
     const resident = await host.spawn([...base, "--release-on-eof", "--json"], { env: jlockEnv() })
     return startHold(host, resident, (SERIAL_WAIT_SEC + 15) * 1000)
   }
-  let outcome = await hold(["--no-wait"])
-  if (outcome.answer.result !== "granted") {
-    const a = outcome.answer
-    const holder = typeof a.holder === "object" && a.holder ? a.holder.owner : undefined
-    // Refused by our own run's exclusive task holding `*`: held under its owner instead.
-    if (!opts.as && opts.run && holder?.startsWith(`gt:${opts.run}/`) && (a.via === "*" || a.failed === "*" || a.key === "*")) owner = holder
-    outcome = await hold(["--timeout", `${SERIAL_WAIT_SEC}s`])
-  }
+  const outcome = await hold(["--timeout", `${SERIAL_WAIT_SEC}s`])
   if (outcome.answer.result !== "granted") {
     const holder = typeof outcome.answer.holder === "object" && outcome.answer.holder ? outcome.answer.holder.owner : String(outcome.answer.holder ?? "?")
     throw new ToolError(tr("store.tree_busy", { key, holder, seconds: SERIAL_WAIT_SEC }), 1, { result: outcome.answer.result, key })
@@ -85,9 +72,17 @@ export async function withKey<R>(
 }
 
 /**
- * Runs `fn` holding the run's tree key (`treeKey`). `as`: the owner to hold it under, the starting exclusive task's
- * (its `*` comes next, and would be refused by a key some other owner holds).
+ * Runs `fn` holding the run's tree key (`treeKey`). On behalf of `task`, the key is held by a child of the task's
+ * owner (`gt:<run>/<task>/tree-<id>`, jlock 0.3 families): nothing the task holds can ever stand in its way, and two
+ * transitions (of this task or another) still exclude each other. Without a task: `gt:<run>/~tree-<id>`.
  */
-export function withTree<R>(ctx: ToolContext, run: string, fn: (ctx: ToolContext) => Promise<R>, as?: string): Promise<R> {
-  return withKey(ctx, treeKey(run), `jtasks ${run}: working tree`, fn, as ? { as, run } : { run })
+export function withTree<R>(ctx: ToolContext, at: string | { run: string; task?: string }, fn: (ctx: ToolContext) => Promise<R>, task?: string): Promise<R> {
+  const run = typeof at === "string" ? at : at.run
+  const who = task ?? (typeof at === "string" ? undefined : at.task)
+  return withKey(ctx, treeKey(run), `jtasks ${run}: working tree`, fn, childOwner(run, who, "tree", helperId(ctx.host)))
+}
+
+/** Runs `fn` holding a draft's key (plan --add, --fix, --commit), under a fresh owner of the draft. */
+export function withDraft<R>(ctx: ToolContext, id: string, fn: (ctx: ToolContext) => Promise<R>): Promise<R> {
+  return withKey(ctx, draftKey(id), `jtasks draft ${id}`, fn, childOwner(id, undefined, "draft", helperId(ctx.host)))
 }

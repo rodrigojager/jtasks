@@ -6,6 +6,7 @@ import { counts, progress } from "./format.ts"
 import type { Host } from "./host.ts"
 import { caseInsensitive } from "./paths.ts"
 import { jlockList, type JlockLock } from "./jlock.ts"
+import { loadResources } from "./resources.ts"
 import { keepaliveNotice, readKeepalive } from "./keepalive.ts"
 import { pauseViewNotice } from "./transient.ts"
 import { awaitingWhat } from "./procs.ts"
@@ -211,13 +212,13 @@ export function viewLines(view: View, options: { collapsed: boolean; width: numb
   return out
 }
 
-/** The view of one run, read now: its files and `jlock list --under <repo>` (the whole machine with `*` in play). */
+/** The view of one run, read now: its files and `jlock list` (the whole machine: resources are machine-wide). */
 export async function loadView(host: Host, root: string, data: string, run: string, tool: ToolName): Promise<RunView | undefined> {
   const dir = runDir(data, run)
   const [runFile, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!runFile || !tasks) return undefined
-  const star = tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
-  const locks = await (star ? jlockList(host) : jlockList(host, { under: root })).catch(() => [])
+  // The whole machine: every task holds resource:machine, and resources are machine-wide (0.7.0).
+  const [locks] = await Promise.all([jlockList(host).catch(() => []), loadResources(host)])
   const view = buildView({ root, data, dir, run: runFile, tasks }, locks, host.platform, tool)
   // A run that needs a person (rev. 5.8) says so; a transient pause (rev. 5.7) says why and until when; otherwise a
   // give-up of the keepalive, if any.

@@ -15,6 +15,7 @@ jtasks 把这一切从模型中移出来，交给一个工具。计划只校验�
 
 - **现在可以运行什么。** 当一个任务的依赖都已完成、它的文件都空闲时，它就是就绪的。彼此之间没有依赖的两个任务不能共享文件：工具会拒绝这样的计划，并指出是哪些任务、哪个文件。许多任务都会修改的注册类文件放进计划的 `shared`：当两个并行任务修改同一个文件时，工具会给出警告，`"sharedPolicy": "serialize"` 则让它们不同时运行。
 - **谁修改什么。** 任务运行期间，它的文件作为锁保存在 [jlock](https://github.com/rodrigojager/jlock) 中，这是一个全机范围的锁工具。需要其中某个文件的另一个任务会排队等待（`claim`），或者先做别的事；会形成等待环的等待会被拒绝。被拒绝的任务用 `jtasks yield` 让步：只交还有争用的文件，修改保存为补丁并随文件一起回来，然后继续工作。
+- **任务还用到什么。** 除了文件，任务还可以声明它用到的东西（`"uses": ["desktop"]`、`"clipboard"`、`"port:8080"`…）：这些是 jlock 资源，在任务运行期间被锁住，这样本机上任何运行中需要同一资源的任务会轮流使用。`"exclusive": "project"` 让任务在自己的仓库中单独运行；`"exclusive": "machine"` 会等待本机所有 jtasks 任务结束，并且不让新任务开始（基准测试、计时测试）。两者都不会阻塞其他项目的锁。
 - **要证据，不要承诺。** 任务用 `done` 和它的证据来结束；工具检查是否只有它的文件被修改，然后提交（`T04: 标题`）。每个任务一次提交：还原一个任务就是还原一次提交。
 - **恢复。** 运行进行到哪里，看的是列表的状态，而不是模型的记忆：在任何窗口中运行 `jtasks resume`，都会显示哪些已完成、哪些在进行、哪些在等待，并收回已中断的智能体手中的任务。
 - **撤销。** 分支、提交、文件夹、`.git/info/exclude` 中的行：工具留下的每个副作用都记录在 ledger 中，并附有撤销方法（`jtasks ledger`、`jtasks undo`）。
@@ -89,7 +90,7 @@ T02 · Docs · 配置 execute · 所有权：docs/sum.md
 被阻塞：T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 进行中（第 1 次尝试）：所有权已在 jlock 中锁定（1 个键，所有者 gt:a-sum-its-docs-and-the-e-261024-fls1/T01）
+T01 进行中（第 1 次尝试）：所有权已在 jlock 中锁定（2 个键，所有者 gt:a-sum-its-docs-and-the-e-261024-fls1/T01）
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-fls1/tickets/01-sum.md
 需要其他文件：jtasks claim T01 <文件>；结束时：jtasks done T01 --evidence "…"（或 jtasks fail T01 --error "…"）
 

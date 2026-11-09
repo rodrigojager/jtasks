@@ -31,6 +31,7 @@ fichiers sont verrouillés pendant qu'elle tourne.
   besoin de l'un d'eux attend dans la file d'attente (`claim`) ou fait autre chose ; une attente qui fermerait un
   cycle est refusée. La tâche refusée cède avec `jtasks yield` : elle rend seulement les fichiers disputés, ses modifications
   gardées dans un patch qui revient avec eux, et continue.
+- **Ce qu'une tâche utilise d'autre.** En plus des fichiers, une tâche peut déclarer ce qu'elle utilise (`"uses": ["desktop"]`, `"clipboard"`, `"port:8080"`…) : des ressources jlock verrouillées pendant qu'elle tourne, pour que les tâches de toute exécution sur la machine qui en ont besoin passent chacune leur tour. `"exclusive": "project"` fait tourner la tâche seule dans son dépôt ; `"exclusive": "machine"` attend toutes les tâches jtasks de la machine et empêche les nouvelles de démarrer (benchmarks, tests de temps). Aucun des deux n'arrête les verrous d'un autre projet.
 - **Des preuves, pas des promesses.** Une tâche se termine avec `done` et sa preuve ; l'outil vérifie que seuls ses
   fichiers ont changé et fait le commit (`T04: titre`). Un commit par tâche : annuler une tâche, c'est annuler un
   commit.
@@ -126,7 +127,7 @@ T02 · Docs · profil execute · possession: docs/sum.md
 bloquées: T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 en cours (tentative 1): possession verrouillée dans jlock (1 clé(s), propriétaire gt:a-sum-its-docs-and-the-e-261024-qhve/T01)
+T01 en cours (tentative 1): possession verrouillée dans jlock (2 clé(s), propriétaire gt:a-sum-its-docs-and-the-e-261024-qhve/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-qhve/tickets/01-sum.md
 un autre fichier: jtasks claim T01 <fichier>; à la fin: jtasks done T01 --evidence "…" (ou jtasks fail T01 --error "…")
 

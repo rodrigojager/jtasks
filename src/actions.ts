@@ -1,6 +1,6 @@
 // The run's actions: next, start, status (this ticket) and, later, done/skip/fail/release/retry/claim/pause/resume.
 
-import { assess, blockerText, ownerOf, selectReady, sharedBlocker, taskKeys, waitingOf, waitingText, type RunState } from "./frontier.ts"
+import { assess, blockerText, childOwner, exclusiveScope, ownerOf, pathKeys, selectReady, sharedBlocker, specsOf, taskKeys, taskLocks, waitingOf, waitingText, type RunState } from "./frontier.ts"
 import { counts, progressLine } from "./format.ts"
 import {
   branchExists,
@@ -20,6 +20,8 @@ import {
   describeKey,
   describeOwner,
   detachedHold,
+  heldBy,
+  liveHolders,
   holdArgv,
   jlockVersion,
   MIN_JLOCK,
@@ -61,7 +63,8 @@ import { clearKeepalive, keepaliveStatus, keepaliveTries, progressSignature, rea
 import { agentOfOwner, formatWhen, kindLabel, resumeText } from "./transient.ts"
 import { awaitGraceMs, awaitingWhat, liveProcs, probe, procAlive, registerProcs, shortCommand, unregisterProcs } from "./procs.ts"
 import { slugify } from "./ids.ts"
-import { canonical, conflicts, covers, normalizeKey } from "./keys.ts"
+import { describeResource, loadResources, usesSuffix } from "./resources.ts"
+import { canonical, covers, isResourceKey, normalizeKey, sameFamily, type LockSpec } from "./keys.ts"
 import { effectLine, effectsOf, globalLedger, PATCH_MOVES, readEffects, recordEffect, setEffectState, type Effect, type NewEffect } from "./ledger.ts"
 import { appliedPath, applyPatch, reversePatch } from "./patches.ts"
 import { caseInsensitive, dirname, join } from "./paths.ts"
@@ -152,10 +155,13 @@ export async function log(ctx: ToolContext, state: RunState, entry: Record<strin
   await appendLog(ctx.host, state.dir, { at: ctx.host.now().toISOString(), actor: actorOf(ctx), ...entry })
 }
 
-/** Locks that matter for the frontier: under the repository, and the whole machine when `*` is in play. */
-async function frontierLocks(ctx: ToolContext, state: RunState): Promise<JlockLock[]> {
-  const needsAll = state.tasks.tasks.some((t) => t.exclusive && (t.status === "pending" || t.status === "in_progress"))
-  return needsAll ? jlockList(ctx.host) : jlockList(ctx.host, { under: state.root })
+/**
+ * Locks that matter for the frontier: the whole machine's, since every task holds `resource:machine` and resources
+ * are machine-wide (0.7.0). Loads the resource catalogue too, for the reasons that name a resource.
+ */
+async function frontierLocks(ctx: ToolContext, _state: RunState): Promise<JlockLock[]> {
+  const [locks] = await Promise.all([jlockList(ctx.host), loadResources(ctx.host)])
+  return locks
 }
 
 function residentKey(run: string, task: string) {
@@ -202,7 +208,7 @@ export async function markLost(ctx: ToolContext, first: RunState, id: string): P
     await writeTicket(ctx.host, d.state, id)
     await log(ctx, d.state, { action: "lost", task: id, from: "in_progress", to: d.result.to, ...keptLog(d.result.kept) })
     return true
-  })
+  }, id)
   if (changed) await releaseHolds(ctx, first.run.id, id).catch(() => {})
   return changed
 }
@@ -227,7 +233,7 @@ export async function acquireHold(
   ctx: ToolContext,
   state: RunState,
   task: Task,
-  keys: string[],
+  keys: LockSpec[],
   wait: { noWait: true } | { timeoutSec: number },
   timeoutMs: number,
 ): Promise<HoldOutcome> {
@@ -280,14 +286,15 @@ defineAction(
       acceptance: t.acceptance.map((a) => a.text),
       files: t.files,
       claimed: t.claimed ?? [],
-      exclusive: !!t.exclusive,
+      exclusive: exclusiveScope(t) ?? false,
+      uses: t.uses ?? [],
       ticket: ticketPath(state.dir, state.tasks.tasks, t.id),
     }))
     const lines: string[] = retakenLines(back)
     if (ready.length) {
       lines.push(tr("next.ready", { n: ready.length, run: state.run.id }))
       for (const t of items) {
-        const own = t.exclusive ? tr("next.exclusive") : t.files.join(", ") || tr("next.no_files")
+        const own = (t.exclusive === "machine" ? tr("next.exclusive_machine") : t.exclusive ? tr("next.exclusive") : t.files.join(", ") || tr("next.no_files")) + usesSuffix(t.uses)
         lines.push(tr("next.line", { id: t.id, title: t.title, profile: t.profile, own }))
         if (t.acceptance.length) lines.push(`  ${tr("next.criteria", { criteria: t.acceptance.join("; ") })}`)
         lines.push(`  ticket: ${t.ticket}`)
@@ -322,9 +329,7 @@ defineAction(
     const first = await resolveRun(ctx, args)
     const id = taskIdArg(args)
     // Under the tree key: one start of a task at a time (a second one sees it in progress before taking any lock),
-    // and its kept edits come back with no other transition touching the tree. An exclusive task holds it under its
-    // own owner: the `*` it takes next would be refused by a key another owner holds (serial.ts).
-    const exclusive = first.tasks.tasks.find((t) => t.id === id)?.exclusive
+    // and its kept edits come back with no other transition touching the tree.
     return withTree(ctx, first.run.id, async (ctx) => {
       let keys: string[] = []
       let hold: Hold | undefined
@@ -349,14 +354,15 @@ defineAction(
           const now = ctx.host.now().toISOString()
           // The locks are taken once: a decision made again (its event refused) keeps them.
           if (attempt === 1) {
-            keys = taskKeys(state.root, task, ctx.host.platform)
+            const specs = taskLocks(state.root, task, ctx.host.platform)
+            keys = specs.map((s) => s.key)
             if (keys.length) {
-              const outcome = await acquireHold(ctx, state, task, keys, { noWait: true }, 15_000)
+              const outcome = await acquireHold(ctx, state, task, specs, { noWait: true }, 15_000)
               if (outcome.answer.result !== "granted") {
                 const a = outcome.answer
-                const holder = typeof a.holder === "object" && a.holder ? describeOwner(a.holder.owner, state.run.id) : tr("start.other_owner")
+                const holder = holderText(a, state.run.id)
                 const key = a.failed ?? a.key ?? keys[0]!
-                const via = a.via && a.via !== key ? ` (via ${describeKey(a.via, state.root, ctx.host.platform)})` : ""
+                const via = await viaText(ctx, a.via, key, state.root)
                 keys = []
                 throw new ToolError(
                   tr("start.busy", { id: task.id, key: describeKey(key, state.root, ctx.host.platform), holder, via }),
@@ -409,10 +415,27 @@ defineAction(
         [tr("start.started", { id: id!, attempt: d.result.attempts, own }), ...extra, `ticket: ${ticket}`, tr("start.hint", { id: id! })].join("\n"),
         { run: state.run.id, task: id, keys, owner: d.result.owner, attempts: d.result.attempts, ticket, ...(reapply ? reapplyData(reapply) : {}) },
       )
-    }, exclusive && id ? ownerOf(first.run.id, id) : undefined)
+    }, id)
   },
   "help.start",
 )
+
+/** Who holds what refused a request: the hold in the way (jlock 0.3 `holder`, else the first of `holders`). */
+function holderText(a: JlockAnswer, run: string): string {
+  const h = typeof a.holder === "object" && a.holder ? a.holder : a.holders?.[0]
+  if (h) return describeOwner(h.owner, run)
+  return typeof a.holder === "string" ? describeOwner(a.holder, run) : tr("start.other_owner")
+}
+
+/** ` (via src)` for a path refused through another key; ` (the real mouse…)` for a resource; empty otherwise. */
+async function viaText(ctx: ToolContext, via: string | undefined, key: string, root: string): Promise<string> {
+  if (isResourceKey(key)) {
+    await loadResources(ctx.host)
+    const what = describeResource(key)
+    return what ? ` (${what})` : ""
+  }
+  return via && via !== key ? ` (via ${describeKey(via, root, ctx.host.platform)})` : ""
+}
 
 /** The trailer of a done's commit (ticket 60): the run and the task, so a done made again finds its own commit. */
 export function doneTrailer(run: string, task: string): string {
@@ -483,21 +506,31 @@ export async function statusOf(ctx: ToolContext, state: RunState) {
   for (const t of running) {
     const owner = ownerOf(state.run.id, t.id)
     const keys = taskKeys(state.root, t, platform)
-    const held = groupLocks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key)
+    const held = heldBy(groupLocks, owner)
     if (keys.length && keys.some((k) => !held.includes(k))) lost.push(tr("status.lost_task", { id: t.id }))
   }
   if (lost.length) lines.push(tr("status.lost", { list: lost.join(", ") }))
-  const locks = groupLocks.map((l) => ({
-    key: describeKey(l.key, state.root, platform),
-    holder: l.holder ? describeOwner(l.holder.owner, state.run.id) : null,
-    queue: l.queue.map((q) => ({ owner: describeOwner(q.owner, state.run.id), position: q.position })),
-  }))
+  // The run's own holds of each key (a shared key such as resource:machine has other runs' holds too), with their
+  // mode; a hold nested in one of its task's holds says so.
+  const ours = (owner: string) => owner.startsWith(`gt:${state.run.id}/`)
+  const locks = groupLocks.map((l) => {
+    const holds = liveHolders(l).filter((h) => ours(h.owner))
+    const holders = holds.map((h) => ({ owner: describeOwner(h.owner, state.run.id), mode: h.mode ?? "exclusive", nested: !!h.nested }))
+    return {
+      key: describeKey(l.key, state.root, platform),
+      holder: holders[0]?.owner ?? null,
+      holders,
+      queue: l.queue.filter((q) => ours(q.owner)).map((q) => ({ owner: describeOwner(q.owner, state.run.id), position: q.position })),
+    }
+  })
+  const holdText = (h: { owner: string; mode: string; nested: boolean }) =>
+    `${h.owner}${h.mode === "shared" ? ` ${tr("status.shared_hold")}` : ""}${h.nested ? ` ${tr("status.nested_hold")}` : ""}`
   if (locks.length)
     lines.push(
       tr("status.locks", {
         run: state.run.id,
         list: locks
-          .map((l) => `${l.key} → ${l.holder ?? tr("status.free")}${l.queue.length ? ` ${tr("status.queue", { n: l.queue.length, owners: l.queue.map((q) => q.owner).join(", ") })}` : ""}`)
+          .map((l) => `${l.key} → ${l.holders.length ? l.holders.map(holdText).join(", ") : tr("status.free")}${l.queue.length ? ` ${tr("status.queue", { n: l.queue.length, owners: l.queue.map((q) => q.owner).join(", ") })}` : ""}`)
           .join(" · "),
       }),
     )
@@ -565,7 +598,7 @@ addUsage("help.status.run")
 
 /** The task's ownership as relative paths: files and claims; `.` (everything) when exclusive. */
 export function possession(task: Task): string[] {
-  return task.exclusive ? ["."] : [...task.files, ...(task.claimed ?? [])]
+  return exclusiveScope(task) ? ["."] : [...task.files, ...(task.claimed ?? [])]
 }
 
 function inPossession(path: string, own: string[], insensitive: boolean): boolean {
@@ -604,7 +637,7 @@ export async function splitChanges(ctx: ToolContext, state: RunState, task: Task
     for (const t of state.tasks.tasks) if (t.id !== task.id && t.status === "in_progress") otherOwn.push(...possession(t))
     const owner = ownerOf(state.run.id, task.id)
     for (const l of await jlockList(ctx.host, { under: state.root }))
-      if (l.holder && l.holder.owner !== owner && l.holder.stale !== true) otherKeys.push(l.key)
+      if (liveHolders(l).some((h) => !sameFamily(h.owner, owner))) otherKeys.push(l.key)
   }
   const out: TreeSplit = { inside: [], others: [], outside: [], released: [] }
   const left = withOthers ? await releasedEdits(ctx.host, state) : new Map<string, string>()
@@ -634,7 +667,7 @@ export async function missingKeys(ctx: ToolContext, state: RunState, task: Task)
   if (!keys.length) return []
   const owner = ownerOf(state.run.id, task.id)
   const locks = await jlockList(ctx.host, { group: state.run.id })
-  const held = new Set(locks.filter((l) => l.holder?.owner === owner && l.holder.stale !== true).map((l) => l.key))
+  const held = new Set(heldBy(locks, owner))
   return keys.filter((k) => !held.has(k))
 }
 
@@ -645,7 +678,7 @@ export async function missingKeys(ctx: ToolContext, state: RunState, task: Task)
 export async function takeKeys(ctx: ToolContext, state: RunState, task: Task, keys: string[]): Promise<string[]> {
   if (!keys.length) return []
   const take = async (some: string[]) => {
-    const outcome = await acquireHold(ctx, state, task, some, { noWait: true }, 5_000)
+    const outcome = await acquireHold(ctx, state, task, specsOf(state.root, task, ctx.host.platform, some), { noWait: true }, 5_000)
     if (outcome.answer.result !== "granted") return false
     if (outcome.resident) remember(ctx, state, task.id, outcome.resident)
     return true
@@ -720,7 +753,7 @@ async function transition(
     await log(ctx, d.state, { action: name(), task: taskId, from, to: task.status, ...extra })
     return { task, tasks: d.state.tasks, state: d.state }
   }
-  return opts.tree ? withTree(ctx, first.run.id, run) : run(ctx)
+  return opts.tree ? withTree(ctx, first.run.id, run, id) : run(ctx)
 }
 
 function closeTask(task: Task, status: Task["status"], now: string) {
@@ -853,7 +886,7 @@ defineAction(
       else if (entry.path && !files.includes(entry.path)) files.push(entry.path)
     }
     if (errors.length) throw new ToolError(tr("claim.refused", { errors: errors.join("; ") }))
-    const current = taskKeys(first.root, task, platform)
+    const current = pathKeys(first.root, task, platform)
     const wanted = files.filter((f) => {
       const key = normalizeKey(f, first.root, platform)
       return !current.some((k) => covers(k, key))
@@ -866,10 +899,12 @@ defineAction(
     const keys = canonical(wanted.map((f) => normalizeKey(f, first.root, platform)))
     const timeoutMs = parseDuration(typeof args.options.timeout === "string" ? args.options.timeout : "60s")
     const began = ctx.host.now().getTime()
-    const outcome = await acquireHold(ctx, first, task, keys, { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) }, timeoutMs + 15_000)
+    const specs = keys.map((key) => ({ key, mode: "exclusive" as const }))
+    const outcome = await acquireHold(ctx, first, task, specs, { timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)) }, timeoutMs + 15_000)
     const waited = ((ctx.host.now().getTime() - began) / 1000).toFixed(1)
     const a = outcome.answer
-    const holderOf = (h: JlockAnswer["holder"]) => (typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : "?")
+    const holderOf = (h: JlockAnswer["holder"]) =>
+      typeof h === "object" && h ? describeOwner(h.owner, first.run.id) : typeof h === "string" ? describeOwner(h, first.run.id) : a.holders?.[0] ? describeOwner(a.holders[0].owner, first.run.id) : "?"
 
     if (a.result === "timeout") {
       const key = a.failed ?? a.key ?? keys[0]!
@@ -924,7 +959,7 @@ defineAction(
         await log(ctx, d.state, { action: "claim", task: task.id, files: wanted, keys, waitedSec: Number(waited), ...reapplyData(reapply!) })
         return { t: d.result, reapply: reapply! }
       }
-      const done = reapplies ? await withTree(ctx, first.run.id, record) : await record(ctx)
+      const done = reapplies ? await withTree(ctx, first.run.id, record, task.id) : await record(ctx)
       if (resident) remember(ctx, first, task.id, resident)
       const text = [tr("claim.granted", { id: task.id, files: wanted.join(", "), waited, own: possession(done.t).join(", ") }), ...reapplyLines(done.reapply)]
       return ok(text.join("\n"), {
@@ -1002,7 +1037,7 @@ export async function retakeYielded(ctx: ToolContext, first: RunState, only?: (t
       const refused = await takeKeys(ctx, state0, task, keys)
       const granted = keys.filter((k) => !refused.includes(k))
       if (!granted.length) continue
-      const back = await withTree(ctx, first.run.id, async (ctx) => {
+      const back = await withTree(ctx, { run: first.run.id, task: task.id }, async (ctx) => {
         let reapply: ReapplyReport | undefined
         let files: string[] = []
         const d = await decide(ctx, first, "reclaim", async (state, draft) => {
@@ -1041,7 +1076,7 @@ defineAction(
     if (task.exclusive) throw new ToolError(tr("yield.exclusive", { id: task.id }))
     const platform = ctx.host.platform
     const owner = ownerOf(first.run.id, task.id)
-    const current = taskKeys(first.root, task, platform)
+    const current = pathKeys(first.root, task, platform)
     const keys: string[] = []
     const raw = args.positionals.slice(1)
     if (raw.length) {
@@ -1061,7 +1096,7 @@ defineAction(
       if (!keys.length) throw new ToolError(tr("yield.nothing", { id: task.id }), 2)
     }
     const wanted = canonical(keys)
-    const done = await withTree(ctx, first.run.id, async (ctx) => {
+    const done = await withTree(ctx, { run: first.run.id, task: task.id }, async (ctx) => {
       const d = await decide(ctx, first, "yield", async (state, draft) => {
         const t = draft.tasks.tasks.find((x) => x.id === task.id)!
         if (t.status !== "in_progress") throw new ToolError(tr("yield.not_running", { id: t.id, status: t.status }))
@@ -1136,7 +1171,7 @@ defineAction(
     const first = await resolveRun(ctx, args)
     let broughtBack: ReapplyReport | undefined
     // The whole done under the run's tree key: the kept edits brought back, the commit, the task done.
-    const t = await withTree(ctx, first.run.id, async (ctx) => {
+    const t = await withTree(ctx, { run: first.run.id, task: taskIdArg(args) }, async (ctx) => {
       // Edits the task keeps aside come back before anything is committed (ticket 58).
       broughtBack = evidence ? await bringBackKept(ctx, args) : undefined
       return transition(ctx, args, "done", async (task, state, draft) => {
@@ -1225,7 +1260,7 @@ defineAction(
     const first = await resolveRun(ctx, args)
     const id = taskIdArg(args)
     const insensitive = caseInsensitive(ctx.host.platform)
-    const r = await withTree(ctx, first.run.id, async (ctx) => {
+    const r = await withTree(ctx, { run: first.run.id, task: id }, async (ctx) => {
       let acc: ReapplyReport | undefined
       const d = await decide(ctx, first, "adopt", async (state, draft) => {
         const task = findTask(state, id)
@@ -1295,7 +1330,7 @@ async function bringBackKept(ctx: ToolContext, args: ParsedArgs): Promise<Reappl
   const first = await resolveRun(ctx, args)
   const id = taskIdArg(args)
   const insensitive = caseInsensitive(ctx.host.platform)
-  return withTree(ctx, first.run.id, async (ctx) => {
+  return withTree(ctx, { run: first.run.id, task: id }, async (ctx) => {
     let reapply: ReapplyReport | undefined
     const d = await decide(ctx, first, "reapply", async (state, draft) => {
       const original = findTask(state, id)
@@ -2073,14 +2108,17 @@ defineAction(
     const root = state?.root ?? (await requirePaths(ctx.host, ctx.cwd)).repoRoot
     const command = argv.join(" ")
     const entry = state ? serializeEntry(state.run.serialize, command) : undefined
+    const target = state ? execTask(ctx, state, args) : undefined
     const full = entry
       ? [
           jlockBin(ctx.host),
           "run",
           serializeKey(root, entry),
           "--owner",
-          // One owner per exec: two with the same owner would both be granted at once.
-          `gt:${state!.run.id}/exec-${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 46656).toString(36)}`,
+          // A child of the task it runs for (jlock 0.3 families: nothing the task holds stands in its way, and the
+          // task waits for it in jlock's deadlock check), and one owner per exec: two execs are siblings and exclude
+          // each other, where the same owner would be granted twice.
+          childOwner(state!.run.id, target?.id, "exec", `${ctx.host.now().getTime().toString(36)}${Math.floor(ctx.host.random() * 46656).toString(36)}`),
           "--group",
           state!.run.id,
           "--intent",
@@ -2090,7 +2128,6 @@ defineAction(
           ...argv,
         ]
       : [...argv]
-    const target = state ? execTask(ctx, state, args) : undefined
     const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : 10 * 60_000
     // The child's pid, as the host tells it, goes in the task while the command runs (a host that cannot tell: none).
     const pids: number[] = []

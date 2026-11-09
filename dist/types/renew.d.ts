@@ -24,7 +24,7 @@ export type RenewResult = "fresh" | "renewed" | "retaken" | "lost" | "none";
  * When the earliest of these holds expires (epoch ms), or undefined when none has a deadline: jlock's `expires`
  * (which counts `jlock renew`) when it says, else `since + ttl_secs` (a jlock before 0.2.0).
  */
-export declare function earliestExpiry(locks: JlockLock[]): number | undefined;
+export declare function earliestExpiry(locks: JlockLock[], owner?: string): number | undefined;
 /** What a task's holds need, from one `jlock list --group` of the run. */
 export declare function renewalNeed(state: RunState, task: Task, locks: JlockLock[], platform: string, now: number, every?: number): "none" | "fresh" | "retake" | "renew";
 /**

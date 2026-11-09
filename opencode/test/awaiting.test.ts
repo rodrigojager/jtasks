@@ -38,7 +38,7 @@ async function setup(plan: Record<string, unknown> = {}) {
   h.addSession("c1", "s1")
   expect((await h.call("c1", "start T01")).ok).toBe(true)
   const t01 = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks[0]
-  const locks = () => (JSON.parse(sh(repo, "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+  const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: { key: string }[] }).locks.filter((l) => !l.key.startsWith("resource:"))
   const toRoot = () => h.synthetics.filter((s) => s.sessionID === "s1").map((s) => s.text)
   return { repo, h, run, dir, alerts, t01, locks, toRoot }
 }

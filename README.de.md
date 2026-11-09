@@ -31,6 +31,7 @@ Besitz), und diese Dateien sind gesperrt, solange sie läuft.
   eine davon braucht, wartet in der Warteschlange (`claim`) oder macht etwas anderes; ein Warten, das einen Zyklus
   schließen würde, wird abgelehnt. Die abgelehnte Aufgabe weicht mit `jtasks yield`: sie gibt nur die umkämpften Dateien ab, ihre Änderungen
   bleiben als Patch erhalten und kommen mit ihnen zurück, und sie macht weiter.
+- **Was eine Aufgabe sonst noch braucht.** Neben Dateien kann eine Aufgabe deklarieren, was sie nutzt (`"uses": ["desktop"]`, `"clipboard"`, `"port:8080"`…): jlock-Ressourcen, gesperrt solange sie läuft, sodass Aufgaben beliebiger Läufe auf der Maschine, die dasselbe brauchen, sich abwechseln. `"exclusive": "project"` lässt eine Aufgabe allein in ihrem Repository laufen; `"exclusive": "machine"` wartet auf alle jtasks-Aufgaben der Maschine und lässt keine neue starten (Benchmarks, Zeitmessungen). Keins von beiden hält die Sperren eines anderen Projekts an.
 - **Nachweise statt Versprechen.** Eine Aufgabe wird mit `done` und ihrem Nachweis abgeschlossen; das Tool prüft,
   dass sich nur ihre Dateien geändert haben, und macht den Commit (`T04: Titel`). Ein Commit pro Aufgabe: Eine
   Aufgabe zurücknehmen heißt einen Commit zurücknehmen.
@@ -126,7 +127,7 @@ T02 · Docs · Profil execute · Besitz: docs/sum.md
 blockiert: T03 ⛔ T01, T02
 
 $ jtasks start T01
-T01 in Arbeit (Versuch 1): Besitz in jlock gesperrt (1 Schlüssel, Besitzer gt:a-sum-its-docs-and-the-e-261024-covw/T01)
+T01 in Arbeit (Versuch 1): Besitz in jlock gesperrt (2 Schlüssel, Besitzer gt:a-sum-its-docs-and-the-e-261024-covw/T01)
 ticket: ~/project/.scratch/jtasks/runs/a-sum-its-docs-and-the-e-261024-covw/tickets/01-sum.md
 weitere Datei: jtasks claim T01 <datei>; am Ende: jtasks done T01 --evidence "…" (oder jtasks fail T01 --error "…")
 

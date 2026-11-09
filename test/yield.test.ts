@@ -144,7 +144,7 @@ describe("yield", () => {
     const patch = read(dir, task(dir, "T05").patches![0]!.patch)
     expect(patch).toContain("new file mode")
     expect(patch).toContain("+brand new")
-    expect(jlockListJson("--group", run).map((l) => l.key.replace(/^.*\//, ""))).toEqual(["c.ts"])
+    expect(jlockListJson("--group", run).map((l) => l.key.replace(/^.*\//, ""))).toEqual(["c.ts", "resource:machine"])
     const c = await tasksOk(repo, ["claim", "T05"])
     expect(c.text).toContain("T05 recebeu d")
     expect(c.text).toContain("patches reaplicados: d/new.ts")

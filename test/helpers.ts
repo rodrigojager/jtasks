@@ -80,9 +80,12 @@ export async function tasks(cwd: string, argv: string[], extra: Partial<ToolCont
   return runTool(context(cwd, extra), argv)
 }
 
+/** The jlock the tests drive directly: JLOCK_BIN (the one the tool uses too), else `jlock` from PATH. */
+export const JLOCK = process.env.JLOCK_BIN || "jlock"
+
 /** A `jlock hold` of our own (another program holding a key); stop it with `.stop()` or a `release` line. */
 export async function foreignHold(keys: string[], owner: string, group?: string) {
-  const argv = ["jlock", "hold", ...keys, "--owner", owner, "--json"]
+  const argv = [JLOCK, "hold", ...keys, "--owner", owner, "--json"]
   if (group) argv.push("--group", group)
   const r = await host.spawn(argv)
   const first = await r.firstLine(10_000)
@@ -92,11 +95,16 @@ export async function foreignHold(keys: string[], owner: string, group?: string)
 
 /** Releases every lock of a run's group (the CLI's detached holds then end by themselves with 14). */
 export function releaseGroup(run: string) {
-  Bun.spawnSync(["jlock", "release", "--group", run, "--any-owner", "--json"], { env: process.env })
+  Bun.spawnSync([JLOCK, "release", "--group", run, "--any-owner", "--json"], { env: process.env })
 }
 
-export function jlockListJson(...args: string[]): { key: string; holder: { owner: string } | null; queue: { owner: string; position: number }[] }[] {
-  const p = Bun.spawnSync(["jlock", "list", "--json", ...args], { env: process.env })
+export function jlockListJson(...args: string[]): {
+  key: string
+  holder: { owner: string } | null
+  holders: { owner: string; mode: "shared" | "exclusive"; nested?: boolean; group?: string | null }[]
+  queue: { owner: string; position: number }[]
+}[] {
+  const p = Bun.spawnSync([JLOCK, "list", "--json", ...args], { env: process.env })
   return JSON.parse(p.stdout.toString()).locks
 }
 

@@ -21,7 +21,8 @@ import {
   type TasksFile,
 } from "./schema.ts"
 import { appendLog, atomicWrite, createSnapshots, listRuns, readJson, runDir, runsDir, stringify } from "./store.ts"
-import { draftKey, withKey } from "./serial.ts"
+import { withDraft } from "./serial.ts"
+import { checkUse, loadResources, resourceName, usesSuffix } from "./resources.ts"
 import { BRIEF_FILE, loadBrief, readRunBrief, readTicketsDir, storeBrief, ticketReadLine, writeTickets } from "./tickets.ts"
 import { addUsage, defineAction, ok, readJsonArg, ToolError, type ParsedArgs, type ToolContext, type ToolResult } from "./tool.ts"
 import { readPlan, validateBatch, validatePlan } from "./validate.ts"
@@ -48,7 +49,14 @@ export function toTask(p: PlanTask, profiles: Record<string, Profile>, source?: 
   }
   if (p.what) task.what = p.what
   if (p.source || source) task.source = (p.source || source)!
-  if (p.exclusive) task.exclusive = true
+  if (p.exclusive) task.exclusive = p.exclusive === "machine" ? "machine" : "project"
+  // Validated plans carry `{ resource, mode }`; a bare name (a hand-made plan in a test) gets the catalogue's default.
+  const uses = (p.uses ?? []).flatMap((u) => {
+    if (typeof u === "object" && u.mode) return [{ resource: u.resource.replace(/^resource:/i, ""), mode: u.mode }]
+    const spec = checkUse(p.id, u).spec
+    return spec ? [{ resource: resourceName(spec.key), mode: spec.mode }] : []
+  })
+  if (uses.length) task.uses = uses
   if (p.boundary) task.boundary = p.boundary
   if (p.touchesShared?.length) task.touchesShared = [...p.touchesShared]
   if (p.context) task.context = JSON.parse(JSON.stringify(p.context))
@@ -193,12 +201,12 @@ export function warningLines(warnings: string[]): string[] {
  * warnings and is what the run keeps.
  */
 export async function validateWithBrief(ctx: ToolContext, raw: unknown): Promise<ReturnType<typeof validatePlan> & { brief?: string }> {
-  const first = validatePlan(raw, { platform: ctx.host.platform })
+  const first = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host) })
   const path = first.plan.context?.brief
   if (!path) return first
   const loaded = await loadBrief(ctx.host, ctx.cwd, path)
   if (loaded.error) return { ...first, errors: [...first.errors, loaded.error] }
-  const full = validatePlan(raw, { platform: ctx.host.platform, brief: loaded.text })
+  const full = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host), brief: loaded.text })
   return { ...full, brief: loaded.text! }
 }
 
@@ -331,7 +339,7 @@ export function draftSummary(draft: Draft): string {
   if (draft.tasks.length === 0) return tr("draft.empty_summary", { id: draft.id })
   const lines = draft.tasks.map((t) => {
     const deps = t.dependsOn?.length ? t.dependsOn.join(", ") : "-"
-    const own = t.exclusive ? "exclusive" : t.files?.length ? t.files.join(", ") : "-"
+    const own = (t.exclusive ? `exclusive${t.exclusive === "machine" ? ":machine" : ""}` : t.files?.length ? t.files.join(", ") : "-") + usesSuffix(t.uses)
     return tr("draft.line", { id: t.id, title: t.title, deps, own })
   })
   return [tr("draft.summary", { id: draft.id, n: draft.tasks.length }), ...lines].join("\n")
@@ -381,12 +389,13 @@ async function draftOpen(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
 async function draftAdd(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const { dir, draft } = await resolveDraft(ctx, args)
   const raw = await readJsonArg(ctx, args.positionals[0], "json.batch")
-  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
+  return withDraft(ctx, draft.id, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     const read = readPlan(raw)
     const profiles = read.plan.profiles ?? current.profiles ?? DEFAULT_PROFILES
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
+      resources: await loadResources(ctx.host),
       profiles,
       existingIds: current.tasks.map((t) => t.id),
     })
@@ -432,7 +441,7 @@ async function draftFix(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     raw = raw[0]
   }
   if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as { id?: unknown }).id === undefined) raw = { ...raw, id: fixId }
-  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
+  return withDraft(ctx, draft.id, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     const index = current.tasks.findIndex((t) => t.id === fixId)
     if (index < 0) throw new ToolError(tr("draft.no_task", { id: fixId }))
@@ -442,6 +451,7 @@ async function draftFix(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult>
     if (task && task.id !== fixId) errors.push(tr("draft.fix_id_changed", { id: fixId, other: task.id }))
     const batch = validateBatch(read.plan.tasks, {
       platform: ctx.host.platform,
+      resources: await loadResources(ctx.host),
       profiles: current.profiles ?? DEFAULT_PROFILES,
       existingIds: current.tasks.filter((t) => t.id !== fixId).map((t) => t.id),
     })
@@ -464,12 +474,12 @@ async function draftShow(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult
 
 async function draftCommit(ctx: ToolContext, args: ParsedArgs): Promise<ToolResult> {
   const { dir, draft } = await resolveDraft(ctx, args)
-  return withKey(ctx, draftKey(draft.id), `jtasks draft ${draft.id}`, async (ctx) => {
+  return withDraft(ctx, draft.id, async (ctx) => {
     const current = (await readJson<Draft>(ctx.host, draftFile(dir))) ?? draft
     if (current.tasks.length === 0) throw new ToolError(tr("draft.empty"))
     // The brief arrived with a batch and is already in the draft's folder (which becomes the run's).
     const brief = await readRunBrief(ctx.host, dir, current.context)
-    const checked = validatePlan(draftPlan(current), { platform: ctx.host.platform, ...(brief ? { brief } : {}) })
+    const checked = validatePlan(draftPlan(current), { platform: ctx.host.platform, resources: await loadResources(ctx.host), ...(brief ? { brief } : {}) })
     const { plan, warnings } = checked
     const errors = brief === null ? [...checked.errors, tr("plan.brief_missing", { file: join(dir, BRIEF_FILE) })] : checked.errors
     if (errors.length > 0) return refused(tr("draft.commit_refused"), errors)
@@ -515,7 +525,7 @@ defineAction(
     const tickets = await readTicketsDir(ctx.host, dir)
     if (!tickets.length) throw new ToolError(tr("import.no_tickets", { dir: arg }))
     const raw = { tasks: tickets.map((t) => t.task) }
-    const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform })
+    const { plan, errors } = validatePlan(raw, { platform: ctx.host.platform, resources: await loadResources(ctx.host) })
     const read = [tr("import.read", { n: tickets.length, dir: arg }), ...tickets.map((t) => `  ${ticketReadLine(t)}`)]
     if (!args.options.yes) {
       const verdict = errors.length

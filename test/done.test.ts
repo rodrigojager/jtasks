@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { readEffects } from "../src/ledger.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
-import { cleanupTemp, foreignHold, host, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
+import { JLOCK, cleanupTemp, foreignHold, host, jlockListJson, makeRepo, releaseGroup, sh, tasks, tasksOk, writeFiles, runPath } from "./helpers.ts"
 
 // Real git and jlock processes: a busy machine needs more than the default 5 s.
 setDefaultTimeout(60_000)
@@ -146,7 +146,7 @@ describe("done: one commit per task", () => {
     const { repo, run, dir } = await newRun()
     await tasksOk(repo, ["start", "T01"])
     writeFiles(repo, { "src/a.ts": "1\n" })
-    sh(repo, "jlock", "release", "--group", run, "--owner", `gt:${run}/T01`, "--json")
+    sh(repo, JLOCK, "release", "--group", run, "--owner", `gt:${run}/T01`, "--json")
     // Lost and still free, done would take it back (test/renew.test.ts); here another program took it.
     const other = await foreignHold([join(repo, "src/a.ts").replace(/\\/g, "/")], "vim")
     try {

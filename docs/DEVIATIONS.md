@@ -48,7 +48,7 @@ criada de forma exclusiva), que dura milissegundos.
 
 **O que fazer:** nada; é mais seguro que o original e está na seção 5 do plano.
 
-## 4. O `next` não enxerga, num caso raro, uma tarefa exclusiva de outro projeto (ticket 04)
+## 4. O `next` não enxerga, num caso raro, uma tarefa exclusiva de outro projeto (ticket 04) — resolvido pela 0.7.0 (desvio 19)
 
 **O que mudou:** uma tarefa `exclusive` trava a chave `*`, a máquina inteira; essa chave não aparece na consulta que
 o `next` faz, que olha só o repositório (`--under`). O `next` lê a lista inteira da máquina só quando a própria
@@ -291,7 +291,7 @@ esperando um processo lançado de outro jeito, `jtasks wait <id> --pid <pid>` an
 tarefa "aguardando processo" e seguir com as outras. Pessoa: numa pausa por `needsPerson`, ver a tarefa, depois
 `jtasks retry <id>` e `jtasks unpause`. Para ajustar: `maxAgentEnded` e `awaitGrace` no plano.
 
-## 18. Estado por eventos: a chave da árvore com tarefa exclusiva, o mod com `--detach`, e as decisões incertas (ticket 60)
+## 18. Estado por eventos: a chave da árvore com tarefa exclusiva, o mod com `--detach`, e as decisões incertas (ticket 60) — o item 1 foi resolvido pela 0.7.0 (desvio 19)
 
 **O que mudou:** o ticket 60 tirou a trava de escrita (`withLock`, `.write.lock`): o estado é a dobra de
 `events.jsonl` com commit otimista, e os efeitos na árvore rodam sob a chave do jlock `name:jtasks:<run>:git`, segura
@@ -330,3 +330,54 @@ pelo próprio processo com `jlock hold --release-on-eof`. Três pontos saíram d
 **O que fazer:** subir CLI, mod e plugin juntos para a 0.4.0. Se o Claude Code cair no meio de uma transição, as
 outras transições de árvore da mesma execução esperam o ttl de 10 min (ou `jlock release name:jtasks:<run>:git
 --owner <dono>`, que `jlock list` mostra).
+
+## 19. Desenho C: donos em família, `exclusive` com escopo, recursos (0.7.0, jlock 0.3)
+
+**O que mudou:** o jtasks passou a exigir o jlock 0.3.0 (`MIN_JLOCK`; o `doctor` falha abaixo disso) e usa três
+coisas dele:
+
+1. **Donos em família.** A tarefa segura suas travas como `gt:<run>/<tarefa>`; o que roda em nome dela segura como
+   filho: `gt:<run>/<tarefa>/exec-<id>` (o `jtasks exec`) e `gt:<run>/<tarefa>/tree-<id>` (a chave da árvore em volta
+   de uma transição: `start`, `done`, `release`, `claim` com patches, `yield`, `adopt`, perda de posse, renovação).
+   O jlock nunca deixa uma trava da tarefa bloquear um filho dela, e dois filhos (dois `exec` da mesma tarefa) se
+   excluem como estranhos, então o `serialize` continua valendo entre eles. Sem tarefa (o `resume`, o `undo`, o
+   rascunho), o dono é `gt:<run>/~tree-<id>` (ou `~draft-<id>`). Saiu o contorno do ticket 60 em `src/serial.ts`
+   (tentar de novo com o dono da tarefa exclusiva quando o `*` dela recusava a chave da árvore) e o caso especial
+   de `*` no `start`: nenhum dos dois é mais necessário.
+2. **`exclusive` com escopo.** `"project"` (ou `true`) trava a raiz do repositório em modo exclusivo, não `*`: a
+   tarefa roda sozinha no repositório e não bloqueia nem espera travas de outros projetos. `"machine"` trava também
+   `resource:machine` exclusivo. Nada no jtasks segura `*`.
+3. **Recursos e modos.** `uses` no plano (`"desktop"`, `"clipboard"`, `"port:8080"`, `{ "resource", "mode" }`)
+   vira chaves `resource:` do jlock, validadas no `validate`/`plan` contra o catálogo (`jlock resources --json`; sem
+   jlock, o catálogo embutido igual ao do jlock 0.3) com sugestão do nome mais próximo. Toda tarefa segura
+   `resource:machine` compartilhado, então uma tarefa `"machine"` espera as que estão rodando (de qualquer execução e
+   projeto) e impede novas, só entre participantes do jtasks.
+
+**Por quê:** numa execução real, uma tarefa `exclusive` segurava `*`, que bloqueava (e era bloqueado por) travas de
+projetos sem relação na máquina inteira; e o `jtasks exec` usava um dono novo `gt:<run>/exec-…`, que sob a tarefa
+exclusiva da própria execução esperava uma chave que a tarefa segurava: deadlock, abortado depois de 600 s duas
+vezes. O contorno do ticket 60 resolvia só a chave da árvore.
+
+**Decidido pelo lado seguro, fora do pedido:**
+- `"machine"` implica `"project"`: a tarefa trava a raiz do repositório e `resource:machine`, porque a posse dela
+  continua sendo "tudo" (`.`) para a guarda e para o `done`.
+- O modo de cada `uses` é resolvido na validação (o que o plano diz, senão o padrão do catálogo) e gravado na
+  tarefa como `{ resource, mode }`: a fronteira decide sem perguntar ao jlock.
+- A fronteira (`next`, `status`, painel, keepalive) lê `jlock list` da máquina inteira (antes, só sob o repositório
+  quando não havia `*`), porque recursos são da máquina. A razão de um bloqueio por recurso traz o dono, o modo e a
+  descrição do jlock no idioma da ferramenta.
+- O que a tarefa segura conta só pelas travas do próprio dono (`holders` do jlock 0.3, não só o primeiro): uma chave
+  compartilhada como `resource:machine` tem travas de outras tarefas. A renovação (`renew`) olha e renova só as
+  travas do dono da tarefa; as aninhadas dos filhos acabam com a trava em que estão.
+- Duas tarefas independentes que usam o mesmo recurso exclusivo são um aviso (vão rodar uma de cada vez), não um
+  erro; e o `validate` avisa, por palavras-chave fixas (inglês e português), a tarefa que fala em mouse/teclado,
+  área de transferência, porta fixa ou medições sem declarar `uses` (para medições, `"exclusive": "machine"`).
+- Os testes que chamam o jlock direto usam `JLOCK_BIN` (antes, sempre o `jlock` do PATH): misturar o 0.2 instalado
+  com o 0.3 no mesmo `JLOCK_HOME` não funciona.
+
+**Consequência:** toda tarefa agora segura pelo menos uma chave (`resource:machine`), inclusive a sem arquivos, e o
+`start` diz "2 chave(s)" para uma tarefa de um arquivo. Execuções e travas da 0.6 não são lidas (o jlock 0.3 não lê
+travas do 0.2, e `exclusive: true` gravado num `tasks.json` antigo vale como `"project"`); sem compatibilidade com
+versões anteriores, por decisão do usuário.
+
+**O que fazer:** sem nenhuma execução ativa, instalar o jlock 0.3 e o jtasks 0.7.0 juntos (CLI, mod e plugin).
