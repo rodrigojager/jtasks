@@ -250,6 +250,11 @@ MIT, voir [`LICENSE`](LICENSE).
 
 ## Foreground execution safety (0.8)
 
+OpenCode task delegations (new and same-child resumptions) are always background to the parent in 0.8.2.
+A launch acknowledgment is not completion. Interrupt the child to cancel only its native `jtasks exec` command
+tree; interrupting the parent does not cancel an independent child. Paused runs never launch task delegations.
+See [OpenCode lifecycle and cancellation](opencode/README.md#agents).
+
 The optional Windows launcher [`scripts/opencode-isolated.ps1`](scripts/opencode-isolated.ps1) is a compatibility entrypoint for OpenCode v2,
 using the complete original profile: provider connections, model choices, preferences and session history stay available. The historical script name is retained for wrapper compatibility; it no longer creates a private server or copies credentials. It does not restart, reload or unlock an existing service. Install plugin updates separately when safe; an already running service retains its loaded version.
 

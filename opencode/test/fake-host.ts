@@ -163,9 +163,9 @@ export async function fakeHost(directory: string, host?: Host, options: { renewE
   addSession("s1")
 
   /** The model calls the jtasks tool in a session. */
-  const call = async (sessionID: string, command: string, json?: unknown) => {
+  const call = async (sessionID: string, command: string, json?: unknown, signal?: AbortSignal) => {
     const tool = tools.find((t) => t.name === "jtasks")
-    const r = await tool.execute(json === undefined ? { command } : { command, json }, { sessionID, agent: "build", messageID: "m", id: "c" })
+    const r = await tool.execute(json === undefined ? { command } : { command, json }, { sessionID, agent: "build", messageID: "m", id: "c", signal })
     return { text: r.content as string, ok: r.metadata.ok as boolean }
   }
   /** A model request of the agent loop: the system prompt as the plugin leaves it. */
@@ -175,7 +175,7 @@ export async function fakeHost(directory: string, host?: Host, options: { renewE
     return event.system
   }
   /** The model calls the subagent tool: what OpenCode would run, after the plugin's hook. */
-  const subagent = async (sessionID: string, input: { agent: string; description: string; prompt: string }) => {
+  const subagent = async (sessionID: string, input: { agent: string; description: string; prompt: string; background?: boolean; task_id?: string; sessionID?: string; session_id?: string; taskID?: string }) => {
     const event = { tool: "subagent", sessionID, agent: "build", messageID: "m", id: "c", input }
     await hooks.get("tool.execute.before")!(event)
     return event.input as typeof input

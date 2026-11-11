@@ -2,7 +2,7 @@
 // input into an argument list (the CLI's own argv, or the tool's `command` string split like a shell would) plus an
 // optional structured `json`, and gets back `{ ok, code, text, data }`.
 
-import type { Host, Resident } from "./host.ts"
+import type { CancellationSignal, Host, Resident } from "./host.ts"
 import type { HoldMode } from "./jlock.ts"
 import { isAbsolute, join } from "./paths.ts"
 import type { ToolName } from "./schema.ts"
@@ -12,10 +12,12 @@ import { loadResources } from "./resources.ts"
 import { select, systemLocale, tr } from "./i18n.ts"
 import { jlockNotice } from "./setup.ts"
 
-export const VERSION = "0.8.1"
+export const VERSION = "0.8.2"
 
 export interface ToolContext {
   host: Host
+  /** The host tool invocation's cancellation, not the parent delegation's lifetime. */
+  signal?: CancellationSignal
   /** Where the command runs: the repository or a folder inside it. */
   cwd: string
   tool: ToolName

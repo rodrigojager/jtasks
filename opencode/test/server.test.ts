@@ -38,11 +38,61 @@ async function setup() {
 }
 
 describe("OpenCode plugin", () => {
+  test("task delegations always run in background, including markerless same-child resumes", async () => {
+    const { h } = await setup()
+    const planned = await h.call("s1", "plan", plan)
+    const run = /execução (\S+) criada/.exec(planned.text)![1]!
+    for (const agent of ["execute", "build"])
+      for (const background of [undefined, false, true]) {
+        const input = { agent, description: "T01", prompt: `--run ${run} --task T01`, ...(background === undefined ? {} : { background }) }
+        expect(await h.subagent("s1", input)).toMatchObject({ agent: "execute", background: true })
+      }
+    h.addSession("c1", "s1")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    for (const field of ["task_id", "taskID", "sessionID", "session_id"])
+      expect(await h.subagent("s1", { agent: "build", description: "continue", prompt: "Continue where you stopped", [field]: "c1", background: false })).toMatchObject({ agent: "execute", background: true })
+    await expect(h.subagent("s1", { agent: "execute", description: "duplicate", prompt: `--task T01` })).rejects.toThrow("task_id")
+    const plain = { agent: "build", description: "unrelated", prompt: "Read the code", background: false }
+    expect(await h.subagent("s1", plain)).toBe(plain)
+    const unknown = { ...plain, task_id: "not-bound" }
+    expect(await h.subagent("s1", unknown)).toBe(unknown)
+    h.addSession("other-root")
+    const unbound = { ...plain, prompt: "--task T01" }
+    expect(await h.subagent("other-root", unbound)).toBe(unbound)
+    h.addSession("foreign", "other-root")
+    const foreign = { ...plain, task_id: "foreign" }
+    expect(await h.subagent("s1", foreign)).toBe(foreign)
+    expect((await h.call("s1", "pause")).ok).toBe(true)
+    await expect(h.subagent("s1", { agent: "execute", description: "paused", prompt: "Continue", task_id: "c1" })).rejects.toThrow("paused")
+    await expect(h.subagent("s1", { agent: "execute", description: "paused new task", prompt: "--task T02" })).rejects.toThrow("paused")
+  })
+
   test("registers the jtasks tool and its hooks", async () => {
     const { h } = await setup()
     expect(PLUGIN_ID).toBe("jtasks")
     expect(h.tools.map((t) => t.name)).toEqual([TOOL_NAME])
     expect([...h.hooks.keys()].sort()).toEqual(["permission.evaluate", "session.compaction", "session.context", "tool.execute.after", "tool.execute.before"])
+  })
+
+  test("launch acknowledgment is not completion or an orphan before the child starts its task", async () => {
+    const { h } = await setup()
+    await h.call("s1", "plan", plan)
+    await h.subagent("s1", { agent: "execute", description: "launch", prompt: "--task T01" })
+    h.addSession("c1", "s1")
+    const event = { tool: "subagent", sessionID: "s1", id: "c", status: "completed", input: { background: true }, result: { content: "Background task launched", metadata: { sessionID: "c1" } } }
+    await h.hooks.get("tool.execute.after")!(event)
+    expect(event.result.content).toContain("restam 3")
+    h.emit("session.execution.succeeded", { sessionID: "s1" })
+    h.emit("session.idle", { sessionID: "s1" })
+    await Bun.sleep(650)
+    expect(h.synthetics).toEqual([])
+    expect((await h.call("s1", "status")).text).toContain("feitas 0/3")
+    expect((await h.call("c1", "start T01")).ok).toBe(true)
+    h.emit("session.execution.interrupted", { sessionID: "s1" })
+    h.emit("session.idle", { sessionID: "s1" })
+    await Bun.sleep(650)
+    expect((await h.call("s1", "status")).text).toContain("T01")
+    expect(h.synthetics).toEqual([])
   })
 
   test("a scripted model: next, two subagent calls in one response, start/claim/done in each, status restam 0", async () => {
@@ -398,7 +448,7 @@ describe("OpenCode plugin", () => {
     expect(tasksOf()[0]!.status).toBe("in_progress")
     // A second subagent for T01 is refused; resuming the same session (task_id) is not.
     await expect(h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 x` })).rejects.toThrow("task_id")
-    await h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 x`, task_id: "c1" } as never)
+    await expect(h.subagent("s1", { agent: "build", description: "T01", prompt: `--run ${run} --task T01 x`, task_id: "c1" })).rejects.toThrow("paused")
     // The protocol says to wait; the sidebar says why.
     expect((await h.request("s1"))[1]!.text).toContain("The run is paused by a transient failure of the provider (rate_limit")
     // The clock reaches resumeAt: active again, and the root is told to resume session c1.

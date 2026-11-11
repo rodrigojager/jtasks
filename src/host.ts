@@ -1,11 +1,20 @@
 // Everything the core needs from the outside world. The core never imports `node:*`: the CLI and the OpenCode
 // plugin give it the Node host (`node-host.ts`), the Claude Code mod gives it one made of `$.fs` and `$.process`.
 
+/** Structural subset of the platform AbortSignal, also usable by the core's non-DOM hosts. */
+export interface CancellationSignal {
+  readonly aborted: boolean
+  addEventListener(type: "abort", listener: () => void, options?: { once?: boolean }): void
+  removeEventListener(type: "abort", listener: () => void): void
+}
+
 export interface RunOptions {
   cwd?: string
   env?: Record<string, string>
   stdin?: string
   timeoutMs?: number
+  /** Cancellation of this invocation only; never a task hold or another session's command. */
+  signal?: CancellationSignal
   /** Told the child's pid once it started, when the host knows it (rev. 5.8: `jtasks exec` registers it in the task). */
   onStart?: (pid: number) => void | Promise<void>
 }

@@ -12,7 +12,10 @@ export async function contextText(host: Host, binding: RunBinding): Promise<stri
   const [run, tasks] = await Promise.all([readRun(host, dir).catch(() => undefined), readTasks(host, dir).catch(() => undefined)])
   if (!run || !tasks) return undefined
   const summary = run.status === "paused" ? `${tr("status.paused")} · ${progressLine(tasks.tasks)}` : progressLine(tasks.tasks)
-  return protocolText(run.id, summary, "the subagent tool, agent = the task's profile agent", run.status === "paused" && run.pause ? [pauseProtocolLine(run.pause)] : [])
+  return protocolText(run.id, summary, "the subagent tool with background=true (new tasks AND same-child resumptions), agent = the task's profile agent", [
+    "A background launch acknowledgment is not task completion. Wait for the child's end notification; never poll or start a duplicate. Long commands may run in the child's foreground, never the parent's. Interrupt the child to cancel its native command; interrupting only the parent delegation does not cancel an independent child.",
+    ...(run.status === "paused" && run.pause ? [pauseProtocolLine(run.pause)] : []),
+  ])
 }
 
 /** Replaces our part of the system prompt (never two copies, never a stale one). */

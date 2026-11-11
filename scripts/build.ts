@@ -121,7 +121,9 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "Without the plugin, run the same commands in the shell, with the JSON in a file you write first " +
       "(`jtasks plan --add @batch1.json`) or on standard input (`-`).",
     spawn:
-      "call the `subagent` tool, all of them in the same response so they run in parallel. Its prompt starts with " +
+      "call the `subagent` tool with `background: true`, for both new tasks and same-child resumptions, all of them " +
+      "in the same response so they run in parallel and the parent remains responsive. A launch acknowledgment is " +
+      "not child completion: wait for its end notification, never poll or open a duplicate. Its prompt starts with " +
       "`--run <run> --task <id>`, then the title, the criteria, the ownership and the ticket's path, and asks it to " +
       "read the ticket first and follow step 3. Open a new session for each task, never one that carries this " +
       "conversation (no `task_id` of an earlier session, except to resume that same task's subagent): the ticket is " +
@@ -148,7 +150,9 @@ export const HOSTS: Record<string, { calling: string; spawn: string; after: stri
       "tell it to go on where it stopped, without calling `start` or `claim` again for what it holds.",
     wait:
       "OpenCode does not reopen a subagent session when its process ends, so a subagent should rather run a long " +
-      "command in the foreground (`jtasks exec --task <id> -- <command>`). If one ends its session while a registered " +
+      "command in the child's foreground (`jtasks exec --task <id> -- <command>`), while its delegation remains " +
+      "background to the parent. Interrupting that child cancels only its native command tree; interrupting the " +
+      "parent delegation does not cancel an independent child. If one ends its session while a registered " +
       "process runs, the plugin sends you a message when that process ends, naming the session: resume it (the " +
       "subagent tool's `task_id`) so it reads the result and finishes.",
     frontmatter: {},

@@ -19,6 +19,9 @@ Temporary files use `JTASKS_TEST_TMP` when set, otherwise the system temporary d
 outside any git checkout: negative repository-discovery tests must not inherit a parent repository. The demo
 and README examples honor the same override.
 
+Test preloads discard inherited `JTASKS_SCRATCH` and `JTASKS_RUN`: an agent host's live project binding must
+never route disposable fixture runs into that project's data folder.
+
 ## Versions
 
 Claude Code's `/plugin` decides whether an update exists by comparing the version in

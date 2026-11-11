@@ -30,6 +30,18 @@ OpenCode loads the folder's `server.ts`; the package also exports `./tui` (`tui.
 
 ## Agents
 
+Recognized task delegations always use `background: true`, even when omitted or explicitly false and even when
+the requested profile agent is already correct. This includes markerless resumptions of the same bound child
+(`task_id`). Unrelated and unbound delegations are unchanged. Paused runs reject new task launches and resumptions.
+A launch acknowledgment is not completion: the child keeps running independently, and admission counts as live
+work before its first `start`. Do not poll or create a second session for the same task.
+
+Long commands run in the child's foreground through `jtasks exec --task <id> -- <command>`, while the parent stays
+responsive. Explicitly interrupting that child passes OpenCode's cancellation signal to its native command tree
+and clears its command deadline. It never kills by name, scans other projects' process lists, or releases another
+task's locks. Interrupting only the parent delegation does not cancel an independent background child. Command
+cancellation returns 130 when its result is observed; it does not mark the task done or retry it.
+
 A task's profile names the OpenCode agent its `subagent` call must use (`opencode.agent`). The default profiles name
 `execute`, `execute-deep` and `review`, and the package brings those three agents ready in `agents/`
 (`mode: subagent`, the task protocol in the body: `jtasks start` first, `jtasks claim` for one more file, never git,
@@ -120,6 +132,12 @@ bun run typecheck
 ```
 
 No test calls a model.
+
+The opt-in `test/real-lifecycle.test.ts` runs the installed OpenCode executable and real plugin loader against a
+loopback scripted provider (no paid models). Set `OPENCODE_BIN` to the native executable and optionally
+`JTASKS_E2E_PACKAGE` to a separately installed jtasks release root. It uses isolated configuration, storage and lock
+registries, proves the parent responds while the child is gated in native work, then interrupts only the child and
+checks descendant death. It never opens or resumes existing sessions or runs.
 
 ## Foreground execution safety (0.8)
 

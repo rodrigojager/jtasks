@@ -26,6 +26,8 @@ export const SETTLE_MS = 300
 export class RootKeepalive {
   /** Child sessions alive, by session: their root. */
   private readonly children = new Map<string, string>()
+  private readonly launches = new Map<string, { root: string; at: number }>()
+  private readonly ended = new Set<string>()
   private readonly outcome = new Map<string, Outcome | undefined>()
   private readonly pending = new Map<string, number>()
   private readonly started = new Map<string, number>()
@@ -39,6 +41,20 @@ export class RootKeepalive {
     private readonly settleMs = SETTLE_MS,
   ) {}
 
+  delegating(root: string, callID: string): void {
+    this.launches.set(callID, { root, at: this.host.now().getTime() })
+  }
+
+  delegated(callID: string, child?: string, failed = false): void {
+    const launch = this.launches.get(callID)
+    if (failed) { this.launches.delete(callID); return }
+    if (launch && child) {
+      if (!this.ended.has(child)) this.children.set(child, launch.root)
+      this.launches.delete(callID)
+    }
+    // Without a session ID the bounded reservation bridges event delivery, not an indefinite live agent.
+  }
+
   /** A child session started a task (`jtasks start` or `claim`): alive until its session ends. */
   async taskStarted(sessionID: string): Promise<void> {
     if (await this.bindings.isChild(sessionID)) this.children.set(sessionID, await this.bindings.root(sessionID))
@@ -48,6 +64,7 @@ export class RootKeepalive {
   async onEvent(type: string, sessionID: string): Promise<KeepaliveDecision | undefined> {
     const child = await this.bindings.isChild(sessionID)
     if (type === "session.execution.started") {
+      this.ended.delete(sessionID)
       if (child) this.children.set(sessionID, await this.bindings.root(sessionID))
       else {
         this.outcome.set(sessionID, undefined)
@@ -58,16 +75,19 @@ export class RootKeepalive {
     }
     const ended = /^session\.execution\.(succeeded|failed|interrupted)$/.exec(type)?.[1] as Outcome | undefined
     if (ended) {
+      this.ended.add(sessionID)
       if (child) this.children.delete(sessionID)
       else this.outcome.set(sessionID, ended)
       return undefined
     }
     if (type === "session.deleted") {
+      this.ended.add(sessionID)
       this.children.delete(sessionID)
       return undefined
     }
     if (type !== "session.idle") return undefined
     if (child) {
+      this.ended.add(sessionID)
       this.children.delete(sessionID)
       return undefined
     }
@@ -104,7 +124,8 @@ export class RootKeepalive {
       await this.sink.changed(run.run).catch(() => undefined)
       return undefined
     }
-    const liveAgents = [...this.children.values()].filter((r) => r === root).length
+    for (const [id, launch] of this.launches) if (this.host.now().getTime() - launch.at >= PENDING_MS) this.launches.delete(id)
+    const liveAgents = [...this.children.values()].filter((r) => r === root).length + [...this.launches.values()].filter((l) => l.root === root).length
     // A failed execution: nothing is sent (it could fail the same way), but the sidebar says it at once.
     const cause = outcome === "failed" ? { cause: "error" as const } : {}
     const decision = await checkKeepalive(this.host, { root: run.root, data: boundData(run), run: run.run, liveAgents, actor: `opencode:${root}`, commit: true, ...cause })

@@ -7594,7 +7594,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.8.1";
+var VERSION = "0.8.2";
 
 class ToolError extends Error {
   code;
@@ -12788,10 +12788,14 @@ defineAction("exec", async (ctx, args) => {
       return;
     });
   } : undefined;
-  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: timeoutMs + 15000, env: jlockEnv(), ...onStart ? { onStart } : {} });
-  await registering;
-  if (state && target && pids.length)
-    await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {});
+  let r;
+  try {
+    r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: timeoutMs + 15000, signal: ctx.signal, env: jlockEnv(), ...onStart ? { onStart } : {} });
+  } finally {
+    await registering;
+    if (state && target && pids.length)
+      await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {});
+  }
   const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct");
   const registered = target && pids.length ? `; ${tr("exec.registered", { pid: pids[0], id: target.id })}` : "";
   const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "");

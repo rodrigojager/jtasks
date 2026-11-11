@@ -23,6 +23,8 @@ process.env.JLOCK_HINTS = "0"
 // the first file of a run (Bun resets the default for the next ones), so every test file also calls it itself.
 setDefaultTimeout(60_000)
 delete process.env.JTASKS_RUN
+// An agent host may export its project's shared data folder. Never let a disposable test use live run data.
+delete process.env.JTASKS_SCRATCH
 // The answers the tests read are the Portuguese ones, whatever the machine speaks (test/i18n.test.ts tries others).
 process.env.JTASKS_LANG = "pt-BR"
 // Also for the tests that call the core's functions directly, with no command to choose it.

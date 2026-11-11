@@ -6,6 +6,36 @@ import * as path from "node:path";
 var delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 var MAX_OUTPUT_CHARS = 1024 * 1024;
 var outputTail = (text, chunk) => (text + chunk).slice(-MAX_OUTPUT_CHARS);
+async function stopTree(child) {
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null)
+    return;
+  if (process.platform === "win32") {
+    await new Promise((resolve) => {
+      const killer = spawnChild("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+      killer.once("error", () => {
+        child.kill();
+        resolve();
+      });
+      killer.once("close", () => resolve());
+    });
+    return;
+  }
+  try {
+    process.kill(-child.pid, "SIGTERM");
+  } catch {}
+  await new Promise((resolve) => {
+    const force = setTimeout(() => {
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {}
+      resolve();
+    }, 1000);
+    child.once("close", () => {
+      clearTimeout(force);
+      resolve();
+    });
+  });
+}
 function kindOf(stat) {
   return stat.isFile() ? "file" : stat.isDirectory() ? "dir" : "other";
 }
@@ -177,12 +207,15 @@ function createNodeHost() {
       }
     },
     run(argv, options = {}) {
+      if (options.signal?.aborted)
+        return Promise.resolve({ code: 130, stdout: "", stderr: "Command cancelled before spawn." });
       return new Promise((resolve) => {
         const [cmd, ...args] = argv;
         const child = spawnChild(cmd, args, {
           cwd: options.cwd,
           env: { ...process.env, ...options.env },
           windowsHide: true,
+          detached: process.platform !== "win32",
           stdio: ["pipe", "pipe", "pipe"]
         });
         let stdout = "";
@@ -199,20 +232,39 @@ function createNodeHost() {
           stderrTruncated ||= stderr.length + c.length > MAX_OUTPUT_CHARS;
           stderr = outputTail(stderr, c);
         });
-        const timer = options.timeoutMs ? setTimeout(() => child.kill(), options.timeoutMs) : undefined;
+        let stopped;
+        let cancelled = false;
+        let finished = false;
+        const stop = () => stopped ??= stopTree(child);
+        const abort = () => {
+          if (!finished) {
+            cancelled = true;
+            stop();
+          }
+        };
+        const timer = options.timeoutMs ? setTimeout(() => {
+          stop();
+        }, options.timeoutMs) : undefined;
+        const cleanup = () => {
+          finished = true;
+          if (timer)
+            clearTimeout(timer);
+          options.signal?.removeEventListener("abort", abort);
+        };
+        options.signal?.addEventListener("abort", abort, { once: true });
+        if (options.signal?.aborted)
+          abort();
         if (child.pid !== undefined && options.onStart)
           Promise.resolve(options.onStart(child.pid)).catch(() => {});
         child.on("error", (error) => {
-          if (timer)
-            clearTimeout(timer);
+          cleanup();
           resolve({ code: 127, stdout, stderr: stderr + String(error.message) });
         });
         child.on("close", (code) => {
-          if (timer)
-            clearTimeout(timer);
-          resolve({ code: code ?? 1, stdout: (stdoutTruncated ? `[earlier stdout truncated]
+          cleanup();
+          Promise.resolve(stopped).then(() => resolve({ code: cancelled ? 130 : code ?? 1, stdout: (stdoutTruncated ? `[earlier stdout truncated]
 ` : "") + stdout, stderr: (stderrTruncated ? `[earlier stderr truncated]
-` : "") + stderr });
+` : "") + stderr }));
         });
         child.stdin.on("error", () => {});
         child.stdin.end(options.stdin ?? "");

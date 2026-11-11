@@ -2154,9 +2154,14 @@ defineAction(
     // it must allow the native supervisor to finish cleanup before its pipes are closed.
     // A serialized command has one custodian for both queue and payload. Nesting native
     // supervisors would put the Unix payload in a different process group from its keeper.
-    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: timeoutMs + 15_000, env: jlockEnv(), ...(onStart ? { onStart } : {}) })
-    await registering
-    if (state && target && pids.length) await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {})
+    let r
+    try {
+      r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: timeoutMs + 15_000, signal: ctx.signal, env: jlockEnv(), ...(onStart ? { onStart } : {}) })
+    } finally {
+      // Registration may race a cancellation immediately after spawn. Always finish it before removing our PID.
+      await registering
+      if (state && target && pids.length) await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {})
+    }
     const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct")
     const registered = target && pids.length ? `; ${tr("exec.registered", { pid: pids[0]!, id: target.id })}` : ""
     const output = `${r.stdout}${r.stderr}`.replace(/\s+$/, "")

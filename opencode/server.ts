@@ -100,7 +100,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
         return missing
       }
 
-      const call = async (sessionID: string, command: string, json: unknown): Promise<ToolResult> => {
+      const call = async (sessionID: string, command: string, json: unknown, signal?: AbortSignal): Promise<ToolResult> => {
         const argv = splitCommand(command.replace(/^\s*tasks\s+/, ""))
         const run = await bindings.run(sessionID)
         const child = await bindings.isChild(sessionID)
@@ -121,6 +121,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           session: await bindings.root(sessionID),
           residents,
           holdMode,
+          signal,
         }
         if (run) tctx.boundRun = run.run
         if (run) {
@@ -202,7 +203,7 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
           options: { codemode: false },
           execute: async (input, context) => {
             const { command, json } = (input ?? {}) as { command?: string; json?: unknown }
-            const result = await call(context.sessionID, String(command ?? "help"), json)
+            const result = await call(context.sessionID, String(command ?? "help"), json, context.signal)
             const run = (await bindings.run(context.sessionID))?.run
             if (run) await rpc.events.emit("changed", { run }).catch(() => {})
             return { content: result.text, metadata: { ok: result.ok, code: result.code } }
@@ -223,29 +224,42 @@ export function createServerPlugin(options: ServerOptions = {}): Plugin.Plugin {
 
       await ctx.tool.hook("execute.before", async (event) => {
         if (!SUBAGENT_TOOLS.has(event.tool)) return
-        const input = event.input as { prompt?: unknown; agent?: unknown } | undefined
-        if (!input || typeof input.prompt !== "string") return
+        const input = event.input as Record<string, unknown> | undefined
+        if (!input) return
         const run = await bindings.run(event.sessionID)
         if (!run) return
-        const decision = await agentFor(host, run, input.prompt)
+        const prompt = typeof input.prompt === "string" ? input.prompt : ""
+        const marker = taskOfPrompt(prompt)
+        const resume = RESUME_FIELDS.map((f) => input[f]).find((v): v is string => typeof v === "string" && !!v)
+        const bound = resume && await bindings.root(resume) === await bindings.root(event.sessionID) ? await bindings.task(resume) : undefined
+        const task = marker.task ?? (bound?.run === run.run ? bound.task : undefined)
+        if (!task) return
+        if (resume && !bound) throw new Error("jtasks: resume must target the same task's bound child session")
+        if (bound && (bound.run !== run.run || bound.task !== task)) throw new Error("jtasks: resume must target the same task's child session")
+        const decision = await agentFor(host, run, marker.task ? prompt : `--run ${run.run} --task ${task}`)
         // Throwing fails only this call, and the model reads the reason.
         if (decision.error) throw new Error(`jtasks: ${decision.error}`)
         // A task kept in progress for its subagent session (alive, or kept by a transient pause): that session is
         // resumed, never a second one opened for it.
-        const task = taskOfPrompt(input.prompt).task
-        const resuming = RESUME_FIELDS.some((f) => typeof (input as Record<string, unknown>)[f] === "string")
-        if (task && !resuming) {
+        if (!resume) {
           const t = (await readTasks(host, runDir(boundData(run), run.run)).catch(() => undefined))?.tasks.find((x) => x.id === task)
           const child = t?.status === "in_progress" ? /\/agent:([^/]+)$/.exec(t.owner ?? "")?.[1] : undefined
           if (child && (await bindings.task(child))?.task === task) throw new Error(`jtasks: ${tr("spawn.kept_session", { task, agent: child })}`)
         }
-        if (decision.agent && decision.agent !== input.agent) event.input = { ...input, agent: decision.agent }
+        const state = await readRun(host, runDir(boundData(run), run.run))
+        if (state?.status !== "active") throw new Error(`jtasks: run ${run.run} is ${state?.status ?? "unavailable"}; do not start or resume task delegations`)
+        event.input = { ...input, ...(decision.agent ? { agent: decision.agent } : {}), background: true }
+        keepalive?.delegating(await bindings.root(event.sessionID), `${event.sessionID}/${event.id}`)
       })
 
       // The result of a subagent call carries the run's status line read at its end (rev. 5.8): the root session never
       // answers it from a stale picture.
       await ctx.tool.hook("execute.after", async (event) => {
-        if (!SUBAGENT_TOOLS.has(event.tool) || event.status !== "completed") return
+        if (!SUBAGENT_TOOLS.has(event.tool)) return
+        // A background tool result acknowledges launch, not child completion. Keep a short admission reservation
+        // until the child's execution is visible, including the gap before its first `jtasks start`.
+        keepalive?.delegated(`${event.sessionID}/${event.id}`, event.status === "completed" ? (event.result.metadata as { sessionID?: string } | undefined)?.sessionID : undefined, event.status !== "completed")
+        if (event.status !== "completed") return
         const run = await bindings.run(event.sessionID)
         if (!run) return
         const tail = await statusTail(host, run)

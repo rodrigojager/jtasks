@@ -12,6 +12,9 @@ const root = (
 const home = `${root}/oc-process-${process.pid}-${Date.now().toString(36)}`
 mkdirSync(`${home}/jlock`, { recursive: true })
 process.env.JTASKS_HOME = `${home}/jtasks`
+// Parent agent sessions may point this at a live project; fixtures must resolve their own disposable data.
+delete process.env.JTASKS_SCRATCH
+delete process.env.JTASKS_RUN
 process.env.JLOCK_HOME = `${home}/jlock`
 process.env.JLOCK_HEARTBEAT_MS = "200"
 process.env.JLOCK_STALE_MS = "1500"

@@ -3,6 +3,17 @@
 What changed in each release that a user or an integrator notices. Earlier releases are described in
 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) and the history of `CLAUDE.md`.
 
+## 0.8.2
+
+- Force recognized OpenCode task delegations into background mode, including omitted/false values, correct
+  profile agents and markerless same-child resumptions. Leave unrelated delegations alone and reject task
+  launches while their run is paused. Preserve same-child duplicate protections.
+- Treat background launch acknowledgment as admission, not completion or orphaned work, before the child starts.
+- Pass the child tool invocation's AbortSignal through exec to native process-tree cleanup. Scope cancellation
+  to that command, clear its deadline and unregister its supervisor without releasing other tasks' ownership.
+- Add failing-before regressions, disposable native descendant tests, and an opt-in real OpenCode acceptance
+  using a loopback scripted provider without paid model calls.
+
 ## 0.8.1
 
 - Restore the full original OpenCode profile in the optional Windows launcher. The isolated profile hid native
