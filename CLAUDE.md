@@ -117,8 +117,9 @@ acompanhar. Nunca editar `D:\jlock` à mão a partir daqui, fora desse processo.
   desenvolve esta ferramenta quando a usar em si mesma.
 - Tudo que a ferramenta cria fora do código entra no ledger e tem desfazer; nada roda sozinho em projetos
   existentes (`gc --scan` é só relatório; agir exige caminho explícito e `--yes`).
-- Testes não gastam tokens de modelo real; repositórios temporários de teste ficam em `D:\claude-cache` e são
-  removidos no fim. Processos filhos só os nossos, encerrados por PID.
+- Tests never call a real model. Temporary repositories use `JTASKS_TEST_TMP` or the system temporary directory
+  and are removed at the end. Keep that directory outside any git checkout. Child processes are ours only,
+  stopped by their individual PIDs.
 - Nunca tocar em processos, pastas ou repositórios fora de `D:\goal-tasks` (exceto as pastas temporárias de teste e
   o que o próprio plano manda instalar, quando chegar a hora).
 - Mensagens para o usuário em português nos textos de plano e tickets; o código, nomes e comentários em inglês.

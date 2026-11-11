@@ -9,7 +9,7 @@ import { join } from "node:path"
 import { select } from "../src/i18n.ts"
 
 const root = (
-  process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : join(tmpdir(), "jtasks-tests"))
+  process.env.JTASKS_TEST_TMP ?? join(tmpdir(), "jtasks-tests")
 ).replace(/\\/g, "/")
 const home = `${root}/process-${process.pid}-${Date.now().toString(36)}`
 

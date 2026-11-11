@@ -10,7 +10,7 @@ import { join } from "node:path"
 
 const REPO = join(import.meta.dir, "..").replace(/\\/g, "/")
 const CLI = `${REPO}/cli/jtasks.ts`
-const base = (process.platform === "win32" ? "D:/claude-cache" : tmpdir()).replace(/\\/g, "/")
+const base = (process.env.JTASKS_TEST_TMP ?? tmpdir()).replace(/\\/g, "/")
 const ROOT = `${base}/jtasks-demo-${process.pid}-${Date.now().toString(36)}`
 const WORK = `${ROOT}/repo`
 

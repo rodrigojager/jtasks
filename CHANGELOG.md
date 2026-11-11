@@ -3,6 +3,16 @@
 What changed in each release that a user or an integrator notices. Earlier releases are described in
 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) and the history of `CLAUDE.md`.
 
+## 0.8.1
+
+- Restore the full original OpenCode profile in the optional Windows launcher. The isolated profile hid native
+  v2 provider credentials, model preferences and conversation history.
+- Reuse the original service without changing its configuration, copying OAuth credentials, restarting it or
+  releasing task locks. Existing services retain their loaded plugin version until a separate safe update.
+- Reject separate-server flags and ambiguous configuration overrides. Add native PowerShell regression checks
+  for original settings, storage roots, read-only preflight and exit-code propagation.
+- Keep test/demo/README fixtures under JTASKS_TEST_TMP or the system temporary directory, without fixed drive paths.
+
 ## 0.8.0
 
 Requires **jlock 0.4.2**. Compatible with existing 0.7 task events and the jlock 0.3 registry.

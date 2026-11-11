@@ -6,6 +6,7 @@
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
+import { tmpdir } from "node:os"
 import { splitCommand } from "../src/tool.ts"
 
 const ROOT = join(import.meta.dir, "..").replace(/\\/g, "/")
@@ -82,7 +83,8 @@ export function normalize(text: string): string {
 
 /** Runs one block in a fresh temporary repository; returns each step's output as the README shows it. */
 export function runBlock(block: Block, plan: string, tag: string): string[] {
-  const temp = `${process.platform === "win32" ? "D:/claude-cache" : "/tmp"}/jtasks-readme-${tag}-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
+  const base = (process.env.JTASKS_TEST_TMP ?? tmpdir()).replace(/\\/g, "/")
+  const temp = `${base}/jtasks-readme-${tag}-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
   const repo = `${temp}/repo`
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),

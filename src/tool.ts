@@ -12,7 +12,7 @@ import { loadResources } from "./resources.ts"
 import { select, systemLocale, tr } from "./i18n.ts"
 import { jlockNotice } from "./setup.ts"
 
-export const VERSION = "0.8.0"
+export const VERSION = "0.8.1"
 
 export interface ToolContext {
   host: Host

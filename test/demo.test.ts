@@ -10,6 +10,7 @@ describe("demonstration", () => {
     const p = Bun.spawnSync(["bun", join(REPO_ROOT, "scripts/demo.ts")], { env: process.env })
     const out = p.stdout.toString()
     expect(p.exitCode).toBe(0)
+    if (process.env.JTASKS_TEST_TMP) expect(out).toContain(process.env.JTASKS_TEST_TMP.replace(/\\/g, "/") + "/jtasks-demo-")
     expect(out).toContain("- T01 e T03 tocam src/core.ts e podem rodar juntas: adicione uma dependência ou separe o arquivo")
     expect(out).toContain("T03 corrigida; o rascunho tem 3 tarefa(s)")
     expect(out).toContain("prontas (2) em ")

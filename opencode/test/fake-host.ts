@@ -4,6 +4,7 @@
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { tmpdir } from "node:os"
 import type { Host } from "../core/core.js"
 import { resolvePaths } from "../core/core.js"
 import { createNodeHost } from "../core/node-host.js"
@@ -11,7 +12,7 @@ import { createServerPlugin } from "../server.ts"
 
 type Hook = (event: any) => Promise<void> | void
 
-export const TEST_ROOT = (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : "/tmp/jtasks-tests").replace(/\\/g, "/")
+export const TEST_ROOT = (process.env.JTASKS_TEST_TMP ?? join(tmpdir(), "jtasks-tests")).replace(/\\/g, "/")
 const made: string[] = []
 
 export function tempDir(prefix: string): string {

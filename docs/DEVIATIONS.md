@@ -402,3 +402,19 @@ No changes to event generations, tree serialization, same-agent waits, transient
 renew-in-place, resource modes or registry format. Install alongside old active versions; never replace their
 binaries, plugin sources or running modules. Unix detachment and hard supervisor death, Docker daemon jobs and
 remote jobs retain explicit lifecycle limits. This is bounded failure containment, not universal fault immunity.
+
+## 21. Preserve the native OpenCode profile (0.8.1)
+
+The optional 0.8.0 Windows launcher isolated XDG data and state to avoid a second server pausing the original
+server's goals. This also hid OpenCode v2 database credentials, model choices, UI preferences and history.
+A legacy auth.json reference does not migrate v2 credentials. Copying rotating OAuth credentials to independent
+profiles introduces a refresh-token divergence risk, while sharing the whole database reintroduces goal and
+session interference. Neither is an appropriate transparent launcher behavior.
+
+The compatibility entrypoint now delegates to the original native profile and background service. It does not
+change XDG roots or native configuration, import credentials, create a server, restart a service, reload plugins
+or release locks. It still selects JLOCK_BIN for newly launched children. Existing services retain the environment
+and modules they loaded; installing a plugin and applying it to an existing server are separate operations.
+The old ProfileConfigDir and BunCommand parameters remain accepted for existing wrappers, but are unused.
+Tests exercise the actual PowerShell child environment, preserved settings, rejected separate-server flags,
+read-only preflight and native exit status. No change to task storage, locks, recovery or the Claude runtime.

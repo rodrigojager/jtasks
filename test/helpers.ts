@@ -1,4 +1,4 @@
-// Test helpers: temporary folders under D:\claude-cache (removed at the end), temporary git repositories, and the
+// Test helpers: temporary folders under JTASKS_TEST_TMP or the system temp directory, temporary git repositories, and the
 // tool run like the CLI runs it. The private JTASKS_HOME / JLOCK_HOME come from test/setup.ts.
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
@@ -10,7 +10,7 @@ import "../src/index.ts"
 import { resolvePaths } from "../src/workspace.ts"
 
 export const TEST_ROOT = (
-  process.env.JTASKS_TEST_TMP ?? (process.platform === "win32" ? "D:/claude-cache/jtasks-tests" : join(tmpdir(), "jtasks-tests"))
+  process.env.JTASKS_TEST_TMP ?? join(tmpdir(), "jtasks-tests")
 ).replace(/\\/g, "/")
 
 const made: string[] = []

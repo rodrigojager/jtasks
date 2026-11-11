@@ -231,8 +231,8 @@ MIT, see [`LICENSE`](LICENSE).
 
 ## Foreground execution safety (0.8)
 
-The optional Windows launcher [`scripts/opencode-isolated.ps1`](scripts/opencode-isolated.ps1) starts OpenCode v2 with this version,
-a private server, separate session history and runtime state, and both jtasks plugins. It preserves the existing global configuration and active sessions; it does not resume an old server's sessions.
+The optional Windows launcher [`scripts/opencode-isolated.ps1`](scripts/opencode-isolated.ps1) is a compatibility entrypoint for OpenCode v2,
+using the complete original profile: provider connections, model choices, preferences and session history stay available. The historical script name is retained for wrapper compatibility; it no longer creates a private server or copies credentials. It does not restart, reload or unlock an existing service. Install plugin updates separately when safe; an already running service retains its loaded version.
 
 Requires **jlock 0.4.2** or newer. Every `jtasks exec -- <command...>` uses the same native
 supervisor in the CLI, OpenCode plugin and Claude Code mod. The deadline includes waiting for serialization.

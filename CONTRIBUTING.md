@@ -15,6 +15,9 @@ bun scripts/version.ts --check
 ```
 
 No test calls a model; tests that need git and jlock make temporary repositories and their own `JLOCK_HOME`.
+Temporary files use `JTASKS_TEST_TMP` when set, otherwise the system temporary directory. Set this to a directory
+outside any git checkout: negative repository-discovery tests must not inherit a parent repository. The demo
+and README examples honor the same override.
 
 ## Versions
 
