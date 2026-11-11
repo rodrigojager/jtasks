@@ -70,7 +70,7 @@ export interface Agent {
   model?: unknown
 }
 
-export async function fakeHost(directory: string, host?: Host, options: { renewEveryMs?: number; resumeEveryMs?: number } = {}) {
+export async function fakeHost(directory: string, host?: Host, options: { renewEveryMs?: number; resumeEveryMs?: number; alertEveryMs?: number } = {}) {
   const storage = new Map<string, unknown>()
   const sessions = new Map<string, { id: string; parentID?: string; location: { directory: string } }>()
   const hooks = new Map<string, Hook>()
@@ -201,7 +201,7 @@ export async function fakeHost(directory: string, host?: Host, options: { renewE
             return () => rpcListeners.set(key, (rpcListeners.get(key) ?? []).filter((x) => x !== cb))
           },
         },
-      } as Record<string, unknown>,
+      } as { events: { on(name: string, cb: (event: { data: unknown }) => void): () => void }; [name: string]: any },
       {
         get: (target, method: string) =>
           method in target ? target[method] : (input: unknown) => rpcImpls.get(def.id)![method]!(input, { signal: new AbortController().signal }),

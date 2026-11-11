@@ -180,3 +180,28 @@ Rodrigo Jäger — GitHub <https://github.com/rodrigojager> · LinkedIn <https:/
 MIT, देखें [`LICENSE`](LICENSE)।
 
 यह अनुवाद किसी मूल हिंदी भाषी की समीक्षा की प्रतीक्षा में है; सुधारों का स्वागत है ([CONTRIBUTING.md](CONTRIBUTING.md) देखें)।
+
+## Foreground execution safety (0.8)
+
+The optional Windows launcher [`scripts/opencode-isolated.ps1`](scripts/opencode-isolated.ps1) starts OpenCode v2 with this version,
+a private server, separate session history and runtime state, and both jtasks plugins. It preserves the existing global configuration and active sessions; it does not resume an old server's sessions.
+
+Requires **jlock 0.4.2** or newer. Every `jtasks exec -- <command...>` uses the same native
+supervisor in the CLI, OpenCode plugin and Claude Code mod. The deadline includes waiting for serialization.
+The CLI and OpenCode default to 10 minutes; Claude defaults to and accepts at most 9 minutes 45 seconds,
+reserving 15 seconds inside its runtime ceiling for cleanup. `--timeout` sets an explicit command deadline.
+Timeout returns **124** (`data.timedOut: true`) after descendant cleanup. It leaves the task in progress,
+its task locks and existing edits intact; it does not retry, release, commit or mark work done.
+
+Windows Job Objects contain descendants before they start, even if a shell exits first or the supervisor dies.
+Unix process groups cover ordinary descendants, with no guarantee for deliberately detached sessions or hard
+supervisor death. Persistent background services, Docker daemon workloads and remote jobs need explicit
+lifecycle management. Node/Bun output retains the last 1 Mi characters per stream, with a truncation marker,
+while continuing to drain pipes. Claude retains its runtime output limit and now marks truncation explicitly.
+Process registration refers to the supervisor, whose lifetime covers the command.
+
+A nonzero result is evidence of a failed command, not proof that the task is complete. Inspect the output and
+saved edits before retrying. If native cleanup reports `cleanup pending`, preserve the locks and investigate
+that command; never unlock by age or kill processes by name. Install new versions in separate directories and
+select them only for new sessions while existing agents finish on their original binaries and plugin files.
+The event log, task generations, patch recovery, same-agent waits and in-place renewal remain unchanged.

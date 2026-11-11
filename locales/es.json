@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                ¿está lista la máquina? --fix --yes instala lo que falta",
   "help.done": "done <id> --evidence \"…\"              comprueba git y posesión; commit de la posesión; hecha",
   "help.effects": "effects --check                       compara el ledger con el disco y git",
-  "help.exec": "exec [--task <id>] -- <comando…>      lo ejecuta (su pid va en la tarea); serialize: uno a la vez",
+  "help.exec": "exec [--task <id>] -- <comando…>      lo ejecuta (su pid va en la tarea); serialize: uno a la vez\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 fallida (bloquea las tareas que dependen de ella)",
   "help.gc": "gc --scan <raíz> [--depth 4]          solo lectura: worktrees huérfanos, ejecuciones, archivos",
   "help.import": "import <carpeta> [--check|--yes]      tickets Markdown → una ejecución (sin Files → exclusive)",

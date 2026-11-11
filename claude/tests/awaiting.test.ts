@@ -59,7 +59,7 @@ for (const { os, root: ROOT } of ROOTS) {
     await s.end('t1')
     expect(s.t13()).toMatchObject({ status: 'in_progress', attempts: 1, owner: 'claude:session-1/agent:agent-1', awaiting: { agent: 'agent-1', host: 'background: bun test e2e' } })
     expect(s.machine.releases).toEqual([])
-    expect(s.machine.locks.map((l) => l.owner)).toEqual([`gt:${s.run}/T13`])
+    expect(s.machine.locks.filter((l) => !l.key.startsWith('resource:')).map((l) => l.owner)).toEqual([`gt:${s.run}/T13`])
     expect(s.log().at(-1)).toMatchObject({ action: 'await', task: 'T13', host: 'background: bun test e2e' })
     await s.clock.settle()
     // The orchestrator hears of it at once (no task is ready: T14 depends on T13), with the status line.

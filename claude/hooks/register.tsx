@@ -487,8 +487,9 @@ export const register: Register = (on) => {
     const agent = agents[e.agentId]
     // A command it leaves running in the background (rev. 5.8): if its loop ends now, the task waits for it.
     if (agent && e.run_in_background) await p.setAgents({ ...agents, [e.agentId]: { ...agent, background: [...(agent.background ?? []), String(e.command).slice(0, 200)] } })
-    const owner = `gt:${bound.run}/${agent?.task ?? 'exec'}-bash`
-    const wrapped = await serializedCommand(createModHost(p, await p.cwd()), bound, e.command, owner)
+    const host = createModHost(p, await p.cwd())
+    const owner = `gt:${bound.run}/${agent?.task ?? '~exec'}/bash-${host.now().getTime().toString(36)}${Math.floor(host.random() * 1e9).toString(36)}`
+    const wrapped = await serializedCommand(host, bound, e.command, owner)
     return next(wrapped ? { ...e, command: wrapped } : e)
   }).catch(($, e, next) => (next.called ? next(e) : refused()))
 

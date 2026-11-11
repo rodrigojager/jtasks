@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                मशीन तैयार है? --fix --yes जो नहीं है उसे इंस्टॉल करता है",
   "help.done": "done <id> --evidence \"…\"              git और स्वामित्व जाँचता है; स्वामित्व commit करता है; पूरा",
   "help.effects": "effects --check                       ledger की तुलना डिस्क और git से करता है",
-  "help.exec": "exec [--task <id>] -- <command…>      चलाता है (pid कार्य में दर्ज); serialize वाली एक-एक करके",
+  "help.exec": "exec [--task <id>] -- <command…>      चलाता है (pid कार्य में दर्ज); serialize वाली एक-एक करके\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 विफल (इस पर निर्भर कार्य अवरुद्ध)",
   "help.gc": "gc --scan <root> [--depth 4]          केवल-पढ़ने वाली रिपोर्ट: अनाथ worktree, रन, आर्काइव",
   "help.import": "import <folder> [--check|--yes]       Markdown टिकट → एक रन (Files नहीं → exclusive)",

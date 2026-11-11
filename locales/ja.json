@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                このマシンは準備済みか? --fix --yes で不足分をインストール",
   "help.done": "done <id> --evidence \"…\"              git と所有権を確認し、所有権をコミット。完了",
   "help.effects": "effects --check                       ledger をディスクおよび git と照合する",
-  "help.exec": "exec [--task <id>] -- <コマンド…>     実行する（pid をタスクに記録）。serialize は 1 つずつ",
+  "help.exec": "exec [--task <id>] -- <コマンド…>     実行する（pid をタスクに記録）。serialize は 1 つずつ\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 失敗（依存するタスクをブロック）",
   "help.gc": "gc --scan <ルート> [--depth 4]        読み取り専用レポート: 孤立 worktree、実行、アーカイブ",
   "help.import": "import <フォルダ> [--check|--yes]     Markdown チケット → 実行（Files なし → exclusive）",

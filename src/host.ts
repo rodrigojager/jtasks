@@ -56,6 +56,8 @@ export interface DirEntry {
 
 export interface Host {
   readonly platform: string
+  /** Runtime ceiling for run(), including the supervisor's cleanup allowance. */
+  readonly maxRunTimeoutMs?: number
   /** What runs the tool, for `jtasks doctor` (`bun 1.3.14`, `claude-code mod`). */
   readonly runtime?: string
   /**

@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                машина готова? --fix --yes устанавливает недостающее",
   "help.done": "done <id> --evidence \"…\"              проверяет git и владение; коммитит владение; done",
   "help.effects": "effects --check                       сверяет реестр с диском и git",
-  "help.exec": "exec [--task <id>] -- <команда…>      запускает (pid пишется в задачу); serialize — по одной",
+  "help.exec": "exec [--task <id>] -- <команда…>      запускает (pid пишется в задачу); serialize — по одной\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 провал (блокирует зависящие от неё задачи)",
   "help.gc": "gc --scan <корень> [--depth 4]        отчёт без изменений: брошенные worktree, прогоны, архивы",
   "help.import": "import <папка> [--check|--yes]        тикеты Markdown → прогон (без Files → exclusive)",

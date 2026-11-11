@@ -4,6 +4,8 @@ import { spawn as spawnChild } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 var delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+var MAX_OUTPUT_CHARS = 1024 * 1024;
+var outputTail = (text, chunk) => (text + chunk).slice(-MAX_OUTPUT_CHARS);
 function kindOf(stat) {
   return stat.isFile() ? "file" : stat.isDirectory() ? "dir" : "other";
 }
@@ -187,8 +189,16 @@ function createNodeHost() {
         let stderr = "";
         child.stdout.setEncoding("utf8");
         child.stderr.setEncoding("utf8");
-        child.stdout.on("data", (c) => stdout += c);
-        child.stderr.on("data", (c) => stderr += c);
+        let stdoutTruncated = false;
+        let stderrTruncated = false;
+        child.stdout.on("data", (c) => {
+          stdoutTruncated ||= stdout.length + c.length > MAX_OUTPUT_CHARS;
+          stdout = outputTail(stdout, c);
+        });
+        child.stderr.on("data", (c) => {
+          stderrTruncated ||= stderr.length + c.length > MAX_OUTPUT_CHARS;
+          stderr = outputTail(stderr, c);
+        });
         const timer = options.timeoutMs ? setTimeout(() => child.kill(), options.timeoutMs) : undefined;
         if (child.pid !== undefined && options.onStart)
           Promise.resolve(options.onStart(child.pid)).catch(() => {});
@@ -200,7 +210,9 @@ function createNodeHost() {
         child.on("close", (code) => {
           if (timer)
             clearTimeout(timer);
-          resolve({ code: code ?? 1, stdout, stderr });
+          resolve({ code: code ?? 1, stdout: (stdoutTruncated ? `[earlier stdout truncated]
+` : "") + stdout, stderr: (stderrTruncated ? `[earlier stderr truncated]
+` : "") + stderr });
         });
         child.stdin.on("error", () => {});
         child.stdin.end(options.stdin ?? "");

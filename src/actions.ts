@@ -2109,6 +2109,11 @@ defineAction(
     const command = argv.join(" ")
     const entry = state ? serializeEntry(state.run.serialize, command) : undefined
     const target = state ? execTask(ctx, state, args) : undefined
+    const maxDeadline = ctx.host.maxRunTimeoutMs === undefined ? Infinity : ctx.host.maxRunTimeoutMs - 15_000
+    const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : Math.min(10 * 60_000, maxDeadline)
+    if (timeoutMs > maxDeadline || timeoutMs <= 0) throw new ToolError(`This host requires exec --timeout <= ${maxDeadline}ms to leave time for process cleanup.`, 2)
+    const version = await jlockVersion(ctx.host)
+    if (!versionAtLeast(version, MIN_JLOCK)) throw new ToolError(tr("jlock.too_old", { version, minimum: MIN_JLOCK }))
     const full = entry
       ? [
           jlockBin(ctx.host),
@@ -2124,11 +2129,12 @@ defineAction(
           "--intent",
           command,
           "--json",
+          "--total-timeout",
+          `${timeoutMs}ms`,
           "--",
           ...argv,
         ]
-      : [...argv]
-    const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : 10 * 60_000
+      : [jlockBin(ctx.host), "exec", "--timeout", `${timeoutMs}ms`, "--", ...argv]
     // The child's pid, as the host tells it, goes in the task while the command runs (a host that cannot tell: none).
     const pids: number[] = []
     let registering: Promise<unknown> | undefined
@@ -2144,7 +2150,11 @@ defineAction(
             })().catch(() => undefined)
           }
         : undefined
-    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs, env: jlockEnv(), ...(onStart ? { onStart } : {}) })
+    // jlock owns the deadline and the process tree. The host's outer deadline is only a backstop;
+    // it must allow the native supervisor to finish cleanup before its pipes are closed.
+    // A serialized command has one custodian for both queue and payload. Nesting native
+    // supervisors would put the Unix payload in a different process group from its keeper.
+    const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: timeoutMs + 15_000, env: jlockEnv(), ...(onStart ? { onStart } : {}) })
     await registering
     if (state && target && pids.length) await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {})
     const how = entry ? tr("exec.serialized", { key: serializeKey(root, entry) }) : tr("exec.direct")
@@ -2154,7 +2164,7 @@ defineAction(
       ok: r.code === 0,
       code: r.code,
       text: `${output}${output ? "\n" : ""}[${tr("exec.exit", { how, code: r.code })}${registered}]`,
-      data: { code: r.code, serialized: !!entry, ...(target ? { task: target.id } : {}), ...(pids.length ? { pid: pids[0] } : {}) },
+      data: { code: r.code, timedOut: r.code === 124, timeoutMs, serialized: !!entry, ...(target ? { task: target.id } : {}), ...(pids.length ? { pid: pids[0] } : {}) },
     }
   },
   "help.exec",

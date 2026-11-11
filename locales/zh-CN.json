@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                本机是否就绪？--fix --yes 安装缺少的部分",
   "help.done": "done <id> --evidence \"…\"              检查 git 和所有权；提交所有权内的文件；完成",
   "help.effects": "effects --check                       对照磁盘和 git 检查 ledger",
-  "help.exec": "exec [--task <id>] -- <命令…>         运行命令（pid 记入任务）；serialize 中的命令逐个运行",
+  "help.exec": "exec [--task <id>] -- <命令…>         运行命令（pid 记入任务）；serialize 中的命令逐个运行\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 失败（阻塞依赖它的任务）",
   "help.gc": "gc --scan <根目录> [--depth 4]        只读报告：孤立的 worktree、运行、归档",
   "help.import": "import <文件夹> [--check|--yes]       Markdown 工单 → 运行（无 Files → exclusive）",

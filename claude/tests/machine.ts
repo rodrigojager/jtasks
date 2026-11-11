@@ -3,7 +3,7 @@
 // lacks). The test's own hooks stand for the engine, so every $.fs and $.process call of the mod lands here. Every
 // test runs on a Windows and on a POSIX root (ROOTS), whatever the OS the tests run on.
 
-import type { On } from 'claude-code'
+import type { On, ProcessRunInit, ProcessRunResult } from 'claude-code'
 import { mock } from 'claude-code/testing'
 
 type Node = { kind: 'file' | 'dir'; text: string; mtimeMs: number }
@@ -46,7 +46,7 @@ export interface Machine {
   run(argv: readonly string[], init?: { cwd?: string; stdin?: string }): { exitCode: number; stdout: string; stderr: string }
 }
 
-export function installMachine(on: On, root: string): Machine {
+export function installMachine(on: On, root: string, intercept?: (argv: readonly string[], init: ProcessRunInit | undefined) => ProcessRunResult | undefined): Machine {
   const posix = root.startsWith('/')
   const norm = (p: string) => normalize(p, posix)
   const files = new Map<string, Node>()
@@ -134,14 +134,14 @@ export function installMachine(on: On, root: string): Machine {
   }
   const dirty = new Map<string, string>()
   const jlock = (args: readonly string[]) => {
-    if (args[0] === '--version') return ok('jlock 0.1.1\n')
+    if (args[0] === '--version') return ok('jlock 0.4.2\n')
     if (args[0] === 'hold') {
       // `hold --detach`: answers granted and returns; the (pretend) keeper is the lock in `locks`.
       if (!args.includes('--detach')) return fail('fake jlock: hold without --detach would never return here')
       const keys = args.slice(1, args.findIndex((a, i) => i > 0 && a.startsWith('--')))
       const owner = args[args.indexOf('--owner') + 1]!
       const group = args[args.indexOf('--group') + 1]!
-      for (const key of keys) locks.push({ key, owner, group })
+      for (const spec of keys) locks.push({ key: spec.replace(/@(shared|exclusive)$/, ''), owner, group })
       return ok(`${JSON.stringify({ result: 'granted', owner, keys })}\n`)
     }
     if (args[0] === 'list') {
@@ -152,7 +152,7 @@ export function installMachine(on: On, root: string): Machine {
     if (args[0] === 'release') {
       const owner = args[args.indexOf('--owner') + 1]!
       // The run's tree key (ticket 60: serial.ts, owners `gt:<run>/~tree-…`) is not a task's ownership.
-      if (owner.includes('/~')) serialReleases.push(owner)
+      if (owner.includes('/~') || /\/tree-/.test(owner)) serialReleases.push(owner)
       else releases.push(owner)
       const mine = locks.filter((l) => l.owner === owner)
       for (const l of mine) locks.splice(locks.indexOf(l), 1)
@@ -209,7 +209,10 @@ export function installMachine(on: On, root: string): Machine {
     }
     return fail(`fake machine: no ${exe}`)
   }
-  on('process.run', (_$, e) => runCommand(e))
+  on('process.run', (_$, e) => {
+    const result = intercept?.(e.argv, e.init)
+    return result ? { value: result } : runCommand(e)
+  })
   on('fs.read', (_$, e) => {
     const n = files.get(norm(e.path))
     return n?.kind === 'file' ? { value: n.text } : { deny: `ENOENT: ${e.path}` }

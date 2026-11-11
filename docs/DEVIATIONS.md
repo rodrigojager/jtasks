@@ -381,3 +381,24 @@ travas do 0.2, e `exclusive: true` gravado num `tasks.json` antigo vale como `"p
 versões anteriores, por decisão do usuário.
 
 **O que fazer:** sem nenhuma execução ativa, instalar o jlock 0.3 e o jtasks 0.7.0 juntos (CLI, mod e plugin).
+
+## 20. Native foreground custody and host deadlines (0.8, jlock 0.4)
+
+The Node/Bun host previously killed only its immediate child and waited for `close`; descendants could retain
+its pipes indefinitely. Claude uses `$.process.run` instead, whose timeout rejects and whose output is capped
+and drained. That difference reduces this failure mode; it does not prove descendant custody in the engine.
+
+Direct `exec` calls enter `jlock exec`; serialized calls use one family-owned `jlock run --total-timeout`,
+so a single custodian and deadline cover both queue and payload. Nesting supervisors would create distinct
+Unix groups and let a payload escape an outer hard timeout. jlock 0.4.2 is required. A host backstop leaves 15 seconds for native cleanup. Claude's
+600-second API maximum therefore permits a 585-second command deadline; explicit larger values are refused
+before launching. Node/Bun drains all output while retaining bounded tails; Claude truncation flags are visible.
+Claude Bash serialization also uses JLOCK_BIN and a distinct family child owner per call instead of a reused
+owner outside the task family. Persistent background services remain outside foreground execution.
+
+Timeout 124 preserves task status, attempts, task locks and edits. It never automatically releases ownership,
+retries, commits or marks completion. Inspect evidence before retrying; preserve locks on cleanup-pending.
+No changes to event generations, tree serialization, same-agent waits, transient pause, patch recovery,
+renew-in-place, resource modes or registry format. Install alongside old active versions; never replace their
+binaries, plugin sources or running modules. Unix detachment and hard supervisor death, Docker daemon jobs and
+remote jobs retain explicit lifecycle limits. This is bounded failure containment, not universal fault immunity.

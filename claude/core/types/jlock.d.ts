@@ -115,7 +115,7 @@ export type HoldMode = "detach" | "eof";
  * The oldest jlock the tool works with (0.3.0: hierarchical owners, shared/exclusive modes, `resource:` keys), the
  * first one with `hold --release-on-eof`, and the first with `renew`.
  */
-export declare const MIN_JLOCK = "0.3.0";
+export declare const MIN_JLOCK = "0.4.2";
 export declare const EOF_JLOCK = "0.1.1";
 export declare const RENEW_JLOCK = "0.2.0";
 /** `jlock --version` once per process (per executable), as `X.Y.Z`. */

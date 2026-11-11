@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                is this machine ready? --fix --yes installs what is missing",
   "help.done": "done <id> --evidence \"…\"              checks git and ownership; commits the ownership; done",
   "help.effects": "effects --check                       compares the ledger with the disk and git",
-  "help.exec": "exec [--task <id>] -- <command…>      runs it (its pid goes in the task); serialize: one at a time",
+  "help.exec": "exec [--task <id>] -- <command…>      runs it (its pid goes in the task); serialize: one at a time\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 failed (blocks the tasks that depend on it)",
   "help.gc": "gc --scan <root> [--depth 4]          read-only report: orphan worktrees, runs, archives",
   "help.import": "import <folder> [--check|--yes]       Markdown tickets → a run (no Files → exclusive)",

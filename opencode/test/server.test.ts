@@ -217,7 +217,7 @@ describe("OpenCode plugin", () => {
     const run = /execução (\S+) criada/.exec(planned.text)![1]!
     const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string }[]
-    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: { key: string }[] }).locks.filter((l) => !l.key.startsWith("resource:"))
     const until = async (check: () => boolean) => {
       for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
       expect(check()).toBe(true)
@@ -368,7 +368,7 @@ describe("OpenCode plugin", () => {
     const dir = await runPath(repo, run)
     const tasksOf = () => JSON.parse(readFileSync(join(dir, "tasks.json"), "utf8")).tasks as { id: string; status: string; owner: string | null }[]
     const runOf = () => JSON.parse(readFileSync(join(dir, "run.json"), "utf8"))
-    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: unknown[] }).locks
+    const locks = () => (JSON.parse(sh(repo, process.env.JLOCK_BIN || "jlock", "list", "--group", run, "--json")) as { locks: { key: string }[] }).locks.filter((l) => !l.key.startsWith("resource:"))
     const until = async (check: () => boolean) => {
       for (let i = 0; i < 100 && !check(); i++) await Bun.sleep(50)
       expect(check()).toBe(true)

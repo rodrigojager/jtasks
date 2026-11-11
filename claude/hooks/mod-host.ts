@@ -133,7 +133,7 @@ export function createModHost(port: Port, cwd: string): Host {
       if (options.stdin !== undefined) init.stdin = options.stdin
       init.timeoutMs = options.timeoutMs ?? 120_000
       const r = await port.run(argv, init)
-      return { code: r.exitCode, stdout: r.stdout, stderr: r.stderr }
+      return { code: r.exitCode, stdout: (r.isStdoutTruncated ? '[stdout truncated by Claude runtime]\n' : '') + r.stdout, stderr: (r.isStderrTruncated ? '[stderr truncated by Claude runtime]\n' : '') + r.stderr }
     } catch (error) {
       return { code: 127, stdout: '', stderr: error instanceof Error ? error.message : String(error) }
     }
@@ -171,6 +171,7 @@ export function createModHost(port: Port, cwd: string): Host {
     (await run(isWin ? ['cmd', '/d', '/c', 'mkdir', win(path)] : ['mkdir', path])).code === 0
   return {
     platform,
+    maxRunTimeoutMs: 600_000,
     cwd: () => cwd,
     runtime: 'claude-code mod',
     env: (name) => env[name],

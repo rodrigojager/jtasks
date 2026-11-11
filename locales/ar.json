@@ -204,7 +204,7 @@
   "help.doctor": "doctor [--fix [--yes]]                هل الجهاز جاهز؟ --fix --yes يثبّت ما ينقص",
   "help.done": "done <id> --evidence \"…\"              يفحص git والملكية؛ يودِع الملكية؛ done",
   "help.effects": "effects --check                       يقارن السجل بالقرص و git",
-  "help.exec": "exec [--task <id>] -- <command…>      يشغّله (pid في المهمة)؛ أوامر serialize واحدًا تلو الآخر",
+  "help.exec": "exec [--task <id>] -- <command…>      يشغّله (pid في المهمة)؛ أوامر serialize واحدًا تلو الآخر\n      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).\n      Timeout exits 124; task stays in progress, with its edits and ownership.",
   "help.fail": "fail <id> --error \"…\"                 فاشلة (تحجب المهام المعتمدة عليها)",
   "help.gc": "gc --scan <root> [--depth 4]          تقرير للقراءة فقط: worktree يتيمة، تشغيلات، أرشيفات",
   "help.import": "import <folder> [--check|--yes]       تذاكر Markdown → تشغيل (بلا Files → exclusive)",

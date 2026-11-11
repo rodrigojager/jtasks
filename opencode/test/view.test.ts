@@ -40,7 +40,7 @@ describe("view", () => {
   const locks: JlockLock[] = [
     { key: "d:/proj/src/timing.ts", holder: { owner: `gt:${RUN}/T05` }, queue: [] },
     { key: "d:/proj/src/insert.ts", holder: { owner: `gt:${RUN}/T05` }, queue: [] },
-    { key: "d:/proj/src", holder: { owner: "gt:auth-261024-p0q9/T03" }, queue: [{ owner: `gt:${RUN}/T08`, position: 1 }] },
+    { key: "d:/proj/src/types.ts", holder: { owner: "gt:auth-261024-p0q9/T03" }, queue: [{ owner: `gt:${RUN}/T08`, position: 1 }] },
   ]
 
   test("marks and reasons, with the profile's model for Claude and its agent for OpenCode", () => {
@@ -51,9 +51,9 @@ describe("view", () => {
       ["⊘", "T03", "coberto"],
       ["✗", "T04", "types.ts em uso por T02"],
       ["◐", "T05", "execute-deep·opus"],
-      ["☐", "T06", "⛔ T04 (falha) · 🔒 auth-261024-p0q9/T03: src/fill.ts (via src)"],
+      ["☐", "T06", "⛔ T04 (falha)"],
       ["☐", "T07", "🔒 T05: src/insert.ts"],
-      ["◐", "T08", "⏳ auth-261024-p0q9/T03: src · posição 1"],
+      ["◐", "T08", "⏳ auth-261024-p0q9/T03: src/types.ts · posição 1"],
     ])
     expect(buildView(s, locks, "win32", "opencode").lines[4]!.detail).toBe("execute-deep")
     expect(claude).toMatchObject({ done: 2, total: 8, skipped: 1, failed: 1, percent: 25, remaining: 5 })

@@ -107,12 +107,14 @@ for (const { os, root: ROOT } of ROOTS) {
     const { run, bash } = await scene($, on)
     await $.agent.spawn({ prompt: `--run ${run} --task T01 x`, description: 'T01', subagentType: 'general-purpose' } as never)
     await $.tool.call({ tool: 'Bash', command: 'bun test src', agentId: 'agent-1' } as never)
+    await $.tool.call({ tool: 'Bash', command: 'bun test other', agentId: 'agent-1' } as never)
     await $.tool.call({ tool: 'Bash', command: 'bun run lint', agentId: 'agent-1' } as never)
     await $.tool.call({ tool: 'Bash', command: 'bun test' } as never)
-    expect(bash[0]).toBe(
-      `jlock run 'name:gt/repo/bun-test' --owner 'gt:${run}/T01-bash' --group '${run}' --intent 'bun test src' -- sh -c 'bun test src'`,
-    )
-    expect(bash.slice(1)).toEqual(['bun run lint', 'bun test'])
+    expect(bash[0]).toMatch(new RegExp(`^'jlock' run 'name:gt/repo/bun-test' --owner 'gt:${run}/T01/bash-[a-z0-9]+' --group '${run}' --intent 'bun test src' -- sh -c 'bun test src'$`))
+    const owners = bash.slice(0, 2).map((c) => /--owner '([^']+)'/.exec(c)![1]!)
+    expect(owners[1]).toMatch(new RegExp(`^gt:${run}/T01/bash-[a-z0-9]+$`))
+    expect(owners[0] === owners[1]).toBe(false)
+    expect(bash.slice(2)).toEqual(['bun run lint', 'bun test'])
   })
 
   test(`a subagent that ends with its task in progress gives it back to the queue (log agent-ended) · ${os}`, async ($, on) => {
@@ -161,7 +163,7 @@ for (const { os, root: ROOT } of ROOTS) {
     await $.command.run({ command: 'jtasks', args: '' } as never)
     await $.agent.spawn({ prompt: `--run ${run} --task T01 x`, description: 'T01', subagentType: 'general-purpose' } as never)
     await $.tool.call({ tool: 'mcp__jtasks__jtasks', command: 'start T01', agentId: 'agent-1' } as never)
-    expect(machine.locks.map((l) => l.owner)).toEqual([`gt:${run}/T01`])
+    expect(machine.locks.filter((l) => !l.key.startsWith('resource:')).map((l) => l.owner)).toEqual([`gt:${run}/T01`])
     // The ttl ran out: jlock no longer has it.
     machine.locks.splice(0)
     // The task's holds (the run's tree key, taken around the retake, is not one).
@@ -171,7 +173,7 @@ for (const { os, root: ROOT } of ROOTS) {
     await clock.advance(60_000)
     expect(holds()).toBe(before + 1)
     expect(taskHolds().at(-1)).toContain('--no-wait')
-    expect(machine.locks.map((l) => l.owner)).toEqual([`gt:${run}/T01`])
+    expect(machine.locks.filter((l) => !l.key.startsWith('resource:')).map((l) => l.owner)).toEqual([`gt:${run}/T01`])
     const log = machine.read(`${ROOT}/.scratch/jtasks/runs/${run}/log.jsonl`)!.trim().split('\n').map((l) => JSON.parse(l).action)
     expect(log).toContain('retake')
     // A task another session started is not this one's to renew.

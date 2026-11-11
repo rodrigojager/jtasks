@@ -88,7 +88,7 @@ describe("rev. 5.8 in OpenCode", () => {
   test("the limit of ends pauses the run for a person, and the root is told so", async () => {
     const s = await setup({ maxAgentEnded: 1 })
     s.h.emit("session.idle", { sessionID: "c1" })
-    await until(() => s.t01().status === "failed")
+    await until(() => s.t01().status === "failed" && JSON.parse(readFileSync(join(s.dir, "run.json"), "utf8")).status === "paused")
     expect(JSON.parse(readFileSync(join(s.dir, "run.json"), "utf8"))).toMatchObject({ status: "paused", needsPerson: { task: "T01", count: 1, max: 1 } })
     await until(() => s.toRoot().some((t) => t.includes("T01 failed and the run is paused for a person") && t.includes("The run is paused: do not call jtasks next or start.")))
   })

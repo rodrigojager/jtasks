@@ -3,7 +3,7 @@
 // reads) and the profile's effort on every model request of its loop; a profile the run does not have refuses the spawn. The `serialize` commands of the run, in a subagent's
 // Bash, run through `jlock run` (one at a time on the machine).
 
-import { boundData, readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr, taskOfPrompt } from '../core/core.js'
+import { boundData, jlockBin, readRun, readTasks, runDir, serializeEntry, serializeKey, type Host, tr, taskOfPrompt } from '../core/core.js'
 import type { BoundRun } from '../types'
 
 // `--run <id>` and `--task <id>` in a prompt: the core reads them (a placeholder such as `<id>` names no task).
@@ -57,5 +57,5 @@ export async function serializedCommand(host: Host, bound: BoundRun, command: st
   const entry = run ? serializeEntry(run.serialize, command) : undefined
   if (!entry) return undefined
   const key = serializeKey(bound.root, entry)
-  return `jlock run ${quote(key)} --owner ${quote(owner)} --group ${quote(bound.run)} --intent ${quote(command)} -- sh -c ${quote(command)}`
+  return `${quote(jlockBin(host))} run ${quote(key)} --owner ${quote(owner)} --group ${quote(bound.run)} --intent ${quote(command)} -- sh -c ${quote(command)}`
 }

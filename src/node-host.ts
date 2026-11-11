@@ -7,6 +7,9 @@ import * as path from "node:path"
 import type { DirEntry, FileStat, Host, Resident, RunOptions, RunResult, SpawnOptions } from "./host.ts"
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+// Keep draining the pipes without letting a noisy build exhaust the agent's memory.
+const MAX_OUTPUT_CHARS = 1024 * 1024
+const outputTail = (text: string, chunk: string) => (text + chunk).slice(-MAX_OUTPUT_CHARS)
 
 function kindOf(stat: { isFile(): boolean; isDirectory(): boolean }): "file" | "dir" | "other" {
   return stat.isFile() ? "file" : stat.isDirectory() ? "dir" : "other"
@@ -188,8 +191,16 @@ export function createNodeHost(): Host {
         let stderr = ""
         child.stdout.setEncoding("utf8")
         child.stderr.setEncoding("utf8")
-        child.stdout.on("data", (c: string) => (stdout += c))
-        child.stderr.on("data", (c: string) => (stderr += c))
+        let stdoutTruncated = false
+        let stderrTruncated = false
+        child.stdout.on("data", (c: string) => {
+          stdoutTruncated ||= stdout.length + c.length > MAX_OUTPUT_CHARS
+          stdout = outputTail(stdout, c)
+        })
+        child.stderr.on("data", (c: string) => {
+          stderrTruncated ||= stderr.length + c.length > MAX_OUTPUT_CHARS
+          stderr = outputTail(stderr, c)
+        })
         const timer = options.timeoutMs ? setTimeout(() => child.kill(), options.timeoutMs) : undefined
         if (child.pid !== undefined && options.onStart) void Promise.resolve(options.onStart(child.pid)).catch(() => {})
         child.on("error", (error) => {
@@ -198,7 +209,7 @@ export function createNodeHost(): Host {
         })
         child.on("close", (code) => {
           if (timer) clearTimeout(timer)
-          resolve({ code: code ?? 1, stdout, stderr })
+          resolve({ code: code ?? 1, stdout: (stdoutTruncated ? "[earlier stdout truncated]\n" : "") + stdout, stderr: (stderrTruncated ? "[earlier stderr truncated]\n" : "") + stderr })
         })
         child.stdin.on("error", () => {})
         child.stdin.end(options.stdin ?? "")

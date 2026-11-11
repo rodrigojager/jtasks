@@ -110,12 +110,12 @@ for (const { os, root: ROOT } of ROOTS) {
     // jlock's key for src/a.ts: Windows paths are case-insensitive, so the key is lowercased there.
     const key = os === 'windows' ? `${ROOT}/src/a.ts`.toLowerCase() : `${ROOT}/src/a.ts`
 
-    expect(await call($, 'start T01')).toContain(`T01 em andamento (tentativa 1): posse travada no jlock (1 chave(s), dono gt:${run}/T01)`)
+    expect(await call($, 'start T01')).toContain(`T01 em andamento (tentativa 1): posse travada no jlock (2 chave(s), dono gt:${run}/T01)`)
     // One call, the answer in hand; jlock's own keeper holds the lock until `release` or the run's ttl.
     expect(m.commands).toContain(
-      `jlock hold ${key} --owner gt:${run}/T01 --group ${run} --intent Base --meta task=T01 --meta run=${run} --meta tool=claude --meta session=session-1 --no-wait --ttl 2h --detach --json`,
+      `jlock hold ${key}@exclusive resource:machine@shared --owner gt:${run}/T01 --group ${run} --intent Base --meta task=T01 --meta run=${run} --meta tool=claude --meta session=session-1 --no-wait --ttl 2h --detach --json`,
     )
-    expect(m.locks.map((l) => [l.key, l.owner])).toEqual([[key, `gt:${run}/T01`]])
+    expect(m.locks.filter((l) => !l.key.startsWith('resource:')).map((l) => [l.key, l.owner])).toEqual([[key, `gt:${run}/T01`]])
     expect(await call($, 'status')).toContain(`travas ativas (jlock --group ${run}): src/a.ts → T01`)
     expect(await call($, 'done T01 --evidence ok')).toContain('T01 feita: nenhuma mudança na posse, sem commit; posse devolvida')
     expect(m.releases).toEqual([`gt:${run}/T01`])

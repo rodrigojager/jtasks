@@ -368,7 +368,9 @@ var en_default = {
   "help.doctor": "doctor [--fix [--yes]]                is this machine ready? --fix --yes installs what is missing",
   "help.done": 'done <id> --evidence "…"              checks git and ownership; commits the ownership; done',
   "help.effects": "effects --check                       compares the ledger with the disk and git",
-  "help.exec": "exec [--task <id>] -- <command…>      runs it (its pid goes in the task); serialize: one at a time",
+  "help.exec": `exec [--task <id>] -- <command…>      runs it (its pid goes in the task); serialize: one at a time
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 failed (blocks the tasks that depend on it)',
   "help.gc": "gc --scan <root> [--depth 4]          read-only report: orphan worktrees, runs, archives",
   "help.import": "import <folder> [--check|--yes]       Markdown tickets → a run (no Files → exclusive)",
@@ -960,7 +962,9 @@ var pt_BR_default = {
   "help.doctor": "doctor [--fix [--yes]]                a máquina está pronta? --fix --yes instala o que falta",
   "help.done": 'done <id> --evidence "…"              confere git e posse; commit só da posse; feita',
   "help.effects": "effects --check                       compara o ledger com o disco e o git",
-  "help.exec": "exec [--task <id>] -- <comando…>      roda o comando (pid na tarefa); os de serialize, um por vez",
+  "help.exec": `exec [--task <id>] -- <comando…>      roda o comando (pid na tarefa); os de serialize, um por vez
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 falha (bloqueia as dependentes)',
   "help.gc": "gc --scan <raiz> [--depth 4]          relatório só leitura: worktrees órfãs, execuções, arquivos",
   "help.import": "import <pasta> [--check|--yes]        tickets Markdown → execução (sem Files → exclusive)",
@@ -1552,7 +1556,9 @@ var es_default = {
   "help.doctor": "doctor [--fix [--yes]]                ¿está lista la máquina? --fix --yes instala lo que falta",
   "help.done": 'done <id> --evidence "…"              comprueba git y posesión; commit de la posesión; hecha',
   "help.effects": "effects --check                       compara el ledger con el disco y git",
-  "help.exec": "exec [--task <id>] -- <comando…>      lo ejecuta (su pid va en la tarea); serialize: uno a la vez",
+  "help.exec": `exec [--task <id>] -- <comando…>      lo ejecuta (su pid va en la tarea); serialize: uno a la vez
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 fallida (bloquea las tareas que dependen de ella)',
   "help.gc": "gc --scan <raíz> [--depth 4]          solo lectura: worktrees huérfanos, ejecuciones, archivos",
   "help.import": "import <carpeta> [--check|--yes]      tickets Markdown → una ejecución (sin Files → exclusive)",
@@ -2144,7 +2150,9 @@ var fr_default = {
   "help.doctor": "doctor [--fix [--yes]]                machine prête? --fix --yes installe ce qui manque",
   "help.done": 'done <id> --evidence "…"              vérifie git et possession; commite la possession; terminée',
   "help.effects": "effects --check                       compare le ledger avec le disque et git",
-  "help.exec": "exec [--task <id>] -- <commande…>     la lance (pid dans la tâche); serialize: une à la fois",
+  "help.exec": `exec [--task <id>] -- <commande…>     la lance (pid dans la tâche); serialize: une à la fois
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 en échec (bloque les tâches qui en dépendent)',
   "help.gc": "gc --scan <racine> [--depth 4]        lecture seule: worktrees orphelins, exécutions, archives",
   "help.import": "import <dossier> [--check|--yes]      tickets Markdown → une exécution (sans Files → exclusive)",
@@ -2736,7 +2744,9 @@ var de_default = {
   "help.doctor": "doctor [--fix [--yes]]                ist der Rechner bereit? --fix --yes installiert, was fehlt",
   "help.done": 'done <id> --evidence "…"              prüft git und Besitz; committet den Besitz; erledigt',
   "help.effects": "effects --check                       vergleicht das Ledger mit Festplatte und git",
-  "help.exec": "exec [--task <id>] -- <befehl…>       führt ihn aus (PID in der Aufgabe); serialize: einzeln",
+  "help.exec": `exec [--task <id>] -- <befehl…>       führt ihn aus (PID in der Aufgabe); serialize: einzeln
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 fehlgeschlagen (blockiert die abhängigen Aufgaben)',
   "help.gc": "gc --scan <wurzel> [--depth 4]        nur lesend: verwaiste Worktrees, Läufe, Archive",
   "help.import": "import <ordner> [--check|--yes]       Markdown-Tickets → ein Lauf (ohne Files → exclusive)",
@@ -3328,7 +3338,9 @@ var it_default = {
   "help.doctor": "doctor [--fix [--yes]]                la macchina è pronta? --fix --yes installa ciò che manca",
   "help.done": 'done <id> --evidence "…"              verifica git e possesso; commit del possesso; done',
   "help.effects": "effects --check                       confronta il ledger con il disco e git",
-  "help.exec": "exec [--task <id>] -- <comando…>      lo esegue (pid nell'attività); serialize: uno alla volta",
+  "help.exec": `exec [--task <id>] -- <comando…>      lo esegue (pid nell'attività); serialize: uno alla volta
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 fallita (blocca le attività che ne dipendono)',
   "help.gc": "gc --scan <radice> [--depth 4]        report in sola lettura: worktree orfani, esecuzioni, archivi",
   "help.import": "import <cartella> [--check|--yes]     ticket Markdown → esecuzione (senza Files → exclusive)",
@@ -3920,7 +3932,9 @@ var zh_CN_default = {
   "help.doctor": "doctor [--fix [--yes]]                本机是否就绪？--fix --yes 安装缺少的部分",
   "help.done": 'done <id> --evidence "…"              检查 git 和所有权；提交所有权内的文件；完成',
   "help.effects": "effects --check                       对照磁盘和 git 检查 ledger",
-  "help.exec": "exec [--task <id>] -- <命令…>         运行命令（pid 记入任务）；serialize 中的命令逐个运行",
+  "help.exec": `exec [--task <id>] -- <命令…>         运行命令（pid 记入任务）；serialize 中的命令逐个运行
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 失败（阻塞依赖它的任务）',
   "help.gc": "gc --scan <根目录> [--depth 4]        只读报告：孤立的 worktree、运行、归档",
   "help.import": "import <文件夹> [--check|--yes]       Markdown 工单 → 运行（无 Files → exclusive）",
@@ -4512,7 +4526,9 @@ var ja_default = {
   "help.doctor": "doctor [--fix [--yes]]                このマシンは準備済みか? --fix --yes で不足分をインストール",
   "help.done": 'done <id> --evidence "…"              git と所有権を確認し、所有権をコミット。完了',
   "help.effects": "effects --check                       ledger をディスクおよび git と照合する",
-  "help.exec": "exec [--task <id>] -- <コマンド…>     実行する（pid をタスクに記録）。serialize は 1 つずつ",
+  "help.exec": `exec [--task <id>] -- <コマンド…>     実行する（pid をタスクに記録）。serialize は 1 つずつ
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 失敗（依存するタスクをブロック）',
   "help.gc": "gc --scan <ルート> [--depth 4]        読み取り専用レポート: 孤立 worktree、実行、アーカイブ",
   "help.import": "import <フォルダ> [--check|--yes]     Markdown チケット → 実行（Files なし → exclusive）",
@@ -5104,7 +5120,9 @@ var ru_default = {
   "help.doctor": "doctor [--fix [--yes]]                машина готова? --fix --yes устанавливает недостающее",
   "help.done": 'done <id> --evidence "…"              проверяет git и владение; коммитит владение; done',
   "help.effects": "effects --check                       сверяет реестр с диском и git",
-  "help.exec": "exec [--task <id>] -- <команда…>      запускает (pid пишется в задачу); serialize — по одной",
+  "help.exec": `exec [--task <id>] -- <команда…>      запускает (pid пишется в задачу); serialize — по одной
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 провал (блокирует зависящие от неё задачи)',
   "help.gc": "gc --scan <корень> [--depth 4]        отчёт без изменений: брошенные worktree, прогоны, архивы",
   "help.import": "import <папка> [--check|--yes]        тикеты Markdown → прогон (без Files → exclusive)",
@@ -5696,7 +5714,9 @@ var ar_default = {
   "help.doctor": "doctor [--fix [--yes]]                هل الجهاز جاهز؟ --fix --yes يثبّت ما ينقص",
   "help.done": 'done <id> --evidence "…"              يفحص git والملكية؛ يودِع الملكية؛ done',
   "help.effects": "effects --check                       يقارن السجل بالقرص و git",
-  "help.exec": "exec [--task <id>] -- <command…>      يشغّله (pid في المهمة)؛ أوامر serialize واحدًا تلو الآخر",
+  "help.exec": `exec [--task <id>] -- <command…>      يشغّله (pid في المهمة)؛ أوامر serialize واحدًا تلو الآخر
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 فاشلة (تحجب المهام المعتمدة عليها)',
   "help.gc": "gc --scan <root> [--depth 4]          تقرير للقراءة فقط: worktree يتيمة، تشغيلات، أرشيفات",
   "help.import": "import <folder> [--check|--yes]       تذاكر Markdown → تشغيل (بلا Files → exclusive)",
@@ -6288,7 +6308,9 @@ var hi_default = {
   "help.doctor": "doctor [--fix [--yes]]                मशीन तैयार है? --fix --yes जो नहीं है उसे इंस्टॉल करता है",
   "help.done": 'done <id> --evidence "…"              git और स्वामित्व जाँचता है; स्वामित्व commit करता है; पूरा',
   "help.effects": "effects --check                       ledger की तुलना डिस्क और git से करता है",
-  "help.exec": "exec [--task <id>] -- <command…>      चलाता है (pid कार्य में दर्ज); serialize वाली एक-एक करके",
+  "help.exec": `exec [--task <id>] -- <command…>      चलाता है (pid कार्य में दर्ज); serialize वाली एक-एक करके
+      jlock >=0.4; --timeout <time>: default 10m (Claude 9m45s, its maximum).
+      Timeout exits 124; task stays in progress, with its edits and ownership.`,
   "help.fail": 'fail <id> --error "…"                 विफल (इस पर निर्भर कार्य अवरुद्ध)',
   "help.gc": "gc --scan <root> [--depth 4]          केवल-पढ़ने वाली रिपोर्ट: अनाथ worktree, रन, आर्काइव",
   "help.import": "import <folder> [--check|--yes]       Markdown टिकट → एक रन (Files नहीं → exclusive)",
@@ -7572,7 +7594,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.7.0";
+var VERSION = "0.8.0";
 
 class ToolError extends Error {
   code;
@@ -8031,7 +8053,7 @@ async function jlockRenew(host, group, owner, ttl) {
     throw failure(r.code, r.stdout, r.stderr, "renew");
   return { code: r.code, keys: parseAnswer(r.stdout)?.keys ?? [] };
 }
-var MIN_JLOCK = "0.3.0";
+var MIN_JLOCK = "0.4.2";
 var EOF_JLOCK = "0.1.1";
 var RENEW_JLOCK = "0.2.0";
 var versions = new Map;
@@ -12729,6 +12751,13 @@ defineAction("exec", async (ctx, args) => {
   const command = argv.join(" ");
   const entry = state ? serializeEntry(state.run.serialize, command) : undefined;
   const target = state ? execTask(ctx, state, args) : undefined;
+  const maxDeadline = ctx.host.maxRunTimeoutMs === undefined ? Infinity : ctx.host.maxRunTimeoutMs - 15000;
+  const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : Math.min(10 * 60000, maxDeadline);
+  if (timeoutMs > maxDeadline || timeoutMs <= 0)
+    throw new ToolError(`This host requires exec --timeout <= ${maxDeadline}ms to leave time for process cleanup.`, 2);
+  const version = await jlockVersion(ctx.host);
+  if (!versionAtLeast(version, MIN_JLOCK))
+    throw new ToolError(tr("jlock.too_old", { version, minimum: MIN_JLOCK }));
   const full = entry ? [
     jlockBin(ctx.host),
     "run",
@@ -12740,10 +12769,11 @@ defineAction("exec", async (ctx, args) => {
     "--intent",
     command,
     "--json",
+    "--total-timeout",
+    `${timeoutMs}ms`,
     "--",
     ...argv
-  ] : [...argv];
-  const timeoutMs = typeof args.options.timeout === "string" ? parseDuration(args.options.timeout) : 10 * 60000;
+  ] : [jlockBin(ctx.host), "exec", "--timeout", `${timeoutMs}ms`, "--", ...argv];
   const pids = [];
   let registering;
   const onStart = state && target ? (pid) => {
@@ -12758,7 +12788,7 @@ defineAction("exec", async (ctx, args) => {
       return;
     });
   } : undefined;
-  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs, env: jlockEnv(), ...onStart ? { onStart } : {} });
+  const r = await ctx.host.run(full, { cwd: ctx.cwd, timeoutMs: timeoutMs + 15000, env: jlockEnv(), ...onStart ? { onStart } : {} });
   await registering;
   if (state && target && pids.length)
     await unregisterProcs(ctx.host, state.dir, target.id, pids).catch(() => {});
@@ -12770,7 +12800,7 @@ defineAction("exec", async (ctx, args) => {
     code: r.code,
     text: `${output}${output ? `
 ` : ""}[${tr("exec.exit", { how, code: r.code })}${registered}]`,
-    data: { code: r.code, serialized: !!entry, ...target ? { task: target.id } : {}, ...pids.length ? { pid: pids[0] } : {} }
+    data: { code: r.code, timedOut: r.code === 124, timeoutMs, serialized: !!entry, ...target ? { task: target.id } : {}, ...pids.length ? { pid: pids[0] } : {} }
   };
 }, "help.exec");
 defineAction("ledger", async (ctx, args) => {

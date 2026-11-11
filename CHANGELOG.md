@@ -3,6 +3,19 @@
 What changed in each release that a user or an integrator notices. Earlier releases are described in
 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) and the history of `CLAUDE.md`.
 
+## 0.8.0
+
+Requires **jlock 0.4.2**. Compatible with existing 0.7 task events and the jlock 0.3 registry.
+Keep active installations intact and select the new versions only for new sessions.
+
+- Route every `exec` through jlock native process custody, including serialized commands and all three hosts.
+- Bound the complete exec, including the lock queue. Report timeout as 124 and `data.timedOut`, preserving task
+  ownership, edits and historical recovery behavior. Never automatically retry or release a task on timeout.
+- Bound Node/Bun output memory to the last 1 Mi characters per stream, without stopping pipe drainage.
+- Add deterministic regression coverage for shell descendants, serialization, cleanup and preserved task state.
+- Respect the Claude process API's 600-second cap, reserving cleanup time with a 585-second exec default and limit.
+- Provide an optional Windows OpenCode v2 launcher with private storage and both plugin entrypoints, preserving live installations.
+
 ## 0.7.0
 
 Needs **jlock 0.3.0** or newer (`jtasks doctor` fails on an older one). Runs and locks of 0.6 are not read: let every
