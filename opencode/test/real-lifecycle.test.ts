@@ -22,6 +22,7 @@ test.skipIf(!process.env.OPENCODE_BIN)("real OpenCode: background parent respond
   const ready = deferred<{ parent: number; grandchild: number }>()
   const closed = deferred<void>()
   const parentResponded = deferred<void>()
+  const parentHeld = deferred<void>()
   const ack = deferred<any>()
   const loaded = deferred<void>()
   let parentSteps = 0
@@ -40,6 +41,10 @@ test.skipIf(!process.env.OPENCODE_BIN)("real OpenCode: background parent respond
     const body = await request.json() as any
     const text = JSON.stringify(body.messages)
     const isParent = text.includes("PARENT_ACCEPTANCE")
+    if (isParent && text.includes("PARENT_ACCEPTANCE_INTERRUPT_WHILE_CHILD_GATED")) {
+      parentHeld.resolve()
+      return new Response(new ReadableStream(), { headers: { "content-type": "text/event-stream" } })
+    }
     console.log("scripted request:", isParent ? "parent" : "child", parentSteps, childSteps)
     let name: string | undefined
     let args: unknown
@@ -119,7 +124,9 @@ test.skipIf(!process.env.OPENCODE_BIN)("real OpenCode: background parent respond
     const listing = await api(`/api/session?parentID=${root}`)
     console.log("real child listing shape:", Object.keys(listing))
     const child = listing.data[0].id
-    // Interrupting the idle parent does not signal its independent child's invocation.
+    // Interrupt a real active parent execution, not an idle no-op. The child owns a different tool signal.
+    await api(`/api/session/${root}/prompt`, { text: "PARENT_ACCEPTANCE_INTERRUPT_WHILE_CHILD_GATED" })
+    await bounded(parentHeld.promise, "active parent execution")
     await api(`/api/session/${root}/interrupt?resume=false`, {})
     expect(await host.alive!(native.parent)).toBe(true)
     const cancelledAt = Date.now()
