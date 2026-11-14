@@ -3,6 +3,18 @@
 What changed in each release that a user or an integrator notices. Earlier releases are described in
 [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) and the history of `CLAUDE.md`.
 
+## 0.8.3
+
+- A process a task declared (`jtasks wait --pid`, `jtasks exec --task`) keeps its wait for as long as it lives, whatever
+  the host says about the agent. Before, when Claude Code stopped reporting the agent as waiting (a Monitor expires
+  after 30 minutes), the orchestrator was told "the process ended" with the process alive and, after `awaitGrace`,
+  the task went back to the queue.
+- A look at a process that fails or times out is no longer taken as its end: the wait is looked at again on the next
+  pass (and `release --agent-ended` waits for such a pid like a live one, logged under `unknown`). A `ps` stopped at
+  its deadline counts as such a look.
+- Known and not fixed: background work Claude Code starts by itself (a foreground command it moves to the background,
+  a Monitor) is known to the mod only through the agent's status at the end of its turn, which is sometimes missed.
+
 ## 0.8.2
 
 - Force recognized OpenCode task delegations into background mode, including omitted/false values, correct

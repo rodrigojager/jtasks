@@ -7594,7 +7594,7 @@ function resetJlockSetup() {
 }
 
 // src/tool.ts
-var VERSION = "0.8.2";
+var VERSION = "0.8.3";
 
 class ToolError extends Error {
   code;

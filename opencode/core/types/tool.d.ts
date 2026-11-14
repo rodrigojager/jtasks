@@ -2,7 +2,7 @@
 import type { CancellationSignal, Host, Resident } from "./host.js";
 import type { HoldMode } from "./jlock.js";
 import type { ToolName } from "./schema.js";
-export declare const VERSION = "0.8.2";
+export declare const VERSION = "0.8.3";
 export interface ToolContext {
     host: Host;
     /** The host tool invocation's cancellation, not the parent delegation's lifetime. */

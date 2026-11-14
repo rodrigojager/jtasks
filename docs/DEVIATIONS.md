@@ -419,7 +419,7 @@ The old ProfileConfigDir and BunCommand parameters remain accepted for existing 
 Tests exercise the actual PowerShell child environment, preserved settings, rejected separate-server flags,
 read-only preflight and native exit status. No change to task storage, locks, recovery or the Claude runtime.
 
-## 22. A declared process outlives the host's word, and a look that fails is not an end (after 0.8.2)
+## 22. A declared process outlives the host's word, and a look that fails is not an end (0.8.3)
 
 Deviation 17 let the host answer alone for a wait the host itself declared (`--waiting`): once Claude Code no longer
 reported the agent as `waiting`, the wait counted as ended without a look at the pids declared in it. It also
