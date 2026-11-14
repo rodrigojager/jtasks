@@ -4,8 +4,9 @@
 // log.jsonl every two seconds (and at once after the mod's own `release --agent-ended`), sent to the main loop as a
 // message through the keepalive's delivery (a plugin prompt, which enters once the session is idle), with the run's
 // status line, and shown to the person (toast, notification). It does not wait for a ready task. The same clock
-// looks at the tasks waiting for a process every ten seconds (core's sweepAwaiting): with the agent's status from
-// $.agent.list for a wait the mod declared, with the pids for one `jtasks exec`/`wait` registered.
+// looks at the tasks waiting for a process every ten seconds (core's sweepAwaiting): with the pids `jtasks exec`/`wait`
+// registered whenever there is one (a live one keeps the wait whatever the agent's status), and with the agent's
+// status from $.agent.list for a wait the mod declared.
 
 import { boundData, alertNotice, alertText, logEnd, readAlerts, readRun, readTasks, runDir, sweepAwaiting, type Task, type ToolContext } from '../core/core.js'
 import { createModHost, type Port } from './mod-host.ts'
@@ -84,10 +85,14 @@ export class AlertWatch {
     return text
   }
 
-  /** Whether the agent a task waits for is still waiting (its status), or undefined when the engine does not say. */
+  /**
+   * Whether the agent a task waits for is still waiting (its status), or undefined when the engine does not say (the
+   * core then ends nothing on this pass). A wait that names no agent has nobody waiting. The answer is about the
+   * agent only: a declared process that lives keeps the wait in the core whatever is said here.
+   */
   private async agentWaits(task: Task): Promise<boolean | undefined> {
     const agent = task.awaiting?.agent
-    if (!agent) return undefined
+    if (!agent) return false
     const list = await this.ui.agents().catch(() => undefined)
     if (!list) return undefined
     const found = list.find((a) => a.id === agent)

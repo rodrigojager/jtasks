@@ -181,9 +181,10 @@ export interface AgentEnd {
 }
 /**
  * The subagent of an in-progress task ended its loop (`release --agent-ended`, the host's end of a subagent), or the
- * wait for its process ran out (`expired`). Its registered processes are looked at first: while one lives (or the host
- * says the agent waits, `waiting`), the task waits for it in progress, with its locks; otherwise it goes back to the
- * queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person.
+ * wait for its process ran out (`expired`). Its registered processes are looked at first: while one lives or could not
+ * be looked at (or the host says the agent waits, `waiting`), the task waits for it in progress, with its locks;
+ * otherwise it goes back to the queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the
+ * run pauses for a person.
  */
 export declare function agentEnded(ctx: ToolContext, args: ParsedArgs, opts?: {
     waiting?: string;
@@ -207,7 +208,9 @@ export interface AwaitEvent {
  * ended is marked (`endedAt`: the subagent should come back now, and the host or the orchestrator resumes it); one
  * whose subagent did not come back within the run's `awaitGrace` counts as ended (`agentEnded`, `expired`). `host`
  * answers for a wait the host itself declared (`--waiting`): true while its agent still waits, false once it does not,
- * undefined when it cannot tell (the pids decide then; with none, such a wait is left for its host). Never throws.
+ * undefined when it cannot tell. Its `true` keeps the wait; its `false` ends only a wait with no declared process,
+ * because a declared process that lives (or that the system could not tell about) keeps the wait whatever the host
+ * says; with no process declared and no answer from the host, the wait is left as it is. Never throws.
  *
  * `agentAlive` (a host that knows its agents' status) also catches a task that lost its wait: in progress, not
  * awaiting, its subagent not alive, and processes registered in it still running (the wait cleared by someone

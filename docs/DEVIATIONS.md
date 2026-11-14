@@ -418,3 +418,36 @@ and modules they loaded; installing a plugin and applying it to an existing serv
 The old ProfileConfigDir and BunCommand parameters remain accepted for existing wrappers, but are unused.
 Tests exercise the actual PowerShell child environment, preserved settings, rejected separate-server flags,
 read-only preflight and native exit status. No change to task storage, locks, recovery or the Claude runtime.
+
+## 22. A declared process outlives the host's word, and a look that fails is not an end (after 0.8.2)
+
+Deviation 17 let the host answer alone for a wait the host itself declared (`--waiting`): once Claude Code no longer
+reported the agent as `waiting`, the wait counted as ended without a look at the pids declared in it. It also
+counted a pid the system could not tell about as dead.
+
+In a 26-task run on Windows with 0.8.2, subagents declared their test runs with `jtasks wait <id> --pid`, armed a
+`Monitor` on the same process and ended their turns. Claude Code reported such an agent as `waiting`, so the mod
+declared the wait with `--waiting` as well. A Monitor lives 30 minutes at most. When it expired the agent left
+`waiting`, and 4 to 9 seconds later the clock announced "the process its subagent waited for ended" with the process
+alive. The six waits declared that way that neither their agent nor their process ended first all stopped at 29.4 to
+29.9 minutes; the waits that carried only pids ran for anything up to two hours. Four tasks went back to pending
+after `awaitGrace`, their edits taken out of the tree as patches while their tests still ran.
+
+What changed:
+
+- `sweepAwaiting`: the host's `true` still keeps a wait, and its `false` still ends a wait with no declared process.
+  A wait with declared pids is decided by them: one alive keeps it, whatever the host says about the agent.
+- A look that fails or times out is not an answer. `lookProcs` (`src/procs.ts`) tells `live`, `unknown` and gone
+  apart. The clock leaves a wait with an unknown pid for the next pass, and `release --agent-ended` waits for an
+  unknown pid like a live one (the `await` log entry lists it under `unknown`). A `ps` stopped at its 15 s deadline is
+  unknown, not "no such process". A host that could not read its agents ends nothing on that pass.
+
+Consequence: a task is no longer given back because a probe did not answer. If the system's tools stopped answering
+for good, the task would stay waiting (shown by `status`) until its subagent came back or someone released it. Every
+registered pid was seen alive once by those same tools, so a host that cannot look at pids at all has none to be
+unsure about, and still gives the task back at once.
+
+Not covered: background work that only Claude Code knows (a foreground Bash command it moved to the background by
+itself, a `Monitor`) with no pid declared. The mod learns of it from the agent's status at the end of the turn, and in
+that run the status did not say `waiting` in 10 of the 39 turn ends where nothing else did; in two of them no declared
+process was alive and the task was given back. Declaring the pid with `jtasks wait <id> --pid` avoids it.

@@ -61,7 +61,7 @@ import {
 } from "./keep.ts"
 import { clearKeepalive, keepaliveStatus, keepaliveTries, progressSignature, readKeepalive, rearmKeepalive } from "./keepalive.ts"
 import { agentOfOwner, formatWhen, kindLabel, resumeText } from "./transient.ts"
-import { awaitGraceMs, awaitingWhat, liveProcs, probe, procAlive, registerProcs, shortCommand, unregisterProcs } from "./procs.ts"
+import { awaitGraceMs, awaitingWhat, liveProcs, lookProcs, probe, procAlive, registerProcs, shortCommand, unregisterProcs } from "./procs.ts"
 import { slugify } from "./ids.ts"
 import { describeResource, loadResources, usesSuffix } from "./resources.ts"
 import { canonical, covers, isResourceKey, normalizeKey, sameFamily, type LockSpec } from "./keys.ts"
@@ -1507,9 +1507,10 @@ export interface AgentEnd {
 
 /**
  * The subagent of an in-progress task ended its loop (`release --agent-ended`, the host's end of a subagent), or the
- * wait for its process ran out (`expired`). Its registered processes are looked at first: while one lives (or the host
- * says the agent waits, `waiting`), the task waits for it in progress, with its locks; otherwise it goes back to the
- * queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the run pauses for a person.
+ * wait for its process ran out (`expired`). Its registered processes are looked at first: while one lives or could not
+ * be looked at (or the host says the agent waits, `waiting`), the task waits for it in progress, with its locks;
+ * otherwise it goes back to the queue without spending an attempt, and at the run's `maxAgentEnded` it fails and the
+ * run pauses for a person.
  */
 export async function agentEnded(
   ctx: ToolContext,
@@ -1529,19 +1530,22 @@ export async function agentEnded(
     const w = opts.wait
     if (opts.expired && (!task.awaiting || (w && (task.awaiting.since !== w.since || task.awaiting.endedAt !== w.endedAt || (w.gen !== undefined && draft.gen(task.id) !== w.gen)))))
       throw new ToolError(tr("wait.back", { id: task.id }))
-    const live = opts.expired ? [] : await liveProcs(ctx.host, task.procs ?? [])
-    const waits = live.length > 0 || !!waiting
+    // A process the system could not tell about (the look failed or timed out) is waited for like a live one: the
+    // clock looks at it again, and only a process seen gone lets the task go back to the queue.
+    const look = await lookProcs(ctx.host, opts.expired ? [] : task.procs ?? [])
+    const held = [...look.live, ...look.unknown].sort((a, b) => (task.procs ?? []).indexOf(a) - (task.procs ?? []).indexOf(b))
+    const waits = held.length > 0 || !!waiting
     outcome = waits ? "awaiting" : "pending"
     const now = ctx.host.now().toISOString()
     max = state.run.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED
     count = task.agentEnded ?? 0
     if (waits) {
       const agent = ctx.agent ?? task.awaiting?.agent ?? agentOfOwner(task.owner)
-      const awaiting: Awaiting = { since: now, pids: live.map((p) => p.pid) }
+      const awaiting: Awaiting = { since: now, pids: held.map((p) => p.pid) }
       if (agent) awaiting.agent = agent
       if (waiting) awaiting.host = waiting
       task.awaiting = awaiting
-      return { pids: awaiting.pids, ...(waiting ? { host: waiting } : {}), ...(agent ? { agent } : {}) }
+      return { pids: awaiting.pids, ...(look.unknown.length ? { unknown: look.unknown.map((p) => p.pid) } : {}), ...(waiting ? { host: waiting } : {}), ...(agent ? { agent } : {}) }
     }
     kept = await keepTask(ctx, state, task)
     count += 1
@@ -1622,7 +1626,9 @@ export interface AwaitEvent {
  * ended is marked (`endedAt`: the subagent should come back now, and the host or the orchestrator resumes it); one
  * whose subagent did not come back within the run's `awaitGrace` counts as ended (`agentEnded`, `expired`). `host`
  * answers for a wait the host itself declared (`--waiting`): true while its agent still waits, false once it does not,
- * undefined when it cannot tell (the pids decide then; with none, such a wait is left for its host). Never throws.
+ * undefined when it cannot tell. Its `true` keeps the wait; its `false` ends only a wait with no declared process,
+ * because a declared process that lives (or that the system could not tell about) keeps the wait whatever the host
+ * says; with no process declared and no answer from the host, the wait is left as it is. Never throws.
  *
  * `agentAlive` (a host that knows its agents' status) also catches a task that lost its wait: in progress, not
  * awaiting, its subagent not alive, and processes registered in it still running (the wait cleared by someone
@@ -1674,13 +1680,21 @@ export async function sweepAwaiting(
     // The task's generation when its wait was looked at: a decision on that picture lands only if it did not move.
     let gen = first.gens?.tasks[task.id] ?? 0
     try {
-      let alive = a.host && host ? await host(task).catch(() => undefined) : undefined
-      if (alive === undefined) {
-        if (a.host && !host && !a.pids.length) continue
+      // The host's word, for a wait the host itself declared: while its agent still waits, nothing ended.
+      const says = a.host && host ? await host(task).catch(() => undefined) : undefined
+      if (says === true) continue
+      if (a.pids.length) {
+        // The declared processes decide, whatever the host says: its agent no longer waiting is not their end (a
+        // watch of Claude Code expires after 30 min while the process it watched runs on; 0.8.2 told that as "the
+        // process ended" and gave the task back). One the system could not tell about (the look failed or timed
+        // out) is not ended either: it is looked at again on the next pass.
         const procs: TaskProcess[] = a.pids.map((pid) => task.procs?.find((p) => p.pid === pid) ?? { pid, startedAt: a.since, command: "", by: "wait" })
-        alive = (await liveProcs(ctx.host, procs)).length > 0
+        const look = await lookProcs(ctx.host, procs)
+        if (look.live.length || look.unknown.length) continue
+      } else if (a.host && says === undefined) {
+        // No process declared: only its host can end this wait, and it is not here to ask or could not tell.
+        continue
       }
-      if (alive) continue
       if (a.inline) {
         // The orchestrator's own process ended: no subagent to wait for, the wait is simply over. The task goes
         // back to being the orchestrator's to continue (told at once by the `await-ended` alert).

@@ -11,6 +11,8 @@ export declare function parseTasklist(text: string, pid: number): Probe;
 /**
  * Looks at a pid. `withImage`: the executable too (to tell a reused pid apart), from the system's own tools; without
  * it, the host's cheap answer when it has one (Node's signal 0). Windows: `tasklist`; elsewhere: `ps -p <pid>`.
+ * A look that fails or is stopped at its deadline (a busy machine) could not tell (`alive: undefined`): only the
+ * system's own "no such process" is `alive: false`.
  */
 export declare function probe(host: Host, pid: number, withImage?: boolean): Promise<Probe>;
 /**
@@ -19,9 +21,16 @@ export declare function probe(host: Host, pid: number, withImage?: boolean): Pro
  */
 export declare function procAlive(host: Host, proc: TaskProcess): Promise<boolean | undefined>;
 /**
- * The processes of the list still alive. One the system could not tell about counts as ended: a host that cannot look
- * at pids gives the task back as before, never keeps it waiting for ever.
+ * The processes of the list by what the system says: `live` (seen alive) and `unknown` (it could not tell: the look
+ * failed or timed out). The rest were seen gone. An unknown one is never taken as ended by who decides on a wait: it
+ * is looked at again on the next pass. (Every registered pid was seen alive once, by `wait --pid` or by the host that
+ * started it, so a host that cannot look at pids at all has none to be unsure about.)
  */
+export declare function lookProcs(host: Host, procs: TaskProcess[]): Promise<{
+    live: TaskProcess[];
+    unknown: TaskProcess[];
+}>;
+/** The processes of the list seen alive (one the system could not tell about is not in it). */
 export declare function liveProcs(host: Host, procs: TaskProcess[]): Promise<TaskProcess[]>;
 /** A command line cut for the task's list and the messages. */
 export declare function shortCommand(command: string, max?: number): string;

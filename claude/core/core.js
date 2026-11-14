@@ -10886,6 +10886,7 @@ function parseTasklist(text, pid) {
 function base(path) {
   return path.replace(/\\/g, "/").split("/").pop() ?? path;
 }
+var PROBE_TIMEOUT_MS = 15000;
 async function probe(host, pid, withImage = false) {
   if (!Number.isInteger(pid) || pid <= 0)
     return { alive: false };
@@ -10897,14 +10898,17 @@ async function probe(host, pid, withImage = false) {
       return { alive };
   }
   if (host.platform === "win32") {
-    const r2 = await host.run(["tasklist", "/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { timeoutMs: 15000 });
+    const r2 = await host.run(["tasklist", "/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], { timeoutMs: PROBE_TIMEOUT_MS });
     return r2.code === 0 ? parseTasklist(r2.stdout, pid) : { alive: undefined };
   }
-  const r = await host.run(["ps", "-p", String(pid), "-o", "comm="], { timeoutMs: 15000 });
+  const started = host.now().getTime();
+  const r = await host.run(["ps", "-p", String(pid), "-o", "comm="], { timeoutMs: PROBE_TIMEOUT_MS });
   if (r.code === 127)
     return { alive: undefined };
   const name = r.stdout.trim();
-  return r.code === 0 && name ? { alive: true, image: base(name) } : { alive: false };
+  if (r.code === 0 && name)
+    return { alive: true, image: base(name) };
+  return host.now().getTime() - started >= PROBE_TIMEOUT_MS ? { alive: undefined } : { alive: false };
 }
 async function procAlive(host, proc) {
   const p = await probe(host, proc.pid, !!proc.image);
@@ -10914,14 +10918,22 @@ async function procAlive(host, proc) {
     return false;
   return true;
 }
-async function liveProcs(host, procs) {
-  const out = [];
-  for (const p of procs)
-    if (await procAlive(host, p).catch(() => {
+async function lookProcs(host, procs) {
+  const live = [];
+  const unknown = [];
+  for (const p of procs) {
+    const alive = await procAlive(host, p).catch(() => {
       return;
-    }) === true)
-      out.push(p);
-  return out;
+    });
+    if (alive === true)
+      live.push(p);
+    else if (alive === undefined)
+      unknown.push(p);
+  }
+  return { live, unknown };
+}
+async function liveProcs(host, procs) {
+  return (await lookProcs(host, procs)).live;
 }
 function shortCommand(command, max = 120) {
   const one = command.trim().replace(/\s+/g, " ");
@@ -12232,21 +12244,22 @@ async function agentEnded(ctx, args, opts = {}) {
     const w = opts.wait;
     if (opts.expired && (!task.awaiting || w && (task.awaiting.since !== w.since || task.awaiting.endedAt !== w.endedAt || w.gen !== undefined && draft.gen(task.id) !== w.gen)))
       throw new ToolError(tr("wait.back", { id: task.id }));
-    const live = opts.expired ? [] : await liveProcs(ctx.host, task.procs ?? []);
-    const waits = live.length > 0 || !!waiting;
+    const look = await lookProcs(ctx.host, opts.expired ? [] : task.procs ?? []);
+    const held = [...look.live, ...look.unknown].sort((a, b) => (task.procs ?? []).indexOf(a) - (task.procs ?? []).indexOf(b));
+    const waits = held.length > 0 || !!waiting;
     outcome = waits ? "awaiting" : "pending";
     const now = ctx.host.now().toISOString();
     max = state.run.maxAgentEnded ?? DEFAULT_MAX_AGENT_ENDED;
     count = task.agentEnded ?? 0;
     if (waits) {
       const agent = ctx.agent ?? task.awaiting?.agent ?? agentOfOwner(task.owner);
-      const awaiting = { since: now, pids: live.map((p) => p.pid) };
+      const awaiting = { since: now, pids: held.map((p) => p.pid) };
       if (agent)
         awaiting.agent = agent;
       if (waiting)
         awaiting.host = waiting;
       task.awaiting = awaiting;
-      return { pids: awaiting.pids, ...waiting ? { host: waiting } : {}, ...agent ? { agent } : {} };
+      return { pids: awaiting.pids, ...look.unknown.length ? { unknown: look.unknown.map((p) => p.pid) } : {}, ...waiting ? { host: waiting } : {}, ...agent ? { agent } : {} };
     }
     kept = await keepTask(ctx, state, task);
     count += 1;
@@ -12356,17 +12369,19 @@ async function sweepAwaiting(ctx, run, host, agentAlive) {
     const a = task.awaiting;
     let gen = first.gens?.tasks[task.id] ?? 0;
     try {
-      let alive = a.host && host ? await host(task).catch(() => {
+      const says = a.host && host ? await host(task).catch(() => {
         return;
       }) : undefined;
-      if (alive === undefined) {
-        if (a.host && !host && !a.pids.length)
-          continue;
-        const procs = a.pids.map((pid) => task.procs?.find((p) => p.pid === pid) ?? { pid, startedAt: a.since, command: "", by: "wait" });
-        alive = (await liveProcs(ctx.host, procs)).length > 0;
-      }
-      if (alive)
+      if (says === true)
         continue;
+      if (a.pids.length) {
+        const procs = a.pids.map((pid) => task.procs?.find((p) => p.pid === pid) ?? { pid, startedAt: a.since, command: "", by: "wait" });
+        const look = await lookProcs(ctx.host, procs);
+        if (look.live.length || look.unknown.length)
+          continue;
+      } else if (a.host && says === undefined) {
+        continue;
+      }
       if (a.inline) {
         const over = await decide(ctx, first, "await-ended", (_state, draft) => {
           const t = draft.tasks.tasks.find((x) => x.id === task.id);
@@ -14843,6 +14858,7 @@ export {
   missingKeys,
   mergeSpecs,
   markLost,
+  lookProcs,
   logEnd,
   log,
   loadView,

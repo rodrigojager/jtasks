@@ -390,6 +390,12 @@ the sidebar show it), with its locks and nothing spent. The same subagent coming
 reopens it when its background work ends; in OpenCode the host tells the orchestrator to resume the session with
 `task_id`). If the process ended and the subagent did not come back within `awaitGrace` (5 min), it counts as ended.
 
+A declared process that is alive keeps the wait, whatever the host says about its agent: in Claude Code a watch
+(`Monitor`) lives 30 minutes at most, and when it expires the agent no longer counts as `waiting` while the process it
+watched runs on. The host's word alone ends only a wait with no declared process. A look at a pid that fails or times
+out (`tasklist`, `ps`, the host's list of agents on a busy machine) is not an answer: the task goes on waiting and the
+next pass looks again; only a process seen gone is taken as ended.
+
 Only that subagent ends the wait: a `jtasks wait <id> --pid` (or an `exec`) from the orchestrator, from the CLI or
 from another agent on a waiting task leaves it waiting, adds any new pid to the wait and answers that the task still
 waits for its subagent and is not the caller's to touch. The orchestrator never calls `wait` on such a task. A task

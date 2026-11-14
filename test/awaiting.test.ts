@@ -8,6 +8,7 @@ import { dirname, join } from "node:path"
 import { agentEnded, awaitBack, sweepAwaiting } from "../src/actions.ts"
 import { alertNotice, alertText, logEnd, readAlerts } from "../src/alerts.ts"
 import { checkKeepalive } from "../src/keepalive.ts"
+import type { Host } from "../src/host.ts"
 import { parseTasklist, probe, procAlive } from "../src/procs.ts"
 import type { RunFile, TasksFile } from "../src/schema.ts"
 import { cleanupTemp, context, host, jlockListJson, makeRepo, releaseGroup, tasks, tasksOk, runPath, dataPath } from "./helpers.ts"
@@ -173,6 +174,94 @@ describe("the end of a subagent", () => {
     expect(heldBy(run, "T01")).toHaveLength(0)
     expect(logOf(dir).some((e) => e.action === "agent-ended" && e.expired === true)).toBe(true)
   }, 60_000)
+
+  test("a declared process that lives keeps the wait when the host says its agent no longer waits (a watch of Claude Code expired)", async () => {
+    // 0.8.2: a subagent declared its test run with `wait --pid`, armed a Monitor on it (30 min at most) and ended its
+    // turn. When the Monitor expired Claude Code no longer counted the agent as waiting, and the clock took that as
+    // the end of the process: "the process its subagent waited for ended" with the process alive, then back to pending.
+    const { repo, run, dir } = await newRun({ awaitGrace: "1ms" })
+    const agent = { tool: "claude" as const, session: "s1", agent: "a1" }
+    await tasksOk(repo, ["start", "T01"], agent)
+    const child = sleeper()
+    await tasksOk(repo, ["wait", "T01", "--pid", String(child.pid), "--command", "npm run test:ui"], agent)
+    const word = "Claude Code: the agent waits on background work it owns"
+    await tasksOk(repo, ["release", "T01", "--agent-ended", "--waiting", word], agent)
+    expect(t01(dir).awaiting).toMatchObject({ pids: [child.pid], host: word, agent: "a1" })
+    const ctx = context(repo, { tool: "claude" as const, session: "s1" })
+    // The agent still waits: nothing to say.
+    expect(await sweepAwaiting(ctx, run, async () => true)).toEqual([])
+    // It no longer waits, and the declared process runs on: the process decides, pass after pass.
+    for (let i = 0; i < 3; i++) expect(await sweepAwaiting(ctx, run, async () => false)).toEqual([])
+    expect(t01(dir)).toMatchObject({ status: "in_progress", attempts: 1, awaiting: { pids: [child.pid] } })
+    expect(t01(dir).awaiting?.endedAt).toBeUndefined()
+    expect(t01(dir).agentEnded).toBeUndefined()
+    expect(logOf(dir).some((e) => e.action === "await-ended" || e.action === "agent-ended")).toBe(false)
+    expect(heldBy(run, "T01")).toHaveLength(1)
+    // The process really ends: only now is its end told.
+    child.kill()
+    await child.exited
+    expect(await sweepAwaiting(ctx, run, async () => false)).toEqual([{ task: "T01", what: "ended", agent: "a1" }])
+    expect(logOf(dir).at(-1)).toMatchObject({ action: "await-ended", task: "T01", pids: [child.pid], agent: "a1" })
+  })
+
+  test("the host's word alone still ends a wait with no declared process; a host that cannot tell ends nothing", async () => {
+    const { repo, run, dir } = await newRun({ awaitGrace: "1h" })
+    const agent = { tool: "claude" as const, session: "s1", agent: "a1" }
+    await tasksOk(repo, ["start", "T01"], agent)
+    await tasksOk(repo, ["release", "T01", "--agent-ended", "--waiting", "background: bun test"], agent)
+    expect(t01(dir).awaiting).toMatchObject({ pids: [], host: "background: bun test", agent: "a1" })
+    const ctx = context(repo, { tool: "claude" as const, session: "s1" })
+    // The host could not read its agents this time: not an answer, the wait is left as it is.
+    expect(await sweepAwaiting(ctx, run, async () => undefined)).toEqual([])
+    expect(await sweepAwaiting(ctx, run, async () => { throw new Error("agent.list failed") })).toEqual([])
+    expect(t01(dir).awaiting?.endedAt).toBeUndefined()
+    // The host says the agent no longer waits, and no process was declared: that is the end of the wait.
+    expect(await sweepAwaiting(ctx, run, async () => false)).toEqual([{ task: "T01", what: "ended", agent: "a1" }])
+    expect(t01(dir).awaiting?.endedAt).toBeString()
+  })
+
+  test("a look at a pid that fails or times out is never the end of the process", async () => {
+    // The system's answer does not come (tasklist/ps stopped at its deadline on a busy machine, or failing).
+    const blind: Host = {
+      ...host,
+      alive: async () => undefined,
+      run: (argv, options) => (argv[0] === "tasklist" || argv[0] === "ps" ? Promise.resolve({ code: 127, stdout: "", stderr: "timed out" }) : host.run(argv, options)),
+    }
+    const { repo, run, dir } = await newRun({ awaitGrace: "1ms" })
+    await tasksOk(repo, ["start", "T01"])
+    const child = sleeper()
+    await tasksOk(repo, ["wait", "T01", "--pid", String(child.pid)])
+    // The subagent's loop ends while the look fails: the task waits for the process, it is not given back.
+    const r = await tasksOk(repo, ["release", "T01", "--agent-ended"], { host: blind })
+    expect(r.data).toMatchObject({ outcome: "awaiting", status: "in_progress" })
+    expect(t01(dir)).toMatchObject({ status: "in_progress", attempts: 1, awaiting: { pids: [child.pid] } })
+    expect(logOf(dir).at(-1)).toMatchObject({ action: "await", task: "T01", pids: [child.pid], unknown: [child.pid] })
+    expect(heldBy(run, "T01")).toHaveLength(1)
+    // The clock's look fails too: nothing ended, nothing marked, however many passes.
+    for (let i = 0; i < 3; i++) expect(await sweepAwaiting(context(repo, { host: blind }), run)).toEqual([])
+    expect(t01(dir).awaiting?.endedAt).toBeUndefined()
+    expect(logOf(dir).some((e) => e.action === "await-ended" || e.action === "agent-ended")).toBe(false)
+    // The system answers again: alive is alive, and gone is the end.
+    expect(await sweepAwaiting(context(repo), run)).toEqual([])
+    child.kill()
+    await child.exited
+    expect((await sweepAwaiting(context(repo), run)).map((e) => e.what)).toEqual(["ended"])
+  })
+
+  test("probe: a ps stopped at its deadline could not tell (its exit status reads like \"no such process\")", async () => {
+    let clock = Date.parse("2026-11-13T18:14:42.000Z")
+    const slow = (ms: number): Host => ({
+      ...host,
+      platform: "linux",
+      now: () => new Date(clock),
+      run: async () => {
+        clock += ms
+        return { code: 1, stdout: "", stderr: "" }
+      },
+    })
+    expect((await probe(slow(40), 4242, true)).alive).toBe(false)
+    expect((await probe(slow(15_000), 4242, true)).alive).toBeUndefined()
+  })
 
   test("maxAgentEnded: the last end fails the task and pauses the run for a person; unpause and retry go on", async () => {
     const { repo, run, dir } = await newRun({ maxAgentEnded: 2, maxAttempts: 1 })

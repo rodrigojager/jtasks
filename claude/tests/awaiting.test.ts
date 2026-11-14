@@ -117,6 +117,37 @@ for (const { os, root: ROOT } of ROOTS) {
     expect(s.submitted.some((m) => m.includes('T13: its subagent did not come back after its process ended: back to pending'))).toBe(true)
   })
 
+  test(`a watch of Claude Code expires while the declared process runs: the task keeps waiting for the process · ${os}`, async ($, on) => {
+    // 0.8.2: the agent declared its test run (wait --pid), armed a Monitor on it and ended its turn. A Monitor lives
+    // 30 min at most: when it expired the agent was no longer `waiting`, and the clock said "the process its subagent
+    // waited for ended" with the process alive, then gave the task back after awaitGrace.
+    const s = await scene($, on, { awaitGrace: '1ms' })
+    s.machine.alive.add(4242)
+    await $.tool.call({ tool: TOOL, command: 'wait T13 --pid 4242 --command "npm run test:ui"', agentId: 'agent-1' } as never)
+    s.agents[0]!.status = 'waiting'
+    await s.end('t1')
+    expect(s.t13()).toMatchObject({ status: 'in_progress', awaiting: { agent: 'agent-1', pids: [4242], host: 'Claude Code: the agent waits on background work it owns' } })
+    // The Monitor expires: Claude Code no longer counts the agent as waiting, and the process runs on.
+    s.agents[0]!.status = 'completed'
+    for (let i = 0; i < 12; i++) {
+      await s.clock.advance(2000)
+      await s.clock.settle()
+    }
+    expect(s.log().some((e) => e.action === 'await-ended' || e.action === 'agent-ended')).toBe(false)
+    expect(s.t13()).toMatchObject({ status: 'in_progress', attempts: 1, awaiting: { pids: [4242] } })
+    expect(s.t13().awaiting.endedAt).toBeUndefined()
+    expect(s.submitted.some((m) => m.includes('the process its subagent waited for ended'))).toBe(false)
+    expect(s.machine.releases).toEqual([])
+    // The process ends: only now is the orchestrator told to resume the agent.
+    s.machine.alive.delete(4242)
+    for (let i = 0; i < 5; i++) {
+      await s.clock.advance(2000)
+      await s.clock.settle()
+    }
+    expect(s.log().some((e) => e.action === 'await-ended' && e.task === 'T13')).toBe(true)
+    expect(s.submitted.some((m) => m.includes('T13: the process its subagent waited for ended.') && m.includes('SendMessage to agent agent-1'))).toBe(true)
+  })
+
   test(`the orchestrator's wait on a task waiting for its subagent's process keeps the wait (T17, fase3) · ${os}`, async ($, on) => {
     const s = await scene($, on, { awaitGrace: '1h' })
     s.machine.alive.add(4242)
